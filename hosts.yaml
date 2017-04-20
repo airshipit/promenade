@@ -1,0 +1,38 @@
+#Sample Hosts File with variables
+
+#For Single node deployments, make sure that the bootstrap node is listed as a master and worker node as well.
+[bootstrap]
+192.168.0.1
+
+[master]
+#Make sure bootstrap node is first master node
+192.168.0.1
+192.168.0.2
+
+[workers]
+192.168.0.3
+
+
+[bootstrap:vars]
+node_master=true
+bootstrap_enabled=false
+boot_kube_version="v0.3.12"
+
+
+[master:vars]
+node_master=true
+cni_version="v0.5.1"
+hyperkube_version="v1.5.6"
+kubelet_version="v1.5.6"
+calicoctl_version="v1.1.0"
+calico_peer1="192.168.0.4"
+calico_peer2="192.168.0.5"
+deploy_pods_master=true
+
+[all:vars]
+ansible_user="ubuntu"
+ansible_ssh_pass="password"
+#API Server FQDN is required for SkyDNS to resolve
+api_server_fqdn="cluster-ha.default.svc.cluster.local"
+kube_labels="openstack-control-plane"
+kube_controller_manager_version="v1.5.6"

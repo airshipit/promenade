@@ -1,0 +1,22 @@
+---
+- name: Ensures bootkube dir exists
+  when:
+    bootstrap_enabled
+  file:
+    path: /tmp/bootkube
+    state: directory
+
+- name: Extract bootkube binaries
+  when:
+    bootstrap_enabled
+  unarchive:
+    src: "https://github.com/kubernetes-incubator/bootkube/releases/download/{{ boot_kube_version }}/bootkube.tar.gz"
+    dest: /tmp/bootkube
+    remote_src: True
+
+- name: Render bootkube manifests
+  when:
+    bootstrap_enabled
+  command: "/tmp/bootkube/bin/linux/bootkube render --asset-dir=/tmp/bootkube/assets --experimental-self-hosted-etcd --etcd-servers=http://10.3.0.15:2379 --api-servers=https://{{ api_server_fqdn }}:443"
+  args:
+    creates: /etc/kubernetes/kubeconfig

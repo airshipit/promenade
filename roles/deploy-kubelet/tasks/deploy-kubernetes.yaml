@@ -1,0 +1,64 @@
+---
+#TODO: Version kubelet, with checksum
+- name: Install kubelet
+  get_url:
+    url: "http://storage.googleapis.com/kubernetes-release/release/{{ kubelet_version }}/bin/linux/amd64/kubelet"
+    dest: /usr/bin/kubelet
+#    checksum: md5:33af080e876b1f3d481b0ff1ceec3ab8
+    mode: 0755
+
+- name: Ensures /etc/kubernetes dir exists
+  file:
+    path: /etc/kubernetes
+    state: directory
+
+#Gets Kubeconfig from the bootstrap node. See roles/bootstrap/tasks/main.yml
+- name: Install kubeconfig
+  template:
+    src: kubeconfig
+    dest: /etc/kubernetes/kubeconfig
+
+- name: Setup kubelet.service
+  template:
+    src: kubelet.service
+    dest: /etc/systemd/system/kubelet.service
+  notify: restart kubelet
+
+- name: Enable Kubelet to be started on boot
+  systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Create Directories for Kubernetes manifests
+  file:
+    path: /opt/openstack-helm/manifests
+    state: directory
+
+#Wait for Kubeapi Server to come up
+- action: shell hyperkube kubectl get pods --all-namespaces | grep kube-apiserver
+  register: kubeapi_output
+  until: kubeapi_output.stdout.find("Running") != -1
+  retries: 40
+  delay: 15
+
+#Wait for cluster to stabilize across all  nodes
+- action: shell hyperkube kubectl get pods --all-namespaces
+  register: cluster_stable
+  until: '"ContainerCreating" not in cluster_stable.stdout'
+  retries: 40
+  delay: 15
+
+#Re-Deploy Calico with ETCD
+- name: Inject Custom manifests - kube-calico.yaml
+  template:
+    src: kube-calico.yaml.j2
+    dest: "/tmp/bootkube/assets/manifests/kube-flannel.yaml"
+  notify: restart kubelet
+
+- name: Inject Custom manifests - kube-calico-cfg.yaml
+  template:
+    src: kube-calico-cfg.yaml.j2
+    dest: "/tmp/bootkube/assets/manifests/kube-flannel-cfg.yaml"
+  notify: restart kubelet

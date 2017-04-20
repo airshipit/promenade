@@ -1,0 +1,59 @@
+---
+- name: Check if MAAS is Running
+  shell: hyperkube kubectl describe pod maas-region --namespace=maas
+  ignore_errors: true
+  register: maas_deployed
+  when: addons_enabled and "{{addons.maas is defined}}"
+
+- name: Check if Postgres is Running
+  shell: hyperkube kubectl describe pod postgresql-0 --namespace=maas
+  ignore_errors: true
+  register: postgres_deployed
+  when: addons_enabled and "{{addons.maas is defined}}"
+
+#Check every 15 seconds to make sure the tiller pod has fully come up.
+- action: shell hyperkube kubectl get pods --all-namespaces | grep tiller
+  register: tiller_output
+  until: tiller_output.stdout.find("Running") != -1
+  retries: 20
+  delay: 15
+  when: addons_enabled and "{{addons.maas is defined}}"
+
+- name: Run Make on all Helm charts
+  shell: make
+  environment:
+    HELM_HOME: /opt/openstack-helm/repos/openstack-helm/.helm
+  args:
+    chdir: /opt/openstack-helm/repos/openstack-helm/
+  when: addons_enabled and "{{addons.maas is defined}}" and maas_deployed | failed
+
+- name: Deploy Postgres
+  shell: helm install postgresql --namespace=maas
+  environment:
+    HELM_HOME: /opt/openstack-helm/repos/openstack-helm/.helm
+  args:
+    chdir: /opt/openstack-helm/repos/openstack-helm/
+  when: addons_enabled and "{{addons.maas is defined}}" and postgres_deployed | failed
+
+- action: shell hyperkube kubectl get pods --namespace maas
+  register: postgres_output
+  until: postgres_output.stdout.find("Running") != -1
+  retries: 20
+  delay: 15
+  when: addons_enabled and "{{addons.maas is defined}}"
+
+- name: Deploy MaaS
+  shell: helm install maas --namespace=maas
+  environment:
+    HELM_HOME: /opt/openstack-helm/repos/openstack-helm/.helm
+  args:
+    chdir: /opt/openstack-helm/repos/openstack-helm/
+  when: addons_enabled and "{{addons.maas is defined}}" and maas_deployed | failed
+
+#Check every 15 seconds until MaaS comes up
+- action: shell hyperkube kubectl get pods --namespace maas
+  register: maas_output
+  until: maas_output.stdout.find("Running") != -1
+  retries: 20
+  delay: 15
+  when: addons_enabled and "{{addons.maas is defined}}"

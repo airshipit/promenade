@@ -1,0 +1,23 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cluster-ha
+spec:
+  clusterIP: None
+  ports:
+  - protocol: TCP
+    port: 443
+    targetPort: 443
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: cluster-ha
+subsets:
+- addresses:
+{% for node in groups['master'] %}
+  - ip: {{ hostvars[node]['ansible_default_ipv4']['address'] }}
+{% endfor %}
+  ports:
+  - port: 443

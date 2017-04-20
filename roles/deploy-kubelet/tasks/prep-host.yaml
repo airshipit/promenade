@@ -1,0 +1,19 @@
+---
+- name: Install base packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "docker.io"
+    - "vim"
+    - "ethtool"
+    - "traceroute"
+    - "git"
+    - "build-essential"
+    - "lldpd"
+
+- name: Insert Temporary Hosts File Entry for FQDN Resolution
+  lineinfile:
+    dest: /etc/hosts
+    line: "{{ hostvars[groups['master'][0]]['ansible_default_ipv4']['address'] }} {{ api_server_fqdn }}"
+    state: present

@@ -1,0 +1,11 @@
+---
+- name: Ensures CNI dir exists
+  file:
+    path: /opt/cni/bin
+    state: directory
+
+- name: Install CNI binaries
+  unarchive:
+    src: "https://github.com/containernetworking/cni/releases/download/{{ cni_version }}/cni-amd64-{{ cni_version }}.tgz"
+    dest: /opt/cni/bin
+    remote_src: True
