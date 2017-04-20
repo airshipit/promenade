@@ -1,0 +1,6 @@
+---
+- include: addon-dashboard.yaml
+- include: addon-helm.yaml
+- include: addon-osh.yaml
+- include: addon-ceph.yaml
+- include: addon-maas.yaml

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: bgpPeer
+metadata:
+  peerIP: {{ calico_peer1 }}
+  scope: node
+  node: {{ ansible_hostname }}
+spec:
+  asNumber: 64686
