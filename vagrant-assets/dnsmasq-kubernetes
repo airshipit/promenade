@@ -1,0 +1,3 @@
+host-record=kubernetes,192.168.77.10
+host-record=kubernetes,192.168.77.11
+host-record=kubernetes,192.168.77.12
