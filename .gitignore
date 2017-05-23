@@ -1,3 +1,0 @@
-*.retry
-hosts-deploy.yaml
-roles/deploy-kubelet/templates/kubeconfig
