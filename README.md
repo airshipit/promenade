@@ -42,8 +42,8 @@ watch kubectl --insecure-skip-tls-verify --kubeconfig <(sed 's/kubernetes:443/19
 To test changes, you can safely reset single or multiple nodes:
 
 ```bash
-vagrant snapshot resotre n2 clean
-vagrant snapshot restore clean
+vagrant snapshot resotre n2 clean --no-provision
+vagrant snapshot restore clean --no-provision
 ```
 
 ## Detailed Deployment
