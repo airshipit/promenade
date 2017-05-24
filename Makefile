@@ -94,8 +94,7 @@ save-join: build-join
 	sudo docker save $(NAMESPACE)/$(JOIN_REPO):$(TAG) > promenade-join.tar
 
 cni.tgz:
-	wget https://github.com/containernetworking/cni/releases/download/$(CNI_VERSION)/cni-amd64-$(CNI_VERSION).tgz
-	mv cni-amd64-$(CNI_VERSION).tgz cni.tgz
+	curl -Lo cni.tgz https://github.com/containernetworking/cni/releases/download/$(CNI_VERSION)/cni-amd64-$(CNI_VERSION).tgz
 
 env.sh: Makefile
 	rm -f env.sh
@@ -105,11 +104,11 @@ env.sh: Makefile
 	echo export KUBERNETES_VERSION=$(KUBERNETES_VERSION) >> env.sh
 
 helm:
-	wget https://storage.googleapis.com/kubernetes-helm/helm-$(HELM_VERSION)-linux-amd64.tar.gz
-	tar xf helm-$(HELM_VERSION)-linux-amd64.tar.gz
+	curl -Lo helm.tgz https://storage.googleapis.com/kubernetes-helm/helm-$(HELM_VERSION)-linux-amd64.tar.gz
+	tar xf helm.tgz
 	mv linux-amd64/helm ./helm
 	rm -rf ./linux-amd64/
-	rm -f helm-$(HELM_VERSION)-linux-amd64.tar.gz*
+	rm -f helm.tgz
 	chmod +x helm
 
 genesis-images.tar:
@@ -125,17 +124,18 @@ join-images.tar:
 	sudo docker save -o join-images.tar $(JOIN_IMAGES)
 
 kubelet:
-	wget http://storage.googleapis.com/kubernetes-release/release/$(KUBERNETES_VERSION)/bin/linux/amd64/kubelet
+	curl -LO http://storage.googleapis.com/kubernetes-release/release/$(KUBERNETES_VERSION)/bin/linux/amd64/kubelet
 	chmod +x kubelet
 
 clean:
 	rm -rf \
+		*.tar \
 		cni.tgz \
 		env.sh \
 		helm \
-		helm-*-linux-amd64* \
-		*.tar \
+		helm.tgz \
 		kubelet \
+		linux-amd64 \
 
 
 .PHONY : build build-genesis build-join clean genesis join push push-genesis push-join
