@@ -1,6 +1,0 @@
----
-- include: prep-host.yaml
-- include: prep-bootkube.yaml
-- include: prep-network.yaml
-- include: prep-kubernetes.yaml
-- include: deploy-bootkube.yaml
