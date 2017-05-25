@@ -22,7 +22,11 @@ source ./scripts/func.sh
 validate_environment
 # XXX validate_genesis_assets
 
-docker load -i ./genesis-images.tar
+if [ -f "genesis_image_cache/genesis-images.tar" ]; then
+  docker load -i ./genesis-images.tar
+else
+  echo "Image Cache Not Found.. Skipping."
+fi
 
 install_assets
 install_cni

@@ -6,3 +6,5 @@
 /helm
 /kubelet
 /linux-amd64
+/genesis_image_cache/
+/join_image_cache/
