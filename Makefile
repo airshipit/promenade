@@ -61,7 +61,7 @@ JOIN_IMAGES := \
 	quay.io/coreos/kenc:48b6feceeee56c657ea9263f47b6ea091e8d3035 \
 	quay.io/coreos/pod-checkpointer:20cf8b9a6018731a0770192f30dfa7a1941521e3 \
 
-#Build Deps
+#Build Dependencies online vs offline
 GENESIS_BUILD_DEPS := Dockerfile.genesis cni.tgz env.sh helm kubelet kubelet.service.template
 
 ifeq ($(PREFETCH_IMAGES), true)
