@@ -26,7 +26,7 @@ JOIN_REPO := promenade-join
 TAG := dev
 
 #PreFetch Images for Offline deployment
-PREFETCH_IMAGES := true
+PREFETCH_IMAGES := false
 
 GENESIS_IMAGES := \
 	gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.1 \
@@ -61,6 +61,18 @@ JOIN_IMAGES := \
 	quay.io/coreos/kenc:48b6feceeee56c657ea9263f47b6ea091e8d3035 \
 	quay.io/coreos/pod-checkpointer:20cf8b9a6018731a0770192f30dfa7a1941521e3 \
 
+#Build Deps
+GENESIS_BUILD_DEPS := Dockerfile.genesis cni.tgz env.sh helm kubelet kubelet.service.template
+
+ifeq ($(PREFETCH_IMAGES), true)
+GENESIS_BUILD_DEPS += genesis_image_cache/genesis-images.tar
+endif
+
+JOIN_BUILD_DEPS := Dockerfile.join kubelet.service.template
+
+ifeq ($(PREFETCH_IMAGES), true)
+JOIN_BUILD_DEPS += join_image_cache/join-images.tar
+endif
 
 #-------#
 # Rules #
@@ -75,13 +87,8 @@ save: save-genesis save-join
 
 genesis: build-genesis
 
-ifeq ($(PREFETCH_IMAGES), true)
-build-genesis: Dockerfile.genesis cni.tgz env.sh helm genesis-images.tar kubelet kubelet.service.template
+build-genesis: $(GENESIS_BUILD_DEPS)
 	sudo docker build -f Dockerfile.genesis -t $(NAMESPACE)/$(GENESIS_REPO):$(TAG) .
-else
-build-genesis: Dockerfile.genesis cni.tgz env.sh helm kubelet kubelet.service.template
-	sudo docker build -f Dockerfile.genesis -t $(NAMESPACE)/$(GENESIS_REPO):$(TAG) .
-endif
 
 
 push-genesis: build-genesis
@@ -93,13 +100,9 @@ save-genesis: build-genesis
 
 join: build-join
 
-ifeq ($(PREFETCH_IMAGES), true)
-build-join: Dockerfile.join join-images.tar kubelet.service.template
+build-join: $(JOIN_BUILD_DEPS)
 	sudo docker build -f Dockerfile.join -t $(NAMESPACE)/$(JOIN_REPO):$(TAG) .
-else
-build-join: Dockerfile.join kubelet.service.template
-	sudo docker build -f Dockerfile.join -t $(NAMESPACE)/$(JOIN_REPO):$(TAG) .
-endif
+
 push-join: build-join
 	sudo docker push $(NAMESPACE)/$(JOIN_REPO):$(TAG)
 
@@ -124,14 +127,14 @@ helm:
 	rm -f helm.tgz
 	chmod +x helm
 
-genesis-images.tar:
+genesis_image_cache/genesis-images.tar:
 	for IMAGE in $(GENESIS_IMAGES); do \
 		sudo docker pull $$IMAGE; \
 	done
 	mkdir genesis_image_cache
 	sudo docker save -o genesis_image_cache/genesis-images.tar $(GENESIS_IMAGES)
 
-join-images.tar:
+join_image_cache/join-images.tar:
 	for IMAGE in $(JOIN_IMAGES); do \
 		sudo docker pull $$IMAGE; \
 	done
