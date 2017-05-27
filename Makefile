@@ -25,6 +25,9 @@ GENESIS_REPO := promenade-genesis
 JOIN_REPO := promenade-join
 TAG := dev
 
+#PreFetch Images for Offline deployment
+PREFETCH_IMAGES := false
+
 GENESIS_IMAGES := \
 	gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.1 \
 	gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.1 \
@@ -58,6 +61,18 @@ JOIN_IMAGES := \
 	quay.io/coreos/kenc:48b6feceeee56c657ea9263f47b6ea091e8d3035 \
 	quay.io/coreos/pod-checkpointer:20cf8b9a6018731a0770192f30dfa7a1941521e3 \
 
+#Build Dependencies online vs offline
+GENESIS_BUILD_DEPS := Dockerfile.genesis cni.tgz env.sh helm kubelet kubelet.service.template
+
+ifeq ($(PREFETCH_IMAGES), true)
+GENESIS_BUILD_DEPS += genesis_image_cache/genesis-images.tar
+endif
+
+JOIN_BUILD_DEPS := Dockerfile.join kubelet.service.template
+
+ifeq ($(PREFETCH_IMAGES), true)
+JOIN_BUILD_DEPS += join_image_cache/join-images.tar
+endif
 
 #-------#
 # Rules #
@@ -72,8 +87,9 @@ save: save-genesis save-join
 
 genesis: build-genesis
 
-build-genesis: Dockerfile.genesis cni.tgz env.sh helm genesis-images.tar kubelet kubelet.service.template
+build-genesis: $(GENESIS_BUILD_DEPS)
 	sudo docker build -f Dockerfile.genesis -t $(NAMESPACE)/$(GENESIS_REPO):$(TAG) .
+
 
 push-genesis: build-genesis
 	sudo docker push $(NAMESPACE)/$(GENESIS_REPO):$(TAG)
@@ -84,7 +100,7 @@ save-genesis: build-genesis
 
 join: build-join
 
-build-join: Dockerfile.join join-images.tar kubelet.service.template
+build-join: $(JOIN_BUILD_DEPS)
 	sudo docker build -f Dockerfile.join -t $(NAMESPACE)/$(JOIN_REPO):$(TAG) .
 
 push-join: build-join
@@ -111,17 +127,19 @@ helm:
 	rm -f helm.tgz
 	chmod +x helm
 
-genesis-images.tar:
+genesis_image_cache/genesis-images.tar:
 	for IMAGE in $(GENESIS_IMAGES); do \
 		sudo docker pull $$IMAGE; \
 	done
-	sudo docker save -o genesis-images.tar $(GENESIS_IMAGES)
+	mkdir genesis_image_cache
+	sudo docker save -o genesis_image_cache/genesis-images.tar $(GENESIS_IMAGES)
 
-join-images.tar:
+join_image_cache/join-images.tar:
 	for IMAGE in $(JOIN_IMAGES); do \
 		sudo docker pull $$IMAGE; \
 	done
-	sudo docker save -o join-images.tar $(JOIN_IMAGES)
+	mkdir join_image_cache
+	sudo docker save -o join_image_cache/join-images.tar $(JOIN_IMAGES)
 
 kubelet:
 	curl -LO http://storage.googleapis.com/kubernetes-release/release/$(KUBERNETES_VERSION)/bin/linux/amd64/kubelet
@@ -136,6 +154,8 @@ clean:
 		helm.tgz \
 		kubelet \
 		linux-amd64 \
+		genesis_image_cache \
+		join_image_cache \
 
 
 .PHONY : build build-genesis build-join clean genesis join push push-genesis push-join

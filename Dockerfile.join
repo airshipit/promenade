@@ -29,7 +29,7 @@ WORKDIR /promenade
 
 ENTRYPOINT /promenade/scripts/entrypoint.sh
 
-COPY join-images.tar cni.tgz kubelet /promenade/
+COPY join_image_cache/* cni.tgz kubelet /promenade/
 
 COPY kubelet.service.template /promenade/
 COPY env.sh scripts/common/* /promenade/scripts/
