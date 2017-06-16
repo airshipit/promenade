@@ -1,0 +1,16 @@
+{
+  "CN": "system:node:{{ current_node['hostname'] }}",
+  "hosts": [
+    "{{ current_node['hostname'] }}",
+    "{{ current_node['ip'] }}"
+  ],
+  "names": [
+    {
+      "O": "system:nodes"
+    }
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}

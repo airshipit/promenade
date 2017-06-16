@@ -1,0 +1,11 @@
+{
+  "CN": "system:kube-proxy",
+  "hosts": [
+    "{{ current_node['hostname'] }}",
+    "{{ current_node['ip'] }}"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "CN": "genesis",
+  "hosts": [
+    "{{ current_node['hostname'] }}",
+    "{{ current_node['ip'] }}"
+  ],
+  "names": [
+    {
+      "O": "system:masters"
+    }
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}

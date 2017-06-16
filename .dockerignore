@@ -1,2 +1,7 @@
-Makefile
-promenade-*.tar
+__pycache__
+Vagrantfile
+.vagrant
+promenade.tar
+promenade.egg-info
+example
+setup.sh

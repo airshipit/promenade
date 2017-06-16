@@ -1,0 +1,29 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+  labels:
+    tier: control-plane
+    component: kube-scheduler
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ''
+spec:
+  hostNetwork: true
+  containers:
+    - name: kube-scheduler
+      image: gcr.io/google_containers/hyperkube-amd64:v1.6.2
+      command:
+      - ./hyperkube
+      - scheduler
+      - --leader-elect=true
+      - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
+      - --v=5
+      volumeMounts:
+        - name: config
+          mountPath: /etc/kubernetes
+  volumes:
+    - name: config
+      hostPath:
+        path: /etc/kubernetes/scheduler

@@ -1,0 +1,40 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-controller-manager
+  namespace: kube-system
+  labels:
+    tier: control-plane
+    component: kube-controller-manager
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ''
+spec:
+  hostNetwork: true
+  dnsPolicy: Default # Don't use cluster DNS.
+  containers:
+    - name: kube-controller-manager
+      image: gcr.io/google_containers/hyperkube-amd64:v1.6.2
+      command:
+      - ./hyperkube
+      - controller-manager
+      - --allocate-node-cidrs=true
+      - --cluster-cidr={{ network.pod_ip_cidr }}
+      - --cluster-signing-cert-file=/etc/kubernetes/pki/cluster-ca.pem
+      - --cluster-signing-key-file=/etc/kubernetes/pki/cluster-ca-key.pem
+      - --configure-cloud-routes=false
+      - --leader-elect=true
+      - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
+      - --root-ca-file=/etc/kubernetes/pki/cluster-ca.pem
+      - --service-account-private-key-file=/etc/kubernetes/pki/sa-key.pem
+      - --service-cluster-ip-range={{ network.service_ip_cidr }}
+      - --use-service-account-credentials=true
+      - --v=5
+      volumeMounts:
+        - name: config
+          mountPath: /etc/kubernetes
+          readOnly: true
+  volumes:
+    - name: config
+      hostPath:
+        path: /etc/kubernetes/controller-manager

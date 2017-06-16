@@ -1,0 +1,4 @@
+{% for master in masters %}
+host-record=kubernetes,{{ master['ip'] }}
+host-record={{ master['hostname'] }},{{ master['ip'] }}
+{% endfor %}

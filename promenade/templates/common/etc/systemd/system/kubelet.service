@@ -1,0 +1,24 @@
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://kubernetes.io/docs/admin/kubelet/
+
+[Service]
+ExecStart=/usr/local/bin/kubelet \
+    --allow-privileged=true \
+    --cluster-dns={{ network.cluster_dns }} \
+    --cluster-domain={{ network.cluster_domain }} \
+    --cni-bin-dir=/opt/cni/bin \
+    --cni-conf-dir=/etc/cni/net.d \
+    --hostname-override={{ current_node.hostname }} \
+    --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
+    --network-plugin=cni \
+    --node-ip={{ current_node.ip }} \
+    --node-labels={{ current_node.labels | join(',') }} \
+    --pod-manifest-path=/etc/kubernetes/kubelet/manifests \
+    --require-kubeconfig=true \
+    --v=5
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

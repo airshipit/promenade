@@ -1,0 +1,68 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-etcd
+  namespace: kube-system
+  labels:
+    tier: control-plane
+    component: kube-etcd
+spec:
+  hostNetwork: true
+  containers:
+    - name: k8s-etcd
+      image: quay.io/coreos/etcd:v3.0.17
+      env:
+        - name: ETCD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: ETCD_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_PEER_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_DATA_DIR
+          value: /var/lib/kube-etcd
+        - name: ETCD_TRUSTED_CA_FILE
+          value: /etc/etcd-pki/cluster-ca.pem
+        - name: ETCD_CERT_FILE
+          value: /etc/etcd-pki/etcd.pem
+        - name: ETCD_KEY_FILE
+          value: /etc/etcd-pki/etcd-key.pem
+        - name: ETCD_PEER_TRUSTED_CA_FILE
+          value: /etc/etcd-pki/cluster-ca.pem
+        - name: ETCD_PEER_CERT_FILE
+          value: /etc/etcd-pki/etcd.pem
+        - name: ETCD_PEER_KEY_FILE
+          value: /etc/etcd-pki/etcd-key.pem
+        - name: ETCD_ADVERTISE_CLIENT_URLS
+          value: https://$(ETCD_NAME):2379
+        - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+          value: https://$(ETCD_NAME):2380
+        - name: ETCD_INITIAL_CLUSTER_TOKEN
+          value: promenade-kube-etcd-token
+        - name: ETCD_LISTEN_CLIENT_URLS
+          value: https://0.0.0.0:2379
+        - name: ETCD_LISTEN_PEER_URLS
+          value: https://0.0.0.0:2380
+{%- for env_name, env_value in etcd['env'].items() %}
+        - name: {{ env_name }}
+          value: {{ env_value }}
+{%- endfor %}
+      ports:
+        - name: client
+          containerPort: 2379
+        - name: peer
+          containerPort: 2380
+      volumeMounts:
+        - name: data
+          mountPath: /var/lib/kube-etcd
+        - name: pki
+          mountPath: /etc/etcd-pki
+  volumes:
+    - name: data
+      hostPath:
+        path: /var/lib/kube-etcd
+    - name: pki
+      hostPath:
+        path: /etc/kubernetes/etcd/pki

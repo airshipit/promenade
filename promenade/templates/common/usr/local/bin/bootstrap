@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -ex
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get install -y -qq --no-install-recommends dnsmasq socat
+
+systemctl daemon-reload
+systemctl enable kubelet
+systemctl restart kubelet
