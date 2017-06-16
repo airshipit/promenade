@@ -1,4 +1,4 @@
-from . import config, etcd, logging, kube, pki, renderer
+from . import config, logging, pki, renderer
 import os
 import subprocess
 
@@ -26,7 +26,6 @@ class Operator:
 
     def genesis(self, *, asset_dir=None):
         self.setup(asset_dir=asset_dir)
-        self.expand_etcd_cluster()
 
     def join(self, *, asset_dir=None):
         self.setup(asset_dir=asset_dir)
@@ -63,15 +62,3 @@ class Operator:
                         self.target_dir,
                         '/bin/bash', '/usr/local/bin/bootstrap'],
                        check=True)
-
-    def expand_etcd_cluster(self):
-        for node in self.node_data['etcd']['boot_order'][1:]:
-            LOG.info('Waiting for Node "%s" to be Ready', node['hostname'])
-            kube.wait_for_node(node['hostname'])
-            LOG.info('Node "%s" Ready.  Adding to etcd cluster.', node['hostname'])
-            etcd.add_member(self.genesis_etcd_pod, node['hostname'], port=2380)
-        LOG.info('Finished expanding etcd cluster.')
-
-    @property
-    def genesis_etcd_pod(self):
-        return 'kube-etcd-%s' % self.node_data['genesis']['hostname']

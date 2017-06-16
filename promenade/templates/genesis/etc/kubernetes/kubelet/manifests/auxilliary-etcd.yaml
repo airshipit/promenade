@@ -1,0 +1,183 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: auxiliary-etcd
+  namespace: kube-system
+  labels:
+    component: auxiliary-etcd
+    promenade: genesis
+spec:
+  hostNetwork: true
+  containers:
+    - name: auxiliary-etcd-0
+      image: quay.io/coreos/etcd:v3.0.17
+      env:
+        - name: ETCD_NAME
+          value: auxiliary-etcd-0
+        - name: ETCD_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_PEER_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_DATA_DIR
+          value: /var/lib/auxiliary-etcd-0
+        - name: ETCD_TRUSTED_CA_FILE
+          value: /etc/etcd-pki/cluster-ca.pem
+        - name: ETCD_CERT_FILE
+          value: /etc/etcd-pki/etcd.pem
+        - name: ETCD_KEY_FILE
+          value: /etc/etcd-pki/etcd-key.pem
+        - name: ETCD_PEER_TRUSTED_CA_FILE
+          value: /etc/etcd-pki/cluster-ca.pem
+        - name: ETCD_PEER_CERT_FILE
+          value: /etc/etcd-pki/etcd.pem
+        - name: ETCD_PEER_KEY_FILE
+          value: /etc/etcd-pki/etcd-key.pem
+        - name: ETCD_ADVERTISE_CLIENT_URLS
+          value: https://$(ETCD_NAME):12379
+        - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+          value: https://$(ETCD_NAME):12380
+        - name: ETCD_INITIAL_CLUSTER_TOKEN
+          value: promenade-kube-etcd-token
+        - name: ETCD_LISTEN_CLIENT_URLS
+          value: https://0.0.0.0:12379
+        - name: ETCD_LISTEN_PEER_URLS
+          value: https://0.0.0.0:12380
+{%- for env_name, env_value in etcd['env'].items() %}
+        - name: {{ env_name }}
+          value: {{ env_value }}
+{%- endfor %}
+      ports:
+        - name: client
+          containerPort: 12379
+        - name: peer
+          containerPort: 12380
+      resources:
+        limits:
+          cpu: 100m
+        requests:
+          cpu: 100m
+      volumeMounts:
+        - name: data-0
+          mountPath: /var/lib/auxiliary-etcd-0
+        - name: pki
+          mountPath: /etc/etcd-pki
+          readOnly: true
+    - name: auxiliary-etcd-1
+      image: quay.io/coreos/etcd:v3.0.17
+      env:
+        - name: ETCD_NAME
+          value: auxiliary-etcd-1
+        - name: ETCD_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_PEER_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_DATA_DIR
+          value: /var/lib/auxiliary-etcd-1
+        - name: ETCD_TRUSTED_CA_FILE
+          value: /etc/etcd-pki/cluster-ca.pem
+        - name: ETCD_CERT_FILE
+          value: /etc/etcd-pki/etcd.pem
+        - name: ETCD_KEY_FILE
+          value: /etc/etcd-pki/etcd-key.pem
+        - name: ETCD_PEER_TRUSTED_CA_FILE
+          value: /etc/etcd-pki/cluster-ca.pem
+        - name: ETCD_PEER_CERT_FILE
+          value: /etc/etcd-pki/etcd.pem
+        - name: ETCD_PEER_KEY_FILE
+          value: /etc/etcd-pki/etcd-key.pem
+        - name: ETCD_ADVERTISE_CLIENT_URLS
+          value: https://$(ETCD_NAME):22379
+        - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+          value: https://$(ETCD_NAME):22380
+        - name: ETCD_INITIAL_CLUSTER_TOKEN
+          value: promenade-kube-etcd-token
+        - name: ETCD_LISTEN_CLIENT_URLS
+          value: https://0.0.0.0:22379
+        - name: ETCD_LISTEN_PEER_URLS
+          value: https://0.0.0.0:22380
+{%- for env_name, env_value in etcd['env'].items() %}
+        - name: {{ env_name }}
+          value: {{ env_value }}
+{%- endfor %}
+      ports:
+        - name: client
+          containerPort: 22379
+        - name: peer
+          containerPort: 22380
+      resources:
+        limits:
+          cpu: 100m
+        requests:
+          cpu: 100m
+      volumeMounts:
+        - name: data-1
+          mountPath: /var/lib/auxiliary-etcd-1
+        - name: pki
+          mountPath: /etc/etcd-pki
+          readOnly: true
+    - name: cluster-monitor
+      image: quay.io/coreos/etcd:v3.0.17
+      command:
+        - sh
+        - -c
+        - |-
+            set -x
+            while true; do
+              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -ge {{ masters | length }} ]; then
+                {%- for master in masters %}
+                etcdctl member add {{ master['hostname'] }} --peer-urls https://{{ master['hostname'] }}:2380
+                {%- endfor %}
+                break
+              fi
+            done
+            while true; do
+              sleep 5
+              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -eq {{ 2 + (masters | length) }} ]; then
+                etcdctl member remove $(etcdctl member list | grep auxiliary-etcd-1 | cut -d , -f 1)
+                etcdctl member remove $(etcdctl member list | grep auxiliary-etcd-0 | cut -d , -f 1)
+                sleep 60
+                rm -rf /var/lib/auxiliary-etcd-0 /var/lib/auxiliary-etcd-1 /etc/kubernetes/kubelet/manifests/auxiliary-etcd.yaml
+                sleep 10000
+              fi
+            done
+      resources:
+        limits:
+          cpu: 100m
+        requests:
+          cpu: 100m
+      env:
+        - name: ETCDCTL_API
+          value: "3"
+        - name: ETCDCTL_CACERT
+          value: /etc/etcd-pki/cluster-ca.pem
+        - name: ETCDCTL_CERT
+          value: /etc/etcd-pki/etcd.pem
+        - name: ETCDCTL_ENDPOINTS
+          value: https://127.0.0.1:12379
+        - name: ETCDCTL_KEY
+          value: /etc/etcd-pki/etcd-key.pem
+      volumeMounts:
+        - name: pki
+          mountPath: /etc/etcd-pki
+          readOnly: true
+        - name: manifests
+          mountPath: /etc/kubernetes/kubelet/manifests
+        - name: varlib
+          mountPath: /var/lib
+  volumes:
+    - name: data-0
+      hostPath:
+        path: /var/lib/auxiliary-etcd-0
+    - name: data-1
+      hostPath:
+        path: /var/lib/auxiliary-etcd-1
+    - name: pki
+      hostPath:
+        path: /etc/kubernetes/etcd/pki
+    - name: manifests
+      hostPath:
+        path: /etc/kubernetes/kubelet/manifests
+    - name: varlib
+      hostPath:
+        path: /var/lib

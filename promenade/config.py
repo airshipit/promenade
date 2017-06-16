@@ -46,20 +46,27 @@ def _extract_etcd_data(hostname, genesis, masters):
         'env': {},
     }
 
-    peers = []
-    for host in boot_order:
-        peers.append(host)
-        if host['hostname'] == hostname:
-            break
-
-    result['env']['ETCD_INITIAL_CLUSTER'] = ','.join(
-            '%s=https://%s:2380' % (p['hostname'], p['hostname'])
-            for p in peers)
+    peers = [
+        {
+            'hostname': 'auxiliary-etcd-%d' % i,
+            'peer_port': 2380 + (i + 1) * 10000
+        }
+        for i in range(2)
+    ]
+    peers.append({
+        'hostname': genesis['hostname'],
+    })
 
     if hostname == genesis['hostname']:
         result['env']['ETCD_INITIAL_CLUSTER_STATE'] = 'new'
     else:
         result['env']['ETCD_INITIAL_CLUSTER_STATE'] = 'existing'
+        for host in non_genesis_masters:
+            peers.append({'hostname': host['hostname']})
+
+    result['env']['ETCD_INITIAL_CLUSTER'] = ','.join(
+            '%s=https://%s:%d' % (p['hostname'], p['hostname'], p.get('peer_port', 2380))
+            for p in peers)
 
     return result
 
