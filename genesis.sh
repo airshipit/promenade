@@ -8,6 +8,13 @@ fi
 
 set -ex
 
+#Set working directory relative to script
+SCRIPT_DIR=$(dirname $0)
+pushd $SCRIPT_DIR
+
+#Load Variables File
+. variables.sh
+
 mkdir -p /etc/docker
 cat <<EOS > /etc/docker/daemon.json
 {
@@ -16,10 +23,16 @@ cat <<EOS > /etc/docker/daemon.json
 }
 EOS
 
+#Configuration for Docker Behind a Proxy
+if [ $USE_PROXY == true ]; then
+  mkdir -p /etc/systemd/system/docker.service.d
+  CreateProxyConfiguraton
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq --no-install-recommends \
-    docker.io \
+    docker.io=$DOCKER_VERSION \
 
 
 if [ -f "${PROMENADE_LOAD_IMAGE}" ]; then
