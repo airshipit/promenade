@@ -18,9 +18,7 @@ def promenade(*, verbose):
               type=click.Path(exists=True, file_okay=False,
                               dir_okay=True, resolve_path=True),
               help='Source path for binaries to deploy.')
-@click.option('-c', '--config-path',
-              type=click.Path(exists=True, file_okay=True,
-                              dir_okay=False, resolve_path=True),
+@click.option('-c', '--config-path', type=click.File(),
               help='Location of cluster configuration data.')
 @click.option('--hostname', help='Current hostname.')
 @click.option('-t', '--target-dir', default='/target',
@@ -41,9 +39,7 @@ def genesis(*, asset_dir, config_path, hostname, target_dir):
               type=click.Path(exists=True, file_okay=False,
                               dir_okay=True, resolve_path=True),
               help='Source path for binaries to deploy.')
-@click.option('-c', '--config-path',
-              type=click.Path(exists=True, file_okay=True,
-                              dir_okay=False, resolve_path=True),
+@click.option('-c', '--config-path', type=click.File(),
               help='Location of cluster configuration data.')
 @click.option('--hostname', help='Current hostname.')
 @click.option('-t', '--target-dir', default='/target',

@@ -1,4 +1,4 @@
-from . import config, logging, pki, renderer
+from . import config, logging, renderer
 import os
 import subprocess
 
@@ -10,18 +10,13 @@ LOG = logging.getLogger(__name__)
 
 class Operator:
     @classmethod
-    def from_config(cls, *,
-                    config_path,
-                    hostname,
-                    target_dir):
+    def from_config(cls, *, config_path, hostname, target_dir):
         return cls(hostname=hostname, target_dir=target_dir,
-                   **config.load_config_file(config_path=config_path,
-                                             hostname=hostname))
+                   config_=config.load(config_path))
 
-    def __init__(self, *, cluster_data, hostname, node_data, target_dir):
-        self.cluster_data = cluster_data
+    def __init__(self, *, config_, hostname, target_dir):
+        self.config = config_
         self.hostname = hostname
-        self.node_data = node_data
         self.target_dir = target_dir
 
     def genesis(self, *, asset_dir=None):
@@ -33,7 +28,6 @@ class Operator:
     def setup(self, *, asset_dir):
         self.rsync_from(asset_dir)
         self.render()
-        self.install_keys()
 
         self.bootstrap()
 
@@ -48,13 +42,9 @@ class Operator:
 
 
     def render(self):
-        r = renderer.Renderer(node_data=self.node_data,
+        r = renderer.Renderer(config=self.config,
                               target_dir=self.target_dir)
         r.render()
-
-    def install_keys(self):
-        pki.generate_keys(initial_pki=self.cluster_data['pki'],
-                          target_dir=self.target_dir)
 
     def bootstrap(self):
         LOG.debug('Running genesis script with chroot "%s"', self.target_dir)

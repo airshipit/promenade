@@ -36,7 +36,9 @@ class Document:
     }
 
     def __init__(self, data):
-        assert set(data.keys()) == self.KEYS
+        if set(data.keys()) != self.KEYS:
+            LOG.error('data.keys()=%s expected %s', data.keys(), self.KEYS)
+            raise AssertionError('Did not get expected keys')
         assert data['apiVersion'] == 'promenade/v1'
         assert data['kind'] in self.SUPPORTED_KINDS
 
