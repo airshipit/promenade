@@ -1,4 +1,4 @@
-{% for master in masters %}
+{% for master in config['Masters']['nodes'] %}
 host-record=kubernetes,{{ master['ip'] }}
 host-record={{ master['hostname'] }},{{ master['ip'] }}
 {% endfor %}

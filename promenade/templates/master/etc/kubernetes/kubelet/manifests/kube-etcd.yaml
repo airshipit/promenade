@@ -45,10 +45,10 @@ spec:
           value: https://0.0.0.0:2379
         - name: ETCD_LISTEN_PEER_URLS
           value: https://0.0.0.0:2380
-{%- for env_name, env_value in etcd['env'].items() %}
-        - name: {{ env_name }}
-          value: {{ env_value }}
-{%- endfor %}
+        - name: ETCD_INITIAL_CLUSTER_STATE
+          value: {{ config['Etcd']['initial_cluster_state'] }}
+        - name: ETCD_INITIAL_CLUSTER
+          value: {{ config['Etcd']['initial_cluster'] | join(',') }}
       ports:
         - name: client
           containerPort: 2379

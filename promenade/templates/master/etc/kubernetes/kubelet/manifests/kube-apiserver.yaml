@@ -17,7 +17,7 @@ spec:
       command:
         - /hyperkube
         - apiserver
-        - --advertise-address={{ current_node.ip }}
+        - --advertise-address={{ config['Node']['ip'] }}
         - --authorization-mode=RBAC
         - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
         - --anonymous-auth=false
@@ -30,7 +30,7 @@ spec:
         - --etcd-cafile=/etc/kubernetes/pki/cluster-ca.pem
         - --etcd-certfile=/etc/kubernetes/pki/apiserver.pem
         - --etcd-keyfile=/etc/kubernetes/pki/apiserver-key.pem
-        - --service-cluster-ip-range={{ network.service_ip_cidr }}
+        - --service-cluster-ip-range={{ config['Network']['service_ip_cidr'] }}
         - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
         - --service-account-key-file=/etc/kubernetes/pki/sa.pem
         - --tls-cert-file=/etc/kubernetes/pki/apiserver.pem

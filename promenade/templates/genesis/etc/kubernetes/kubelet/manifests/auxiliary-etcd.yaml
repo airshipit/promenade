@@ -43,10 +43,10 @@ spec:
           value: https://0.0.0.0:12379
         - name: ETCD_LISTEN_PEER_URLS
           value: https://0.0.0.0:12380
-{%- for env_name, env_value in etcd['env'].items() %}
-        - name: {{ env_name }}
-          value: {{ env_value }}
-{%- endfor %}
+        - name: ETCD_INITIAL_CLUSTER_STATE
+          value: {{ config['Etcd']['initial_cluster_state'] }}
+        - name: ETCD_INITIAL_CLUSTER
+          value: {{ config['Etcd']['initial_cluster'] | join(',') }}
       ports:
         - name: client
           containerPort: 12379
@@ -96,10 +96,10 @@ spec:
           value: https://0.0.0.0:22379
         - name: ETCD_LISTEN_PEER_URLS
           value: https://0.0.0.0:22380
-{%- for env_name, env_value in etcd['env'].items() %}
-        - name: {{ env_name }}
-          value: {{ env_value }}
-{%- endfor %}
+        - name: ETCD_INITIAL_CLUSTER_STATE
+          value: {{ config['Etcd']['initial_cluster_state'] }}
+        - name: ETCD_INITIAL_CLUSTER
+          value: {{ config['Etcd']['initial_cluster'] | join(',') }}
       ports:
         - name: client
           containerPort: 22379
@@ -124,8 +124,8 @@ spec:
         - |-
             set -x
             while true; do
-              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -ge {{ masters | length }} ]; then
-                {%- for master in masters %}
+              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -ge {{ config['Masters']['nodes'] | length }} ]; then
+                {%- for master in config['Masters']['nodes'] %}
                 etcdctl member add {{ master['hostname'] }} --peer-urls https://{{ master['hostname'] }}:2380
                 {%- endfor %}
                 break
@@ -133,7 +133,7 @@ spec:
             done
             while true; do
               sleep 5
-              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -eq {{ 2 + (masters | length) }} ]; then
+              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -eq {{ 2 + (config['Masters']['nodes'] | length) }} ]; then
                 etcdctl member remove $(etcdctl member list | grep auxiliary-etcd-1 | cut -d , -f 1)
                 etcdctl member remove $(etcdctl member list | grep auxiliary-etcd-0 | cut -d , -f 1)
                 sleep 60
