@@ -12,10 +12,10 @@ set -ex
 DOCKER_PACKAGE="docker.io"
 DOCKER_VERSION=1.12.6-0ubuntu1~16.04.1
 
-#Proxy Variables - set only if deploying behind a proxy
-DOCKER_HTTP_PROXY=""
-DOCKER_HTTPS_PROXY=""
-DOCKER_NO_PROXY=""
+#Proxy Variables
+DOCKER_HTTP_PROXY=${DOCKER_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy}}}
+DOCKER_HTTPS_PROXY=${DOCKER_HTTPS_PROXY:-${HTTPS_PROXY:-${https_proxy}}}
+DOCKER_NO_PROXY=${DOCKER_NO_PROXY:-${NO_PROXY:-${no_proxy}}}
 
 
 mkdir -p /etc/docker
@@ -32,7 +32,7 @@ mkdir -p /etc/systemd/system/docker.service.d
 #Set HTTPS Proxy Variable
 cat <<EOF > /etc/systemd/system/docker.service.d/http-proxy.conf
 [Service]
-Environment="HTTP_PROXY=${DOCKER_HTTPS_PROXY}"
+Environment="HTTP_PROXY=${DOCKER_HTTP_PROXY}"
 EOF
 
 #Set HTTPS Proxy Variable
