@@ -37,3 +37,13 @@ vagrant ssh n3 -c 'sudo /vagrant/join.sh /vagrant/example/vagrant-config.yaml'
 ```bash
 docker build -t quay.io/attcomdev/promenade:experimental .
 ```
+
+## Using Promenade Behind a Proxy
+
+Modify the `genesis.sh` and `proxy.sh` scripts, passing in the URL and ports of the proxy server relative to the cluster hosts:
+
+```bash
+DOCKER_HTTP_PROXY="http://proxy.server.com:8080"
+DOCKER_HTTPS_PROXY="https://proxy.server.com:8080"
+DOCKER_NO_PROXY="localhost,127.0.0.1"
+```
