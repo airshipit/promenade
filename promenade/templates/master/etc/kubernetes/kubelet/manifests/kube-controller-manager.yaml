@@ -14,7 +14,7 @@ spec:
   dnsPolicy: Default # Don't use cluster DNS.
   containers:
     - name: kube-controller-manager
-      image: gcr.io/google_containers/hyperkube-amd64:v1.6.2
+      image: gcr.io/google_containers/hyperkube-amd64:v1.6.4
       command:
       - ./hyperkube
       - controller-manager

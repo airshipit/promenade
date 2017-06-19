@@ -12,7 +12,7 @@ metadata:
 spec:
   containers:
     - name: kube-proxy
-      image: gcr.io/google_containers/hyperkube-amd64:v1.6.2
+      image: gcr.io/google_containers/hyperkube-amd64:v1.6.4
       command:
         - /hyperkube
         - proxy
