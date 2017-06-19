@@ -1,113 +1,95 @@
 from . import logging
-from operator import itemgetter
+from operator import attrgetter, itemgetter
 import itertools
 import yaml
 
-__all__ = ['load_config_file']
+__all__ = ['Configuration', 'Document', 'load']
 
 
 LOG = logging.getLogger(__name__)
 
 
-def load_config_file(*, config_path, hostname):
-    LOG.debug('Loading genesis configuration from "%s"', config_path)
-    cluster_data = yaml.load(open(config_path))
-    LOG.debug('Loaded genesis configruation from "%s"', config_path)
-    node_data = extract_node_data(hostname, cluster_data)
+def load(f):
+    return Configuration(list(map(Document, yaml.load_all(f))))
 
-    return {
-        'cluster_data': cluster_data,
-        'node_data': node_data,
+
+class Document:
+    KEYS = {
+        'apiVersion',
+        'metadata',
+        'kind',
+        'spec',
     }
 
-
-def extract_node_data(hostname, cluster_data):
-    genesis = _extract_genesis_data(cluster_data['nodes'])
-    masters = _extract_master_data(cluster_data['nodes'])
-    return {
-        'cluster': cluster_data['nodes'],
-        'current_node': _extract_current_node_data(cluster_data['nodes'],
-                                                   hostname),
-        'etcd': _extract_etcd_data(hostname, genesis, masters),
-        'genesis': genesis,
-        'masters': masters,
-        'network': cluster_data['network'],
+    SUPPORTED_KINDS = {
+        'Certificate',
+        'CertificateAuthority',
+        'CertificateAuthorityKey',
+        'CertificateKey',
+        'Cluster',
+        'Etcd',
+        'Masters',
+        'Network',
+        'Node',
+        'PrivateKey',
+        'PublicKey',
     }
 
+    def __init__(self, data):
+        assert set(data.keys()) == self.KEYS
+        assert data['apiVersion'] == 'promenade/v1'
+        assert data['kind'] in self.SUPPORTED_KINDS
 
-def _extract_etcd_data(hostname, genesis, masters):
-    LOG.info('hostname=%r genesis=%r masters=%r',
-             hostname, genesis, masters)
-    non_genesis_masters = [d for d in masters if d['hostname'] != genesis['hostname']]
-    boot_order = [genesis] + sorted(non_genesis_masters, key=itemgetter('hostname'))
+        self.data = data
 
-    result = {
-        'boot_order': boot_order,
-        'env': {},
-    }
+    @property
+    def kind(self):
+        return self.data['kind']
 
-    peers = [
-        {
-            'hostname': 'auxiliary-etcd-%d' % i,
-            'peer_port': 2380 + (i + 1) * 10000
-        }
-        for i in range(2)
-    ]
-    peers.append({
-        'hostname': genesis['hostname'],
-    })
+    @property
+    def target(self):
+        return self.metadata.get('target')
 
-    if hostname == genesis['hostname']:
-        result['env']['ETCD_INITIAL_CLUSTER_STATE'] = 'new'
-    else:
-        result['env']['ETCD_INITIAL_CLUSTER_STATE'] = 'existing'
-        for host in non_genesis_masters:
-            peers.append({'hostname': host['hostname']})
+    @property
+    def metadata(self):
+        return self.data['metadata']
 
-    result['env']['ETCD_INITIAL_CLUSTER'] = ','.join(
-            '%s=https://%s:%d' % (p['hostname'], p['hostname'], p.get('peer_port', 2380))
-            for p in peers)
-
-    return result
+    def __getitem__(self, key):
+        return self.data['spec'][key]
 
 
-def _extract_current_node_data(nodes, hostname):
-    base = nodes[hostname]
-    return {
-        'hostname': hostname,
-        'labels': _extract_node_labels(base),
-        **base,
-    }
+class Configuration:
+    def __init__(self, documents):
+        self.documents = sorted(documents, key=attrgetter('kind', 'target'))
 
+    def __getitem__(self, key):
+        results = [d for d in self.documents if d.kind == key]
+        if len(results) < 1:
+            raise KeyError
+        elif len(results) > 1:
+            raise KeyError('Too many results.')
+        else:
+            return results[0]
 
-ROLE_LABELS = {
-    'genesis': [
-        'promenade=genesis',
-    ],
-    'master': [
-        'node-role.kubernetes.io/master=',
-    ],
-}
+    def iterate(self, *, kind=None, target=None):
+        if target:
+            docs = self._iterate_with_target(target)
+        else:
+            docs = self.documents
 
+        for document in docs:
+            if not kind or document.kind == kind:
+                yield document
 
-def _extract_node_labels(data):
-    labels = set(itertools.chain.from_iterable(
-        map(lambda k: ROLE_LABELS.get(k, []), ['common'] + data['roles'])))
-    labels.update(data.get('additional_labels', []))
-    return sorted(labels)
+    def _iterate_with_target(self, target):
+        for document in self.documents:
+            if document.target == target or document.target == 'all':
+                yield document
 
-
-def _extract_genesis_data(nodes):
-    for hostname, node in nodes.items():
-        if 'genesis' in node['roles']:
-            return {
-                'hostname': hostname,
-                'ip': node['ip'],
-            }
-
-
-def _extract_master_data(nodes):
-    return sorted(({'hostname': hostname, 'ip': node['ip']}
-                   for hostname, node in nodes.items()
-                   if 'master' in node['roles']),
-                  key=itemgetter('hostname'))
+    def write(self, path):
+        with open(path, 'w') as f:
+            yaml.dump_all(map(attrgetter('data'), self.documents),
+                          default_flow_style=False,
+                          explicit_start=True,
+                          indent=2,
+                          stream=f)
