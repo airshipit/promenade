@@ -7,6 +7,13 @@ Promenade is tool for deploying self-hosted, highly resilient Kubernetes cluster
 Make sure you have [Vagrant](https://vagrantup.com) and
 [VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed.
 
+Generate the certificates and keys to be used:
+
+```bash
+mkdir configs
+docker run --rm -t -v $(pwd):/target quay.io/attcomdev/promenade:experimental promenade -v generate -c /target/example/vagrant-input-config.yaml -o /target/configs
+```
+
 Start the VMs:
 
 ```bash
@@ -16,26 +23,20 @@ vagrant up
 Start the genesis node:
 
 ```bash
-vagrant ssh n0 -c 'sudo /vagrant/genesis.sh /vagrant/example/vagrant-config.yaml'
+vagrant ssh n0 -c 'sudo /vagrant/genesis.sh /vagrant/configs/n0.yaml'
 ```
 
 Join the master nodes:
 
 ```bash
-vagrant ssh n1 -c 'sudo /vagrant/join.sh /vagrant/example/vagrant-config.yaml'
-vagrant ssh n2 -c 'sudo /vagrant/join.sh /vagrant/example/vagrant-config.yaml'
+vagrant ssh n1 -c 'sudo /vagrant/join.sh /vagrant/configs/n1.yaml'
+vagrant ssh n2 -c 'sudo /vagrant/join.sh /vagrant/configs/n2.yaml'
 ```
 
 Join the worker node:
 
 ```bash
-vagrant ssh n3 -c 'sudo /vagrant/join.sh /vagrant/example/vagrant-config.yaml'
-```
-
-## Building the image
-
-```bash
-docker build -t quay.io/attcomdev/promenade:experimental .
+vagrant ssh n3 -c 'sudo /vagrant/join.sh /vagrant/configs/n3.yaml'
 ```
 
 ## Using Promenade Behind a Proxy
@@ -49,4 +50,31 @@ export DOCKER_HTTP_PROXY="http://proxy.server.com:8080"
 export DOCKER_HTTPS_PROXY="https://proxy.server.com:8080"
 export DOCKER_NO_PROXY="localhost,127.0.0.1"
 sudo -E /vagrant/genesis.sh /vagrant/example/vagrant-config.yaml
+```
+
+## Building the image
+
+```bash
+docker build -t quay.io/attcomdev/promenade:experimental .
+```
+
+For development, you may wish to save it and have the `genesis.sh` and
+`join.sh` scripts load it:
+
+```bash
+docker save -o promenade.tar quay.io/attcomdev/promenade:experimental
+```
+
+Then on a node:
+
+```bash
+PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar /vagrant/genesis.sh /vagrant/path/to/node-config.yaml
+```
+
+To build the image from behind a proxy, you can:
+
+```bash
+export http_proxy=...
+export no_proxy=...
+docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy --build-arg no_proxy=$no_proxy  -t quay.io/attcomdev/promenade:experimental .
 ```

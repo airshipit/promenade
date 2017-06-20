@@ -1,0 +1,46 @@
+---
+apiVersion: promenade/v1
+kind: Cluster
+metadata:
+  name: example
+  target: none
+spec:
+  nodes:
+    n0:
+      ip: 192.168.77.10
+      roles:
+        - master
+        - genesis
+      additional_labels:
+        - beta.kubernetes.io/arch=amd64
+    n1:
+      ip: 192.168.77.11
+      roles:
+        - master
+      additional_labels:
+        - beta.kubernetes.io/arch=amd64
+    n2:
+      ip: 192.168.77.12
+      roles:
+        - master
+      additional_labels:
+        - beta.kubernetes.io/arch=amd64
+    n3:
+      ip: 192.168.77.13
+      roles:
+        - worker
+      additional_labels:
+        - beta.kubernetes.io/arch=amd64
+---
+apiVersion: promenade/v1
+kind: Network
+metadata:
+  cluster: example
+  name: example
+  target: all
+spec:
+  cluster_domain: cluster.local
+  cluster_dns: 10.96.0.10
+  kube_service_ip: 10.96.0.1
+  pod_ip_cidr: 10.97.0.0/16
+  service_ip_cidr: 10.96.0.0/16
