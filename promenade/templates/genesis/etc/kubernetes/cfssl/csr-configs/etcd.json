@@ -1,0 +1,19 @@
+{
+  "CN": "etcd:{{ current_node['hostname'] }}",
+  "hosts": [
+    "kubernetes",
+    "kubernetes.default",
+    "kubernetes.default.svc",
+    "kubernetes.default.svc.cluster.local",
+    "127.0.0.1",
+    "{{ current_node['hostname'] }}",
+    "auxiliary-etcd-0",
+    "auxiliary-etcd-1",
+    "{{ current_node['ip'] }}",
+    "{{ network.kube_service_ip }}"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}

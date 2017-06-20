@@ -1,0 +1,2 @@
+host-record=auxiliary-etcd-0,{{ genesis['ip'] }}
+host-record=auxiliary-etcd-1,{{ genesis['ip'] }}
