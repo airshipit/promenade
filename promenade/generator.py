@@ -77,7 +77,7 @@ class Generator:
         ]).write(os.path.join(output_dir, 'admin-bundle.yaml'))
 
         for hostname, data in cluster['nodes'].items():
-            if 'genesis' in data['roles']:
+            if 'genesis' in data.get('roles', []):
                 genesis_hostname = hostname
                 break
 
@@ -119,7 +119,7 @@ class Generator:
             ]
             role_specific_documents = []
 
-            if 'master' in data['roles']:
+            if 'master' in data.get('roles', []):
                 role_specific_documents.extend([
                     admin_cert,
                     admin_cert_key,
@@ -129,7 +129,7 @@ class Generator:
                     sa_priv,
                     sa_pub,
                 ])
-                if 'genesis' not in data['roles']:
+                if 'genesis' not in data.get('roles', []):
                     role_specific_documents.append(
                         _master_etcd_config(cluster_name, genesis_hostname,
                                             hostname, masters)
@@ -137,7 +137,7 @@ class Generator:
                 role_specific_documents.extend(_master_config(hostname, data,
                                                               masters, network, keys))
 
-            if 'genesis' in data['roles']:
+            if 'genesis' in data.get('roles', []):
                 role_specific_documents.extend(_genesis_config(hostname, data,
                                                                masters, network, keys))
                 role_specific_documents.append(_genesis_etcd_config(cluster_name, hostname))
@@ -149,7 +149,7 @@ class Generator:
     def construct_masters(self, cluster_name):
         masters = []
         for hostname, data in self.input_config['Cluster']['nodes'].items():
-            if 'master' in data['roles'] or 'genesis' in data['roles']:
+            if 'master' in data.get('roles', []) or 'genesis' in data.get('roles', []):
                 masters.append({'hostname': hostname, 'ip': data['ip']})
 
         return config.Document({
@@ -303,8 +303,8 @@ def _construct_node_config(cluster_name, hostname, data):
     spec = {
         'hostname': hostname,
         'ip': data['ip'],
-        'labels': _labels(data['roles'], data.get('additional_labels', [])),
-        'templates': _templates(data['roles']),
+        'labels': _labels(data.get('roles', []), data.get('additional_labels', [])),
+        'templates': _templates(data.get('roles', [])),
     }
 
     return config.Document({
