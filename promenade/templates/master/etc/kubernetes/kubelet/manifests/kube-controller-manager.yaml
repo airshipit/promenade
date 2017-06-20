@@ -20,19 +20,19 @@ spec:
       - controller-manager
       - --allocate-node-cidrs=true
       - --cluster-cidr={{ config['Network']['pod_ip_cidr'] }}
-      - --cluster-signing-cert-file=/etc/kubernetes/pki/cluster-ca.pem
-      - --cluster-signing-key-file=/etc/kubernetes/pki/cluster-ca-key.pem
+      - --cluster-signing-cert-file=/etc/kubernetes/controller-manager/pki/cluster-ca.pem
+      - --cluster-signing-key-file=/etc/kubernetes/controller-manager/pki/cluster-ca-key.pem
       - --configure-cloud-routes=false
       - --leader-elect=true
-      - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
-      - --root-ca-file=/etc/kubernetes/pki/cluster-ca.pem
-      - --service-account-private-key-file=/etc/kubernetes/pki/sa-key.pem
+      - --kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
+      - --root-ca-file=/etc/kubernetes/controller-manager/pki/cluster-ca.pem
+      - --service-account-private-key-file=/etc/kubernetes/controller-manager/pki/service-account.key
       - --service-cluster-ip-range={{ config['Network']['service_ip_cidr'] }}
       - --use-service-account-credentials=true
       - --v=5
       volumeMounts:
         - name: config
-          mountPath: /etc/kubernetes
+          mountPath: /etc/kubernetes/controller-manager
           readOnly: true
   volumes:
     - name: config

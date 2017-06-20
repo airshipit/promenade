@@ -18,11 +18,11 @@ spec:
       - ./hyperkube
       - scheduler
       - --leader-elect=true
-      - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
+      - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
       - --v=5
       volumeMounts:
         - name: config
-          mountPath: /etc/kubernetes
+          mountPath: /etc/kubernetes/scheduler
   volumes:
     - name: config
       hostPath:

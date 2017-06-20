@@ -22,21 +22,21 @@ spec:
         - name: ETCD_DATA_DIR
           value: /var/lib/auxiliary-etcd-0
         - name: ETCD_TRUSTED_CA_FILE
-          value: /etc/etcd-pki/cluster-ca.pem
+          value: /etc/kubernetes/auxiliary-etcd-0/pki/client-ca.pem
         - name: ETCD_CERT_FILE
-          value: /etc/etcd-pki/etcd.pem
+          value: /etc/kubernetes/auxiliary-etcd-0/pki/etcd-client.pem
         - name: ETCD_KEY_FILE
-          value: /etc/etcd-pki/etcd-key.pem
+          value: /etc/kubernetes/auxiliary-etcd-0/pki/etcd-client-key.pem
         - name: ETCD_PEER_TRUSTED_CA_FILE
-          value: /etc/etcd-pki/cluster-ca.pem
+          value: /etc/kubernetes/auxiliary-etcd-0/pki/peer-ca.pem
         - name: ETCD_PEER_CERT_FILE
-          value: /etc/etcd-pki/etcd.pem
+          value: /etc/kubernetes/auxiliary-etcd-0/pki/etcd-peer.pem
         - name: ETCD_PEER_KEY_FILE
-          value: /etc/etcd-pki/etcd-key.pem
+          value: /etc/kubernetes/auxiliary-etcd-0/pki/etcd-peer-key.pem
         - name: ETCD_ADVERTISE_CLIENT_URLS
-          value: https://$(ETCD_NAME):12379
+          value: https://{{ config['Node']['hostname'] }}:12379
         - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
-          value: https://$(ETCD_NAME):12380
+          value: https://{{ config['Node']['hostname'] }}:12380
         - name: ETCD_INITIAL_CLUSTER_TOKEN
           value: promenade-kube-etcd-token
         - name: ETCD_LISTEN_CLIENT_URLS
@@ -60,8 +60,8 @@ spec:
       volumeMounts:
         - name: data-0
           mountPath: /var/lib/auxiliary-etcd-0
-        - name: pki
-          mountPath: /etc/etcd-pki
+        - name: pki-0
+          mountPath: /etc/kubernetes/auxiliary-etcd-0/pki
           readOnly: true
     - name: auxiliary-etcd-1
       image: quay.io/coreos/etcd:v3.0.17
@@ -75,21 +75,21 @@ spec:
         - name: ETCD_DATA_DIR
           value: /var/lib/auxiliary-etcd-1
         - name: ETCD_TRUSTED_CA_FILE
-          value: /etc/etcd-pki/cluster-ca.pem
+          value: /etc/kubernetes/auxiliary-etcd-1/pki/client-ca.pem
         - name: ETCD_CERT_FILE
-          value: /etc/etcd-pki/etcd.pem
+          value: /etc/kubernetes/auxiliary-etcd-1/pki/etcd-client.pem
         - name: ETCD_KEY_FILE
-          value: /etc/etcd-pki/etcd-key.pem
+          value: /etc/kubernetes/auxiliary-etcd-1/pki/etcd-client-key.pem
         - name: ETCD_PEER_TRUSTED_CA_FILE
-          value: /etc/etcd-pki/cluster-ca.pem
+          value: /etc/kubernetes/auxiliary-etcd-1/pki/peer-ca.pem
         - name: ETCD_PEER_CERT_FILE
-          value: /etc/etcd-pki/etcd.pem
+          value: /etc/kubernetes/auxiliary-etcd-1/pki/etcd-peer.pem
         - name: ETCD_PEER_KEY_FILE
-          value: /etc/etcd-pki/etcd-key.pem
+          value: /etc/kubernetes/auxiliary-etcd-1/pki/etcd-peer-key.pem
         - name: ETCD_ADVERTISE_CLIENT_URLS
-          value: https://$(ETCD_NAME):22379
+          value: https://{{ config['Node']['hostname'] }}:22379
         - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
-          value: https://$(ETCD_NAME):22380
+          value: https://{{ config['Node']['hostname'] }}:22380
         - name: ETCD_INITIAL_CLUSTER_TOKEN
           value: promenade-kube-etcd-token
         - name: ETCD_LISTEN_CLIENT_URLS
@@ -113,8 +113,8 @@ spec:
       volumeMounts:
         - name: data-1
           mountPath: /var/lib/auxiliary-etcd-1
-        - name: pki
-          mountPath: /etc/etcd-pki
+        - name: pki-1
+          mountPath: /etc/kubernetes/auxiliary-etcd-1/pki
           readOnly: true
     - name: cluster-monitor
       image: quay.io/coreos/etcd:v3.0.17
@@ -137,7 +137,12 @@ spec:
                 etcdctl member remove $(etcdctl member list | grep auxiliary-etcd-1 | cut -d , -f 1)
                 etcdctl member remove $(etcdctl member list | grep auxiliary-etcd-0 | cut -d , -f 1)
                 sleep 60
-                rm -rf /var/lib/auxiliary-etcd-0 /var/lib/auxiliary-etcd-1 /etc/kubernetes/kubelet/manifests/auxiliary-etcd.yaml
+                rm -rf \
+                  /var/lib/auxiliary-etcd-0 \
+                  /var/lib/auxiliary-etcd-1 \
+                  /etc/kubernetes/auxiliary-etcd-0 \
+                  /etc/kubernetes/auxiliary-etcd-1 \
+                  /etc/kubernetes/kubelet/manifests/auxiliary-etcd.yaml
                 sleep 10000
               fi
             done
@@ -150,16 +155,16 @@ spec:
         - name: ETCDCTL_API
           value: "3"
         - name: ETCDCTL_CACERT
-          value: /etc/etcd-pki/cluster-ca.pem
+          value: /etc/kubernetes/etcd/pki/client-ca.pem
         - name: ETCDCTL_CERT
-          value: /etc/etcd-pki/etcd.pem
+          value: /etc/kubernetes/etcd/pki/etcd-client.pem
         - name: ETCDCTL_ENDPOINTS
-          value: https://127.0.0.1:12379
+          value: https://{{ config['Node']['ip'] }}:2379
         - name: ETCDCTL_KEY
-          value: /etc/etcd-pki/etcd-key.pem
+          value: /etc/kubernetes/etcd/pki/etcd-client-key.pem
       volumeMounts:
         - name: pki
-          mountPath: /etc/etcd-pki
+          mountPath: /etc/kubernetes/etcd/pki
           readOnly: true
         - name: manifests
           mountPath: /etc/kubernetes/kubelet/manifests
@@ -175,6 +180,12 @@ spec:
     - name: pki
       hostPath:
         path: /etc/kubernetes/etcd/pki
+    - name: pki-0
+      hostPath:
+        path: /etc/kubernetes/auxiliary-etcd-0/pki
+    - name: pki-1
+      hostPath:
+        path: /etc/kubernetes/auxiliary-etcd-1/pki
     - name: manifests
       hostPath:
         path: /etc/kubernetes/kubelet/manifests

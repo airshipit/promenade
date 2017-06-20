@@ -123,6 +123,7 @@ class Generator:
                 role_specific_documents.extend([
                     admin_cert,
                     admin_cert_key,
+                    cluster_ca_key,
                     etcd_client_ca,
                     etcd_peer_ca,
                     sa_priv,
@@ -140,7 +141,7 @@ class Generator:
                 role_specific_documents.extend(_genesis_config(hostname, data,
                                                                masters, network, keys))
                 role_specific_documents.append(_genesis_etcd_config(cluster_name, hostname))
-                node.data['is_genesis'] = True
+                node.data['spec']['is_genesis'] = True
 
             c = config.Configuration(common_documents + role_specific_documents)
             c.write(os.path.join(output_dir, hostname + '.yaml'))
@@ -156,6 +157,7 @@ class Generator:
             'kind': 'Masters',
             'metadata': {
                 'cluster': cluster_name,
+                'name': cluster_name,
                 'target': 'all',
             },
             'spec': {
@@ -172,7 +174,8 @@ def _master_etcd_config(cluster_name, genesis_hostname, hostname, masters):
         'auxiliary-etcd-0=https://%s:12380' % genesis_hostname,
         'auxiliary-etcd-1=https://%s:22380' % genesis_hostname,
     ])
-    return _etcd_config(cluster_name, target=hostname,
+    return _etcd_config(cluster_name, name='master-etcd',
+                        target=hostname,
                         initial_cluster=initial_cluster,
                         initial_cluster_state='existing')
 
@@ -183,18 +186,20 @@ def _genesis_etcd_config(cluster_name, hostname):
         'auxiliary-etcd-0=https://%s:12380' % hostname,
         'auxiliary-etcd-1=https://%s:22380' % hostname,
     ]
-    return _etcd_config(cluster_name, target=hostname,
+    return _etcd_config(cluster_name, name='genesis-etcd',
+                        target=hostname,
                         initial_cluster=initial_cluster,
                         initial_cluster_state='new')
 
 
-def _etcd_config(cluster_name, *, target,
+def _etcd_config(cluster_name, *, name, target,
                  initial_cluster, initial_cluster_state):
     return config.Document({
         'apiVersion': 'promenade/v1',
         'kind': 'Etcd',
         'metadata': {
             'cluster': cluster_name,
+            'name': name,
             'target': target,
         },
         'spec': {
@@ -219,6 +224,13 @@ def _master_config(hostname, host_data, masters, network, keys):
         name='etcd:client:%s' % hostname,
         ca_name='etcd-client',
         hosts=kube_domains + [hostname, host_data['ip']],
+        target=hostname,
+    ))
+    docs.extend(keys.generate_certificate(
+        alias='etcd-apiserver-client',
+        name='etcd:client:apiserver:%s' % hostname,
+        ca_name='etcd-client',
+        hosts=[hostname, host_data['ip']],
         target=hostname,
     ))
     docs.extend(keys.generate_certificate(
@@ -271,13 +283,14 @@ def _genesis_config(hostname, host_data, masters, network, keys):
 
     for i in range(2):
         docs.extend(keys.generate_certificate(
-            name='auxiliary-etcd-client-%d' % i,
+            name='auxiliary-etcd-%d-client' % i,
             ca_name='etcd-client',
             hosts=[hostname, host_data['ip']],
             target=hostname,
         ))
+
         docs.extend(keys.generate_certificate(
-            name='auxiliary-etcd-client-%d' % i,
+            name='auxiliary-etcd-%d-peer' % i,
             ca_name='etcd-peer',
             hosts=[hostname, host_data['ip']],
             target=hostname,
@@ -299,6 +312,7 @@ def _construct_node_config(cluster_name, hostname, data):
         'kind': 'Node',
         'metadata': {
             'cluster': cluster_name,
+            'name': hostname,
             'target': hostname,
         },
         'spec': spec,

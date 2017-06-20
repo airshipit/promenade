@@ -27,12 +27,12 @@ spec:
         - --secure-port=443
         - --allow-privileged=true
         - --etcd-servers=https://kubernetes:2379
-        - --etcd-cafile=/etc/kubernetes/pki/cluster-ca.pem
-        - --etcd-certfile=/etc/kubernetes/pki/apiserver.pem
-        - --etcd-keyfile=/etc/kubernetes/pki/apiserver-key.pem
+        - --etcd-cafile=/etc/kubernetes/pki/etcd-client-ca.pem
+        - --etcd-certfile=/etc/kubernetes/pki/etcd-client.pem
+        - --etcd-keyfile=/etc/kubernetes/pki/etcd-client-key.pem
         - --service-cluster-ip-range={{ config['Network']['service_ip_cidr'] }}
         - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-        - --service-account-key-file=/etc/kubernetes/pki/sa.pem
+        - --service-account-key-file=/etc/kubernetes/pki/service-account.pub
         - --tls-cert-file=/etc/kubernetes/pki/apiserver.pem
         - --tls-private-key-file=/etc/kubernetes/pki/apiserver-key.pem
         - --v=5

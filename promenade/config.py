@@ -41,12 +41,17 @@ class Document:
             raise AssertionError('Did not get expected keys')
         assert data['apiVersion'] == 'promenade/v1'
         assert data['kind'] in self.SUPPORTED_KINDS
+        assert data['metadata']['name']
 
         self.data = data
 
     @property
     def kind(self):
         return self.data['kind']
+
+    @property
+    def name(self):
+        return self.metadata['name']
 
     @property
     def target(self):
@@ -64,6 +69,19 @@ class Configuration:
     def __init__(self, documents):
         self.documents = sorted(documents, key=attrgetter('kind', 'target'))
 
+        self.validate()
+
+    def validate(self):
+        identifiers = set()
+        for document in self.documents:
+            identifier = (document.kind, document.name)
+            if identifier in identifiers:
+                LOG.error('Found duplicate document in config: kind=%s name=%s',
+                          document.kind, document.name)
+                raise RuntimeError('Duplicate document')
+            else:
+                identifiers.add(identifier)
+
     def __getitem__(self, key):
         results = [d for d in self.documents if d.kind == key]
         if len(results) < 1:
@@ -72,6 +90,11 @@ class Configuration:
             raise KeyError('Too many results.')
         else:
             return results[0]
+
+    def get(self, *, kind, name):
+        for document in self.documents:
+            if document.kind == kind and document.name == name:
+                return document
 
     def iterate(self, *, kind=None, target=None):
         if target:

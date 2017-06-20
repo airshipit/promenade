@@ -24,17 +24,17 @@ spec:
         - name: ETCD_DATA_DIR
           value: /var/lib/kube-etcd
         - name: ETCD_TRUSTED_CA_FILE
-          value: /etc/etcd-pki/cluster-ca.pem
+          value: /etc/kubernetes/etcd/pki/client-ca.pem
         - name: ETCD_CERT_FILE
-          value: /etc/etcd-pki/etcd.pem
+          value: /etc/kubernetes/etcd/pki/etcd-client.pem
         - name: ETCD_KEY_FILE
-          value: /etc/etcd-pki/etcd-key.pem
+          value: /etc/kubernetes/etcd/pki/etcd-client-key.pem
         - name: ETCD_PEER_TRUSTED_CA_FILE
-          value: /etc/etcd-pki/cluster-ca.pem
+          value: /etc/kubernetes/etcd/pki/peer-ca.pem
         - name: ETCD_PEER_CERT_FILE
-          value: /etc/etcd-pki/etcd.pem
+          value: /etc/kubernetes/etcd/pki/etcd-peer.pem
         - name: ETCD_PEER_KEY_FILE
-          value: /etc/etcd-pki/etcd-key.pem
+          value: /etc/kubernetes/etcd/pki/etcd-peer-key.pem
         - name: ETCD_ADVERTISE_CLIENT_URLS
           value: https://$(ETCD_NAME):2379
         - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
@@ -58,7 +58,7 @@ spec:
         - name: data
           mountPath: /var/lib/kube-etcd
         - name: pki
-          mountPath: /etc/etcd-pki
+          mountPath: /etc/kubernetes/etcd/pki
   volumes:
     - name: data
       hostPath:
