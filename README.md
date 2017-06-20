@@ -49,7 +49,7 @@ cd /vagrant
 export DOCKER_HTTP_PROXY="http://proxy.server.com:8080"
 export DOCKER_HTTPS_PROXY="https://proxy.server.com:8080"
 export DOCKER_NO_PROXY="localhost,127.0.0.1"
-sudo -E /vagrant/genesis.sh /vagrant/example/vagrant-config.yaml
+sudo -E /vagrant/genesis.sh /vagrant/configs/n0.yaml
 ```
 
 ## Building the image
