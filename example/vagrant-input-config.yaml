@@ -44,5 +44,8 @@ spec:
   kube_service_ip: 10.96.0.1
   pod_ip_cidr: 10.97.0.0/16
   service_ip_cidr: 10.96.0.0/16
+  dns_servers:
+    - 8.8.8.8
+    - 8.8.4.4
   #http_proxy: http://proxy.example.com:8080
   #https_proxy: https://proxy.example.com:8080
