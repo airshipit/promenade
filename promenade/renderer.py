@@ -10,18 +10,13 @@ LOG = logging.getLogger(__name__)
 
 
 class Renderer:
-    def __init__(self, *, node_data, target_dir):
-        self.data = node_data
+    def __init__(self, *, config, target_dir):
+        self.config = config
         self.target_dir = target_dir
 
-    @property
-    def template_paths(self):
-        return ['common'] + self.data['current_node']['roles']
-
     def render(self):
-        for template_dir in self.template_paths:
+        for template_dir in self.config['Node']['templates']:
             self.render_template_dir(template_dir)
-
 
     def render_template_dir(self, template_dir):
         source_root = pkg_resources.resource_filename(
@@ -46,7 +41,7 @@ class Renderer:
 
         with open(path) as f:
             template = env.from_string(f.read())
-        rendered_data = template.render(**self.data)
+        rendered_data = template.render(config=self.config)
 
         with open(target_path, 'w') as f:
             f.write(rendered_data)

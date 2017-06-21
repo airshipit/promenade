@@ -12,7 +12,7 @@ spec:
   hostNetwork: true
   containers:
     - name: loader
-      image: gcr.io/google_containers/hyperkube-amd64:v1.6.2
+      image: gcr.io/google_containers/hyperkube-amd64:v1.6.4
       command:
         - /bin/bash
         - -c
@@ -21,12 +21,12 @@ spec:
             while true; do
               sleep 60
               /kubectl \
-                --kubeconfig /etc/kubernetes/kubeconfig.yaml \
-                apply -f /etc/kubernetes/assets
+                --kubeconfig /etc/kubernetes/asset-loader/kubeconfig.yaml \
+                apply -f /etc/kubernetes/asset-loader/assets
             done
       volumeMounts:
         - name: config
-          mountPath: /etc/kubernetes
+          mountPath: /etc/kubernetes/asset-loader
           readOnly: true
   volumes:
     - name: config

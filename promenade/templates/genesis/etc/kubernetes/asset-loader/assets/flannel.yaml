@@ -67,7 +67,7 @@ data:
     }
   net-conf.json: |
     {
-      "Network": "{{ network.pod_ip_cidr }}",
+      "Network": "{{ config['Network']['pod_ip_cidr'] }}",
       "Backend": {
         "Type": "vxlan"
       }

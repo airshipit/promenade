@@ -16,8 +16,8 @@ FROM python:3.6
 
 ENV CNI_VERSION=v0.5.2 \
     HELM_VERSION=v2.4.2 \
-    KUBECTL_VERSION=v1.6.2 \
-    KUBELET_VERSION=v1.6.2
+    KUBECTL_VERSION=v1.6.4 \
+    KUBELET_VERSION=v1.6.4
 
 VOLUME /etc/promenade
 VOLUME /target
@@ -28,29 +28,22 @@ WORKDIR /promenade
 RUN set -ex \
     && export BIN_DIR=/assets/usr/local/bin \
     && mkdir -p $BIN_DIR \
-    && curl -sLo $BIN_DIR/kubelet http://storage.googleapis.com/kubernetes-release/release/$KUBELET_VERSION/bin/linux/amd64/kubelet \
-    && curl -sLo $BIN_DIR/kubectl http://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl \
+    && curl -sLo $BIN_DIR/kubelet https://storage.googleapis.com/kubernetes-release/release/$KUBELET_VERSION/bin/linux/amd64/kubelet \
+    && curl -sLo $BIN_DIR/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl \
     && chmod 555 $BIN_DIR/kubelet \
     && chmod 555 $BIN_DIR/kubectl \
     && mkdir -p /assets/opt/cni/bin \
     && curl -sL https://github.com/containernetworking/cni/releases/download/$CNI_VERSION/cni-amd64-$CNI_VERSION.tgz | tar -zxv -C /assets/opt/cni/bin/ \
     && curl -sL https://storage.googleapis.com/kubernetes-helm/helm-${HELM_VERSION}-linux-amd64.tar.gz | tar -zxv -C /tmp linux-amd64/helm \
     && mv /tmp/linux-amd64/helm $BIN_DIR/helm \
-    && chmod 555 $BIN_DIR/helm
-
-RUN set -ex \
+    && chmod 555 $BIN_DIR/helm \
+    && curl -sLo /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
+    && chmod 555 /usr/local/bin/cfssl \
     && apt-get update -qq \
     && apt-get install --no-install-recommends -y \
         libyaml-dev \
-        openssl \
         rsync \
     && rm -rf /var/lib/apt/lists/*
-
-RUN set -ex \
-    && curl -sLo /usr/local/bin/cfssl https://pkg.cfssl.org/R1.1/cfssl_linux-amd64 \
-    && chmod 555 /usr/local/bin/cfssl \
-    && curl -sLo /usr/local/bin/cfssljson https://pkg.cfssl.org/R1.1/cfssljson_linux-amd64 \
-    && chmod 555 /usr/local/bin/cfssljson
 
 COPY requirements-frozen.txt /promenade
 RUN pip install --no-cache-dir -r requirements-frozen.txt
