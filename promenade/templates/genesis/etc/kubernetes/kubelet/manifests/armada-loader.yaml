@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: armada-loader
+  namespace: kube-system
+  labels:
+    app: promenade
+    component: armada-loader
+spec:
+  containers:
+    - name: loader
+      image: quay.io/attcomdev/armada:master
+      command:
+        - /bin/bash
+        - -c
+        - |-
+            set -x
+
+            cd /etc/kubernetes/armada-loader/assets
+            if [ -s promenade-armada.yaml ]; then
+              mkdir -p /root/.kube
+              cp /etc/kubernetes/armada-loader/kubeconfig.yaml /root/.kube/config
+
+              while true; do
+                sleep 60
+                if armada apply promenade-armada.yaml ; then
+                  break
+                fi
+              done
+            fi
+
+            rm -rf /etc/kubernetes/kubelet/manifests/armada-loader.yaml
+            sleep 10000
+
+      volumeMounts:
+        - name: config
+          mountPath: /etc/kubernetes/armada-loader
+          readOnly: true
+        - name: manifests
+          mountPath: /etc/kubernetes/kubelet/manifests
+  volumes:
+    - name: config
+      hostPath:
+        path: /etc/kubernetes/armada-loader
+    - name: manifests
+      hostPath:
+        path: /etc/kubernetes/kubelet/manifests
