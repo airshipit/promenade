@@ -47,3 +47,5 @@ spec:
   dns_servers:
     - 8.8.8.8
     - 8.8.4.4
+  #http_proxy: http://proxy.example.com:8080
+  #https_proxy: https://proxy.example.com:8080
