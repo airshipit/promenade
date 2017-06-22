@@ -9,7 +9,7 @@ rm -rf /etc/kubernetes
 systemctl stop docker
 rm -rf /etc/docker
 
-apt-get remote -qq -y dnsmasq
+apt-get remove -qq -y dnsmasq
 rm /etc/dnsmasq.d/kubernetes-masters
 
 rm /etc/systemd/system/kubelet.service
