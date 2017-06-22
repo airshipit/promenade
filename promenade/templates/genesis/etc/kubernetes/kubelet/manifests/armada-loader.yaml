@@ -31,6 +31,7 @@ spec:
             fi
 
             rm -rf /etc/kubernetes/kubelet/manifests/armada-loader.yaml
+            # Sleep so that kubelet doesn't restart this pod before it kills it
             sleep 10000
 
       volumeMounts:
