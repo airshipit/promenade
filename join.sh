@@ -70,3 +70,5 @@ docker run -t --rm \
         join \
             --hostname $(hostname) \
             --config-path /target$(realpath $1)
+
+touch /var/lib/prom.done
