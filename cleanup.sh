@@ -16,3 +16,4 @@ rm /etc/systemd/system/kubelet.service
 systemctl daemon-reload
 
 rm -rf /var/lib/kube-etcd /var/lib/auxiliary-etcd-0 /var/lib/auxiliary-etcd-1
+rm -f /var/lib/prom.done
