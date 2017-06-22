@@ -66,6 +66,8 @@ class Generator:
         )
 
         config.Configuration([
+            admin_cert,
+            admin_cert_key,
             cluster_ca,
             cluster_ca_key,
             etcd_client_ca,
@@ -75,6 +77,19 @@ class Generator:
             sa_pub,
             sa_priv,
         ]).write(os.path.join(output_dir, 'admin-bundle.yaml'))
+
+        complete_configuration = [
+            admin_cert,
+            admin_cert_key,
+            cluster_ca,
+            cluster_ca_key,
+            etcd_client_ca,
+            etcd_client_ca_key,
+            etcd_peer_ca,
+            etcd_peer_ca_key,
+            sa_pub,
+            sa_priv,
+        ]
 
         for hostname, data in cluster['nodes'].items():
             if 'genesis' in data.get('roles', []):
@@ -99,6 +114,7 @@ class Generator:
 
             proxy_cert, proxy_cert_key = keys.generate_certificate(
                     alias='proxy',
+                    config_name='system:kube-proxy:%s' % hostname,
                     name='system:kube-proxy',
                     ca_name='cluster',
                     hosts=[
@@ -106,6 +122,14 @@ class Generator:
                         data['ip'],
                     ],
                     target=hostname)
+
+            complete_configuration.extend([
+                kubelet_cert,
+                kubelet_cert_key,
+                node,
+                proxy_cert,
+                proxy_cert_key,
+            ])
 
             common_documents = [
                 cluster_ca,
@@ -130,12 +154,14 @@ class Generator:
                     sa_pub,
                 ])
                 if 'genesis' not in data.get('roles', []):
-                    role_specific_documents.append(
-                        _master_etcd_config(cluster_name, genesis_hostname,
-                                            hostname, masters)
-                    )
-                role_specific_documents.extend(_master_config(hostname, data,
-                                                              masters, network, keys))
+                    etcd_config = _master_etcd_config(
+                            cluster_name, genesis_hostname, hostname, masters)
+                    complete_configuration.append(etcd_config)
+                    role_specific_documents.append(etcd_config)
+                master_documents = _master_config(hostname, data,
+                                                  masters, network, keys)
+                complete_configuration.extend(master_documents)
+                role_specific_documents.extend(master_documents)
 
             if 'genesis' in data.get('roles', []):
                 role_specific_documents.extend(_genesis_config(hostname, data,
@@ -145,6 +171,9 @@ class Generator:
 
             c = config.Configuration(common_documents + role_specific_documents)
             c.write(os.path.join(output_dir, hostname + '.yaml'))
+
+        config.Configuration(complete_configuration).write(
+                os.path.join(output_dir, 'complete-bundle.yaml'))
 
     def construct_masters(self, cluster_name):
         masters = []

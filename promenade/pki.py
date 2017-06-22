@@ -61,14 +61,17 @@ class PKI:
             alias = name
 
         return (self._wrap('PublicKey', pub_result['pub.pem'],
-                           name=alias,
+                           alias=alias,
+                           name=name,
                            target=target),
                 self._wrap('PrivateKey', priv_result['priv.pem'],
-                           name=alias,
+                           alias=alias,
+                           name=name,
                            target=target))
 
 
-    def generate_certificate(self, *, alias=None, ca_name, groups=[], hosts=[], name, target):
+    def generate_certificate(self, *, alias=None, config_name=None,
+                             ca_name, groups=[], hosts=[], name, target):
         result = self._cfssl(
                 ['gencert',
                  '-ca', 'ca.pem',
@@ -85,11 +88,16 @@ class PKI:
         if not alias:
             alias = name
 
+        if not config_name:
+            config_name = name
+
         return (self._wrap('Certificate', result['cert'],
-                           name=alias,
+                           alias=alias,
+                           name=config_name,
                            target=target),
                 self._wrap('CertificateKey', result['key'],
-                           name=alias,
+                           alias=alias,
+                           name=config_name,
                            target=target))
 
     def csr(self, *, name, groups=[], hosts=[], key={'algo': 'rsa', 'size': 2048}):
