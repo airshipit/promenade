@@ -1,0 +1,9 @@
+no-hosts
+no-resolv
+
+strict-order
+
+server={{ config['Network']['cluster_dns'] }}
+{%- for dns_server in config['Network']['dns_servers'] %}
+server={{ dns_server }}
+{%- endfor %}
