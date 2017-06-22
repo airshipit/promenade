@@ -71,3 +71,5 @@ docker run -t --rm \
         genesis \
             --hostname $(hostname) \
             --config-path /target$(realpath $1) 2>&1
+
+touch /var/lib/prom.done
