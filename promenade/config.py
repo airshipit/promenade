@@ -54,6 +54,10 @@ class Document:
         return self.metadata['name']
 
     @property
+    def alias(self):
+        return self.metadata.get('alias')
+
+    @property
     def target(self):
         return self.metadata.get('target')
 
@@ -91,9 +95,11 @@ class Configuration:
         else:
             return results[0]
 
-    def get(self, *, kind, name):
+    def get(self, *, kind, alias=None, name=None):
         for document in self.documents:
-            if document.kind == kind and document.name == name:
+            if (document.kind == kind
+                    and (not alias or document.alias == alias)
+                    and (not name or document.name == name)) :
                 return document
 
     def iterate(self, *, kind=None, target=None):
