@@ -62,6 +62,7 @@ if [ -f "${PROMENADE_LOAD_IMAGE}" ]; then
   docker load -i "${PROMENADE_LOAD_IMAGE}"
 fi
 
+docker pull quay.io/attcomdev/promenade:experimental
 docker run -t --rm \
     -v /:/target \
     quay.io/attcomdev/promenade:experimental \

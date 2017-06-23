@@ -7,7 +7,8 @@ metadata:
   labels:
     addonmanager.kubernetes.io/mode: EnsureExists
 data:
-  upstreamNameservers: {{ config['Network']['dns_servers'] | tojson }}
+  upstreamNameservers: |-
+    {{ config['Network']['dns_servers'] | tojson }}
 
 ---
 apiVersion: v1

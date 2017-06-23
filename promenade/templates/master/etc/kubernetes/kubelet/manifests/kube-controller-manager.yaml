@@ -11,13 +11,11 @@ metadata:
     scheduler.alpha.kubernetes.io/critical-pod: ''
 spec:
   hostNetwork: true
-  dnsPolicy: Default # Don't use cluster DNS.
   containers:
     - name: kube-controller-manager
-      image: gcr.io/google_containers/hyperkube-amd64:v1.6.4
+      image: quay.io/attcomdev/kube-controller-manager:v1.6.4
       command:
-      - ./hyperkube
-      - controller-manager
+      - kube-controller-manager
       - --allocate-node-cidrs=true
       - --cluster-cidr={{ config['Network']['pod_ip_cidr'] }}
       - --cluster-signing-cert-file=/etc/kubernetes/controller-manager/pki/cluster-ca.pem

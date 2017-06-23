@@ -4,7 +4,10 @@ set -ex
 
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get install -y -qq --no-install-recommends dnsmasq socat
+apt-get install -y --no-install-recommends \
+    ceph-common \
+    dnsmasq \
+    socat
 
 systemctl daemon-reload
 systemctl enable kubelet
