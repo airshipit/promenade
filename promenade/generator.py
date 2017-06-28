@@ -87,6 +87,8 @@ class Generator:
             etcd_client_ca_key,
             etcd_peer_ca,
             etcd_peer_ca_key,
+            masters,
+            network,
             sa_pub,
             sa_priv,
         ]
