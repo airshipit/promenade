@@ -44,6 +44,7 @@ spec:
   kube_service_ip: 10.96.0.1
   pod_ip_cidr: 10.97.0.0/16
   service_ip_cidr: 10.96.0.0/16
+  etcd_service_ip: 10.96.232.136
   dns_servers:
     - 8.8.8.8
     - 8.8.4.4

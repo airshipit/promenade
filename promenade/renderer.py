@@ -1,4 +1,5 @@
 from . import logging
+import base64
 import jinja2
 import os
 import pkg_resources
@@ -38,6 +39,7 @@ class Renderer:
         LOG.debug('Templating "%s" into "%s"', path, target_path)
 
         env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+        env.filters['b64enc'] = _base64_encode
 
         with open(path) as f:
             template = env.from_string(f.read())
@@ -52,3 +54,7 @@ class Renderer:
 def _ensure_path(path):
     base = os.path.dirname(path)
     os.makedirs(base, mode=0o775, exist_ok=True)
+
+
+def _base64_encode(s):
+    return base64.b64encode(s.encode()).decode()
