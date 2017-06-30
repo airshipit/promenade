@@ -24,7 +24,7 @@ spec:
               cp /etc/kubernetes/armada-loader/kubeconfig.yaml /root/.kube/config
 
               while true; do
-                sleep 60
+                sleep 10
                 if armada apply promenade-armada.yaml ; then
                   break
                 fi

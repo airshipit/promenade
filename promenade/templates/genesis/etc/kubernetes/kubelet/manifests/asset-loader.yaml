@@ -19,7 +19,7 @@ spec:
         - |-
             set -x
             while true; do
-              sleep 60
+              sleep 10
               if /kubectl \
                   --kubeconfig /etc/kubernetes/asset-loader/kubeconfig.yaml \
                   apply -f /etc/kubernetes/asset-loader/assets; then
