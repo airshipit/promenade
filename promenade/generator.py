@@ -33,6 +33,7 @@ class Generator:
     def generate_all(self, output_dir):
         cluster = self.input_config['Cluster']
         network = self.input_config['Network']
+        versions = self.input_config['Versions']
 
         cluster_name = cluster.metadata['name']
         LOG.info('Generating configuration for cluster "%s"', cluster_name)
@@ -91,6 +92,7 @@ class Generator:
             network,
             sa_pub,
             sa_priv,
+            versions,
         ]
 
         for hostname, data in cluster['nodes'].items():
@@ -142,6 +144,7 @@ class Generator:
                 node,
                 proxy_cert,
                 proxy_cert_key,
+                versions,
             ]
             role_specific_documents = []
 

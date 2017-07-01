@@ -38,7 +38,9 @@ class Renderer:
 
         LOG.debug('Templating "%s" into "%s"', path, target_path)
 
-        env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+        env = jinja2.Environment(
+                loader=jinja2.PackageLoader('promenade', 'templates/include'),
+                undefined=jinja2.StrictUndefined)
         env.filters['b64enc'] = _base64_encode
 
         with open(path) as f:
