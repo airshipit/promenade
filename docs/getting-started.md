@@ -23,20 +23,20 @@ vagrant up
 Start the genesis node:
 
 ```bash
-vagrant ssh n0 -c 'sudo /vagrant/genesis.sh /vagrant/configs/n0.yaml'
+vagrant ssh n0 -c 'sudo /vagrant/up.sh /vagrant/configs/n0.yaml'
 ```
 
 Join the master nodes:
 
 ```bash
-vagrant ssh n1 -c 'sudo /vagrant/join.sh /vagrant/configs/n1.yaml'
-vagrant ssh n2 -c 'sudo /vagrant/join.sh /vagrant/configs/n2.yaml'
+vagrant ssh n1 -c 'sudo /vagrant/up.sh /vagrant/configs/n1.yaml'
+vagrant ssh n2 -c 'sudo /vagrant/up.sh /vagrant/configs/n2.yaml'
 ```
 
 Join the worker node:
 
 ```bash
-vagrant ssh n3 -c 'sudo /vagrant/join.sh /vagrant/configs/n3.yaml'
+vagrant ssh n3 -c 'sudo /vagrant/up.sh /vagrant/configs/n3.yaml'
 ```
 
 ### Development Cleanup
@@ -50,8 +50,7 @@ find the `cleanup.sh` script useful.
 docker build -t promenade:local .
 ```
 
-For development, you may wish to save it and have the `genesis.sh` and
-`join.sh` scripts load it:
+For development, you may wish to save it and have the `up.sh` script load it:
 
 ```bash
 docker save -o promenade.tar promenade:local
@@ -60,7 +59,7 @@ docker save -o promenade.tar promenade:local
 Then on a node:
 
 ```bash
-PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar /vagrant/genesis.sh /vagrant/path/to/node-config.yaml
+PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar /vagrant/up.sh /vagrant/path/to/node-config.yaml
 ```
 
 To build the image from behind a proxy, you can:
@@ -81,5 +80,5 @@ cd /vagrant
 export DOCKER_HTTP_PROXY="http://proxy.server.com:8080"
 export DOCKER_HTTPS_PROXY="https://proxy.server.com:8080"
 export DOCKER_NO_PROXY="localhost,127.0.0.1"
-sudo -E /vagrant/genesis.sh /vagrant/configs/n0.yaml
+sudo -E /vagrant/up.sh /vagrant/configs/n0.yaml
 ```

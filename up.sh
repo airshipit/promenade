@@ -74,7 +74,7 @@ docker run -t --rm \
     ${PROMENADE_IMAGE} \
     promenade \
         -v \
-        genesis \
+        up \
             --hostname $(hostname) \
             --config-path /target$(realpath $1) 2>&1
 
