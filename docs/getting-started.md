@@ -11,7 +11,7 @@ Generate the certificates and keys to be used:
 
 ```bash
 mkdir configs
-docker run --rm -t -v $(pwd):/target quay.io/attcomdev/promenade:experimental promenade -v generate -c /target/example/vagrant-input-config.yaml -o /target/configs
+docker run --rm -t -v $(pwd):/target quay.io/attcomdev/promenade:latest promenade -v generate -c /target/example/vagrant-input-config.yaml -o /target/configs
 ```
 
 Start the VMs:
@@ -47,14 +47,14 @@ find the `cleanup.sh` script useful.
 ### Building the image
 
 ```bash
-docker build -t quay.io/attcomdev/promenade:experimental .
+docker build -t promenade:local .
 ```
 
 For development, you may wish to save it and have the `genesis.sh` and
 `join.sh` scripts load it:
 
 ```bash
-docker save -o promenade.tar quay.io/attcomdev/promenade:experimental
+docker save -o promenade.tar promenade:local
 ```
 
 Then on a node:
@@ -68,7 +68,7 @@ To build the image from behind a proxy, you can:
 ```bash
 export http_proxy=...
 export no_proxy=...
-docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy --build-arg no_proxy=$no_proxy  -t quay.io/attcomdev/promenade:experimental .
+docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy --build-arg no_proxy=$no_proxy  -t promenade:local .
 ```
 
 ## Using Promenade Behind a Proxy

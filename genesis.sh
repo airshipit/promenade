@@ -13,6 +13,8 @@ fi
 set -ex
 
 #Promenade Variables
+PROMENADE_TAG=${PROMENADE_TAG:-latest}
+PROMENADE_IMAGE=${PROMENADE_IMAGE:-quay.io/attcomdev/promenade:${PROMENADE_TAG}}
 DOCKER_PACKAGE=${DOCKER_PACKAGE:-docker.io}
 DOCKER_VERSION=${DOCKER_VERSION:-1.12.6-0ubuntu1~16.04.1}
 
@@ -66,11 +68,10 @@ if [ -f "${PROMENADE_LOAD_IMAGE}" ]; then
   docker load -i "${PROMENADE_LOAD_IMAGE}"
 fi
 
-docker pull quay.io/attcomdev/promenade:experimental
 docker run -t --rm \
     --net host \
     -v /:/target \
-    quay.io/attcomdev/promenade:experimental \
+    ${PROMENADE_IMAGE} \
     promenade \
         -v \
         genesis \
