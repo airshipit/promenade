@@ -1,4 +1,4 @@
-from . import config, logging, pki
+from . import config, logging, pki, renderer
 import os
 
 __all__ = ['Generator']
@@ -30,7 +30,14 @@ class Generator:
         assert self.input_config['Cluster'].metadata['name'] \
                 == self.input_config['Network'].metadata['cluster']
 
+    def generate_up_sh(self, output_dir):
+        r = renderer.Renderer(config=self.input_config,
+                              target_dir=output_dir)
+        r.render_generate_files()
+
     def generate_all(self, output_dir):
+        self.generate_up_sh(output_dir)
+
         cluster = self.input_config['Cluster']
         network = self.input_config['Network']
         versions = self.input_config['Versions']

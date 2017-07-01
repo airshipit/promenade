@@ -15,6 +15,9 @@ class Renderer:
         self.config = config
         self.target_dir = target_dir
 
+    def render_generate_files(self):
+        self.render_template_dir('generate')
+
     def render(self):
         for template_dir in self.config['Node']['templates']:
             self.render_template_dir(template_dir)
