@@ -5,6 +5,10 @@ if [ "$(id -u)" != "0" ]; then
    exit 1
 fi
 
+if [ "x$1" = "x" ]; then
+    echo "Path to node configuration required." 1>&2
+    exit 1
+fi
 
 set -ex
 
@@ -64,12 +68,13 @@ fi
 
 docker pull quay.io/attcomdev/promenade:experimental
 docker run -t --rm \
+    --net host \
     -v /:/target \
     quay.io/attcomdev/promenade:experimental \
     promenade \
         -v \
         join \
             --hostname $(hostname) \
-            --config-path /target$(realpath $1)
+            --config-path /target$(realpath $1) 2>&1
 
 touch /var/lib/prom.done

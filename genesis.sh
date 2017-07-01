@@ -5,6 +5,10 @@ if [ "$(id -u)" != "0" ]; then
    exit 1
 fi
 
+if [ "x$1" = "x" ]; then
+    echo "Path to node configuration required." 1>&2
+    exit 1
+fi
 
 set -ex
 
