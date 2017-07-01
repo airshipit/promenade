@@ -13,8 +13,8 @@ fi
 set -ex
 
 #Promenade Variables
-DOCKER_PACKAGE="docker.io"
-DOCKER_VERSION=1.12.6-0ubuntu1~16.04.1
+DOCKER_PACKAGE=${DOCKER_PACKAGE:-docker.io}
+DOCKER_VERSION=${DOCKER_VERSION:-1.12.6-0ubuntu1~16.04.1}
 
 #Proxy Variables
 DOCKER_HTTP_PROXY=${DOCKER_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy}}}
