@@ -7,7 +7,7 @@
 Make sure you have [Vagrant](https://vagrantup.com) and
 [VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed.
 
-Generate the certificates and keys to be used:
+Generate the per-host configuration, certificates and keys to be used:
 
 ```bash
 mkdir configs
@@ -23,26 +23,27 @@ vagrant up
 Start the genesis node:
 
 ```bash
-vagrant ssh n0 -c 'sudo /vagrant/up.sh /vagrant/configs/n0.yaml'
+vagrant ssh n0 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n0.yaml'
 ```
 
 Join the master nodes:
 
 ```bash
-vagrant ssh n1 -c 'sudo /vagrant/up.sh /vagrant/configs/n1.yaml'
-vagrant ssh n2 -c 'sudo /vagrant/up.sh /vagrant/configs/n2.yaml'
+vagrant ssh n1 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n1.yaml'
+vagrant ssh n2 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n2.yaml'
 ```
 
 Join the worker node:
 
 ```bash
-vagrant ssh n3 -c 'sudo /vagrant/up.sh /vagrant/configs/n3.yaml'
+vagrant ssh n3 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n3.yaml'
 ```
 
 ### Development Cleanup
 
-If you are testing/developing on hosts that cannot be easily destroyed, you may
-find the `cleanup.sh` script useful.
+To use Promenade from behind a proxy, simply add proxy settings to the
+promenade `Network` configuration document using the keys `http_proxy`,
+`https_proxy`, and `no_proxy` before running `generate`.
 
 ### Building the image
 
