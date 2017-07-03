@@ -18,13 +18,28 @@ spec:
         - -c
         - |-
             set -x
-            while true; do
-              sleep 10
-              if /kubectl \
-                  --kubeconfig /etc/kubernetes/asset-loader/kubeconfig.yaml \
-                  apply -f /etc/kubernetes/asset-loader/assets; then
-                break
-              fi
+
+            export KUBECONFIG=/etc/kubernetes/asset-loader/kubeconfig.yaml
+            DELAY=20
+
+            while ! /kubectl apply -f /etc/kubernetes/asset-loader/cni; do
+              sleep $DELAY
+            done
+
+            while ! /kubectl get nodes | tail -n +2 | grep Ready; do
+              sleep $DELAY
+            done
+
+            while ! /kubectl apply -f /etc/kubernetes/asset-loader/dns; do
+              sleep $DELAY
+            done
+
+            while ! /kubectl -n kube-system get pods | grep dns | grep Running; do
+              sleep $DELAY
+            done
+
+            while ! /kubectl apply -f /etc/kubernetes/asset-loader/assets; do
+              sleep $DELAY
             done
 
             rm -rf /etc/kubernetes/kubelet/manifests/asset-loader.yaml
