@@ -1,85 +1,31 @@
-# Overview
+# Promenade
 
-Promenade is tool for deploying self-hosted, highly resilient Kubernetes clusters.
+Promenade is a tool for bootstrapping a resilient Kubernetes cluster and
+managing its life-cycle.
 
-## Quickstart using Vagrant
+## Roadmap
 
-Make sure you have [Vagrant](https://vagrantup.com) and
-[VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed.
+The detailed Roadmap can be viewed on the
+[LCOO JIRA](https://openstack-lcoo.atlassian.net/secure/RapidBoard.jspa?projectKey=PROM&rapidView=37).
 
-Generate the certificates and keys to be used:
+- Cluster bootstrapping
+  - Initial Genesis process results in a single node Kubernetes cluster with
+    Under-cloud components deployed using
+    [Armada](https://github.com/att-comdev/armada).
+  - Joining sufficient master nodes results in a resilient Kubernetes cluster.
+  - Destroy Genesis node after bootstrapping and re-provision as a normal node
+    to ensure consistency.
+- Life-cycle management
+  - Decommissioning of nodes.
+  - Updating Kubernetes version.
 
-```bash
-mkdir configs
-docker run --rm -t -v $(pwd):/target quay.io/attcomdev/promenade:experimental promenade -v generate -c /target/example/vagrant-input-config.yaml -o /target/configs
-```
+## Getting Started
 
-Start the VMs:
+To get started, see [getting started](docs/getting-started.md).
 
-```bash
-vagrant up
-```
+## Bugs
 
-Start the genesis node:
-
-```bash
-vagrant ssh n0 -c 'sudo /vagrant/genesis.sh /vagrant/configs/n0.yaml'
-```
-
-Join the master nodes:
-
-```bash
-vagrant ssh n1 -c 'sudo /vagrant/join.sh /vagrant/configs/n1.yaml'
-vagrant ssh n2 -c 'sudo /vagrant/join.sh /vagrant/configs/n2.yaml'
-```
-
-Join the worker node:
-
-```bash
-vagrant ssh n3 -c 'sudo /vagrant/join.sh /vagrant/configs/n3.yaml'
-```
-
-## Using Promenade Behind a Proxy
-
-To use Promenade from behind a proxy, simply export `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables on the vagrant host prior to executing the `genesis.sh` and `join.sh` scripts respectively.  Alternatively, you may also export the `DOCKER_HTTP_PROXY`, `DOCKER_HTTPS_PROXY`, and `DOCKER_NO_PROXY` directly. Ensure you are running the script with `sudo -E` option to preserve the environment variables.
-
-```bash
-vagrant ssh n0
-cd /vagrant
-export DOCKER_HTTP_PROXY="http://proxy.server.com:8080"
-export DOCKER_HTTPS_PROXY="https://proxy.server.com:8080"
-export DOCKER_NO_PROXY="localhost,127.0.0.1"
-sudo -E /vagrant/genesis.sh /vagrant/configs/n0.yaml
-```
-
-## Building the image
-
-```bash
-docker build -t quay.io/attcomdev/promenade:experimental .
-```
-
-For development, you may wish to save it and have the `genesis.sh` and
-`join.sh` scripts load it:
-
-```bash
-docker save -o promenade.tar quay.io/attcomdev/promenade:experimental
-```
-
-Then on a node:
-
-```bash
-PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar /vagrant/genesis.sh /vagrant/path/to/node-config.yaml
-```
-
-To build the image from behind a proxy, you can:
-
-```bash
-export http_proxy=...
-export no_proxy=...
-docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy --build-arg no_proxy=$no_proxy  -t quay.io/attcomdev/promenade:experimental .
-```
-
-## Development Cleanup
-
-If you are testing/developing on hosts that cannot be easily destroyed, you may
-find the `cleanup.sh` script useful.
+Bugs are tracked in
+[LCOO JIRA](https://openstack-lcoo.atlassian.net/secure/RapidBoard.jspa?projectKey=PROM&rapidView=37).
+If you find a bug, feel free to create a GitHub issue and it will be synced to
+JIRA.
