@@ -12,6 +12,7 @@ spec:
   containers:
     - name: loader
       image: quay.io/attcomdev/armada:master
+      imagePullPolicy: Always  # We are following a moving branch for now.
       command:
         - /bin/bash
         - -c
@@ -25,7 +26,7 @@ spec:
 
               while true; do
                 sleep 10
-                if armada apply promenade-armada.yaml ; then
+                if armada --debug apply promenade-armada.yaml ; then
                   break
                 fi
               done
