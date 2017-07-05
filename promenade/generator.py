@@ -18,7 +18,7 @@ class Generator:
         self.validate()
 
     def validate(self):
-        required_kinds = ['Cluster', 'Network']
+        required_kinds = ['Cluster', 'Network', 'Versions']
         for required_kind in required_kinds:
             try:
                 self.input_config[required_kind]
