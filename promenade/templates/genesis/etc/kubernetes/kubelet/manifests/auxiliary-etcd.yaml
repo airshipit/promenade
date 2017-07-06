@@ -44,9 +44,9 @@ spec:
         - name: ETCD_LISTEN_PEER_URLS
           value: https://0.0.0.0:12380
         - name: ETCD_INITIAL_CLUSTER_STATE
-          value: {{ config['Etcd']['initial_cluster_state'] }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster_state'] }}
         - name: ETCD_INITIAL_CLUSTER
-          value: {{ config['Etcd']['initial_cluster'] | join(',') }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster'] | join(',') }}
       ports:
         - name: client
           containerPort: 12379
@@ -97,9 +97,9 @@ spec:
         - name: ETCD_LISTEN_PEER_URLS
           value: https://0.0.0.0:22380
         - name: ETCD_INITIAL_CLUSTER_STATE
-          value: {{ config['Etcd']['initial_cluster_state'] }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster_state'] }}
         - name: ETCD_INITIAL_CLUSTER
-          value: {{ config['Etcd']['initial_cluster'] | join(',') }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster'] | join(',') }}
       ports:
         - name: client
           containerPort: 22379

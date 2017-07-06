@@ -6,19 +6,19 @@ kind: Service
 metadata:
   labels:
     tier: control-plane
-    component: kube-etcd
+    component: calico-etcd
   name: calico-etcd
   namespace: kube-system
 spec:
   # Select the calico-etcd pod running on the master.
   selector:
     tier: control-plane
-    component: kube-etcd
+    component: calico-etcd
   # This ClusterIP needs to be known in advance, since we cannot rely
   # on DNS to get access to etcd.
-  clusterIP: {{ config['Network']['etcd_service_ip'] }}
+  clusterIP: {{ config['Network']['calico_etcd_service_ip'] }}
   ports:
-    - port: 2379
+    - port: 6666
 
 ---
 # Calico Version v2.2.1
@@ -37,7 +37,7 @@ metadata:
 data:
   # The location of your etcd cluster.  This uses the Service clusterIP
   # defined below.
-  etcd_endpoints: https://{{ config['Network']['etcd_service_ip'] }}:2379
+  etcd_endpoints: https://{{ config['Network']['calico_etcd_service_ip'] }}:6666
 
   # Configure the Calico backend to use.
   calico_backend: "bird"
@@ -96,9 +96,9 @@ data:
   # not using TLS for etcd.
   # This self-hosted install expects three files with the following names.  The values
   # should be base64 encoded strings of the entire contents of each file.
-  etcd-key: {{ config.get(kind='CertificateKey', alias='etcd-calico-client')['data'] | b64enc }}
-  etcd-cert: {{ config.get(kind='Certificate', alias='etcd-calico-client')['data'] | b64enc }}
-  etcd-ca: {{ config.get(kind='CertificateAuthority', name='etcd-client')['data'] | b64enc }}
+  etcd-key: {{ config.get(kind='CertificateKey', alias='calico-etcd-node-client')['data'] | b64enc }}
+  etcd-cert: {{ config.get(kind='Certificate', alias='calico-etcd-node-client')['data'] | b64enc }}
+  etcd-ca: {{ config.get(kind='CertificateAuthority', name='calico-etcd-client')['data'] | b64enc }}
 
 ---
 # This manifest installs the calico/node container, as well

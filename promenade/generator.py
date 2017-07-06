@@ -52,6 +52,14 @@ class Generator:
                 ca_name='etcd-peer',
                 cert_target='all',
                 key_target='masters')
+        calico_etcd_client_ca, calico_etcd_client_ca_key = keys.generate_ca(
+                ca_name='calico-etcd-client',
+                cert_target='all',
+                key_target='masters')
+        calico_etcd_peer_ca, calico_etcd_peer_ca_key = keys.generate_ca(
+                ca_name='calico-etcd-peer',
+                cert_target='all',
+                key_target='masters')
 
         admin_cert, admin_cert_key = keys.generate_certificate(
             name='admin',
@@ -68,19 +76,27 @@ class Generator:
         config.Configuration([
             admin_cert,
             admin_cert_key,
+            calico_etcd_client_ca,
+            calico_etcd_client_ca_key,
+            calico_etcd_peer_ca,
+            calico_etcd_peer_ca_key,
             cluster_ca,
             cluster_ca_key,
             etcd_client_ca,
             etcd_client_ca_key,
             etcd_peer_ca,
             etcd_peer_ca_key,
-            sa_pub,
             sa_priv,
+            sa_pub,
         ]).write(os.path.join(output_dir, 'admin-bundle.yaml'))
 
         complete_configuration = [
             admin_cert,
             admin_cert_key,
+            calico_etcd_client_ca,
+            calico_etcd_client_ca_key,
+            calico_etcd_peer_ca,
+            calico_etcd_peer_ca_key,
             cluster_ca,
             cluster_ca_key,
             etcd_client_ca,
@@ -89,8 +105,8 @@ class Generator:
             etcd_peer_ca_key,
             masters,
             network,
-            sa_pub,
             sa_priv,
+            sa_pub,
         ]
 
         for hostname, data in cluster['nodes'].items():
@@ -149,6 +165,8 @@ class Generator:
                 role_specific_documents.extend([
                     admin_cert,
                     admin_cert_key,
+                    calico_etcd_client_ca,
+                    calico_etcd_peer_ca,
                     cluster_ca_key,
                     etcd_client_ca,
                     etcd_peer_ca,
@@ -158,8 +176,12 @@ class Generator:
                 if 'genesis' not in data.get('roles', []):
                     etcd_config = _master_etcd_config(
                             cluster_name, genesis_hostname, hostname, masters)
+                    calico_etcd_config = _master_calico_etcd_config(
+                            cluster_name, genesis_hostname, hostname, masters)
                     complete_configuration.append(etcd_config)
+                    complete_configuration.append(calico_etcd_config)
                     role_specific_documents.append(etcd_config)
+                    role_specific_documents.append(calico_etcd_config)
                 master_documents = _master_config(hostname, data,
                                                   masters, network, keys)
                 complete_configuration.extend(master_documents)
@@ -169,6 +191,7 @@ class Generator:
                 role_specific_documents.extend(_genesis_config(hostname, data,
                                                                masters, network, keys))
                 role_specific_documents.append(_genesis_etcd_config(cluster_name, hostname))
+                role_specific_documents.append(_genesis_calico_etcd_config(cluster_name, hostname))
                 node.data['spec']['is_genesis'] = True
 
             c = config.Configuration(common_documents + role_specific_documents)
@@ -205,8 +228,23 @@ def _master_etcd_config(cluster_name, genesis_hostname, hostname, masters):
         'auxiliary-etcd-0=https://%s:12380' % genesis_hostname,
         'auxiliary-etcd-1=https://%s:22380' % genesis_hostname,
     ])
-    return _etcd_config(cluster_name, alias='master-etcd',
-                        name='master-etcd:%s' % hostname,
+    return _etcd_config(cluster_name, alias='kube-etcd',
+                        name='master-kube-etcd:%s' % hostname,
+                        target=hostname,
+                        initial_cluster=initial_cluster,
+                        initial_cluster_state='existing')
+
+
+def _master_calico_etcd_config(cluster_name, genesis_hostname, hostname, masters):
+    initial_cluster = ['%s=https://%s:6667' % (m['hostname'],
+                                               m['hostname'])
+                       for m in masters['nodes']]
+    initial_cluster.extend([
+        'auxiliary-calico-etcd-0=https://%s:16667' % genesis_hostname,
+        'auxiliary-calico-etcd-1=https://%s:26667' % genesis_hostname,
+    ])
+    return _etcd_config(cluster_name, alias='calico-etcd',
+                        name='master-calico-etcd:%s' % hostname,
                         target=hostname,
                         initial_cluster=initial_cluster,
                         initial_cluster_state='existing')
@@ -218,8 +256,21 @@ def _genesis_etcd_config(cluster_name, hostname):
         'auxiliary-etcd-0=https://%s:12380' % hostname,
         'auxiliary-etcd-1=https://%s:22380' % hostname,
     ]
-    return _etcd_config(cluster_name, alias='genesis-etcd',
-                        name='master-etcd:%s' % hostname,
+    return _etcd_config(cluster_name, alias='kube-etcd',
+                        name='master-kube-etcd:%s' % hostname,
+                        target=hostname,
+                        initial_cluster=initial_cluster,
+                        initial_cluster_state='new')
+
+
+def _genesis_calico_etcd_config(cluster_name, hostname):
+    initial_cluster = [
+        '%s=https://%s:6667' % (hostname, hostname),
+        'auxiliary-calico-etcd-0=https://%s:16667' % hostname,
+        'auxiliary-calico-etcd-1=https://%s:26667' % hostname,
+    ]
+    return _etcd_config(cluster_name, alias='calico-etcd',
+                        name='master-calico-etcd:%s' % hostname,
                         target=hostname,
                         initial_cluster=initial_cluster,
                         initial_cluster_state='new')
@@ -256,7 +307,7 @@ def _master_config(hostname, host_data, masters, network, keys):
         'calico-etcd.kube-system',
         'calico-etcd.kube-system.svc',
         'calico-etcd.kube-system.svc.cluster.local',
-        network['etcd_service_ip'],
+        network['calico_etcd_service_ip'],
     ]
 
     docs = []
@@ -280,6 +331,22 @@ def _master_config(hostname, host_data, masters, network, keys):
         alias='etcd-peer',
         name='etcd:peer:%s' % hostname,
         ca_name='etcd-peer',
+        hosts=kube_domains + [hostname, host_data['ip']],
+        target=hostname,
+    ))
+
+    docs.extend(keys.generate_certificate(
+        alias='calico-etcd-client',
+        name='calico-etcd:client:%s' % hostname,
+        ca_name='calico-etcd-client',
+        hosts=kube_domains + calico_domains + [hostname, host_data['ip']],
+        target=hostname,
+    ))
+
+    docs.extend(keys.generate_certificate(
+        alias='calico-etcd-peer',
+        name='calico-etcd:peer:%s' % hostname,
+        ca_name='calico-etcd-peer',
         hosts=kube_domains + [hostname, host_data['ip']],
         target=hostname,
     ))
@@ -341,10 +408,24 @@ def _genesis_config(hostname, host_data, masters, network, keys):
             target=hostname,
         ))
 
+        docs.extend(keys.generate_certificate(
+            name='auxiliary-calico-etcd-%d-client' % i,
+            ca_name='calico-etcd-client',
+            hosts=[hostname, host_data['ip']],
+            target=hostname,
+        ))
+
+        docs.extend(keys.generate_certificate(
+            name='auxiliary-calico-etcd-%d-peer' % i,
+            ca_name='calico-etcd-peer',
+            hosts=[hostname, host_data['ip']],
+            target=hostname,
+        ))
+
     docs.extend(keys.generate_certificate(
-        alias='etcd-calico-client',
-        name='etcd:client:calico',
-        ca_name='etcd-client',
+        alias='calico-etcd-node-client',
+        name='calico-etcd:node',
+        ca_name='calico-etcd-client',
         target=hostname,
     ))
 
