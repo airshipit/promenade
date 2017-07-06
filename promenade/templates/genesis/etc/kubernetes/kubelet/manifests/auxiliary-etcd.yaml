@@ -11,10 +11,12 @@ spec:
   hostNetwork: true
   containers:
     - name: auxiliary-etcd-0
-      image: quay.io/coreos/etcd:v3.0.17
+      image: quay.io/coreos/etcd:v3.2.1
       env:
         - name: ETCD_NAME
           value: auxiliary-etcd-0
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "false"
         - name: ETCD_CLIENT_CERT_AUTH
           value: "true"
         - name: ETCD_PEER_CLIENT_CERT_AUTH
@@ -64,10 +66,12 @@ spec:
           mountPath: /etc/kubernetes/auxiliary-etcd-0/pki
           readOnly: true
     - name: auxiliary-etcd-1
-      image: quay.io/coreos/etcd:v3.0.17
+      image: quay.io/coreos/etcd:v3.2.1
       env:
         - name: ETCD_NAME
           value: auxiliary-etcd-1
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "false"
         - name: ETCD_CLIENT_CERT_AUTH
           value: "true"
         - name: ETCD_PEER_CLIENT_CERT_AUTH
@@ -117,7 +121,7 @@ spec:
           mountPath: /etc/kubernetes/auxiliary-etcd-1/pki
           readOnly: true
     - name: cluster-monitor
-      image: quay.io/coreos/etcd:v3.0.17
+      image: quay.io/coreos/etcd:v3.2.1
       command:
         - sh
         - -c

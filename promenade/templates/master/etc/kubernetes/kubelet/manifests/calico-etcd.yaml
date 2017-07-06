@@ -11,12 +11,14 @@ spec:
   hostNetwork: true
   containers:
     - name: k8s-etcd
-      image: quay.io/coreos/etcd:v3.0.17
+      image: quay.io/coreos/etcd:v3.2.1
       env:
         - name: ETCD_NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "false"
         - name: ETCD_CLIENT_CERT_AUTH
           value: "true"
         - name: ETCD_PEER_CLIENT_CERT_AUTH
