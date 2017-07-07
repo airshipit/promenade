@@ -46,19 +46,19 @@ class Generator:
                 key_target='masters')
         etcd_client_ca, etcd_client_ca_key = keys.generate_ca(
                 ca_name='etcd-client',
-                cert_target='all',
+                cert_target='masters',
                 key_target='masters')
         etcd_peer_ca, etcd_peer_ca_key = keys.generate_ca(
                 ca_name='etcd-peer',
-                cert_target='all',
+                cert_target='masters',
                 key_target='masters')
         calico_etcd_client_ca, calico_etcd_client_ca_key = keys.generate_ca(
                 ca_name='calico-etcd-client',
-                cert_target='all',
+                cert_target='masters',
                 key_target='masters')
         calico_etcd_peer_ca, calico_etcd_peer_ca_key = keys.generate_ca(
                 ca_name='calico-etcd-peer',
-                cert_target='all',
+                cert_target='masters',
                 key_target='masters')
 
         admin_cert, admin_cert_key = keys.generate_certificate(
