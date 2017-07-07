@@ -72,16 +72,6 @@ data:
   etcd_cert: "/calico-secrets/etcd-cert"
   etcd_key: "/calico-secrets/etcd-key"
 
-#  ippool.yaml: |-
-#      apiVersion: v1
-#      kind: ipPool
-#      metadata:
-#        cidr: {{ config['Network']['pod_ip_cidr'] }}
-#      spec:
-#        ipip:
-#          enabled: true
-#        nat-outgoing: true
-
 ---
 # The following contains k8s Secrets for use with a TLS enabled etcd cluster.
 # For information on populating Secrets, see http://kubernetes.io/docs/user-guide/secrets/
