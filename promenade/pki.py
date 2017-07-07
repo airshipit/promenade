@@ -37,7 +37,7 @@ class PKI:
         result = self._cfssl(['gencert', '-initca', 'csr.json'],
                              files={
                                  'csr.json': self.csr(
-                                     name='Kubernetes',
+                                     name=ca_name,
                                      groups=['Kubernetes']),
                              })
         LOG.debug('ca_cert=%r', result['cert'])
