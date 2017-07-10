@@ -8,6 +8,7 @@ spec:
   nodes:
     n0:
       ip: 192.168.77.10
+      kubernetes_interface: enp0s8
       roles:
         - master
         - genesis
@@ -15,18 +16,21 @@ spec:
         - beta.kubernetes.io/arch=amd64
     n1:
       ip: 192.168.77.11
+      kubernetes_interface: enp0s8
       roles:
         - master
       additional_labels:
         - beta.kubernetes.io/arch=amd64
     n2:
       ip: 192.168.77.12
+      kubernetes_interface: enp0s8
       roles:
         - master
       additional_labels:
         - beta.kubernetes.io/arch=amd64
     n3:
       ip: 192.168.77.13
+      kubernetes_interface: enp0s8
       roles:
         - worker
       additional_labels:

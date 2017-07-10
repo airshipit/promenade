@@ -187,6 +187,10 @@ spec:
             # Auto-detect the BGP IP address.
             - name: IP
               value: ""
+            {%- if config['Node']['kubernetes_interface'] is defined %}
+            - name: IP_AUTODETECTION_METHOD
+              value: interface={{ config['Node']['kubernetes_interface'] }}
+            {%- endif %}
           securityContext:
             privileged: true
           resources:
