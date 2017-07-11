@@ -39,11 +39,12 @@ Join the worker node:
 vagrant ssh n3 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n3.yaml'
 ```
 
-### Development Cleanup
-
 To use Promenade from behind a proxy, simply add proxy settings to the
 promenade `Network` configuration document using the keys `http_proxy`,
 `https_proxy`, and `no_proxy` before running `generate`.
+
+Note that it is important to specify `no_proxy` to include `kubernetes` and the
+IP addresses of all the master nodes.
 
 ### Building the image
 
