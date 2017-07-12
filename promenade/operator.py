@@ -19,13 +19,7 @@ class Operator:
         self.hostname = hostname
         self.target_dir = target_dir
 
-    def genesis(self, *, asset_dir=None):
-        self.setup(asset_dir=asset_dir)
-
-    def join(self, *, asset_dir=None):
-        self.setup(asset_dir=asset_dir)
-
-    def setup(self, *, asset_dir):
+    def up(self, *, asset_dir):
         self.rsync_from(asset_dir)
         self.render()
 

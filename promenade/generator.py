@@ -1,4 +1,4 @@
-from . import config, logging, pki
+from . import config, logging, pki, renderer
 import os
 
 __all__ = ['Generator']
@@ -18,7 +18,7 @@ class Generator:
         self.validate()
 
     def validate(self):
-        required_kinds = ['Cluster', 'Network']
+        required_kinds = ['Cluster', 'Network', 'Versions']
         for required_kind in required_kinds:
             try:
                 self.input_config[required_kind]
@@ -30,9 +30,17 @@ class Generator:
         assert self.input_config['Cluster'].metadata['name'] \
                 == self.input_config['Network'].metadata['cluster']
 
+    def generate_up_sh(self, output_dir):
+        r = renderer.Renderer(config=self.input_config,
+                              target_dir=output_dir)
+        r.render_generate_files()
+
     def generate_all(self, output_dir):
+        self.generate_up_sh(output_dir)
+
         cluster = self.input_config['Cluster']
         network = self.input_config['Network']
+        versions = self.input_config['Versions']
 
         cluster_name = cluster.metadata['name']
         LOG.info('Generating configuration for cluster "%s"', cluster_name)
@@ -91,6 +99,7 @@ class Generator:
             network,
             sa_pub,
             sa_priv,
+            versions,
         ]
 
         for hostname, data in cluster['nodes'].items():
@@ -142,6 +151,7 @@ class Generator:
                 node,
                 proxy_cert,
                 proxy_cert_key,
+                versions,
             ]
             role_specific_documents = []
 
