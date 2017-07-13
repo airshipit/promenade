@@ -80,7 +80,7 @@ spec:
     tiller: gcr.io/kubernetes-helm/tiller:v2.4.2
   packages:
     docker: docker.io=1.12.6-0ubuntu1~16.04.1
-    dnsmasq: dnsmasq
-    socat: socat
+    dnsmasq: dnsmasq=2.75-1ubuntu0.16.04.2
+    socat: socat=1.7.3.1-1
   additional_packages:
-    - ceph-common
+    - ceph-common=10.2.7-0ubuntu0.16.04.1
