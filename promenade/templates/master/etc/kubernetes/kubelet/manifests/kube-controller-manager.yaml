@@ -13,7 +13,7 @@ spec:
   hostNetwork: true
   containers:
     - name: kube-controller-manager
-      image: quay.io/attcomdev/kube-controller-manager:v1.6.4
+      image: {{ config['Versions']['images']['kubernetes']['controller-manager'] }}
       command:
       - kube-controller-manager
       - --allocate-node-cidrs=true

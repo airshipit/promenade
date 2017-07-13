@@ -12,7 +12,7 @@ spec:
   hostNetwork: true
   containers:
     - name: loader
-      image: gcr.io/google_containers/hyperkube-amd64:v1.6.4
+      image: {{ config['Versions']['images']['kubernetes']['kubectl'] }}
       command:
         - /bin/bash
         - -c

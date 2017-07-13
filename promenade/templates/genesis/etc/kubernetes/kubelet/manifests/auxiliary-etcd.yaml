@@ -11,7 +11,7 @@ spec:
   hostNetwork: true
   containers:
     - name: auxiliary-etcd-0
-      image: quay.io/coreos/etcd:v3.0.17
+      image: {{ config['Versions']['images']['kubernetes']['etcd'] }}
       env:
         - name: ETCD_NAME
           value: auxiliary-etcd-0
@@ -64,7 +64,7 @@ spec:
           mountPath: /etc/kubernetes/auxiliary-etcd-0/pki
           readOnly: true
     - name: auxiliary-etcd-1
-      image: quay.io/coreos/etcd:v3.0.17
+      image: {{ config['Versions']['images']['kubernetes']['etcd'] }}
       env:
         - name: ETCD_NAME
           value: auxiliary-etcd-1
@@ -117,7 +117,7 @@ spec:
           mountPath: /etc/kubernetes/auxiliary-etcd-1/pki
           readOnly: true
     - name: cluster-monitor
-      image: quay.io/coreos/etcd:v3.0.17
+      image: {{ config['Versions']['images']['kubernetes']['etcd'] }}
       command:
         - sh
         - -c
