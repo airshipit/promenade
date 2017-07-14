@@ -95,7 +95,7 @@ spec:
         env:
         - name: PROMETHEUS_PORT
           value: "10055"
-        image: gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.2
+        image: {{ config['Versions']['images']['kubernetes']['dns']['kubedns'] }}
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 10053
@@ -140,7 +140,7 @@ spec:
         - --server=/cluster.local/127.0.0.1#10053
         - --server=/in-addr.arpa/127.0.0.1#10053
         - --server=/ip6.arpa/127.0.0.1#10053
-        image: gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.2
+        image: {{ config['Versions']['images']['kubernetes']['dns']['dnsmasq'] }}
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 5
@@ -174,7 +174,7 @@ spec:
         - --logtostderr
         - --probe=kubedns,127.0.0.1:10053,kubernetes.default.svc.cluster.local,5,A
         - --probe=dnsmasq,127.0.0.1:53,kubernetes.default.svc.cluster.local,5,A
-        image: gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.2
+        image: {{ config['Versions']['images']['kubernetes']['dns']['sidecar'] }}
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 5

@@ -11,7 +11,7 @@ spec:
   hostNetwork: true
   containers:
     - name: loader
-      image: quay.io/attcomdev/armada:master
+      image: {{ config['Versions']['images']['armada'] }}
       imagePullPolicy: Always  # We are following a moving branch for now.
       command:
         - /bin/bash

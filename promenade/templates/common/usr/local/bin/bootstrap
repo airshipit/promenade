@@ -5,9 +5,11 @@ set -ex
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get install -y --no-install-recommends \
-    ceph-common \
-    dnsmasq \
-    socat
+    {%- for package in config['Versions']['additional_packages'] %}
+    {{ package }} \
+    {%- endfor %}
+    {{ config['Versions']['packages']['dnsmasq'] }} \
+    {{ config['Versions']['packages']['socat'] }}
 
 systemctl daemon-reload
 systemctl enable kubelet
