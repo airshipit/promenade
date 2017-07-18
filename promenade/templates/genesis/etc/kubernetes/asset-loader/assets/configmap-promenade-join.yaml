@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: drydock
+spec: {}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promenade-join-sh
+  namespace: drydock
+data:
+  join.sh: |-
+{%- filter indent(4, True) %}
+{% include "up.sh" %}
+{%- endfilter %}

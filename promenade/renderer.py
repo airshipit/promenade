@@ -15,6 +15,9 @@ class Renderer:
         self.config = config
         self.target_dir = target_dir
 
+    def render_generate_files(self):
+        self.render_template_dir('generate')
+
     def render(self):
         for template_dir in self.config['Node']['templates']:
             self.render_template_dir(template_dir)
@@ -38,7 +41,9 @@ class Renderer:
 
         LOG.debug('Templating "%s" into "%s"', path, target_path)
 
-        env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+        env = jinja2.Environment(
+                loader=jinja2.PackageLoader('promenade', 'templates/include'),
+                undefined=jinja2.StrictUndefined)
         env.filters['b64enc'] = _base64_encode
 
         with open(path) as f:

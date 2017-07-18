@@ -23,6 +23,8 @@ The detailed Roadmap can be viewed on the
 
 To get started, see [getting started](docs/getting-started.md).
 
+Configuration is documented [here](docs/configuration.md).
+
 ## Bugs
 
 Bugs are tracked in

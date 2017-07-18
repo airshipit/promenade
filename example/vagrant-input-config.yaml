@@ -54,3 +54,37 @@ spec:
     - 8.8.4.4
   #http_proxy: http://proxy.example.com:8080
   #https_proxy: https://proxy.example.com:8080
+---
+apiVersion: promenade/v1
+kind: Versions
+metadata:
+  cluster: example
+  name: example
+  target: all
+spec:
+  images:
+    armada: quay.io/attcomdev/armada:latest
+    calico:
+      cni: quay.io/calico/cni:v1.9.1
+      etcd: quay.io/coreos/etcd:v3.0.17
+      node: quay.io/calico/node:v1.3.0
+      policy-controller: quay.io/calico/kube-policy-controller:v0.6.0
+    kubernetes:
+      apiserver: gcr.io/google_containers/hyperkube-amd64:v1.6.4
+      controller-manager: quay.io/attcomdev/kube-controller-manager:v1.6.4
+      dns:
+        dnsmasq: gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.2
+        kubedns: gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.2
+        sidecar: gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.2
+      etcd: quay.io/coreos/etcd:v3.0.17
+      kubectl: gcr.io/google_containers/hyperkube-amd64:v1.6.4
+      proxy: gcr.io/google_containers/hyperkube-amd64:v1.6.4
+      scheduler: gcr.io/google_containers/hyperkube-amd64:v1.6.4
+    promenade: quay.io/attcomdev/promenade:latest
+    tiller: gcr.io/kubernetes-helm/tiller:v2.4.2
+  packages:
+    docker: docker.io=1.12.6-0ubuntu1~16.04.1
+    dnsmasq: dnsmasq=2.75-1ubuntu0.16.04.2
+    socat: socat=1.7.3.1-1
+  additional_packages:
+    - ceph-common=10.2.7-0ubuntu0.16.04.1

@@ -33,6 +33,7 @@ class Document:
         'Node',
         'PrivateKey',
         'PublicKey',
+        'Versions',
     }
 
     def __init__(self, data):
@@ -67,6 +68,9 @@ class Document:
 
     def __getitem__(self, key):
         return self.data['spec'][key]
+
+    def get(self, key, default=None):
+        return self.data['spec'].get(key, default)
 
 
 class Configuration:
