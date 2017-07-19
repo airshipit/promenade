@@ -1,0 +1,198 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: auxiliary-calico-etcd
+  namespace: kube-system
+  labels:
+    component: auxiliary-calico-etcd
+    promenade: genesis
+spec:
+  hostNetwork: true
+  containers:
+    - name: auxiliary-calico-etcd-0
+      image: {{ config['Versions']['images']['calico']['etcd'] }}
+      env:
+        - name: ETCD_NAME
+          value: auxiliary-calico-etcd-0
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "false"
+        - name: ETCD_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_PEER_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_DATA_DIR
+          value: /var/lib/auxiliary-calico-etcd-0
+        - name: ETCD_TRUSTED_CA_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-0/pki/client-ca.pem
+        - name: ETCD_CERT_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-0/pki/etcd-client.pem
+        - name: ETCD_KEY_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-0/pki/etcd-client-key.pem
+        - name: ETCD_PEER_TRUSTED_CA_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-0/pki/peer-ca.pem
+        - name: ETCD_PEER_CERT_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-0/pki/etcd-peer.pem
+        - name: ETCD_PEER_KEY_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-0/pki/etcd-peer-key.pem
+        - name: ETCD_ADVERTISE_CLIENT_URLS
+          value: https://{{ config['Node']['hostname'] }}:16666
+        - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+          value: https://{{ config['Node']['hostname'] }}:16667
+        - name: ETCD_INITIAL_CLUSTER_TOKEN
+          value: promenade-calico-etcd-token
+        - name: ETCD_LISTEN_CLIENT_URLS
+          value: https://0.0.0.0:16666
+        - name: ETCD_LISTEN_PEER_URLS
+          value: https://0.0.0.0:16667
+        - name: ETCD_INITIAL_CLUSTER_STATE
+          value: {{ config.get(kind='Etcd', alias='calico-etcd')['initial_cluster_state'] }}
+        - name: ETCD_INITIAL_CLUSTER
+          value: {{ config.get(kind='Etcd', alias='calico-etcd')['initial_cluster'] | join(',') }}
+      ports:
+        - name: client
+          containerPort: 16666
+        - name: peer
+          containerPort: 16667
+      resources:
+        limits:
+          cpu: 100m
+        requests:
+          cpu: 100m
+      volumeMounts:
+        - name: data-0
+          mountPath: /var/lib/auxiliary-calico-etcd-0
+        - name: pki-0
+          mountPath: /etc/kubernetes/auxiliary-calico-etcd-0/pki
+          readOnly: true
+    - name: auxiliary-calico-etcd-1
+      image: {{ config['Versions']['images']['calico']['etcd'] }}
+      env:
+        - name: ETCD_NAME
+          value: auxiliary-calico-etcd-1
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "false"
+        - name: ETCD_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_PEER_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_DATA_DIR
+          value: /var/lib/auxiliary-calico-etcd-1
+        - name: ETCD_TRUSTED_CA_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-1/pki/client-ca.pem
+        - name: ETCD_CERT_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-1/pki/etcd-client.pem
+        - name: ETCD_KEY_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-1/pki/etcd-client-key.pem
+        - name: ETCD_PEER_TRUSTED_CA_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-1/pki/peer-ca.pem
+        - name: ETCD_PEER_CERT_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-1/pki/etcd-peer.pem
+        - name: ETCD_PEER_KEY_FILE
+          value: /etc/kubernetes/auxiliary-calico-etcd-1/pki/etcd-peer-key.pem
+        - name: ETCD_ADVERTISE_CLIENT_URLS
+          value: https://{{ config['Node']['hostname'] }}:26666
+        - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+          value: https://{{ config['Node']['hostname'] }}:26667
+        - name: ETCD_INITIAL_CLUSTER_TOKEN
+          value: promenade-calico-etcd-token
+        - name: ETCD_LISTEN_CLIENT_URLS
+          value: https://0.0.0.0:26666
+        - name: ETCD_LISTEN_PEER_URLS
+          value: https://0.0.0.0:26667
+        - name: ETCD_INITIAL_CLUSTER_STATE
+          value: {{ config.get(kind='Etcd', alias='calico-etcd')['initial_cluster_state'] }}
+        - name: ETCD_INITIAL_CLUSTER
+          value: {{ config.get(kind='Etcd', alias='calico-etcd')['initial_cluster'] | join(',') }}
+      ports:
+        - name: client
+          containerPort: 26666
+        - name: peer
+          containerPort: 26667
+      resources:
+        limits:
+          cpu: 100m
+        requests:
+          cpu: 100m
+      volumeMounts:
+        - name: data-1
+          mountPath: /var/lib/auxiliary-calico-etcd-1
+        - name: pki-1
+          mountPath: /etc/kubernetes/auxiliary-calico-etcd-1/pki
+          readOnly: true
+    - name: cluster-monitor
+      image: {{ config['Versions']['images']['calico']['etcd'] }}
+      command:
+        - sh
+        - -c
+        - |-
+            set -x
+            while true; do
+              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -ge {{ config['Masters']['nodes'] | length }} ]; then
+                {%- for master in config['Masters']['nodes'] %}
+                etcdctl member add {{ master['hostname'] }} --peer-urls https://{{ master['hostname'] }}:6667
+                {%- endfor %}
+                break
+              fi
+            done
+            while true; do
+              sleep 5
+              if [ $(etcdctl member list | grep -v unstarted | wc -l || echo 0) -eq {{ 2 + (config['Masters']['nodes'] | length) }} ]; then
+                etcdctl member remove $(etcdctl member list | grep auxiliary-calico-etcd-1 | cut -d , -f 1)
+                etcdctl member remove $(etcdctl member list | grep auxiliary-calico-etcd-0 | cut -d , -f 1)
+                sleep 60
+                rm -rf \
+                  /var/lib/auxiliary-calico-etcd-0 \
+                  /var/lib/auxiliary-calico-etcd-1 \
+                  /etc/kubernetes/auxiliary-calico-etcd-0 \
+                  /etc/kubernetes/auxiliary-calico-etcd-1 \
+                  /etc/kubernetes/kubelet/manifests/auxiliary-calico-etcd.yaml
+                sleep 10000
+              fi
+            done
+      resources:
+        limits:
+          cpu: 100m
+        requests:
+          cpu: 100m
+      env:
+        - name: ETCDCTL_API
+          value: "3"
+        - name: ETCDCTL_CACERT
+          value: /etc/kubernetes/calico-etcd/pki/client-ca.pem
+        - name: ETCDCTL_CERT
+          value: /etc/kubernetes/calico-etcd/pki/etcd-client.pem
+        - name: ETCDCTL_ENDPOINTS
+          value: https://{{ config['Node']['ip'] }}:6666
+        - name: ETCDCTL_KEY
+          value: /etc/kubernetes/calico-etcd/pki/etcd-client-key.pem
+      volumeMounts:
+        - name: pki
+          mountPath: /etc/kubernetes/calico-etcd/pki
+          readOnly: true
+        - name: manifests
+          mountPath: /etc/kubernetes/kubelet/manifests
+        - name: varlib
+          mountPath: /var/lib
+  volumes:
+    - name: data-0
+      hostPath:
+        path: /var/lib/auxiliary-calico-etcd-0
+    - name: data-1
+      hostPath:
+        path: /var/lib/auxiliary-calico-etcd-1
+    - name: pki
+      hostPath:
+        path: /etc/kubernetes/calico-etcd/pki
+    - name: pki-0
+      hostPath:
+        path: /etc/kubernetes/auxiliary-calico-etcd-0/pki
+    - name: pki-1
+      hostPath:
+        path: /etc/kubernetes/auxiliary-calico-etcd-1/pki
+    - name: manifests
+      hostPath:
+        path: /etc/kubernetes/kubelet/manifests
+    - name: varlib
+      hostPath:
+        path: /var/lib

@@ -15,6 +15,8 @@ spec:
       env:
         - name: ETCD_NAME
           value: auxiliary-etcd-0
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "false"
         - name: ETCD_CLIENT_CERT_AUTH
           value: "true"
         - name: ETCD_PEER_CLIENT_CERT_AUTH
@@ -44,9 +46,9 @@ spec:
         - name: ETCD_LISTEN_PEER_URLS
           value: https://0.0.0.0:12380
         - name: ETCD_INITIAL_CLUSTER_STATE
-          value: {{ config['Etcd']['initial_cluster_state'] }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster_state'] }}
         - name: ETCD_INITIAL_CLUSTER
-          value: {{ config['Etcd']['initial_cluster'] | join(',') }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster'] | join(',') }}
       ports:
         - name: client
           containerPort: 12379
@@ -68,6 +70,8 @@ spec:
       env:
         - name: ETCD_NAME
           value: auxiliary-etcd-1
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "false"
         - name: ETCD_CLIENT_CERT_AUTH
           value: "true"
         - name: ETCD_PEER_CLIENT_CERT_AUTH
@@ -97,9 +101,9 @@ spec:
         - name: ETCD_LISTEN_PEER_URLS
           value: https://0.0.0.0:22380
         - name: ETCD_INITIAL_CLUSTER_STATE
-          value: {{ config['Etcd']['initial_cluster_state'] }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster_state'] }}
         - name: ETCD_INITIAL_CLUSTER
-          value: {{ config['Etcd']['initial_cluster'] | join(',') }}
+          value: {{ config.get(kind='Etcd', alias='kube-etcd')['initial_cluster'] | join(',') }}
       ports:
         - name: client
           containerPort: 22379

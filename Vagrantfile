@@ -16,6 +16,7 @@ EOS
   config.vm.provider "virtualbox" do |vb|
     vb.cpus = 2
     vb.memory = "2048"
+    vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
   end
 
   config.vm.define "n0" do |c|
