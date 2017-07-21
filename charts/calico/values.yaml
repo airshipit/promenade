@@ -1,0 +1,20 @@
+calico:
+  pod_ip_cidr: 10.97.0.0/16
+  etcd:
+    credentials:
+      ca: |-
+        invalid ca
+      cert: |-
+        invalid cert
+      key: |-
+        invalid key
+
+images:
+  node: quay.io/calico/node:v1.3.0
+  cni: quay.io/calico/cni:v1.9.1
+  policy_controller: quay.io/calico/kube-policy-controller:v0.6.0
+
+etcd:
+  service:
+    ip: 10.96.232.136
+    port: 6666
