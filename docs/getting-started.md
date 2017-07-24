@@ -23,20 +23,20 @@ vagrant up
 Start the genesis node:
 
 ```bash
-vagrant ssh n0 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n0.yaml'
+vagrant ssh n0 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n0.yaml'
 ```
 
 Join the master nodes:
 
 ```bash
-vagrant ssh n1 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n1.yaml'
-vagrant ssh n2 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n2.yaml'
+vagrant ssh n1 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n1.yaml'
+vagrant ssh n2 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n2.yaml'
 ```
 
 Join the worker node:
 
 ```bash
-vagrant ssh n3 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n3.yaml'
+vagrant ssh n3 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n3.yaml'
 ```
 
 ### Building the image
@@ -54,7 +54,7 @@ docker save -o promenade.tar promenade:local
 Then on a node:
 
 ```bash
-PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar /vagrant/up.sh /vagrant/path/to/node-config.yaml
+PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar bash /vagrant/up.sh /vagrant/path/to/node-config.yaml
 ```
 
 To build the image from behind a proxy, you can:
