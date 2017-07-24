@@ -57,6 +57,8 @@ Then on a node:
 PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar bash /vagrant/up.sh /vagrant/path/to/node-config.yaml
 ```
 
+These commands are combined in a convenience script at `tools/dev-build.sh`.
+
 To build the image from behind a proxy, you can:
 
 ```bash
