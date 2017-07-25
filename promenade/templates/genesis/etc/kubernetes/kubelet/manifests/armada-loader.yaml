@@ -12,7 +12,7 @@ spec:
   containers:
     - name: loader
       image: {{ config['Versions']['images']['armada'] }}
-      imagePullPolicy: Always  # We are following a moving branch for now.
+      imagePullPolicy: IfNotPresent
       command:
         - /bin/bash
         - -c
