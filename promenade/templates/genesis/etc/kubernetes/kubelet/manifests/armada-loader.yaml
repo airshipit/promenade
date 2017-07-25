@@ -26,7 +26,7 @@ spec:
 
               while true; do
                 sleep 10
-                if armada --debug apply promenade-armada.yaml ; then
+                if armada --debug apply --tiller-host 127.0.0.1 promenade-armada.yaml ; then
                   break
                 fi
               done
