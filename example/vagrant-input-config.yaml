@@ -78,7 +78,7 @@ spec:
       proxy: gcr.io/google_containers/hyperkube-amd64:v1.6.4
       scheduler: gcr.io/google_containers/hyperkube-amd64:v1.6.4
     promenade: quay.io/attcomdev/promenade:latest
-    tiller: gcr.io/kubernetes-helm/tiller:v2.4.2
+    tiller: gcr.io/kubernetes-helm/tiller:v2.5.0
   packages:
     docker: docker.io=1.12.6-0ubuntu1~16.04.1
     dnsmasq: dnsmasq=2.75-1ubuntu0.16.04.2
