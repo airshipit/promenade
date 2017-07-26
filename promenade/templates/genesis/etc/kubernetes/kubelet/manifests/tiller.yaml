@@ -15,6 +15,11 @@ spec:
     - name: TILLER_NAMESPACE
       value: kube-system
     image: {{ config['Versions']['images']['tiller'] }}
+    command:
+      - /tiller
+      - -logtostderr
+      - -v
+      - "99"
     imagePullPolicy: IfNotPresent
     livenessProbe:
       failureThreshold: 3
