@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/xenial64"
+  config.vm.box = "promenade/ubuntu1604"
   config.vm.box_check_update = false
 
   config.vm.provision :shell, privileged: true, inline:<<EOS
@@ -13,10 +13,12 @@ apt-get update -qq
 apt-get install -y -qq --no-install-recommends chrony
 EOS
 
-  config.vm.provider "virtualbox" do |vb|
-    vb.cpus = 2
-    vb.memory = "2048"
-    vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
+  config.vm.synced_folder ".", "/vagrant", :nfs => true
+
+  config.vm.provider "libvirt" do |lv|
+    lv.cpus = 2
+    lv.memory = "2048"
+    lv.nested = true
   end
 
   config.vm.define "n0" do |c|

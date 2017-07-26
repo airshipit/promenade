@@ -4,8 +4,16 @@
 
 ### Deployment using Vagrant
 
-Make sure you have [Vagrant](https://vagrantup.com) and
-[VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed.
+Deployment using Vagrant uses KVM instead of Virtualbox due to better
+performance of disk and networking, which both have significant impact on the
+stability of the etcd clusters.
+
+Make sure you have [Vagrant](https://vagrantup.com) installed, then
+run `./tools/full-vagrant-setup.sh`, which will do the following:
+
+* Install Vagrant libvirt plugin and its dependencies
+* Install NFS dependencies for Vagrant volume sharing
+* Install [packer](https://packer.io) and build a KVM image for Ubuntu 16.04
 
 Generate the per-host configuration, certificates and keys to be used:
 
