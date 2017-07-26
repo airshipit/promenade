@@ -1,0 +1,13 @@
+images:
+  dnsmasq: gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.2
+  kube_dns: gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.2
+  sidecar: gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.2
+
+kube_dns:
+  replicas: 2
+  upstream_nameservers:
+    - 8.8.8.8
+    - 8.8.4.4
+
+service:
+  cluster_ip: 10.96.0.10
