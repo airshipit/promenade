@@ -48,5 +48,7 @@ RUN set -ex \
 COPY requirements-frozen.txt /promenade
 RUN pip install --no-cache-dir -r requirements-frozen.txt
 
+COPY ./assets/ /assets/
+
 COPY . /promenade
 RUN pip install -e /promenade
