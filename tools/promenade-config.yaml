@@ -6,7 +6,7 @@ metadata:
   target: none
 spec:
   nodes:
-    n0:
+    G_HOSTNAME:
       ip: GENESIS
       kubernetes_interface: G_IFACE
       roles:
@@ -14,21 +14,21 @@ spec:
         - genesis
       additional_labels:
         - beta.kubernetes.io/arch=amd64
-    n1:
+    M1_HOSTNAME:
       ip: MASTER_1
       kubernetes_interface: M1_IFACE
       roles:
         - master
       additional_labels:
         - beta.kubernetes.io/arch=amd64
-    n2:
+    M2_HOSTNAME:
       ip: MASTER_2 
       kubernetes_interface: M2_IFACE
       roles:
         - master
       additional_labels:
         - beta.kubernetes.io/arch=amd64
-    n3:
+    W_HOSTNAME:
       ip: WORKER
       kubernetes_interface: W_IFACE
       roles:
