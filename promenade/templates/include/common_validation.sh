@@ -13,6 +13,21 @@ function log {
     echo $* 1>&2
 }
 
+function report_docker_exited_containers {
+    for container_id in $(docker ps -q --filter "status=exited"); do
+        log Report for exited container $container_id
+        docker inspect $container_id
+        docker logs $container_id
+    done
+}
+
+function report_docker_state {
+    log General docker state report
+    docker info
+    docker ps -a
+    report_docker_exited_containers
+}
+
 function report_kube_state {
     log General cluster state report
     kubectl get nodes 1>&2
@@ -20,6 +35,7 @@ function report_kube_state {
 }
 
 function fail {
+    report_docker_state
     report_kube_state
     exit 1
 }
