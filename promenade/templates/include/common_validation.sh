@@ -57,9 +57,7 @@ function wait_for_ready_nodes {
             now=$(date +%s)
             if [ $now -gt $end ]; then
                 log $(date) Nodes were not all ready before timeout.
-                kubectl get nodes 1>&2
-                kubectl get --all-namespaces pods -o wide 1>&2
-                exit 1
+                fail
             fi
             sleep 5
         else
