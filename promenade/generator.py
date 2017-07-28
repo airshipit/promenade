@@ -41,6 +41,7 @@ class Generator:
         cluster = self.input_config['Cluster']
         network = self.input_config['Network']
         versions = self.input_config['Versions']
+        armada_documents = list(self.input_config.iterate(kind='ArmadaDocument'))
 
         cluster_name = cluster.metadata['name']
         LOG.info('Generating configuration for cluster "%s"', cluster_name)
@@ -198,6 +199,7 @@ class Generator:
                 role_specific_documents.extend(master_documents)
 
             if 'genesis' in data.get('roles', []):
+                role_specific_documents.extend(armada_documents)
                 role_specific_documents.extend(_genesis_config(hostname, data,
                                                                masters, network, keys))
                 role_specific_documents.append(_genesis_etcd_config(cluster_name, hostname))

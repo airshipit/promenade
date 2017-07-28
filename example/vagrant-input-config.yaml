@@ -8,7 +8,6 @@ spec:
   nodes:
     n0:
       ip: 192.168.77.10
-      kubernetes_interface: enp0s8
       roles:
         - master
         - genesis
@@ -16,21 +15,18 @@ spec:
         - beta.kubernetes.io/arch=amd64
     n1:
       ip: 192.168.77.11
-      kubernetes_interface: enp0s8
       roles:
         - master
       additional_labels:
         - beta.kubernetes.io/arch=amd64
     n2:
       ip: 192.168.77.12
-      kubernetes_interface: enp0s8
       roles:
         - master
       additional_labels:
         - beta.kubernetes.io/arch=amd64
     n3:
       ip: 192.168.77.13
-      kubernetes_interface: enp0s8
       roles:
         - worker
       additional_labels:
@@ -49,6 +45,7 @@ spec:
   pod_ip_cidr: 10.97.0.0/16
   service_ip_cidr: 10.96.0.0/16
   calico_etcd_service_ip: 10.96.232.136
+  calico_interface: enp0s8
   dns_servers:
     - 8.8.8.8
     - 8.8.4.4
@@ -63,7 +60,7 @@ metadata:
   target: all
 spec:
   images:
-    armada: quay.io/attcomdev/armada:latest
+    armada: quay.io/attcomdev/armada:master
     calico:
       cni: quay.io/calico/cni:v1.9.1
       etcd: quay.io/coreos/etcd:v3.2.1
@@ -81,10 +78,46 @@ spec:
       proxy: gcr.io/google_containers/hyperkube-amd64:v1.6.4
       scheduler: gcr.io/google_containers/hyperkube-amd64:v1.6.4
     promenade: quay.io/attcomdev/promenade:latest
-    tiller: gcr.io/kubernetes-helm/tiller:v2.4.2
+    tiller: gcr.io/kubernetes-helm/tiller:v2.5.0
   packages:
     docker: docker.io=1.12.6-0ubuntu1~16.04.1
     dnsmasq: dnsmasq=2.75-1ubuntu0.16.04.2
     socat: socat=1.7.3.1-1
   additional_packages:
     - ceph-common=10.2.7-0ubuntu0.16.04.1
+---
+schema: armada/Manifest/v1
+metadata:
+  schema: metadata/Document/v1
+  name: example-application
+data:
+  release_prefix: example
+  chart_groups:
+    - example-application
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: example-application
+data:
+  description: Just an example
+  chart_group:
+    - redis
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: redis
+data:
+  chart_name: redis
+  release: example-redis
+  namespace: default
+  timeout: 600
+  values:
+    persistence:
+      enabled: false
+  source:
+    type: git
+    location: https://github.com/kubernetes/charts.git
+    subpath: stable/redis
+  dependencies: []

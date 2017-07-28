@@ -1,0 +1,21 @@
+---
+# This manfiest installs the Service which gets traffic to the Calico
+# etcd.
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    tier: control-plane
+    component: calico-etcd
+  name: calico-etcd
+  namespace: kube-system
+spec:
+  # Select the calico-etcd pod running on the master.
+  selector:
+    tier: control-plane
+    component: calico-etcd
+  # This ClusterIP needs to be known in advance, since we cannot rely
+  # on DNS to get access to etcd.
+  clusterIP: {{ .Values.etcd.service.ip }}
+  ports:
+    - port: {{ .Values.etcd.service.port }}

@@ -43,6 +43,9 @@ needed for a particular node.
 
 `spec` contains specific data for each kind of configuration document.
 
+Additionally, documents for [Armada](https://github.com/att-comdev/armada) are
+allowed and will be applied after CNI and DNS are deployed.
+
 ## Generating Configuration from Minimal Input
 
 To construct a complete set of cluster configuration, the minimal input are

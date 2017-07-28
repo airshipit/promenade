@@ -1,38 +1,4 @@
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kube-dns
-  namespace: kube-system
-  labels:
-    addonmanager.kubernetes.io/mode: EnsureExists
-data:
-  upstreamNameservers: |-
-    {{ config['Network']['dns_servers'] | tojson }}
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kube-dns
-  namespace: kube-system
-  labels:
-    k8s-app: kube-dns
-    addonmanager.kubernetes.io/mode: Reconcile
-    kubernetes.io/name: "KubeDNS"
-spec:
-  selector:
-    k8s-app: kube-dns
-  clusterIP: {{ config['Network']['cluster_dns'] }}
-  ports:
-  - name: dns
-    port: 53
-    protocol: UDP
-  - name: dns-tcp
-    port: 53
-    protocol: TCP
-
----
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -41,7 +7,7 @@ metadata:
   name: kube-dns
   namespace: kube-system
 spec:
-  replicas: 2
+  replicas: {{ .Values.kube_dns.replicas }}
   selector:
     matchLabels:
       k8s-app: kube-dns
@@ -95,7 +61,7 @@ spec:
         env:
         - name: PROMETHEUS_PORT
           value: "10055"
-        image: {{ config['Versions']['images']['kubernetes']['dns']['kubedns'] }}
+        image: {{ .Values.images.kube_dns }}
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 10053
@@ -140,7 +106,7 @@ spec:
         - --server=/cluster.local/127.0.0.1#10053
         - --server=/in-addr.arpa/127.0.0.1#10053
         - --server=/ip6.arpa/127.0.0.1#10053
-        image: {{ config['Versions']['images']['kubernetes']['dns']['dnsmasq'] }}
+        image: {{ .Values.images.dnsmasq }}
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 5
@@ -174,7 +140,7 @@ spec:
         - --logtostderr
         - --probe=kubedns,127.0.0.1:10053,kubernetes.default.svc.cluster.local,5,A
         - --probe=dnsmasq,127.0.0.1:53,kubernetes.default.svc.cluster.local,5,A
-        image: {{ config['Versions']['images']['kubernetes']['dns']['sidecar'] }}
+        image: {{ .Values.images.sidecar }}
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 5
@@ -215,43 +181,3 @@ spec:
           name: kube-dns
           optional: true
         name: kube-dns-config
-
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
-metadata:
-  labels:
-    kubernetes.io/bootstrapping: rbac-defaults
-  name: system:kube-dns
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - endpoints
-  - services
-  verbs:
-  - list
-  - watch
-
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    kubernetes.io/bootstrapping: rbac-defaults
-  name: system:kube-dns
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:kube-dns
-subjects:
-- kind: ServiceAccount
-  name: kube-dns
-  namespace: kube-system
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kube-dns
-  namespace: kube-system

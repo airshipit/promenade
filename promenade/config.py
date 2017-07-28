@@ -10,7 +10,22 @@ LOG = logging.getLogger(__name__)
 
 
 def load(f):
-    return Configuration(list(map(Document, yaml.load_all(f))))
+    return Configuration(list(map(instantiate_document, yaml.safe_load_all(f))))
+
+
+def instantiate_document(data):
+    if data.get('schema', '').startswith('armada'):
+        return Document({
+            'apiVersion': 'promenade/v1',
+            'kind': 'ArmadaDocument',
+            'metadata': {
+                'name': data['schema'] + '/' + data['metadata']['name'],
+                'target': 'none',
+            },
+            'spec': data,
+        })
+    else:
+        return Document(data)
 
 
 class Document:
@@ -22,6 +37,8 @@ class Document:
     }
 
     SUPPORTED_KINDS = {
+        'ArmadaDocument',
+
         'Certificate',
         'CertificateAuthority',
         'CertificateAuthorityKey',
@@ -115,6 +132,9 @@ class Configuration:
         for document in docs:
             if not kind or document.kind == kind:
                 yield document
+
+    def get_armada_documents(self):
+        return [d.data['spec'] for d in self.iterate(kind='ArmadaDocument')]
 
     def _iterate_with_target(self, target):
         for document in self.documents:

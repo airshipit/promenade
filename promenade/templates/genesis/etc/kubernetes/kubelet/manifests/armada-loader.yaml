@@ -12,21 +12,30 @@ spec:
   containers:
     - name: loader
       image: {{ config['Versions']['images']['armada'] }}
-      imagePullPolicy: Always  # We are following a moving branch for now.
+      imagePullPolicy: IfNotPresent
       command:
         - /bin/bash
         - -c
         - |-
             set -x
 
+            mkdir -p /root/.kube
+            cp /etc/kubernetes/armada-loader/kubeconfig.yaml /root/.kube/config
+
             cd /etc/kubernetes/armada-loader/assets
             if [ -s promenade-armada.yaml ]; then
-              mkdir -p /root/.kube
-              cp /etc/kubernetes/armada-loader/kubeconfig.yaml /root/.kube/config
-
               while true; do
                 sleep 10
-                if armada --debug apply promenade-armada.yaml ; then
+                if armada --debug apply --tiller-host 127.0.0.1 promenade-armada.yaml ; then
+                  break
+                fi
+              done
+            fi
+
+            if [ -s external-armada.yaml ]; then
+              while true; do
+                sleep 10
+                if armada --debug apply --tiller-host 127.0.0.1 external-armada.yaml ; then
                   break
                 fi
               done
