@@ -60,7 +60,7 @@ metadata:
   target: all
 spec:
   images:
-    armada: quay.io/attcomdev/armada:latest
+    armada: quay.io/attcomdev/armada:master
     calico:
       cni: quay.io/calico/cni:v1.9.1
       etcd: quay.io/coreos/etcd:v3.2.1
@@ -85,3 +85,39 @@ spec:
     socat: socat=1.7.3.1-1
   additional_packages:
     - ceph-common=10.2.7-0ubuntu0.16.04.1
+---
+schema: armada/Manifest/v1
+metadata:
+  schema: metadata/Document/v1
+  name: example-application
+data:
+  release_prefix: example
+  chart_groups:
+    - example-application
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: example-application
+data:
+  description: Just an example
+  chart_group:
+    - redis
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: redis
+data:
+  chart_name: redis
+  release: example-redis
+  namespace: default
+  timeout: 600
+  values:
+    persistence:
+      enabled: false
+  source:
+    type: git
+    location: https://github.com/kubernetes/charts.git
+    subpath: stable/redis
+  dependencies: []

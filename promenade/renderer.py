@@ -1,8 +1,10 @@
 from . import logging
 import base64
+import io
 import jinja2
 import os
 import pkg_resources
+import yaml
 
 __all__ = ['Renderer']
 
@@ -45,6 +47,7 @@ class Renderer:
                 loader=jinja2.PackageLoader('promenade', 'templates/include'),
                 undefined=jinja2.StrictUndefined)
         env.filters['b64enc'] = _base64_encode
+        env.filters['yaml_safe_dump_all'] = _yaml_safe_dump_all
 
         with open(path) as f:
             template = env.from_string(f.read())
@@ -63,3 +66,9 @@ def _ensure_path(path):
 
 def _base64_encode(s):
     return base64.b64encode(s.encode()).decode()
+
+
+def _yaml_safe_dump_all(documents):
+    f = io.StringIO()
+    yaml.safe_dump_all(documents, f)
+    return f.getvalue()
