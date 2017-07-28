@@ -14,3 +14,14 @@ apt-get install -y --no-install-recommends \
 systemctl daemon-reload
 systemctl enable kubelet
 systemctl restart kubelet
+
+
+cat <<EOF > /etc/resolv.conf
+options timeout:1 attempts:1
+
+nameserver 127.0.0.1
+
+{%- for server in config['Network']['dns_servers'] %}
+nameserver {{ server }}
+{%- endfor %}
+EOF
