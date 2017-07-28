@@ -31,28 +31,21 @@ vagrant up
 Start the genesis node:
 
 ```bash
-vagrant ssh n0 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n0.yaml'
+vagrant ssh n0 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n0.yaml'
 ```
 
 Join the master nodes:
 
 ```bash
-vagrant ssh n1 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n1.yaml'
-vagrant ssh n2 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n2.yaml'
+vagrant ssh n1 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n1.yaml'
+vagrant ssh n2 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n2.yaml'
 ```
 
 Join the worker node:
 
 ```bash
-vagrant ssh n3 -c 'sudo /vagrant/configs/up.sh /vagrant/configs/n3.yaml'
+vagrant ssh n3 -c 'sudo bash /vagrant/configs/up.sh /vagrant/configs/n3.yaml'
 ```
-
-To use Promenade from behind a proxy, simply add proxy settings to the
-promenade `Network` configuration document using the keys `http_proxy`,
-`https_proxy`, and `no_proxy` before running `generate`.
-
-Note that it is important to specify `no_proxy` to include `kubernetes` and the
-IP addresses of all the master nodes.
 
 ### Building the image
 
@@ -69,8 +62,10 @@ docker save -o promenade.tar promenade:local
 Then on a node:
 
 ```bash
-PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar /vagrant/up.sh /vagrant/path/to/node-config.yaml
+PROMENADE_LOAD_IMAGE=/vagrant/promenade.tar bash /vagrant/up.sh /vagrant/path/to/node-config.yaml
 ```
+
+These commands are combined in a convenience script at `tools/dev-build.sh`.
 
 To build the image from behind a proxy, you can:
 
@@ -82,13 +77,5 @@ docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_pr
 
 ## Using Promenade Behind a Proxy
 
-To use Promenade from behind a proxy, simply export `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables on the vagrant host prior to executing the `genesis.sh` and `join.sh` scripts respectively.  Alternatively, you may also export the `DOCKER_HTTP_PROXY`, `DOCKER_HTTPS_PROXY`, and `DOCKER_NO_PROXY` directly. Ensure you are running the script with `sudo -E` option to preserve the environment variables.
-
-```bash
-vagrant ssh n0
-cd /vagrant
-export DOCKER_HTTP_PROXY="http://proxy.server.com:8080"
-export DOCKER_HTTPS_PROXY="https://proxy.server.com:8080"
-export DOCKER_NO_PROXY="localhost,127.0.0.1"
-sudo -E /vagrant/up.sh /vagrant/configs/n0.yaml
-```
+To use Promenade from behind a proxy, use the proxy settings described in the
+[configuration docs](configuration.md).

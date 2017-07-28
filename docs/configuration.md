@@ -88,7 +88,8 @@ The `Network` document must contain:
 - `dns_servers` - A list of upstream DNS server IPs.
 
 Optionally, proxy settings can be specified here as well.  These should all
-generally be set together: `http_proxy`, `https_proxy`, `no_proxy`.
+generally be set together: `http_proxy`, `https_proxy`, `no_proxy`.  `no_proxy`
+must include all master IP addresses, and the `kubernetes` service name.
 
 Here's an example `Network` document:
 
@@ -111,7 +112,7 @@ spec:
     - 8.8.4.4
   http_proxy: http://proxy.example.com:8080
   https_proxy: http://proxy.example.com:8080
-  no_proxy: 192.168.77.10,127.0.0.1,kubernetes
+  no_proxy: 192.168.77.10,192.168.77.11,192.168.77.12,127.0.0.1,kubernetes,kubernetes.default.svc.cluster.local
 ```
 
 The `Versions` document must define the Promenade image to be used and the
