@@ -8,7 +8,7 @@ metadata:
     app: promenade
     component: genesis-tiller
 spec:
-  dnsPolicy: ClusterFirstWithHostNet
+  dnsPolicy: Default
   hostNetwork: true
   containers:
   - env:
