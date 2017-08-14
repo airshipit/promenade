@@ -5,6 +5,7 @@ images:
 
 kube_dns:
   replicas: 2
+  restartPolicy: Always
   upstream_nameservers:
     - 8.8.8.8
     - 8.8.4.4
