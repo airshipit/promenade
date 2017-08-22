@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: drydock
+  name: ucp
 spec: {}
 
 ---
@@ -10,7 +10,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: promenade-join-sh
-  namespace: drydock
+  namespace: ucp
 data:
   join.sh: |-
 {%- filter indent(4, True) %}
