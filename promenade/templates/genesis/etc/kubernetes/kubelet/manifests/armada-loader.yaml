@@ -13,6 +13,29 @@ spec:
     - name: loader
       image: {{ config['Versions']['images']['armada'] }}
       imagePullPolicy: IfNotPresent
+      {%- if config['Network']['http_proxy'] is defined
+              or config['Network']['https_proxy'] is defined
+              or config['Network']['no_proxy'] is defined %}
+      env:
+      {%- endif %}
+      {%- if config['Network']['http_proxy'] is defined %}
+        - name: HTTP_PROXY
+          value: {{ config['Network']['http_proxy'] }}
+        - name: http_proxy
+          value: {{ config['Network']['http_proxy'] }}
+      {%- endif %}
+      {%- if config['Network']['https_proxy'] is defined %}
+        - name: HTTPS_PROXY
+          value: {{ config['Network']['https_proxy'] }}
+        - name: https_proxy
+          value: {{ config['Network']['https_proxy'] }}
+      {%- endif %}
+      {%- if config['Network']['no_proxy'] is defined %}
+        - name: NO_PROXY
+          value: {{ config['Network']['no_proxy'] }}
+        - name: no_proxy
+          value: {{ config['Network']['no_proxy'] }}
+      {%- endif %}
       command:
         - /bin/bash
         - -c
