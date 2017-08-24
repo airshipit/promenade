@@ -63,7 +63,7 @@ metadata:
   target: all
 spec:
   images:
-    armada: quay.io/attcomdev/armada:v0.6.0
+    armada: quay.io/attcomdev/armada:latest
     calico:
       cni: quay.io/calico/cni:v1.9.1
       etcd: quay.io/coreos/etcd:v3.2.1

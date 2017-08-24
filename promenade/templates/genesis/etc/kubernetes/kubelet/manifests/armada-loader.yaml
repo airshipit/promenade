@@ -42,9 +42,6 @@ spec:
         - |-
             set -x
 
-            mkdir -p /root/.kube
-            cp /etc/kubernetes/armada-loader/kubeconfig.yaml /root/.kube/config
-
             cd /etc/kubernetes/armada-loader/assets
             if [ -s promenade-armada.yaml ]; then
               while true; do
@@ -64,7 +61,8 @@ spec:
               done
             fi
 
-            rm -rf /etc/kubernetes/kubelet/manifests/armada-loader.yaml
+            touch /shared/armada.done
+
             # Sleep so that kubelet doesn't restart this pod before it kills it
             sleep 10000
 
@@ -72,8 +70,36 @@ spec:
         - name: config
           mountPath: /etc/kubernetes/armada-loader
           readOnly: true
+        - name: config
+          mountPath: /armada/.kube
+          readOnly: true
+        - name: shared
+          mountPath: /shared
+
+    - name: monitor
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/sh
+        - -c
+        - |-
+            set -x
+
+            while [ ! -f /shared/armada.done ] ; do
+              sleep 1
+            done
+
+            rm -f /etc/kubernetes/kubelet/manifests/armada-loader.yaml
+
+            # Sleep so that kubelet doesn't restart this pod before it kills it
+            sleep 10000
+
+      volumeMounts:
+        - name: shared
+          mountPath: /shared
         - name: manifests
           mountPath: /etc/kubernetes/kubelet/manifests
+
   volumes:
     - name: config
       hostPath:
@@ -81,3 +107,5 @@ spec:
     - name: manifests
       hostPath:
         path: /etc/kubernetes/kubelet/manifests
+    - name: shared
+      emptyDir: {}
