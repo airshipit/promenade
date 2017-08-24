@@ -15,9 +15,9 @@
 FROM python:3.6
 
 ENV CNI_VERSION=v0.5.2 \
-    HELM_VERSION=v2.4.2 \
-    KUBECTL_VERSION=v1.6.4 \
-    KUBELET_VERSION=v1.6.4
+    HELM_VERSION=v2.5.0 \
+    KUBECTL_VERSION=v1.6.8 \
+    KUBELET_VERSION=v1.6.8
 
 VOLUME /etc/promenade
 VOLUME /target
