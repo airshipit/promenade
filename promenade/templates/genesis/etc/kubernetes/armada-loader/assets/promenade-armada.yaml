@@ -56,7 +56,6 @@ data:
   values:
     kube_dns:
       replicas: 1
-      restartPolicy: Never  # An attempt to work around calico not being ready.
       {%- if config['Network']['dns_servers'] is defined %}
       upstream_nameservers:
       {%- for nameserver in config['Network']['dns_servers'] %}
