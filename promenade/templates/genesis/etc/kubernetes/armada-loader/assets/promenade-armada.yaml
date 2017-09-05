@@ -7,6 +7,7 @@ data:
   release_prefix: promenade
   chart_groups:
     - promenade-networking
+    - promenade-rbac
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -18,6 +19,15 @@ data:
   chart_group:
     - calico
     - kube-dns
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: promenade-rbac
+data:
+  description: core
+  chart_group:
+    - rbac
 ---
 schema: armada/Chart/v1
 metadata:
@@ -69,3 +79,20 @@ data:
     location: /etc/kubernetes/armada-loader/assets/charts
     subpath: kube-dns
   dependencies: []
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: rbac
+data:
+  chart_name: rbac
+  release: rbac
+  namespace: kube-system
+  timeout: 600
+  values: {}
+  source:
+    type: local
+    location: /etc/kubernetes/armada-loader/assets/charts
+    subpath: rbac
+  dependencies: []
+...
