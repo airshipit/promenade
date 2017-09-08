@@ -1,0 +1,111 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.service.name }}-anchor
+spec:
+  selector:
+    matchLabels:
+      {{ .Values.service.name | quote }}: anchor
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+      labels:
+        {{ .Values.service.name | quote }}: anchor
+    spec:
+      hostNetwork: true
+      dnsPolicy: {{ .Values.anchor.dns_policy }}
+      nodeSelector:
+        {{ .Values.anchor.node_selector.key }}: {{ .Values.anchor.node_selector.value }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
+      containers:
+        - name: etcdctl
+          image: {{ .Values.images.etcdctl }}
+          command:
+            - /tmp/etcdctl_anchor
+          env:
+            - name: ETCD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: ETCDCTL_API
+              value: '3'
+            - name: ETCDCTL_DIAL_TIMEOUT
+              value: 3s
+            - name: ETCDCTL_ENDPOINTS
+              value: https://{{ .Values.anchor.etcdctl_endpoint }}:{{ .Values.service.client.port }}
+            - name: ETCDCTL_CACERT
+              value: /etc/etcd/tls/certs/client-ca.pem
+            - name: ETCDCTL_CERT
+              value: /etc/etcd/tls/certs/anchor-etcd-client.pem
+            - name: ETCDCTL_KEY
+              value: /etc/etcd/tls/keys/anchor-etcd-client-key.pem
+          readinessProbe:
+            exec:
+              command:
+                - /tmp/readiness
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /tmp/pre_stop
+          volumeMounts:
+            - name: bin
+              mountPath: /tmp
+            {{- if .Values.bootstrapping.enabled }}
+            - name: bootstrapping
+              mountPath: /bootstrapping
+            {{- end }}
+            - name: certs
+              mountPath: /etc/etcd/tls/certs
+            - name: etcd-etc
+              mountPath: /etcd-etc
+            {{- if .Values.etcd.cleanup_data }}
+            - name: etcd-data
+              mountPath: /etcd-data
+            {{- end }}
+            - name: keys
+              mountPath: /etc/etcd/tls/keys
+            - name: kubelet-manifests
+              mountPath: /manifests
+      terminationGracePeriodSeconds: {{ .Values.anchor.termination_grace_period }}
+      volumes:
+        - name: bin
+          configMap:
+            name: {{ .Values.service.name }}-bin
+            defaultMode: 0555
+        {{- if .Values.bootstrapping.enabled }}
+        - name: bootstrapping
+          hostPath:
+            path: {{ .Values.bootstrapping.host_directory }}
+        {{- end }}
+        - name: certs
+          configMap:
+            name: {{ .Values.service.name }}-certs
+            defaultMode: 0444
+        {{- if .Values.etcd.cleanup_data }}
+        - name: etcd-data
+          hostPath:
+            path: {{ .Values.etcd.host_data_path }}
+        {{- end }}
+        - name: keys
+          secret:
+            secretName: {{ .Values.service.name }}-keys
+            defaultMode: 0444
+        - name: etcd-etc
+          hostPath:
+            path: {{ .Values.etcd.host_etc_path }}
+        - name: kubelet-manifests
+          hostPath:
+            path: {{ .Values.anchor.kubelet.manifest_path }}

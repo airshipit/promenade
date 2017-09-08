@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+spec:
+  selector:
+    {{ .Values.service.name }}-service: enabled
+  {{- if .Values.service.ip }}
+  clusterIP: {{ .Values.service.ip }}
+  {{- end }}
+  ports:
+    - name: https
+      port: {{ .Values.apiserver.port }}

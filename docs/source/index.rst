@@ -31,4 +31,4 @@ Promenade Configuration Guide
    :maxdepth: 2
 
    getting-started
-   configuration
+   configuration/index

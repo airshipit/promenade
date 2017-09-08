@@ -1,0 +1,36 @@
+anchor:
+  dns_policy: Default
+  kubelet:
+    manifest_path: /etc/kubernetes/manifests
+  node_selector:
+    key: kubernetes-controller-manager
+    value: enabled
+  period: 15
+  termination_grace_period: 3600
+
+controller_manager:
+  command: /controller-manager
+  host_etc_path: /etc/kubernetes/controller-manager
+  node_monitor_period: 5s
+  node_monitor_grace_period: 20s
+  pod_eviction_timeout: 60s
+
+service_account:
+  private_key: placeholder
+
+tls:
+  ca: placeholder
+  cert: placeholder
+  key: placeholder
+
+images:
+  anchor: quay.io/attcomdev/kube-controller-manager:v1.8.0
+  controller_manager: quay.io/attcomdev/kube-controller-manager:v1.8.0
+
+network:
+  kubernetes_netloc: 10.96.0.1
+  pod_cidr: 10.97.0.0/16
+  service_cidr: 10.96.0.0/16
+
+service:
+  name: kubernetes-controller-manager

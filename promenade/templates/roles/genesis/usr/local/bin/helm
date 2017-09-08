@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ "x$(pwd)" = "x/" ]; then
+    UPDIR=/
+    WORKDIR=/up
+else
+    UPDIR=$(pwd)/..
+    WORKDIR=/up/$(basename $(pwd))
+fi
+
+exec docker run --rm -it \
+    --net host \
+    -v $UPDIR:/up \
+    -v /etc/kubernetes/admin:/etc/kubernetes/admin \
+    -w $WORKDIR \
+    -e KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml \
+    {{ config['HostSystem:images.helm.helm'] }} \
+        --host 127.0.0.1:44134 \
+        $*

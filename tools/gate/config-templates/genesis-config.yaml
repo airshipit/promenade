@@ -1,0 +1,36 @@
+---
+schema: promenade/Genesis/v1
+metadata:
+  schema: metadata/Document/v1
+  name: genesis
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  hostname: ${GENESIS_HOSTNAME}
+  ip: ${GENESIS_IP}
+  labels:
+    static:
+      - calico-etcd=enabled
+      - node-role.kubernetes.io/master=
+    dynamic:
+      - kubernetes-apiserver=enabled
+      - kubernetes-controller-manager=enabled
+      - kubernetes-etcd=enabled
+      - kubernetes-scheduler=enabled
+      - promenade-genesis=enabled
+      - ucp-control-plane=enabled
+  images:
+    armada: ${IMAGE_ARMADA}
+    helm:
+      tiller: ${IMAGE_TILLER}
+    kubernetes:
+      apiserver: ${IMAGE_HYPERKUBE}
+      controller-manager: ${IMAGE_HYPERKUBE}
+      etcd: ${IMAGE_ETCD}
+      scheduler: ${IMAGE_HYPERKUBE}
+  files:
+    - path: /var/lib/anchor/calico-etcd-bootstrap
+      content: ""
+      mode: 0644
+...

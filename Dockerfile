@@ -14,11 +14,6 @@
 
 FROM python:3.6
 
-ENV CNI_VERSION=v0.5.2 \
-    HELM_VERSION=v2.5.0 \
-    KUBECTL_VERSION=v1.6.8 \
-    KUBELET_VERSION=v1.6.8
-
 VOLUME /etc/promenade
 VOLUME /target
 
@@ -26,17 +21,6 @@ RUN mkdir /promenade
 WORKDIR /promenade
 
 RUN set -ex \
-    && export BIN_DIR=/assets/usr/local/bin \
-    && mkdir -p $BIN_DIR \
-    && curl -Lo $BIN_DIR/kubelet https://storage.googleapis.com/kubernetes-release/release/$KUBELET_VERSION/bin/linux/amd64/kubelet \
-    && curl -Lo $BIN_DIR/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl \
-    && chmod 555 $BIN_DIR/kubelet \
-    && chmod 555 $BIN_DIR/kubectl \
-    && mkdir -p /assets/opt/cni/bin \
-    && curl -L https://github.com/containernetworking/cni/releases/download/$CNI_VERSION/cni-amd64-$CNI_VERSION.tgz | tar -zxv -C /assets/opt/cni/bin/ \
-    && curl -L https://storage.googleapis.com/kubernetes-helm/helm-${HELM_VERSION}-linux-amd64.tar.gz | tar -zxv -C /tmp linux-amd64/helm \
-    && mv /tmp/linux-amd64/helm $BIN_DIR/helm \
-    && chmod 555 $BIN_DIR/helm \
     && curl -Lo /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
     && chmod 555 /usr/local/bin/cfssl \
     && apt-get update -q \
@@ -47,8 +31,6 @@ RUN set -ex \
 
 COPY requirements-frozen.txt /promenade
 RUN pip install --no-cache-dir -r requirements-frozen.txt
-
-COPY ./assets/ /assets/
 
 COPY . /promenade
 RUN pip install -e /promenade

@@ -1,0 +1,9 @@
+$ORIGIN promenade.
+
+promenade. IN SOA @ root {{ now }} 3h 15m 1w 1d
+
+{%- if config['KubernetesNode:join_ip'] is defined %}
+apiserver.kubernetes IN A {{ config['KubernetesNode:join_ip'] }}
+{%- else %}
+apiserver.kubernetes IN A 127.0.0.1
+{%- endif %}

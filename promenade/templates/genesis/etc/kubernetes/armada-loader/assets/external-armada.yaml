@@ -1,1 +1,0 @@
-{{ config.get_armada_documents() | yaml_safe_dump_all }}

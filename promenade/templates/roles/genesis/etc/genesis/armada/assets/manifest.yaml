@@ -1,0 +1,1 @@
+{{ config.iterate(schema='armada') | yaml_safe_dump_all | safe }}

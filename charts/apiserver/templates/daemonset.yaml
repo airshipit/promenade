@@ -1,0 +1,67 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: DaemonSet
+metadata:
+  name: {{ .Values.service.name }}-anchor
+  labels:
+    application: kubernetes
+    component: kubernetes-apiserver-anchor
+spec:
+  selector:
+    matchLabels:
+      {{ .Values.service.name | quote }}: anchor
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+      labels:
+        {{ .Values.service.name | quote }}: anchor
+    spec:
+      hostNetwork: true
+      dnsPolicy: {{ .Values.anchor.dns_policy }}
+      nodeSelector:
+        {{ .Values.anchor.node_selector.key }}: {{ .Values.anchor.node_selector.value }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
+      containers:
+        - name: anchor
+          image: {{ .Values.images.anchor }}
+          command:
+            - /tmp/bin/anchor
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /tmp/bin/pre_stop
+          volumeMounts:
+            - name: certs
+              mountPath: /certs
+            - name: host
+              mountPath: /host
+            - name: keys
+              mountPath: /keys
+            - name: bin
+              mountPath: /tmp/bin
+      terminationGracePeriodSeconds: {{ .Values.anchor.termination_grace_period }}
+      volumes:
+        - name: bin
+          configMap:
+            name: {{ .Values.service.name }}-bin
+            defaultMode: 0555
+        - name: certs
+          configMap:
+            name: {{ .Values.service.name }}-certs
+            defaultMode: 0444
+        - name: host
+          hostPath:
+            path: /
+        - name: keys
+          secret:
+            secretName: {{ .Values.service.name }}-keys
+            defaultMode: 0444

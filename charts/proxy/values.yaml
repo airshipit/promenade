@@ -1,0 +1,19 @@
+dns_policy: Default
+name: kubernetes-proxy
+
+tls:
+  ca: placeholder
+  cert: placeholder
+  key: placeholder
+
+proxy:
+  command: /proxy
+
+images:
+  proxy: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+
+network:
+  kubernetes_netloc: 10.96.0.1
+  pod_cidr: 10.97.0.0/16
+
+node_selector: {}

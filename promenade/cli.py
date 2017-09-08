@@ -1,8 +1,9 @@
-from . import generator, logging, operator
+from . import builder, config, exceptions, generator, logging
 import click
+import os
+import sys
 
 __all__ = []
-
 
 LOG = logging.getLogger(__name__)
 
@@ -10,39 +11,59 @@ LOG = logging.getLogger(__name__)
 @click.group()
 @click.option('-v', '--verbose', is_flag=True)
 def promenade(*, verbose):
+    if _debug():
+        verbose = True
     logging.setup(verbose=verbose)
 
 
-@promenade.command(help='Initialize a new cluster on one node')
-@click.option('-a', '--asset-dir', default='/assets',
-              type=click.Path(exists=True, file_okay=False,
-                              dir_okay=True, resolve_path=True),
-              help='Source path for binaries to deploy.')
-@click.option('-c', '--config-path', type=click.File(),
-              help='Location of cluster configuration data.')
-@click.option('--hostname', help='Current hostname.')
-@click.option('-t', '--target-dir', default='/target',
-              type=click.Path(exists=True, file_okay=False,
-                              dir_okay=True, resolve_path=True),
-              help='Location where templated files will be placed.')
-def up(*, asset_dir, config_path, hostname, target_dir):
+@promenade.command('build-all', help='Construct all scripts')
+@click.option(
+    '-o',
+    '--output-dir',
+    default='.',
+    type=click.Path(
+        exists=True, file_okay=False, dir_okay=True, resolve_path=True),
+    required=True,
+    help='Location to write complete cluster configuration.')
+@click.option('--validators', is_flag=True, help='Generate validation scripts')
+@click.argument('config_files', nargs=-1, type=click.File('rb'))
+def build_all(*, config_files, output_dir, validators):
+    debug = _debug()
+    try:
+        c = config.Configuration.from_streams(
+            debug=debug, streams=config_files)
+        b = builder.Builder(c, validators=validators)
+        b.build_all(output_dir=output_dir)
+    except exceptions.PromenadeException as e:
+        e.display(debug=debug)
+        sys.exit(e.EXIT_CODE)
 
-    op = operator.Operator.from_config(config_path=config_path,
-                                       hostname=hostname,
-                                       target_dir=target_dir)
 
-    op.up(asset_dir=asset_dir)
+@promenade.command('generate-certs', help='Generate a certs for a site')
+@click.option(
+    '-o',
+    '--output-dir',
+    type=click.Path(
+        exists=True, file_okay=False, dir_okay=True, resolve_path=True),
+    required=True,
+    help='Location to write *-certificates.yaml')
+@click.argument('config_files', nargs=-1, type=click.File('rb'))
+@click.option(
+    '--calico-etcd-service-ip',
+    default='10.96.232.136',
+    help='Service IP for calico etcd')
+def genereate_certs(*, calico_etcd_service_ip, config_files, output_dir):
+    debug = _debug()
+    try:
+        c = config.Configuration.from_streams(
+            debug=debug, streams=config_files, substitute=False)
+        g = generator.Generator(
+            c, calico_etcd_service_ip=calico_etcd_service_ip)
+        g.generate(output_dir)
+    except exceptions.PromenadeException as e:
+        e.display(debug=debug)
+        sys.exit(e.EXIT_CODE)
 
 
-@promenade.command(help='Generate certs and keys')
-@click.option('-c', '--config-path', type=click.File(),
-              required=True,
-              help='Location of cluster configuration data.')
-@click.option('-o', '--output-dir', default='.',
-              type=click.Path(exists=True, file_okay=False, dir_okay=True,
-                              resolve_path=True),
-              required=True,
-              help='Location to write complete cluster configuration.')
-def generate(*, config_path, output_dir):
-    g = generator.Generator.from_config(config_path=config_path)
-    g.generate_all(output_dir)
+def _debug():
+    return os.environ.get('PROMENADE_DEBUG', '').lower() in {'1', 'True'}

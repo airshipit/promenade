@@ -1,0 +1,63 @@
+    - name: etcd
+      image: {{ config['Genesis:images.kubernetes.etcd'] }}
+      env:
+        - name: ETCD_NAME
+          value: {{ etcd_name }}
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: ETCD_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_PEER_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_DATA_DIR
+          value: /var/lib/etcd
+        - name: ETCD_TRUSTED_CA_FILE
+          value: /etc/etcd/pki/client-ca.pem
+        - name: ETCD_CERT_FILE
+          value: /etc/etcd/pki/etcd-client.pem
+        - name: ETCD_KEY_FILE
+          value: /etc/etcd/pki/etcd-client-key.pem
+        - name: ETCD_PEER_TRUSTED_CA_FILE
+          value: /etc/etcd/pki/peer-ca.pem
+        - name: ETCD_PEER_CERT_FILE
+          value: /etc/etcd/pki/etcd-peer.pem
+        - name: ETCD_PEER_KEY_FILE
+          value: /etc/etcd/pki/etcd-peer-key.pem
+        - name: ETCD_ADVERTISE_CLIENT_URLS
+          value: https://$(POD_IP):{{ client_port }}
+        - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+          value: https://$(POD_IP):{{ peer_port }}
+        - name: ETCD_INITIAL_CLUSTER_TOKEN
+          value: promenade-kube-etcd-token
+        - name: ETCD_LISTEN_CLIENT_URLS
+          value: https://0.0.0.0:{{ client_port }}
+        - name: ETCD_LISTEN_PEER_URLS
+          value: https://0.0.0.0:{{ peer_port }}
+        - name: ETCD_INITIAL_CLUSTER_STATE
+          value: new
+        - name: ETCD_INITIAL_CLUSTER
+          value: genesis=https://{{ config['Genesis:ip'] }}:2380,auxiliary=https://{{ config['Genesis:ip'] }}:12380
+        - name: ETCDCTL_API
+          value: '3'
+        - name: ETCDCTL_DIAL_TIMEOUT
+          value: 3s
+        - name: ETCDCTL_ENDPOINTS
+          value: https://$(POD_IP):{{ client_port }},https://127.0.0.1:{{ client_port }}
+        - name: ETCDCTL_CACERT
+          value: $(ETCD_TRUSTED_CA_FILE)
+        - name: ETCDCTL_CERT
+          value: $(ETCD_CERT_FILE)
+        - name: ETCDCTL_KEY
+          value: $(ETCD_KEY_FILE)
+      ports:
+        - name: client
+          containerPort: {{ client_port }}
+        - name: peer
+          containerPort: {{ peer_port }}
+      volumeMounts:
+        - name: data
+          mountPath: /var/lib/etcd
+        - name: pki
+          mountPath: /etc/etcd/pki

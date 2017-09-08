@@ -5,7 +5,12 @@ Vagrant.configure("2") do |config|
   config.vm.box = "promenade/ubuntu1604"
   config.vm.box_check_update = false
 
-  config.vm.provision :shell, privileged: true, inline:<<EOS
+  provision_env = {}
+  if ENV['http_proxy'] then
+    provision_env['http_proxy'] = ENV['http_proxy']
+  end
+
+  config.vm.provision :shell, privileged: true, env: provision_env, inline:<<EOS
 set -ex
 
 echo === Setting up NTP so simulate MaaS environment ===

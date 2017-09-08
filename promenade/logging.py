@@ -3,8 +3,7 @@ from logging import getLogger
 
 __all__ = ['getLogger', 'setup']
 
-
-LOG_FORMAT = '%(asctime)s %(levelname)-8s %(name)s:%(funcName)s [%(lineno)3d] %(message)s'
+LOG_FORMAT = '%(asctime)s %(levelname)-8s %(name)s:%(funcName)s [%(lineno)3d] %(message)s'  # noqa
 
 
 def setup(*, verbose):

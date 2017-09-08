@@ -1,0 +1,45 @@
+anchor:
+  dns_policy: Default
+  kubelet:
+    manifest_path: /etc/kubernetes/manifests
+  node_selector:
+    key: kubernetes-apiserver
+    value: enabled
+  termination_grace_period: 3600
+  period: 15
+
+apiserver:
+  command: /apiserver
+
+  etcd:
+    endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
+    tls:
+      ca: placeholder
+      cert: placeholder
+      key: placeholder
+
+  host_etc_path: /etc/kubernetes/apiserver
+
+  port: 6443
+  replicas: 3
+
+images:
+  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+  apiserver: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+
+network:
+  kubernetes_service_ip: 10.96.0.1
+  pod_cidr: 10.97.0.0/16
+  service_cidr: 10.96.0.0/16
+
+service:
+  name: kubernetes-apiserver
+  ip: null
+
+service_account:
+  public_key: placeholder
+
+tls:
+  ca: placeholder
+  cert: placeholder
+  key: placeholder

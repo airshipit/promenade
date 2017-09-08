@@ -1,0 +1,16 @@
+{{- $envAll := . }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $envAll.Values.service.name }}-certs
+data:
+  anchor-etcd-client.pem: {{ $envAll.Values.anchor.tls.cert | quote }}
+  client-ca.pem: {{ $envAll.Values.tls.client.ca | quote }}
+  peer-ca.pem: {{ $envAll.Values.tls.peer.ca | quote }}
+{{- range .Values.nodes }}
+  {{- $node := . }}
+  {{ $node.name }}-etcd-client.pem: {{ $node.tls.client.cert | quote }}
+  {{ $node.name }}-etcd-peer.pem: {{ $node.tls.peer.cert | quote }}
+{{- end }}
+...

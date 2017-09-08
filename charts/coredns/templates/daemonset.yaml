@@ -1,0 +1,83 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: DaemonSet
+metadata:
+  name: {{ .Values.service.name }}-anchor
+  labels:
+    application: coredns
+    component: coredns-anchor
+spec:
+  selector:
+    matchLabels:
+      {{ .Values.service.name | quote }}: anchor
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        {{ .Values.service.name | quote }}: anchor
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+        configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
+        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
+    spec:
+      hostNetwork: true
+      {{- if .Values.node_selector.key }}
+      nodeSelector:
+        {{ .Values.node_selector.key }}: {{ .Values.node_selector.value }}
+      {{- end }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
+      serviceAccountName: {{ .Values.service.name }}
+      containers:
+        - name: anchor
+          image: {{ .Values.images.anchor }}
+          command:
+            - /tmp/bin/anchor
+#        livenessProbe:
+#          httpGet:
+#            path: /healthz
+#            port: 10249
+#          initialDelaySeconds: 15
+#          periodSeconds: 15
+#          failureThreshold: 3
+#        readinessProbe:
+#          exec:
+#            command:
+#            - sh
+#            - -c
+#            - |-
+#              set -ex
+#
+#              iptables-save | grep 'default/kubernetes:https'
+#          initialDelaySeconds: 15
+#          periodSeconds: 15
+          volumeMounts:
+            - name: bin
+              mountPath: /tmp/bin
+            - name: etc
+              mountPath: /configmap
+            - name: host
+              mountPath: /host
+            - name: secret
+              mountPath: /secret
+      volumes:
+        - name: bin
+          configMap:
+            name: {{ .Values.service.name }}-bin
+            defaultMode: 0555
+        - name: etc
+          configMap:
+            name: {{ .Values.service.name }}-etc
+            defaultMode: 0444
+        - name: host
+          hostPath:
+            path: /
+        - name: secret
+          secret:
+            secretName: {{ .Values.service.name }}
+            defaultMode: 0444

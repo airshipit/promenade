@@ -1,0 +1,28 @@
+anchor:
+  dns_policy: Default
+  kubelet:
+    manifest_path: /etc/kubernetes/manifests
+  node_selector:
+    key: kubernetes-scheduler
+    value: enabled
+  period: 15
+  termination_grace_period: 3600
+
+scheduler:
+  command: /scheduler
+  host_etc_path: /etc/kubernetes/scheduler
+
+service:
+  name: kubernetes-scheduler
+
+tls:
+  ca: placeholder
+  cert: placeholder
+  key: placeholder
+
+images:
+  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+  scheduler: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+
+network:
+  kubernetes_netloc: 10.96.0.1

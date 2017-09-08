@@ -1,0 +1,16 @@
+{{- $envAll := . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $envAll.Values.service.name }}
+spec:
+  selector:
+    {{ $envAll.Values.service.name }}-service: enabled
+  {{- if $envAll.Values.service.ip }}
+  clusterIP: {{ $envAll.Values.service.ip }}
+  {{- end }}
+  ports:
+    - name: etcd
+      port: {{ $envAll.Values.service.client.port }}
+      targetPort: {{ $envAll.Values.service.client.target_port }}

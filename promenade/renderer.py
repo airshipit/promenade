@@ -1,71 +1,140 @@
-from . import logging
+from . import logging, tar_bundler
 import base64
+import datetime
 import io
 import jinja2
 import os
 import pkg_resources
 import yaml
 
-__all__ = ['Renderer']
-
+__all__ = [
+    'build_tarball_from_roles', 'insert_charts_into_bundler',
+    'render_role_into_bundler'
+]
 
 LOG = logging.getLogger(__name__)
 
 
-class Renderer:
-    def __init__(self, *, config, target_dir):
-        self.config = config
-        self.target_dir = target_dir
+def build_tarball_from_roles(config, *, roles, file_specs):
+    bundler = tar_bundler.TarBundler()
+    for role in roles:
+        render_role_into_bundler(bundler=bundler, config=config, role=role)
 
-    def render_generate_files(self):
-        self.render_template_dir('generate')
+    for file_spec in file_specs:
+        bundler.add(**file_spec)
 
-    def render(self):
-        for template_dir in self.config['Node']['templates']:
-            self.render_template_dir(template_dir)
+    if 'genesis' in roles:
+        insert_charts_into_bundler(bundler)
 
-    def render_template_dir(self, template_dir):
-        source_root = pkg_resources.resource_filename(
-                'promenade', os.path.join('templates', template_dir))
-        LOG.debug('Searching for templates in: "%s"', source_root)
-        for root, _dirnames, filenames in os.walk(source_root,
-                                                  followlinks=True):
-            for source_filename in filenames:
-                source_path = os.path.join(root, source_filename)
-                self.render_template_file(path=source_path,
-                                          root=source_root)
-
-    def render_template_file(self, *, path, root):
-        base_path = os.path.relpath(path, root)
-        target_path = os.path.join(self.target_dir, base_path)
-
-        _ensure_path(target_path)
-
-        LOG.debug('Templating "%s" into "%s"', path, target_path)
-
-        env = jinja2.Environment(
-                loader=jinja2.PackageLoader('promenade', 'templates/include'),
-                undefined=jinja2.StrictUndefined)
-        env.filters['b64enc'] = _base64_encode
-        env.filters['yaml_safe_dump_all'] = _yaml_safe_dump_all
-
-        with open(path) as f:
-            template = env.from_string(f.read())
-        rendered_data = template.render(config=self.config)
-
-        with open(target_path, 'w') as f:
-            f.write(rendered_data)
-
-        LOG.info('Installed "%s"', os.path.join('/', base_path))
+    return bundler.as_blob()
 
 
-def _ensure_path(path):
-    base = os.path.dirname(path)
-    os.makedirs(base, mode=0o775, exist_ok=True)
+def insert_charts_into_bundler(bundler):
+    for root, _dirnames, filenames in os.walk(
+            '/promenade/charts', followlinks=True):
+        for source_filename in filenames:
+            source_path = os.path.join(root, source_filename)
+            destination_path = os.path.join('etc/genesis/armada/assets/charts',
+                                            os.path.relpath(
+                                                source_path,
+                                                '/promenade/charts'))
+            stat = os.stat(source_path)
+            LOG.debug('Copying asset file %s (mode=%o)', source_path,
+                      stat.st_mode)
+            with open(source_path) as f:
+                bundler.add(
+                    path=destination_path, data=f.read(), mode=stat.st_mode)
+
+
+def render_role_into_bundler(*, bundler, config, role):
+    role_root = pkg_resources.resource_filename('promenade',
+                                                os.path.join(
+                                                    'templates', 'roles',
+                                                    role))
+    for root, _dirnames, filenames in os.walk(role_root, followlinks=True):
+        destination_base = os.path.relpath(root, role_root)
+        for source_filename in filenames:
+            source_path = os.path.join(root, source_filename)
+            stat = os.stat(source_path)
+            LOG.debug('Rendering file %s (mode=%o)', source_path, stat.st_mode)
+            destination_path = os.path.join(destination_base, source_filename)
+            render_template_into_bundler(
+                bundler=bundler,
+                config=config,
+                destination_path=destination_path,
+                source_path=source_path,
+                mode=stat.st_mode)
+
+
+def render_template_into_bundler(*, bundler, config, destination_path,
+                                 source_path, mode):
+    env = _build_env()
+
+    with open(source_path) as f:
+        template = env.from_string(f.read())
+    now = int(datetime.datetime.utcnow().timestamp())
+    data = template.render(config=config, now=now)
+    bundler.add(path=destination_path, data=data, mode=mode)
+
+
+def render_template(config, *, template, context=None):
+    if context is None:
+        context = {}
+
+    template_contents = pkg_resources.resource_string('promenade',
+                                                      os.path.join(
+                                                          'templates',
+                                                          template))
+
+    env = _build_env()
+
+    template_obj = env.from_string(template_contents.decode('utf-8'))
+    return template_obj.render(config=config, **context)
+
+
+def _build_env():
+    env = jinja2.Environment(
+        loader=jinja2.PackageLoader('promenade', 'templates/include'),
+        undefined=jinja2.StrictUndefined)
+    env.filters['b64enc'] = _base64_encode
+    env.filters['fill_no_proxy'] = _fill_no_proxy
+    env.filters['yaml_safe_dump_all'] = _yaml_safe_dump_all
+    return env
 
 
 def _base64_encode(s):
-    return base64.b64encode(s.encode()).decode()
+    try:
+        return base64.b64encode(s).decode()
+    except TypeError:
+        return base64.b64encode(s.encode()).decode()
+
+
+def _fill_no_proxy(network_config):
+    proxy = network_config.get('proxy', {}).get('url')
+    if proxy:
+        additional = network_config.get('proxy', {}).get(
+            'additional_no_proxy', [])
+        if additional:
+            return ','.join(additional) + ',' + _default_no_proxy(
+                network_config)
+        else:
+            return _default_no_proxy(network_config)
+    else:
+        return ''
+
+
+def _default_no_proxy(network_config):
+    # XXX We can add better default data.
+    include = [
+        '127.0.0.1',
+        'localhost',
+        'kubernetes',
+        'kubernetes.default',
+        'kubernetes.default.svc',
+        'kubernetes.default.svc.%s' % network_config.get('dns', {}).get(
+            'cluster_domain', 'cluster.local'),
+    ]
+    return ','.join(include)
 
 
 def _yaml_safe_dump_all(documents):

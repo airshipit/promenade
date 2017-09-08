@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubernetes-etcd
+  namespace: kube-system
+  labels:
+    # NOTE: This label needs coordination with the etcd deployed via chart.
+    kubernetes-etcd-service: enabled
+spec:
+  hostNetwork: true
+{%- with etcd_name = 'genesis', client_port = 2379, peer_port = 2380  %}
+  containers:
+{% include "genesis-etcd/server-container.yaml" with context %}
+  volumes:
+{% include "genesis-etcd/common-volumes.yaml" with context %}
+{%- endwith %}
+...

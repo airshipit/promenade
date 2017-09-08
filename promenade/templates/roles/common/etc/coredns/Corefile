@@ -1,0 +1,13 @@
+promenade {
+    file /etc/coredns/zones/promenade
+    errors stdout
+    log stdout
+}
+
+. {
+    {%- if config['KubernetesNetwork:dns.upstream_servers'] is defined %}
+    proxy .  {%- for server in config['KubernetesNetwork:dns.upstream_servers'] %} {{ server -}}{%- endfor %}
+    {%- endif %}
+    errors stdout
+    log stdout
+}

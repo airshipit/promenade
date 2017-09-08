@@ -1,0 +1,54 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubernetes-apiserver
+  namespace: kube-system
+  labels:
+    kubernetes-apiserver-service: enabled
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ''
+spec:
+  hostNetwork: true
+  containers:
+    - name: kube-apiserver
+      image: {{ config['Genesis:images.kubernetes.apiserver'] }}
+      command:
+        - /hyperkube
+        - apiserver
+        - --advertise-address={{ config['Genesis:ip'] }}
+        - --authorization-mode=Node,RBAC
+        - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+        - --anonymous-auth=false
+        - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
+        - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
+        - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/apiserver.pem
+        - --kubelet-client-key=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+        # Hard coding 3 is a pretty safe move for now.  This can be exposed
+        # with additional configuration later.
+        - --apiserver-count=3
+        # XXX Temporarily enabled for tiller
+        - --insecure-port=8080
+        - --insecure-bind-address=127.0.0.1
+        - --bind-address=0.0.0.0
+        - --secure-port=6443
+        - --runtime-config=batch/v2alpha1=true
+        - --allow-privileged=true
+        - --etcd-servers=https://localhost:2379
+        - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
+        - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
+        - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
+        - --service-cluster-ip-range={{ config['KubernetesNetwork:kubernetes.service_cidr'] }}
+        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+        - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+        - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
+        - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+        - --v=5
+      volumeMounts:
+        - name: config
+          mountPath: /etc/kubernetes/apiserver
+          readOnly: true
+  volumes:
+    - name: config
+      hostPath:
+        path: /etc/genesis/apiserver

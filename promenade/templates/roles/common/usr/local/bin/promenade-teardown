@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+{% set hostname = config.get_first('Genesis:hostname', 'KubernetesNode:hostname') -%}
+
+set -xe
+
+if [ $(kubectl get nodes | grep '\bReady\b' | wc -l) -lt 3 ]; then
+    echo Not enough live nodes to proceed with genesis teardown. 1>&2
+    exit 1
+fi
+
+# Evict pods
+kubectl drain --force --timeout 3600s --grace-period 1800 --ignore-daemonsets --delete-local-data {{ hostname }} || true
+
+kubectl label node {{ hostname }} $(kubectl get node {{ hostname }} -o 'jsonpath={.metadata.labels}' | sed 's/map\[//' | sed 's/\]//' | tr ' ' '\n' | sed 's/:.*/-/g' | grep -v 'kubernetes.io')
+
+sleep 30
+
+# Stop kubelet
+systemctl stop kubelet
+systemctl disable kubelet
+
+# Stop remaining containers processes
+docker rm -f $(docker ps -aq) || true

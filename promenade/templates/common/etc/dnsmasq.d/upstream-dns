@@ -1,1 +1,0 @@
-server=/{{ config['Network']['cluster_domain'] }}/{{ config['Network']['cluster_dns'] }}

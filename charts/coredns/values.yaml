@@ -1,0 +1,40 @@
+anchor:
+  kubelet:
+    manifest_path: /etc/kubernetes/manifests
+  node_selector: {}
+  period: 30
+
+tls:
+  ca: placeholder
+  cert: placeholder
+  key: placeholder
+
+coredns:
+  cluster_domain: cluster.local
+  cache:
+    ttl: 60
+  host_etc_path: /etc/coredns
+  upstream_nameservers:
+    - 8.8.8.8
+    - 8.8.4.4
+
+  zones:
+    - name: promenade
+      services:
+        - bind_name: apiserver.kubernetes
+          service:
+            name: kubernetes
+            namespace: default
+
+images:
+  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+  coredns: coredns/coredns:011
+
+network:
+  kubernetes_netloc: 10.96.0.1
+
+node_selector: {}
+
+service:
+  name: coredns
+  ip: 10.96.0.10

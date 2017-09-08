@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A chart for the Kubernetes proxy.
+name: proxy
+version: 0.1.0

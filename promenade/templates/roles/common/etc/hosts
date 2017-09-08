@@ -1,0 +1,7 @@
+# This file is controlled by Promenade.  Do not modify.
+#
+127.0.0.1       {{ config.get_first('Genesis:hostname', 'KubernetesNode:hostname') }}
+127.0.0.1       localhost
+{%- for entry in config.get_path('KubernetesNetwork:hosts_entries', []) %}
+{{ entry['ip'] }}    {{ entry['names'] | join(' ') }}
+{%- endfor %}

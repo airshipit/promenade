@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -e
+
+{%- if config['KubernetesNetwork:proxy.url'] is defined %}
+HTTP_PROXY={{ config['KubernetesNetwork:proxy.url'] }}
+NO_PROXY={{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
+{%- endif %}
+
+
+exec docker run --rm -i \
+    --net host \
+    -v /etc/genesis/armada/auth:/armada/.kube \
+    -v /etc/genesis/armada/assets:/etc/genesis/armada/assets \
+    {%- if config.debug %}
+    -v /vagrant/charts:/etc/genesis/armada/assets/charts \
+    {%- endif %}
+    {%- if config['KubernetesNetwork:proxy.url'] is defined %}
+    -e http_proxy=$HTTP_PROXY \
+    -e HTTP_PROXY=$HTTP_PROXY \
+    -e https_proxy=$HTTP_PROXY \
+    -e HTTPS_PROXY=$HTTP_PROXY \
+    -e no_proxy=$NO_PROXY \
+    -e NO_PROXY=$NO_PROXY \
+    {%- endif %}
+    {{ config['Genesis:images.armada'] }} \
+        $*

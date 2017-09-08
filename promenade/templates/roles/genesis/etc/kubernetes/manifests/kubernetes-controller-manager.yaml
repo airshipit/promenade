@@ -1,0 +1,38 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubernetes-controller-manager
+  namespace: kube-system
+  labels:
+    tier: control-plane
+    component: kube-controller-manager
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ''
+spec:
+  hostNetwork: true
+  containers:
+    - name: kube-controller-manager
+      image: {{ config['Genesis:images.kubernetes.controller-manager'] }}
+      command:
+      - kube-controller-manager
+      - --allocate-node-cidrs=true
+      - --cluster-cidr={{ config['KubernetesNetwork:kubernetes.pod_cidr'] }}
+      - --cluster-signing-cert-file=/etc/kubernetes/controller-manager/pki/cluster-ca.pem
+      - --cluster-signing-key-file=/etc/kubernetes/controller-manager/pki/cluster-ca-key.pem
+      - --configure-cloud-routes=false
+      - --leader-elect=true
+      - --kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
+      - --root-ca-file=/etc/kubernetes/controller-manager/pki/cluster-ca.pem
+      - --service-account-private-key-file=/etc/kubernetes/controller-manager/pki/service-account.key
+      - --service-cluster-ip-range={{ config['KubernetesNetwork:kubernetes.service_cidr'] }}
+      - --use-service-account-credentials=true
+      - --v=5
+      volumeMounts:
+        - name: config
+          mountPath: /etc/kubernetes/controller-manager
+          readOnly: true
+  volumes:
+    - name: config
+      hostPath:
+        path: /etc/genesis/controller-manager

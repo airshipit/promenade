@@ -1,0 +1,6 @@
+    - name: data
+      hostPath:
+        path: /var/lib/etcd/{{ etcd_name }}
+    - name: pki
+      hostPath:
+        path: /etc/genesis/etcd/pki

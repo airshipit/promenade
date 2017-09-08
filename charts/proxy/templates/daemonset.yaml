@@ -1,0 +1,87 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: DaemonSet
+metadata:
+  name: kubernetes-proxy
+  labels:
+    component: k8s-proxy
+spec:
+  template:
+    metadata:
+      labels:
+        tier: node
+        component: k8s-proxy
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      hostNetwork: true
+      dnsPolicy: {{ .Values.dns_policy }}
+      {{- if .Values.node_selector.key }}
+      nodeSelector:
+        {{ .Values.node_selector.key }}: {{ .Values.node_selector.value }}
+      {{- end }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
+      containers:
+      - name: proxy
+        image: {{ .Values.images.proxy }}
+        command:
+          - {{ .Values.proxy.command }}
+          - --cluster-cidr={{ .Values.network.pod_cidr }}
+          - --hostname-override=$(NODE_NAME)
+          - --kubeconfig=/etc/kubernetes/proxy/kubeconfig.yaml
+          - --proxy-mode=iptables
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        securityContext:
+          privileged: true
+#        livenessProbe:
+#          httpGet:
+#            path: /healthz
+#            port: 10249
+#          initialDelaySeconds: 15
+#          periodSeconds: 15
+#          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - |-
+              set -ex
+
+              iptables-save | grep 'default/kubernetes:https'
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        volumeMounts:
+          - name: proxy-cm
+            mountPath: /etc/kubernetes/proxy/kubeconfig.yaml
+            subPath: kubeconfig.yaml
+          - name: proxy-cm
+            mountPath: /etc/kubernetes/proxy/pki/proxy.pem
+            subPath: proxy.pem
+          - name: proxy-cm
+            mountPath: /etc/kubernetes/proxy/pki/cluster-ca.pem
+            subPath: cluster-ca.pem
+          - name: proxy-secret
+            mountPath: /etc/kubernetes/proxy/pki/proxy-key.pem
+            subPath: proxy-key.pem
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: proxy-cm
+          configMap:
+            name: kubernetes-proxy
+        - name: proxy-secret
+          secret:
+            secretName: kubernetes-proxy

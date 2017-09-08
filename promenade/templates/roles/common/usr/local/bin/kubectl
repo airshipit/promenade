@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+ADDITIONAL_DOCKER_ARGS=
+TRANSLATE_CR=1
+
+for item in "$@"; do
+    if [[ $item =~ ^-[^-].*t.* ]]; then
+        ADDITIONAL_DOCKER_ARGS="$ADDITIONAL_DOCKER_ARGS -t"
+        TRANSLATE_CR=0
+        break
+    elif [[ $item == "--" ]]; then
+        break
+    fi
+done
+
+if [[ $TRANSLATE_CR == 1 ]]; then
+    docker run --rm -i \
+        $ADDITIONAL_DOCKER_ARGS \
+        --net host \
+        -v /etc/kubernetes/admin:/etc/kubernetes/admin \
+        -e KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml \
+        {{ config['HostSystem:images.kubernetes.kubectl'] }} \
+            /kubectl \
+                "$@" \
+        | sed "s/\r//"
+else
+    exec docker run --rm -i \
+        $ADDITIONAL_DOCKER_ARGS \
+        --net host \
+        -v /etc/kubernetes/admin:/etc/kubernetes/admin \
+        -e KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml \
+        {{ config['HostSystem:images.kubernetes.kubectl'] }} \
+            /kubectl \
+                "$@"
+fi

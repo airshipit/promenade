@@ -1,4 +1,4 @@
-from . import config, logging
+from . import logging
 import json
 import os
 import subprocess
@@ -7,18 +7,13 @@ import yaml
 
 __all__ = ['PKI']
 
-
 LOG = logging.getLogger(__name__)
 
 
 class PKI:
-    def __init__(self, cluster_name, *, ca_config=None):
+    def __init__(self):
         self.certificate_authorities = {}
-        self.cluster_name = cluster_name
-
         self._ca_config_string = None
-        if ca_config:
-            self._ca_config_string = json.dumps(ca_config)
 
     @property
     def ca_config(self):
@@ -26,86 +21,70 @@ class PKI:
             self._ca_config_string = json.dumps({
                 'signing': {
                     'default': {
-                        'expiry': '8760h',
-                        'usages': ['signing', 'key encipherment', 'server auth', 'client auth'],
+                        'expiry':
+                        '8760h',
+                        'usages': [
+                            'signing', 'key encipherment', 'server auth',
+                            'client auth'
+                        ],
                     },
                 },
             })
         return self._ca_config_string
 
-    def generate_ca(self, *, ca_name, cert_target, key_target):
-        result = self._cfssl(['gencert', '-initca', 'csr.json'],
-                             files={
-                                 'csr.json': self.csr(
-                                     name=ca_name,
-                                     groups=['Kubernetes']),
-                             })
+    def generate_ca(self, ca_name):
+        result = self._cfssl(
+            ['gencert', '-initca', 'csr.json'],
+            files={
+                'csr.json': self.csr(name=ca_name, groups=['Kubernetes']),
+            })
         LOG.debug('ca_cert=%r', result['cert'])
         self.certificate_authorities[ca_name] = result
 
-        return (self._wrap('CertificateAuthority', result['cert'],
-                           name=ca_name,
-                           target=cert_target),
-                self._wrap('CertificateAuthorityKey', result['key'],
-                           name=ca_name,
-                           target=key_target))
+        return (self._wrap_ca(ca_name, result['cert']), self._wrap_ca_key(
+            ca_name, result['key']))
 
-    def generate_keypair(self, *, alias=None, name, target):
+    def generate_keypair(self, name):
         priv_result = self._openssl(['genrsa', '-out', 'priv.pem'])
-        pub_result = self._openssl(['rsa', '-in', 'priv.pem', '-pubout', '-out', 'pub.pem'],
-                                   files={
-                                       'priv.pem': priv_result['priv.pem'],
-                                   })
+        pub_result = self._openssl(
+            ['rsa', '-in', 'priv.pem', '-pubout', '-out', 'pub.pem'],
+            files={
+                'priv.pem': priv_result['priv.pem'],
+            })
 
-        if not alias:
-            alias = name
+        return (self._wrap_pub_key(name, pub_result['pub.pem']),
+                self._wrap_priv_key(name, priv_result['priv.pem']))
 
-        return (self._wrap('PublicKey', pub_result['pub.pem'],
-                           alias=alias,
-                           name=name,
-                           target=target),
-                self._wrap('PrivateKey', priv_result['priv.pem'],
-                           alias=alias,
-                           name=name,
-                           target=target))
-
-
-    def generate_certificate(self, *, alias=None, config_name=None,
-                             ca_name, groups=[], hosts=[], name, target):
+    def generate_certificate(self, name, *, ca, cn, groups=[], hosts=[]):
         result = self._cfssl(
-                ['gencert',
-                 '-ca', 'ca.pem',
-                 '-ca-key', 'ca-key.pem',
-                 '-config', 'ca-config.json',
-                 'csr.json'],
-                files={
-                    'ca-config.json': self.ca_config,
-                    'ca.pem': self.certificate_authorities[ca_name]['cert'],
-                    'ca-key.pem': self.certificate_authorities[ca_name]['key'],
-                    'csr.json': self.csr(name=name, groups=groups, hosts=hosts),
-                })
+            [
+                'gencert', '-ca', 'ca.pem', '-ca-key', 'ca-key.pem', '-config',
+                'ca-config.json', 'csr.json'
+            ],
+            files={
+                'ca-config.json': self.ca_config,
+                'ca.pem': self.certificate_authorities[ca]['cert'],
+                'ca-key.pem': self.certificate_authorities[ca]['key'],
+                'csr.json': self.csr(name=cn, groups=groups, hosts=hosts),
+            })
 
-        if not alias:
-            alias = name
+        return (self._wrap_cert(name, result['cert']), self._wrap_cert_key(
+            name, result['key']))
 
-        if not config_name:
-            config_name = name
-
-        return (self._wrap('Certificate', result['cert'],
-                           alias=alias,
-                           name=config_name,
-                           target=target),
-                self._wrap('CertificateKey', result['key'],
-                           alias=alias,
-                           name=config_name,
-                           target=target))
-
-    def csr(self, *, name, groups=[], hosts=[], key={'algo': 'rsa', 'size': 2048}):
+    def csr(self,
+            *,
+            name,
+            groups=[],
+            hosts=[],
+            key={'algo': 'rsa',
+                 'size': 2048}):
         return json.dumps({
             'CN': name,
             'key': key,
             'hosts': hosts,
-            'names': [{'O': g} for g in groups],
+            'names': [{
+                'O': g
+            } for g in groups],
         })
 
     def _cfssl(self, command, *, files=None):
@@ -116,8 +95,8 @@ class PKI:
                 with open(os.path.join(tmp, filename), 'w') as f:
                     f.write(data)
 
-            return json.loads(subprocess.check_output(
-                ['cfssl'] + command, cwd=tmp))
+            return json.loads(
+                subprocess.check_output(['cfssl'] + command, cwd=tmp))
 
     def _openssl(self, command, *, files=None):
         if not files:
@@ -138,25 +117,45 @@ class PKI:
 
             return result
 
-    def _wrap(self, kind, data, **metadata):
-        return config.Document({
-            'apiVersion': 'promenade/v1',
-            'kind': kind,
+    def _wrap_ca(self, name, data):
+        return self._wrap(kind='CertificateAuthority', name=name, data=data)
+
+    def _wrap_ca_key(self, name, data):
+        return self._wrap(kind='CertificateAuthorityKey', name=name, data=data)
+
+    def _wrap_cert(self, name, data):
+        return self._wrap(kind='Certificate', name=name, data=data)
+
+    def _wrap_cert_key(self, name, data):
+        return self._wrap(kind='CertificateKey', name=name, data=data)
+
+    def _wrap_priv_key(self, name, data):
+        return self._wrap(kind='PrivateKey', name=name, data=data)
+
+    def _wrap_pub_key(self, name, data):
+        return self._wrap(kind='PublicKey', name=name, data=data)
+
+    def _wrap(self, *, data, kind, name):
+        return {
+            'schema': 'deckhand/%s/v1' % kind,
             'metadata': {
-                'cluster': self.cluster_name,
-                **metadata,
+                'schema': 'metadata/Document/v1',
+                'name': name,
+                'layerinDefinition': {
+                    'abstract': False,
+                    'layer': 'site',
+                },
             },
-            'spec': {
-                'data': block_literal(data),
-            },
-        })
+            'data': block_literal(data),
+        }
 
 
-class block_literal(str): pass
+class block_literal(str):
+    pass
 
 
 def block_literal_representer(dumper, data):
-    return dumper.represent_scalar(u'tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 
 
 yaml.add_representer(block_literal, block_literal_representer)

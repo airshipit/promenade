@@ -1,0 +1,61 @@
+---
+schema: deckhand/DataSchema/v1
+metadata:
+  schema: metadata/Control/v1
+  name: deckhand/Certificate/v1
+  labels:
+    application: deckhand
+data:
+  $schema: http://json-schema.org/schema#
+  type: string
+---
+schema: deckhand/DataSchema/v1
+metadata:
+  schema: metadata/Control/v1
+  name: deckhand/CertificateKey/v1
+  labels:
+    application: deckhand
+data:
+  $schema: http://json-schema.org/schema#
+  type: string
+---
+schema: deckhand/DataSchema/v1
+metadata:
+  schema: metadata/Control/v1
+  name: deckhand/CertificateAuthority/v1
+  labels:
+    application: deckhand
+data:
+  $schema: http://json-schema.org/schema#
+  type: string
+---
+schema: deckhand/DataSchema/v1
+metadata:
+  schema: metadata/Control/v1
+  name: deckhand/CertificateAuthorityKey/v1
+  labels:
+    application: deckhand
+data:
+  $schema: http://json-schema.org/schema#
+  type: string
+---
+schema: deckhand/DataSchema/v1
+metadata:
+  schema: metadata/Control/v1
+  name: deckhand/PublicKey/v1
+  labels:
+    application: deckhand
+data:
+  $schema: http://json-schema.org/schema#
+  type: string
+---
+schema: deckhand/DataSchema/v1
+metadata:
+  schema: metadata/Control/v1
+  name: deckhand/PrivateKey/v1
+  labels:
+    application: deckhand
+data:
+  $schema: http://json-schema.org/schema#
+  type: string
+...

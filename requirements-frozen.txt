@@ -1,5 +1,15 @@
+certifi==2017.7.27.1
+chardet==3.0.4
 click==6.7
+decorator==4.1.2
+idna==2.6
 Jinja2==2.9.6
+jsonpath-ng==1.4.3
+jsonschema==2.6.0
 MarkupSafe==1.0
 pbr==3.0.1
+ply==3.10
 PyYAML==3.12
+requests==2.18.4
+six==1.11.0
+urllib3==1.22

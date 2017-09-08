@@ -1,0 +1,208 @@
+---
+# This manifest installs the calico/node container, as well
+# as the Calico CNI plugins and network config on
+# each master and worker node in a Kubernetes cluster.
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: calico-node
+  namespace: kube-system
+  labels:
+    k8s-app: calico-node
+spec:
+  selector:
+    matchLabels:
+      k8s-app: calico-node
+  template:
+    metadata:
+      labels:
+        k8s-app: calico-node
+      annotations:
+        # Mark this pod as a critical add-on; when enabled, the critical add-on scheduler
+        # reserves resources for critical add-on pods so that they can be rescheduled after
+        # a failure.  This annotation works in tandem with the toleration below.
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      hostNetwork: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      # Allow this pod to be rescheduled while the node is in "critical add-ons only" mode.
+      # This, along with the annotation above marks this pod as a critical add-on.
+      - key: CriticalAddonsOnly
+        operator: Exists
+      serviceAccountName: calico-cni-plugin
+      containers:
+        # Runs calico/node container on each Kubernetes node.  This
+        # container programs network policy and routes on each
+        # host.
+        - name: calico-node
+          image: {{ .Values.images.node }}
+          env:
+            # The location of the Calico etcd cluster.
+            - name: ETCD_ENDPOINTS
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_endpoints
+            - name: WAIT_FOR_DATASTORE
+              value: "true"
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # Enable BGP.  Disable to enforce policy only.
+            - name: CALICO_NETWORKING_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: calico_backend
+            # Cluster type to identify the deployment type
+            - name: CLUSTER_TYPE
+              value: "k8s,bgp"
+            # Disable file logging so `kubectl logs` works.
+            - name: CALICO_DISABLE_FILE_LOGGING
+              value: "true"
+            # Set Felix endpoint to host default action to ACCEPT.
+            - name: FELIX_DEFAULTENDPOINTTOHOSTACTION
+              value: "ACCEPT"
+            # Configure the IP Pool from which Pod IPs will be chosen.
+            - name: CALICO_IPV4POOL_CIDR
+              value: {{ .Values.calico.pod_ip_cidr }}
+            - name: CALICO_IPV4POOL_IPIP
+              value: "always"
+            # Disable IPv6 on Kubernetes.
+            - name: FELIX_IPV6SUPPORT
+              value: "false"
+            # Set Felix logging to "info"
+            - name: FELIX_LOGSEVERITYSCREEN
+              value: "info"
+            # Location of the CA certificate for etcd.
+            - name: ETCD_CA_CERT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_ca
+            # Location of the client key for etcd.
+            - name: ETCD_KEY_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_key
+            # Location of the client certificate for etcd.
+            - name: ETCD_CERT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_cert
+            # Auto-detect the BGP IP address.
+            - name: IP
+              value: ""
+            {{- if .Values.calico.ip_autodetection_method }}
+            - name: IP_AUTODETECTION_METHOD
+              value: {{ .Values.calico.ip_autodetection_method }}
+            {{- end }}
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: 250m
+          volumeMounts:
+            - mountPath: /lib/modules
+              name: lib-modules
+              readOnly: true
+            - mountPath: /var/run/calico
+              name: var-run-calico
+              readOnly: false
+            - mountPath: /calico-secrets
+              name: etcd-certs
+        # This container installs the Calico CNI binaries
+        # and CNI network config file on each node.
+        - name: install-cni
+          image:  {{ .Values.images.cni }}
+          command: ["/install-cni.sh"]
+          env:
+            # The location of the Calico etcd cluster.
+            - name: ETCD_ENDPOINTS
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_endpoints
+            - name: ETCD_CA_CERT_FILE
+              value: /etc/kubernetes/calico/pki/etcd-client-ca.pem
+            - name: ETCD_CERT_FILE
+              value: /etc/kubernetes/calico/pki/etcd-client.pem
+            - name: ETCD_KEY_FILE
+              value: /etc/kubernetes/calico/pki/etcd-client-key.pem
+            # The CNI network config to install on each node.
+            - name: CNI_NETWORK_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: cni_network_config
+          volumeMounts:
+            - mountPath: /host/opt/cni/bin
+              name: cni-bin-dir
+            - mountPath: /host/etc/cni/net.d
+              name: cni-net-dir
+            - mountPath: /calico-secrets
+              name: etcd-certs
+        {{- if .Values.calico.ctl.install_on_host }}
+        # This container installs calicoctl on each node.
+        - name: install-calicoctl
+          image:  {{ .Values.images.cni }}
+          command:
+            - /bin/sh
+            - -c
+            - |-
+              set -ex
+
+              cat <<'SCRIPT' > /target/calicoctl
+              #!/usr/bin/env bash
+              set -e
+
+              exec docker run --rm -it \
+                  --net host \
+                  -e ETCD_CA_CERT_FILE=/etc/cni/net.d/calico-tls/etcd-ca \
+                  -e ETCD_CERT_FILE=/etc/cni/net.d/calico-tls/etcd-cert \
+                  -e ETCD_KEY_FILE=/etc/cni/net.d/calico-tls/etcd-key \
+                  -e ETCD_ENDPOINTS=https://{{ .Values.etcd.service.ip }}:{{ .Values.etcd.service.port }},https://127.0.0.1:{{ .Values.etcd.service.port }} \
+                  -v /etc/cni/net.d/calico-tls:/etc/cni/net.d/calico-tls \
+                  {{ .Values.images.ctl }} \
+                      $*
+              SCRIPT
+
+              chmod 755 /target/calicoctl
+
+              while true ; do
+                  sleep 10000
+              done
+
+          volumeMounts:
+            - name: host-bin
+              mountPath: /target
+        {{- end }}
+      volumes:
+        # Used by calico/node.
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: var-run-calico
+          hostPath:
+            path: /var/run/calico
+        # Used to install CNI.
+        - name: cni-bin-dir
+          hostPath:
+            path: /opt/cni/bin
+        - name: cni-net-dir
+          hostPath:
+            path: /etc/cni/net.d
+        # Mount in the etcd TLS secrets.
+        - name: etcd-certs
+          secret:
+            secretName: calico-etcd-secrets
+        {{- if .Values.calico.ctl.install_on_host }}
+        - name: host-bin
+          hostPath:
+            path: /usr/local/bin
+        {{- end }}
