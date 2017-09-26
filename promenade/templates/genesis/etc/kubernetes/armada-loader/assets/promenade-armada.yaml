@@ -40,6 +40,9 @@ data:
   timeout: 600
   values:
     calico:
+      {%- if config['Network']['calico_interface'] is defined %}
+      interface: {{ config['Network']['calico_interface'] }}
+      {%- endif %}
       etcd:
         credentials:
           ca: |-

@@ -1,4 +1,6 @@
 calico:
+  # Interface used with IP_AUTODETECTION_METHOD=interface=...
+  interface: null
   pod_ip_cidr: 10.97.0.0/16
   etcd:
     credentials:
