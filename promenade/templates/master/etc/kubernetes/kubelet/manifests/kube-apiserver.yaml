@@ -26,7 +26,7 @@ spec:
         - --insecure-bind-address=127.0.0.1
         - --bind-address=0.0.0.0
         - --runtime-config=batch/v2alpha1=true
-        - --secure-port=443
+        - --secure-port=6443
         - --allow-privileged=true
         - --etcd-servers=https://kubernetes:2379
         - --etcd-cafile=/etc/kubernetes/pki/etcd-client-ca.pem
