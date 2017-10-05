@@ -12,3 +12,9 @@ __pycache__
 /join_image_cache/
 /promenade.egg-info
 /tmp
+.tox/
+ChangeLog
+
+# Sphinx documentation
+docs/build/
+docs/*/_static/
