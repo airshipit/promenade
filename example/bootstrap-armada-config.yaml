@@ -426,7 +426,7 @@ data:
     no_hooks: true
   values:
     calico:
-      ip_autodetection_method: interface=ens6
+      ip_autodetection_method: interface=ens3
       pod_ip_cidr: 10.97.0.0/16
       ctl:
         install_on_host: true
@@ -867,6 +867,35 @@ metadata:
       dest:
         path: '$.values.nodes[2].tls.peer.key'
 
+    -
+      src:
+        schema: deckhand/Certificate/v1
+        name: kubernetes-etcd-n3
+        path: $
+      dest:
+        path: '$.values.nodes[3].tls.client.cert'
+    -
+      src:
+        schema: deckhand/CertificateKey/v1
+        name: kubernetes-etcd-n3
+        path: $
+      dest:
+        path: '$.values.nodes[3].tls.client.key'
+    -
+      src:
+        schema: deckhand/Certificate/v1
+        name: kubernetes-etcd-n3-peer
+        path: $
+      dest:
+        path: '$.values.nodes[3].tls.peer.cert'
+    -
+      src:
+        schema: deckhand/CertificateKey/v1
+        name: kubernetes-etcd-n3-peer
+        path: $
+      dest:
+        path: '$.values.nodes[3].tls.peer.key'
+
 data:
   chart_name: etcd
   release: kubernetes-etcd
@@ -907,6 +936,14 @@ data:
             cert: placeholder
             key: placeholder
       - name: n2
+        tls:
+          client:
+            cert: placeholder
+            key: placeholder
+          peer:
+            cert: placeholder
+            key: placeholder
+      - name: n3
         tls:
           client:
             cert: placeholder

@@ -1,0 +1,17 @@
+IdentityFile ${SSH_CONFIG_DIR}/id_rsa
+LogLevel QUIET
+StrictHostKeyChecking no
+User root
+UserKnownHostsFile /dev/null
+
+Host n0
+    HostName 192.168.77.10
+
+Host n1
+    HostName 192.168.77.11
+
+Host n2
+    HostName 192.168.77.12
+
+Host n3
+    HostName 192.168.77.13

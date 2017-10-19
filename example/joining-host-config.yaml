@@ -11,14 +11,7 @@ data:
   ip: 192.168.77.10
   join_ip: 192.168.77.11
   labels:
-    static:
-      - node-role.kubernetes.io/master=
     dynamic:
-      - calico-etcd=enabled
-      - kubernetes-apiserver=enabled
-      - kubernetes-controller-manager=enabled
-      - kubernetes-etcd=enabled
-      - kubernetes-scheduler=enabled
       - ucp-control-plane=enabled
 ---
 schema: promenade/KubernetesNode/v1
@@ -77,6 +70,13 @@ data:
   ip: 192.168.77.13
   join_ip: 192.168.77.11
   labels:
+    static:
+      - node-role.kubernetes.io/master=
     dynamic:
+      - calico-etcd=enabled
+      - kubernetes-apiserver=enabled
+      - kubernetes-controller-manager=enabled
+      - kubernetes-etcd=enabled
+      - kubernetes-scheduler=enabled
       - ucp-control-plane=enabled
 ...
