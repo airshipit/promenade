@@ -25,6 +25,7 @@ GET /v1.0/join-scripts
 Generates script to be consumed by Drydock.
 
 Query parameters
+
 hostname
     Name of the node
 ip
@@ -51,6 +52,7 @@ POST /v1.0/validatedesign
 Performs validation against specified documents.
 
 Message Body
+
 href
     Location of the document to be validated
 type
