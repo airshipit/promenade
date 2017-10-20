@@ -2,11 +2,15 @@ certifi==2017.7.27.1
 chardet==3.0.4
 click==6.7
 decorator==4.1.2
+falcon==1.2.0
 idna==2.6
 Jinja2==2.9.6
 jsonpath-ng==1.4.3
 jsonschema==2.6.0
+keystonemiddleware==4.17.0
 MarkupSafe==1.0
+oslo.context==2.19.1
+PasteDeploy==1.5.2
 pbr==3.0.1
 ply==3.10
 PyYAML==3.12

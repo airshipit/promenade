@@ -1,7 +1,8 @@
-from . import logging
 import hashlib
 import io
 import tarfile
+
+from promenade import logging
 
 __all__ = ['TarBundler']
 

@@ -1,7 +1,11 @@
 click==6.7
+falcon==1.2.0
 jinja2==2.9.6
 jsonpath-ng==1.4.3
 jsonschema==2.6.0
+keystonemiddleware==4.17.0
+oslo.context>=2.14.0
+PasteDeploy==1.5.2
 pbr==3.0.1
 pyyaml==3.12
 requests==2.18.4

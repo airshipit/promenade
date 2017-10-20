@@ -147,7 +147,8 @@ def _matches_filter(document, *, schema, labels):
 def _get(documents, kind=None, schema=None, name=None):
     if kind is not None:
         if schema is not None:
-            raise AssertionError('Logic error: specified both kind and schema')
+            msg = "Only kind or schema may be specified, not both"
+            raise exceptions.ValidationException(msg)
         schema = 'promenade/%s/v1' % kind
 
     for document in documents:
