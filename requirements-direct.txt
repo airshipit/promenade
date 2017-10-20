@@ -1,0 +1,7 @@
+click==6.7
+jinja2==2.9.6
+jsonpath-ng==1.4.3
+jsonschema==2.6.0
+pbr==3.0.1
+pyyaml==3.12
+requests==2.18.4
