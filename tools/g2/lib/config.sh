@@ -5,3 +5,24 @@ export PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
 export REGISTRY_DATA_DIR=${REGISTRY_DATA_DIR:-/mnt/registry}
 export VIRSH_POOL=${VIRSH_POOL:-promenade}
 export VIRSH_POOL_PATH=${VIRSH_POOL_PATH:-/var/lib/libvirt/promenade}
+
+config_configuration() {
+    jq -cr '.configuration[]' < ${GATE_MANIFEST}
+}
+
+config_vm_memory() {
+    jq -cr '.vm.memory' < ${GATE_MANIFEST}
+}
+
+config_vm_names() {
+    jq -cr '.vm.names[]' < ${GATE_MANIFEST}
+}
+
+config_vm_ip() {
+    NAME=${1}
+    echo 192.168.77.1${NAME:1}
+}
+
+config_vm_vcpus() {
+    jq -cr '.vm.vcpus' < ${GATE_MANIFEST}
+}

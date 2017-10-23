@@ -11,12 +11,12 @@ img_base_declare() {
             --name promenade-base.img \
             --format qcow2 \
             --capacity ${BASE_IMAGE_SIZE} \
-            --prealloc-metadata &> ${LOG_FILE}
+            --prealloc-metadata &>> ${LOG_FILE}
 
         virsh vol-upload \
             --vol promenade-base.img \
             --file base.img \
-            --pool ${VIRSH_POOL} &> ${LOG_FILE}
+            --pool ${VIRSH_POOL} &>> ${LOG_FILE}
     fi
 }
 
@@ -27,7 +27,7 @@ iso_gen() {
         log Removing existing cloud-init ISO for ${NAME}
         virsh vol-delete \
             --pool ${VIRSH_POOL} \
-            --vol cloud-init-${NAME}.iso &> ${LOG_FILE}
+            --vol cloud-init-${NAME}.iso &>> ${LOG_FILE}
     fi
 
     log Creating cloud-init ISO for ${NAME}
@@ -35,7 +35,7 @@ iso_gen() {
     mkdir -p ${ISO_DIR}
     cd ${ISO_DIR}
 
-    export BR_IP_NODE=$(vm_ip ${NAME})
+    export BR_IP_NODE=$(config_vm_ip ${NAME})
     export NAME
     export SSH_PUBLIC_KEY=$(ssh_load_pubkey)
     envsubst < ${TEMPLATE_DIR}/user-data.sub > user-data
@@ -50,18 +50,18 @@ iso_gen() {
         -o cidata.iso \
             meta-data \
             network-config \
-            user-data &> ${LOG_FILE}
+            user-data &>> ${LOG_FILE}
 
     virsh vol-create-as \
         --pool ${VIRSH_POOL} \
         --name cloud-init-${NAME}.iso \
         --capacity $(stat -c %s ${ISO_DIR}/cidata.iso) \
-        --format raw &> ${LOG_FILE}
+        --format raw &>> ${LOG_FILE}
 
     virsh vol-upload \
         --pool ${VIRSH_POOL} \
         --vol cloud-init-${NAME}.iso \
-        --file ${ISO_DIR}/cidata.iso &> ${LOG_FILE}
+        --file ${ISO_DIR}/cidata.iso &>> ${LOG_FILE}
 }
 
 iso_path() {
@@ -77,7 +77,7 @@ net_clean() {
 net_declare() {
     if ! virsh net-list --name | grep ^promenade$ > /dev/null; then
         log Creating promenade network
-        virsh net-create ${XML_DIR}/network.xml &> ${LOG_FILE}
+        virsh net-create ${XML_DIR}/network.xml &>> ${LOG_FILE}
     fi
 }
 
@@ -85,25 +85,25 @@ pool_declare() {
     log Validating virsh pool setup
     if ! virsh pool-uuid ${VIRSH_POOL} &> /dev/null; then
         log Creating pool ${VIRSH_POOL}
-        virsh pool-create-as --name ${VIRSH_POOL} --type dir --target ${VIRSH_POOL_PATH} &> ${LOG_FILE}
+        virsh pool-create-as --name ${VIRSH_POOL} --type dir --target ${VIRSH_POOL_PATH} &>> ${LOG_FILE}
     fi
 }
 
 vm_clean() {
     NAME=${1}
     if virsh list --name | grep ${NAME} &> /dev/null; then
-        virsh destroy ${NAME} &> ${LOG_FILE}
+        virsh destroy ${NAME} &>> ${LOG_FILE}
     fi
 
     if virsh list --name --all | grep ${NAME} &> /dev/null; then
         log Removing VM ${NAME}
-        virsh undefine --remove-all-storage --domain ${NAME} &> ${LOG_FILE}
+        virsh undefine --remove-all-storage --domain ${NAME} &>> ${LOG_FILE}
     fi
 }
 
 vm_clean_all() {
     log Removing all VMs in parallel
-    for NAME in ${VM_NAMES[@]}; do
+    for NAME in ${ALL_VM_NAMES[@]}; do
         vm_clean ${NAME} &
     done
     wait
@@ -122,13 +122,13 @@ vm_create() {
         --graphics vnc,listen=0.0.0.0 \
         --noautoconsole \
         --network network=promenade \
-        --vcpus 2 \
-        --memory 2048 \
+        --vcpus $(config_vm_vcpus) \
+        --memory $(config_vm_memory) \
         --import \
         --disk vol=${VIRSH_POOL}/promenade-${NAME}.img,format=qcow2,bus=virtio \
         --disk pool=${VIRSH_POOL},size=20,format=qcow2,bus=virtio \
         --disk pool=${VIRSH_POOL},size=20,format=qcow2,bus=virtio \
-        --disk vol=${VIRSH_POOL}/cloud-init-${NAME}.iso,device=cdrom &> ${LOG_FILE}
+        --disk vol=${VIRSH_POOL}/cloud-init-${NAME}.iso,device=cdrom &>> ${LOG_FILE}
 
     ssh_wait ${NAME}
     ssh_cmd ${NAME} sync
@@ -136,12 +136,12 @@ vm_create() {
 
 vm_create_all() {
     log Starting all VMs in parallel
-    for NAME in ${VM_NAMES[@]}; do
+    for NAME in $(config_vm_names); do
         vm_create ${NAME} &
     done
     wait
 
-    for NAME in ${VM_NAMES[@]}; do
+    for NAME in $(config_vm_names); do
         vm_validate ${NAME}
     done
 }
@@ -149,23 +149,23 @@ vm_create_all() {
 vm_start() {
     NAME=${1}
     log Starting VM ${NAME}
-    virsh start ${NAME} &> ${LOG_FILE}
+    virsh start ${NAME} &>> ${LOG_FILE}
     ssh_wait ${NAME}
 }
 
 vm_stop() {
     NAME=${1}
     log Stopping VM ${NAME}
-    virsh destroy ${NAME} &> ${LOG_FILE}
+    virsh destroy ${NAME} &>> ${LOG_FILE}
 }
 
 vm_restart_all() {
-    for NAME in ${VM_NAMES[@]}; do
+    for NAME in $(config_vm_names); do
         vm_stop ${NAME} &
     done
     wait
 
-    for NAME in ${VM_NAMES[@]}; do
+    for NAME in $(config_vm_names); do
         vm_start ${NAME} &
     done
     wait
@@ -174,7 +174,7 @@ vm_restart_all() {
 vm_validate() {
     NAME=${1}
     if ! virsh list --name | grep ${NAME} &> /dev/null; then
-        log VM ${NAME} did not start correctly.  Use PROMENADE_DEBUG=1 for more details.
+        log VM ${NAME} did not start correctly.
         exit 1
     fi
 }
@@ -185,7 +185,7 @@ vol_create_root() {
 
     if virsh vol-list --pool ${VIRSH_POOL} | grep promenade-${NAME}.img &> /dev/null; then
         log Deleting previous volume promenade-${NAME}.img
-        virsh vol-delete --pool ${VIRSH_POOL} promenade-${NAME}.img &> ${LOG_FILE}
+        virsh vol-delete --pool ${VIRSH_POOL} promenade-${NAME}.img &>> ${LOG_FILE}
     fi
 
     log Creating root volume for ${NAME}
@@ -195,5 +195,5 @@ vol_create_root() {
         --capacity 64G \
         --format qcow2 \
         --backing-vol promenade-base.img \
-        --backing-vol-format qcow2 &> ${LOG_FILE}
+        --backing-vol-format qcow2 &>> ${LOG_FILE}
 }

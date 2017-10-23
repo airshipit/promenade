@@ -1,20 +1,13 @@
 __pycache__
 /*.log
-/*.tar
-/.vagrant
-/cni.tgz
-/env.sh
-/helm
-/kubectl
-/kubelet
-/linux-amd64
-/genesis_image_cache/
-/join_image_cache/
+/.python-version
+/build
 /promenade.egg-info
 /tmp
 .tox/
 /.eggs
-ChangeLog
+/AUTHORS
+/ChangeLog
 
 # Sphinx documentation
 docs/build/

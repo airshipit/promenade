@@ -1,4 +1,7 @@
 {
+  "configuration": [
+    "examples/complete"
+  ],
   "stages": [
     {
       "name": "Build Image",

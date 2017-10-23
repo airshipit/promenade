@@ -1,4 +1,7 @@
 {
+  "configuration": [
+    "examples/basic"
+  ],
   "stages": [
     {
       "name": "Gate Setup",
@@ -29,16 +32,34 @@
       "script": "join-masters.sh",
       "arguments": [
         "n1",
-        "n2"
+        "n2",
+        "n3"
       ]
     },
     {
       "name": "Reprovision Genesis",
-      "script": "reprovision-genesis.sh"
+      "script": "reprovision-genesis.sh",
+      "arguments": [
+        "n1 n2 n3"
+      ]
     },
     {
       "name": "Hard Reboot Cluster",
       "script": "hard-reboot-cluster.sh"
+    },
+    {
+      "name": "Move Master",
+      "script": "move-master.sh"
     }
-  ]
+  ],
+  "vm": {
+    "memory": 2048,
+    "names": [
+      "n0",
+      "n1",
+      "n2",
+      "n3"
+    ],
+    "vcpus": 2
+  }
 }

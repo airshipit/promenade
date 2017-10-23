@@ -1,3 +1,6 @@
+set -e
+set -o nounset
+
 LIB_DIR=$(realpath $(dirname $BASH_SOURCE))
 
 source $LIB_DIR/config.sh
@@ -11,6 +14,6 @@ source $LIB_DIR/ssh.sh
 source $LIB_DIR/validate.sh
 source $LIB_DIR/virsh.sh
 
-if [ "x${PROMENADE_DEBUG}" = "x1" ]; then
+if [[ -v GATE_DEBUG && ${GATE_DEBUG} = "1" ]]; then
     set -x
 fi

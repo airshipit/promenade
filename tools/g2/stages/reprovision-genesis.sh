@@ -4,6 +4,8 @@ set -e
 
 source ${GATE_UTILS}
 
+EXPECTED_MEMBERS=${@}
+
 promenade_teardown_node ${GENESIS_NAME} n1
 
 vm_clean ${GENESIS_NAME}
@@ -16,5 +18,5 @@ ssh_cmd ${GENESIS_NAME} /root/promenade/validate-${GENESIS_NAME}.sh
 
 validate_cluster n1
 
-validate_etcd_membership kubernetes n1 n1 n2 n3
-validate_etcd_membership calico n1 n1 n2 n3
+validate_etcd_membership kubernetes n1 ${EXPECTED_MEMBERS}
+validate_etcd_membership calico n1 ${EXPECTED_MEMBERS}

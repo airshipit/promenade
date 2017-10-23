@@ -25,7 +25,7 @@ ssh_keypair_declare() {
     log Validating SSH keypair exists
     if [ ! -s ${SSH_CONFIG_DIR}/id_rsa ]; then
         log Generating SSH keypair
-        ssh-keygen -N '' -f ${SSH_CONFIG_DIR}/id_rsa > ${LOG_FILE}
+        ssh-keygen -N '' -f ${SSH_CONFIG_DIR}/id_rsa &>> ${LOG_FILE}
     fi
 }
 

@@ -23,7 +23,7 @@ spec:
           if [ $MEMBER_COUNT -gt 1 ]; then
               MEMBER_ID=$(etcdctl member list | grep auxiliary | awk -F ', ' '{ print $1 }')
               if [ -n $MEMBER_ID ]; then
-                  while [ $MEMBER_COUNT -lt 4 ]; do
+                  while [ $MEMBER_COUNT -lt 3 ]; do
                       sleep 30
                       MEMBER_COUNT=$(etcdctl member list | grep '\bstarted\b' | wc -l)
                   done

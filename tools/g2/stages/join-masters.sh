@@ -20,5 +20,5 @@ done
 
 validate_cluster n0
 
-validate_etcd_membership kubernetes n0 genesis n1 n2 n3
-validate_etcd_membership calico n0 n0 n1 n2 n3
+validate_etcd_membership kubernetes n0 genesis ${@}
+validate_etcd_membership calico n0 n0 ${@}

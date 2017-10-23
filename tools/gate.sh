@@ -10,10 +10,10 @@ chmod -R 755 ${TEMP_DIR}
 
 export GATE_COLOR=${GATE_COLOR:-1}
 
-source ${GATE_UTILS}
+MANIFEST_ARG=${1:-resiliency}
+export GATE_MANIFEST=${WORKSPACE}/tools/g2/manifests/${MANIFEST_ARG}.json
 
-MANIFEST_ARG=${1:-full}
-MANIFEST=${WORKSPACE}/tools/g2/manifests/${MANIFEST_ARG}.json
+source ${GATE_UTILS}
 
 STAGES_DIR=${WORKSPACE}/tools/g2/stages
 
@@ -21,7 +21,7 @@ log_temp_dir ${TEMP_DIR}
 echo
 
 STAGES=$(mktemp)
-jq -cr '.stages | .[]' ${MANIFEST} > ${STAGES}
+jq -cr '.stages | .[]' ${GATE_MANIFEST} > ${STAGES}
 
 # NOTE(mark-burnett): It is necessary to use a non-stdin file descriptor for
 # the read below, since we will be calling SSH, which will consume the
@@ -34,7 +34,7 @@ while read -u 3 stage; do
     if echo ${stage} | jq -e .arguments > /dev/null; then
         ARGUMENTS=($(echo ${stage} | jq -r '.arguments[]'))
     else
-        ARGUMENTS=()
+        ARGUMENTS=
     fi
 
     log_stage_header "${NAME}"
@@ -42,7 +42,7 @@ while read -u 3 stage; do
         log_stage_success
     else
         log_color_reset
-        log_stage_error "${NAME}" ${TEMP_DIR}
+        log_stage_error "${NAME}" ${LOG_FILE}
         if echo ${stage} | jq -e .on_error > /dev/null; then
             log_stage_diagnostic_header
             ON_ERROR=${WORKSPACE}/$(echo ${stage} | jq -r .on_error)

@@ -14,6 +14,9 @@ data:
       - calico-etcd=enabled
       - node-role.kubernetes.io/master=
     dynamic:
+      - ceph-mds=enabled
+      - ceph-mon=enabled
+      - ceph-osd=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -31,6 +34,6 @@ data:
       scheduler: gcr.io/google_containers/hyperkube-amd64:v1.8.0
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
-      content: ""
+      content: "# placeholder for triggering calico etcd bootstrapping"
       mode: 0644
 ...

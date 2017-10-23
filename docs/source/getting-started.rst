@@ -1,6 +1,48 @@
 Getting Started
 ===============
 
+Basic Deployment
+----------------
+
+Setup
+^^^^^
+
+To create the certificates and scripts needed to perform a basic deployment,
+you can use the following helper script:
+
+.. code-block:: bash
+
+    ./tools/basic-deployment.sh examples/basic build
+
+This will copy the configuration provided in the ``examples/basic`` directory
+into the ``build`` directory.  Then, it will generate self-signed certificates
+for all the needed components in Deckhand-compatible format.  Finally, it will
+render the provided configuration into directly-usable ``genesis.sh`` and
+``join-<NODE>.sh`` scripts.
+
+Execution
+^^^^^^^^^
+
+Perform the following steps to execute the deployment:
+
+1. Copy the ``genesis.sh`` script to the genesis node and run it.
+2. Validate the genesis node by running ``validate-genesis.sh`` on it.
+3. Join master nodes by copying their respective ``join-<NODE>.sh`` scripts to
+   them and running them.
+4. Validate the master nodes by copying and running their respective
+   ``validate-<NODE>.sh`` scripts on each of them.
+5. Re-provision the Genesis node
+
+   a) Run the ``/usr/local/bin/promenade-teardown`` script on the Genesis node:
+   b) Delete the node from the cluster via one of the other nodes ``kubectl delete node <GENESIS>``.
+   c) Power off and re-image the Genesis node.
+   d) Join the genesis node as a normal node using its ``join-<GENESIS>.sh`` script.
+   e) Validate the node using ``validate-<GENSIS>.sh``.
+
+6. Join and validate all remaining nodes using the ``join-<NODE>.sh`` and
+   ``validate-<NODE>.sh`` scripts described above.
+
+
 Running Tests
 -------------
 
@@ -29,6 +71,11 @@ For more verbose output, try:
 
     PROMENADE_DEBUG=1 ./tools/gate.sh
 
+For extremely verbose output, try:
+
+.. code-block:: bash
+
+    GATE_DEBUG=1 PROMENADE_DEBUG=1 ./tools/gate.sh
 
 The gate leaves its test VMs running for convenience.  To shut everything down:
 
@@ -57,6 +104,7 @@ These can be found in ``tools/g2/bin``.  The most important is certainly
 
     ./tools/g2/bin/ssh.sh n0
 
+
 Development
 -----------
 
@@ -72,7 +120,7 @@ host:
     ./tools/registry/start.sh
     ./tools/registry/update_cache.sh
 
-Then, the images used by the example can be updated using:
+Then, the images used by the basic example can be updated using:
 
 .. code-block:: bash
 
@@ -89,71 +137,6 @@ The registry can be stopped with:
 .. code-block:: bash
 
     ./tools/registry/stop.sh
-
-
-Deployment using Vagrant
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-Initial Setup of Vagrant
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Deployment using Vagrant uses KVM instead of Virtualbox due to better
-performance of disk and networking, which both have significant impact on the
-stability of the etcd clusters.
-
-Make sure you have [Vagrant](https://vagrantup.com) installed, then
-run `./tools/vagrant/full-vagrant-setup.sh`, which will do the following:
-
-* Install Vagrant libvirt plugin and its dependencies
-* Install NFS dependencies for Vagrant volume sharing
-* Install [packer](https://packer.io) and build a KVM image for Ubuntu 16.04
-
-Deployment
-~~~~~~~~~~
-A complete set of configuration that works with the `Vagrantfile` in the
-top-level directory is provided in the `example` directory.
-
-To exercise that example, first generate certs and combine the configuration
-into usable parts:
-
-.. code-block:: bash
-
-    ./tools/build-example.sh
-
-Start the VMs:
-
-.. code-block:: bash
-
-    vagrant up --parallel
-
-Then bring up the genesis node:
-
-.. code-block:: bash
-
-    vagrant ssh n0 -c 'sudo /vagrant/example/scripts/genesis.sh'
-
-Join additional master nodes:
-
-.. code-block:: bash
-
-    vagrant ssh n1 -c 'sudo /vagrant/example/scripts/join-n1.sh'
-    vagrant ssh n2 -c 'sudo /vagrant/example/scripts/join-n2.sh'
-
-Re-provision the genesis node as a normal master:
-
-.. code-block:: bash
-
-    vagrant ssh n0 -c 'sudo promenade-teardown'
-    vagrant ssh n1 -c 'sudo kubectl delete node n0'
-    vagrant destroy -f n0
-    vagrant up n0
-    vagrant ssh n0 -c 'sudo /vagrant/example/scripts/join-n0.sh'
-
-Join the remaining worker:
-
-.. code-block:: bash
-
-    vagrant ssh n3 -c 'sudo /vagrant/example/scripts/join-n3.sh'
 
 
 Building the image
@@ -175,14 +158,11 @@ To build the image from behind a proxy, you can:
 
 
 For convenience, there is a script which builds an image from the current code,
-then uses it to construct scripts for the example:
+then uses it to generate certificates and construct scripts:
 
 .. code-block:: bash
 
-    ./tools/dev-build.sh
-
-*NOTE* the ``dev-build.sh`` script puts Promenade in debug mode, which will
-instruct it to use Vagrant's shared directory to source local charts.
+    ./tools/dev-build.sh examples/basic build
 
 
 Using Promenade Behind a Proxy

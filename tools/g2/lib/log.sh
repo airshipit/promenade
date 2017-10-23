@@ -1,4 +1,4 @@
-if [[ "x${GATE_COLOR}" = "x1" ]]; then
+if [[ -v GATE_COLOR && ${GATE_COLOR} = "1" ]]; then
     C_CLEAR="\e[0m"
     C_ERROR="\e[38;5;160m"
     C_HEADER="\e[38;5;164m"
@@ -16,7 +16,9 @@ else
 fi
 
 log() {
-    echo -e ${C_MUTE}$(date --utc)${C_CLEAR} $* 1>&2
+    d=$(date --utc)
+    echo -e ${C_MUTE}${d}${C_CLEAR} $* 1>&2
+    echo -e ${d} $* >> ${LOG_FILE}
 }
 
 log_stage_diagnostic_header() {
@@ -60,8 +62,10 @@ log_temp_dir() {
     echo -e Working in ${C_TEMP}${TEMP_DIR}${C_CLEAR}
 }
 
-if [[ "x${PROMENADE_DEBUG}" = "x1" ]]; then
+if [[ -v GATE_DEBUG && ${GATE_DEBUG} = "1" ]]; then
     export LOG_FILE=/dev/stderr
+elif [[ -v TEMP_DIR ]]; then
+    export LOG_FILE=${TEMP_DIR}/gate.log
 else
     export LOG_FILE=/dev/null
 fi

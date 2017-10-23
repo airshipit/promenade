@@ -7,13 +7,15 @@ source ${GATE_UTILS}
 OUTPUT_DIR=${TEMP_DIR}/config
 mkdir -p ${OUTPUT_DIR}
 
-log Copying example configuration
-cp ${WORKSPACE}/example/*.yaml ${OUTPUT_DIR}
+for source_dir in $(config_configuration); do
+    log Copying configuration from ${source_dir}
+    cp ${WORKSPACE}/${source_dir}/*.yaml ${OUTPUT_DIR}
+done
 
 registry_replace_references ${OUTPUT_DIR}/*.yaml
 
 log Generating certificates
-sudo docker run --rm -t \
+docker run --rm -t \
     -w /target \
     -v ${OUTPUT_DIR}:/target \
     -e PROMENADE_DEBUG=${PROMENADE_DEBUG} \

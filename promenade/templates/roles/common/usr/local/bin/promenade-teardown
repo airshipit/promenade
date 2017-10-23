@@ -4,8 +4,8 @@
 
 set -xe
 
-if [ $(kubectl get nodes | grep '\bReady\b' | wc -l) -lt 3 ]; then
-    echo Not enough live nodes to proceed with genesis teardown. 1>&2
+if [ $(kubectl get nodes | grep '\bReady\b' | wc -l) -lt 2 ]; then
+    echo Not enough live nodes to proceed with teardown. 1>&2
     exit 1
 fi
 

@@ -1,20 +1,4 @@
 ---
-schema: armada/Manifest/v1
-metadata:
-  schema: metadata/Document/v1
-  name: cluster-bootstrap
-  layeringDefinition:
-    abstract: false
-    layer: site
-data:
-  release_prefix: ucp
-  chart_groups:
-    - kubernetes-proxy
-    - container-networking
-    - dns
-    - kubernetes
-    - kubernetes-rbac
----
 schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
@@ -70,6 +54,20 @@ data:
 schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
+  name: ceph
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  description: Ceph Storage
+  sequenced: true
+  chart_group:
+    - ceph
+    - ucp-ceph-config
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
   name: kubernetes
   layeringDefinition:
     abstract: false
@@ -81,6 +79,21 @@ data:
     - kubernetes-apiserver
     - kubernetes-controller-manager
     - kubernetes-scheduler
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-infra
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  description: UCP Infrastructure
+  sequenced: false
+  chart_group:
+    - ucp-mariadb
+    - ucp-memcached
+    - ucp-keystone
 ---
 schema: armada/Chart/v1
 metadata:
@@ -992,4 +1005,264 @@ data:
     location: /etc/genesis/armada/assets/charts
     subpath: rbac
   dependencies: []
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ceph
+data:
+  chart_name: ceph
+  release: ceph
+  namespace: ceph
+  timeout: 3600
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+    pre:
+      delete:
+        - name: ceph-bootstrap
+          type: job
+          labels:
+            - application: ceph
+            - component: bootstrap
+            - release_group: armada-ucp
+        - name: ceph-mds-keyring-generator
+          type: job
+          labels:
+            - application: ceph
+            - component: mds-keyring-generator
+            - release_group: armada-ucp
+        - name: ceph-mon-keyring-generator
+          type: job
+          labels:
+            - application: ceph
+            - component: mon-keyring-generator
+            - release_group: armada-ucp
+        - name: ceph-rgw-keyring-generator
+          type: job
+          labels:
+            - application: ceph
+            - component: rgw-keyring-generator
+            - release_group: armada-ucp
+        - name: ceph-storage-keys-generator
+          type: job
+          labels:
+            - application: ceph
+            - component: storage-keys-generator
+            - release_group: armada-ucp
+        - name: ceph-osd-keyring-generator
+          type: job
+          labels:
+            - application: ceph
+            - component: osd-keyring-generator
+            - release_group: armada-ucp
+  values:
+    labels:
+      jobs:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ceph
+      ceph_mon:
+        namespace: ceph
+    ceph:
+      rgw_keystone_auth: true
+      storage:
+        osd_directory: /var/lib/openstack-helm/ceph/osd
+    network:
+      public: 192.168.77.0/24
+      cluster: 192.168.77.0/24
+    deployment:
+      storage_secrets: true
+      ceph: true
+      rbd_provisioner: true
+      client_secrets: false
+      rgw_keystone_user_and_endpoints: false
+    bootstrap:
+      enabled: true
+    images:
+      tags:
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        bootstrap: quay.io/attcomdev/ceph-daemon:tag-build-master-jewel-ubuntu-16.04
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        daemon: quay.io/attcomdev/ceph-daemon:tag-build-master-jewel-ubuntu-16.04
+        ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
+        rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: ceph
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-ceph-config
+data:
+  chart_name: ucp-ceph-config
+  release: ucp-ceph-config
+  namespace: ucp
+  timeout: 3600
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+    pre:
+      delete:
+        - name: ceph-namespace-client-key-generator
+          type: job
+          labels:
+            - application: ceph
+            - component: namespace-client-key-generator
+            - release_group: armada-ucp
+  values:
+    labels:
+      jobs:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ceph
+      ceph_mon:
+        namespace: ceph
+    ceph:
+      rgw_keystone_auth: true
+    network:
+      public: 192.168.77.0/24
+      cluster: 192.168.77.0/24
+    deployment:
+      storage_secrets: false
+      ceph: false
+      rbd_provisioner: false
+      client_secrets: true
+      rgw_keystone_user_and_endpoints: false
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: ceph
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-mariadb
+data:
+  chart_name: ucp-mariadb
+  release: ucp-mariadb
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        mariadb: docker.io/mariadb:10.1.23
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+    pod:
+      replicas:
+        server: 1
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: mariadb
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-memcached
+data:
+  chart_name: ucp-memcached
+  release: ucp-memcached
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        memcached: docker.io/memcached:1.4
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: memcached
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-keystone
+data:
+  chart_name: ucp-keystone
+  release: keystone
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  pre:
+    delete:
+      - name: keystone-db-sync
+        type: job
+        labels:
+          - job-name: keystone-db-sync
+      - name: keystone-db-init
+        type: job
+        labels:
+          - job-name: keystone-db-init
+  post:
+    delete: []
+    create: []
+  values:
+    conf:
+      keystone:
+        override:
+      paste:
+        override:
+    images:
+      tags:
+        bootstrap: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        test: docker.io/kolla/ubuntu-source-rally:4.0.0
+        db_init: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        db_sync: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        db_drop: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        fernet_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        fernet_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        credential_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        credential_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        api: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+    pod:
+      replicas:
+        api: 1
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: keystone
+  dependencies:
+    - helm-toolkit
 ...

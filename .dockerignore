@@ -1,8 +1,8 @@
+.eggs
 .tox
-.vagrant
-Vagrantfile
 __pycache__
+build
 docs
-example
+examples
 promenade.egg-info
 tools
