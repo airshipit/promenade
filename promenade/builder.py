@@ -65,7 +65,9 @@ class Builder:
         script = renderer.render_template(
             sub_config,
             template='scripts/genesis.sh',
-            context={'tarball': tarball})
+            context={
+                'tarball': tarball
+            })
 
         _write_script(output_dir, 'genesis.sh', script)
 
@@ -88,7 +90,9 @@ class Builder:
         script = renderer.render_template(
             sub_config,
             template='scripts/join.sh',
-            context={'tarball': tarball})
+            context={
+                'tarball': tarball
+            })
 
         _write_script(output_dir, _join_name(node_name), script)
 

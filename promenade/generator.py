@@ -32,9 +32,9 @@ class Generator:
             'apiserver',
             ca='kubernetes',
             cn='apiserver',
-            hosts=self._service_dns('kubernetes', 'default') + [
-                'localhost', '127.0.0.1', 'apiserver.kubernetes.promenade'
-            ] + [self.config['KubernetesNetwork:kubernetes.service_ip']])
+            hosts=self._service_dns('kubernetes', 'default') +
+            ['localhost', '127.0.0.1', 'apiserver.kubernetes.promenade'] +
+            [self.config['KubernetesNetwork:kubernetes.service_ip']])
         self.gen(
             'certificate',
             'apiserver-etcd',

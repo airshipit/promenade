@@ -75,8 +75,10 @@ class PKI:
             name,
             groups=[],
             hosts=[],
-            key={'algo': 'rsa',
-                 'size': 2048}):
+            key={
+                'algo': 'rsa',
+                'size': 2048
+            }):
         return json.dumps({
             'CN': name,
             'key': key,
