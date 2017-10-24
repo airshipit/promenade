@@ -1,4 +1,6 @@
+#!/bin/sh
+
 set -x
 
 touch /tmp/stop
-sleep 10000
+sleep {{ .Values.anchor.period }}
