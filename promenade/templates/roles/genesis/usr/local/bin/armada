@@ -7,14 +7,17 @@ HTTP_PROXY={{ config['KubernetesNetwork:proxy.url'] }}
 NO_PROXY={{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
 {%- endif %}
 
+EXTRA_ARGS=
+
+if [ "x$ARMADA_CHART_PATH_OVERRIDE" != "x" ]; then
+    EXTRA_ARGS=" -v $ARMADA_CHART_PATH_OVERRIDE:/etc/genesis/armada/assets/charts"
+fi
 
 exec docker run --rm -i \
     --net host \
     -v /etc/genesis/armada/auth:/armada/.kube \
     -v /etc/genesis/armada/assets:/etc/genesis/armada/assets \
-    {%- if config.debug %}
-    -v /vagrant/charts:/etc/genesis/armada/assets/charts \
-    {%- endif %}
+    $EXTRA_ARGS \
     {%- if config['KubernetesNetwork:proxy.url'] is defined %}
     -e http_proxy=$HTTP_PROXY \
     -e HTTP_PROXY=$HTTP_PROXY \

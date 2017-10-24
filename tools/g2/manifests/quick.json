@@ -1,0 +1,44 @@
+{
+  "stages": [
+    {
+      "name": "Gate Setup",
+      "script": "gate-setup.sh"
+    },
+    {
+      "name": "Build Image",
+      "script": "build-image.sh"
+    },
+    {
+      "name": "Generate Certificates",
+      "script": "generate-certificates.sh"
+    },
+    {
+      "name": "Build Scripts",
+      "script": "build-scripts.sh"
+    },
+    {
+      "name": "Create VMs",
+      "script": "create-vms.sh"
+    },
+    {
+      "name": "Genesis",
+      "script": "genesis.sh"
+    },
+    {
+      "name": "Join Masters",
+      "script": "join-masters.sh",
+      "arguments": [
+        "n1",
+        "n2"
+      ]
+    },
+    {
+      "name": "Reprovision Genesis",
+      "script": "reprovision-genesis.sh"
+    },
+    {
+      "name": "Hard Reboot Cluster",
+      "script": "hard-reboot-cluster.sh"
+    }
+  ]
+}

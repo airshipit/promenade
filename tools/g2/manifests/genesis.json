@@ -1,0 +1,29 @@
+{
+  "stages": [
+    {
+      "name": "Gate Setup",
+      "script": "gate-setup.sh"
+    },
+    {
+      "name": "Build Image",
+      "script": "build-image.sh"
+    },
+    {
+      "name": "Generate Certificates",
+      "script": "generate-certificates.sh"
+    },
+    {
+      "name": "Build Scripts",
+      "script": "build-scripts.sh"
+    },
+    {
+      "name": "Create VMs",
+      "script": "create-vms.sh"
+    },
+    {
+      "name": "Genesis",
+      "script": "genesis.sh"
+    }
+  ]
+}
+

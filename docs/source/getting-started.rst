@@ -1,8 +1,95 @@
 Getting Started
 ===============
 
+Running Tests
+-------------
+
+Initial Setup of Virsh Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To setup a local functional testing environment on your Ubuntu 16.04 machine,
+run:
+
+.. code-block:: bash
+
+    ./tools/setup_gate.sh
+
+Running Functional Tests
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+To run complete functional tests locally:
+
+.. code-block:: bash
+
+    ./tools/gate.sh
+
+For more verbose output, try:
+
+.. code-block:: bash
+
+    PROMENADE_DEBUG=1 ./tools/gate.sh
+
+
+The gate leaves its test VMs running for convenience.  To shut everything down:
+
+.. code-block:: bash
+
+    ./tools/stop_gate.sh
+
+To run a particular set of functional tests, you can specify the set on the
+command line:
+
+.. code-block:: bash
+
+    ./tools/gate.sh <SUITE>
+
+Valid functional test suites are defined by JSON files that live in
+``tools/g2/manifests``.
+
+Utilities
+^^^^^^^^^
+
+There are a couple of helper utilities available for interacting with gate VMs.
+These can be found in ``tools/g2/bin``.  The most important is certainly
+``ssh.sh``, which allows you to connect easily to test VMs:
+
+.. code-block:: bash
+
+    ./tools/g2/bin/ssh.sh n0
+
 Development
 -----------
+
+Using a Local Registry
+^^^^^^^^^^^^^^^^^^^^^^
+
+Repeatedly downloading multiple copies images during development can be quite
+slow.  To avoid this issue, you can run a docker registry on the development
+host:
+
+.. code-block:: bash
+
+    ./tools/registry/start.sh
+    ./tools/registry/update_cache.sh
+
+Then, the images used by the example can be updated using:
+
+.. code-block:: bash
+
+    ./tools/registry/update_example.sh
+
+That change can be undone via:
+
+.. code-block:: bash
+
+    ./tools/registry/revert_example.sh
+
+The registry can be stopped with:
+
+.. code-block:: bash
+
+    ./tools/registry/stop.sh
+
 
 Deployment using Vagrant
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,6 +1,8 @@
+.tox
 .vagrant
 Vagrantfile
 __pycache__
 docs
 example
 promenade.egg-info
+tools

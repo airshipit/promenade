@@ -13,6 +13,7 @@ ExecStart=/opt/kubernetes/bin/kubelet \
     --eviction-max-pod-grace-period -1 \
     --node-status-update-frequency 5s \
     --kubeconfig=/etc/kubernetes/kubeconfig \
+    --hostname-override={{ config.get_first('Genesis:hostname', 'KubernetesNode:hostname') }} \
     --network-plugin=cni \
     --node-ip={{ config.get_first('Genesis:ip', 'KubernetesNode:ip') }} \
     {%- if config['Genesis:labels.static'] is defined %}
