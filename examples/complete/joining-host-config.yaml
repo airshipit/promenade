@@ -12,9 +12,10 @@ data:
   join_ip: 192.168.77.11
   labels:
     dynamic:
+      - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
-      - ceph-mds=enabled
+      - ceph-rgw=enabled
       - ucp-control-plane=enabled
 ---
 schema: promenade/KubernetesNode/v1
@@ -33,9 +34,10 @@ data:
       - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
+      - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
-      - ceph-mds=enabled
+      - ceph-rgw=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -58,9 +60,10 @@ data:
       - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
+      - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
-      - ceph-mds=enabled
+      - ceph-rgw=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -83,9 +86,10 @@ data:
       - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
+      - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
-      - ceph-mds=enabled
+      - ceph-rgw=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
