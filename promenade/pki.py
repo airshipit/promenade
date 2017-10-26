@@ -97,8 +97,8 @@ class PKI:
                     f.write(data)
 
             return json.loads(
-                subprocess.check_output(['cfssl'] + command, cwd=tmp,
-                                        stderr=subprocess.PIPE))
+                subprocess.check_output(
+                    ['cfssl'] + command, cwd=tmp, stderr=subprocess.PIPE))
 
     def _openssl(self, command, *, files=None):
         if not files:
@@ -109,8 +109,8 @@ class PKI:
                 with open(os.path.join(tmp, filename), 'w') as f:
                     f.write(data)
 
-            subprocess.check_call(['openssl'] + command, cwd=tmp,
-                                  stderr=subprocess.PIPE)
+            subprocess.check_call(
+                ['openssl'] + command, cwd=tmp, stderr=subprocess.PIPE)
 
             result = {}
             for filename in os.listdir(tmp):
