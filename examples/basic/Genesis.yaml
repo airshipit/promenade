@@ -14,9 +14,6 @@ data:
       - calico-etcd=enabled
       - node-role.kubernetes.io/master=
     dynamic:
-      - ceph-mds=enabled
-      - ceph-mon=enabled
-      - ceph-osd=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled

@@ -17,6 +17,7 @@ data:
       - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
+      - ceph-rgw=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
