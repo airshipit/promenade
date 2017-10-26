@@ -117,7 +117,7 @@ vm_create() {
     log Creating VM ${NAME}
     virt-install \
         --name ${NAME} \
-        --hvm \
+        --virt-type kvm \
         --cpu host \
         --graphics vnc,listen=0.0.0.0 \
         --noautoconsole \

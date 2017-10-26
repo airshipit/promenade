@@ -2,10 +2,10 @@ if [[ -v GATE_COLOR && ${GATE_COLOR} = "1" ]]; then
     C_CLEAR="\e[0m"
     C_ERROR="\e[38;5;160m"
     C_HEADER="\e[38;5;164m"
-    C_TEMP="\e[38;5;226m"
     C_HILIGHT="\e[38;5;27m"
     C_MUTE="\e[38;5;238m"
     C_SUCCESS="\e[38;5;46m"
+    C_TEMP="\e[38;5;226m"
 else
     C_CLEAR=""
     C_ERROR=""
@@ -13,6 +13,7 @@ else
     C_HILIGHT=""
     C_MUTE=""
     C_SUCCESS=""
+    C_TEMP=""
 fi
 
 log() {

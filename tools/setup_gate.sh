@@ -10,7 +10,6 @@ export GATE_COLOR=${GATE_COLOR:-1}
 
 source ${GATE_UTILS}
 
-REQUIRE_REBOOT=0
 REQUIRE_RELOG=0
 
 log_stage_header "Installing Packages"
@@ -22,6 +21,8 @@ sudo apt-get install -q -y --no-install-recommends \
     genisoimage \
     jq \
     libvirt-bin \
+    qemu-kvm \
+    qemu-utils \
     virtinst
 
 log_stage_header "Joining User Groups"
@@ -43,27 +44,13 @@ fi
 if ! sudo virt-host-validate qemu &> /dev/null; then
     log_note Host did not validate virtualization check:
     sudo virt-host-validate qemu || true
-
-    if ! grep intel_iommu /etc/defaults/grub &> /dev/null; then
-        log_note Enabling Intel IOMMU
-        REQUIRE_REBOOT=1
-        sudo mkdir -p /etc/defaults
-        sudo touch /etc/defaults/grub
-        echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_iommu=on"' | sudo tee -a /etc/defaults/grub
-        sudo update-grub
-    else
-        log Intel IOMMU appears enabled in grub configuration already
-    fi
 fi
 
 if [ ! -d ${VIRSH_POOL_PATH} ]; then
     sudo mkdir -p ${VIRSH_POOL_PATH}
 fi
 
-if [ $REQUIRE_REBOOT -eq 1 ]; then
-    echo
-    log_note You must ${C_HEADER}reboot${C_CLEAR} before for the gate is ready to run.
-elif [ $REQUIRE_RELOG -eq 1 ]; then
+if [ $REQUIRE_RELOG -eq 1 ]; then
     echo
     log_note You must ${C_HEADER}log out${C_CLEAR} and back in before the gate is ready to run.
 fi
