@@ -34,7 +34,7 @@ log_huge_success() {
 }
 
 log_note() {
-    echo -e {$C_HILIGHT}NOTE:${C_CLEAR} ${@}
+    echo -e ${C_HILIGHT}NOTE:${C_CLEAR} ${@}
 }
 
 log_stage_error() {

@@ -41,16 +41,18 @@ if [ "xY" != "x$(cat /sys/module/kvm_intel/parameters/nested)" ]; then
 fi
 
 if ! sudo virt-host-validate qemu &> /dev/null; then
+    log_note Host did not validate virtualization check:
+    sudo virt-host-validate qemu || true
+
     if ! grep intel_iommu /etc/defaults/grub &> /dev/null; then
         log_note Enabling Intel IOMMU
         REQUIRE_REBOOT=1
         sudo mkdir -p /etc/defaults
         sudo touch /etc/defaults/grub
         echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} intel_iommu=on"' | sudo tee -a /etc/defaults/grub
+        sudo update-grub
     else
-        echo -e ${C_ERROR}Failed to configure virtualization:${C_CLEAR}
-        sudo virt-host-health qemu
-        exit 1
+        log Intel IOMMU appears enabled in grub configuration already
     fi
 fi
 
