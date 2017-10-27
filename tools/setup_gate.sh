@@ -2,13 +2,17 @@
 
 set -e
 
-SCRIPT_DIR=$(realpath $(dirname $0))
-export WORKSPACE=$(realpath ${SCRIPT_DIR}/..)
-export GATE_UTILS=${WORKSPACE}/tools/g2/lib/all.sh
+SCRIPT_DIR=$(realpath "$(dirname "${0}")")
+WORKSPACE=$(realpath "${SCRIPT_DIR}/..")
+GATE_UTILS=${WORKSPACE}/tools/g2/lib/all.sh
 
-export GATE_COLOR=${GATE_COLOR:-1}
+GATE_COLOR=${GATE_COLOR:-1}
 
-source ${GATE_UTILS}
+export GATE_COLOR
+export GATE_UTILS
+export WORKSPACE
+
+source "${GATE_UTILS}"
 
 REQUIRE_RELOG=0
 
@@ -28,7 +32,7 @@ sudo apt-get install -q -y --no-install-recommends \
 log_stage_header "Joining User Groups"
 for grp in docker libvirtd; do
     if ! groups | grep $grp > /dev/null; then
-        sudo adduser `id -un` $grp
+        sudo adduser "$(id -un)" $grp
         REQUIRE_RELOG=1
     fi
 done
@@ -46,13 +50,13 @@ if ! sudo virt-host-validate qemu &> /dev/null; then
     sudo virt-host-validate qemu || true
 fi
 
-if [ ! -d ${VIRSH_POOL_PATH} ]; then
-    sudo mkdir -p ${VIRSH_POOL_PATH}
+if [[ ! -d ${VIRSH_POOL_PATH} ]]; then
+    sudo mkdir -p "${VIRSH_POOL_PATH}"
 fi
 
-if [ $REQUIRE_RELOG -eq 1 ]; then
+if [[ ${REQUIRE_RELOG} -eq 1 ]]; then
     echo
-    log_note You must ${C_HEADER}log out${C_CLEAR} and back in before the gate is ready to run.
+    log_note "You must ${C_HEADER}log out${C_CLEAR} and back in before the gate is ready to run."
 fi
 
 log_huge_success

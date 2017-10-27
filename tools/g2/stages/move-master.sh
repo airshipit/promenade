@@ -2,7 +2,7 @@
 
 set -e
 
-source ${GATE_UTILS}
+source "${GATE_UTILS}"
 
 log Adding labels to node n0
 kubectl_cmd n1 label node n0 \

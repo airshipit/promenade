@@ -18,8 +18,8 @@ fi
 
 log() {
     d=$(date --utc)
-    echo -e ${C_MUTE}${d}${C_CLEAR} $* 1>&2
-    echo -e ${d} $* >> ${LOG_FILE}
+    echo -e "${C_MUTE}${d}${C_CLEAR} ${*}" 1>&2
+    echo -e "${d} ${*}" >> "${LOG_FILE}"
 }
 
 log_stage_diagnostic_header() {
@@ -35,7 +35,7 @@ log_huge_success() {
 }
 
 log_note() {
-    echo -e ${C_HILIGHT}NOTE:${C_CLEAR} ${@}
+    echo -e "${C_HILIGHT}NOTE:${C_CLEAR} ${*}"
 }
 
 log_stage_error() {
@@ -60,7 +60,7 @@ log_stage_success() {
 
 log_temp_dir() {
     TEMP_DIR=${1}
-    echo -e Working in ${C_TEMP}${TEMP_DIR}${C_CLEAR}
+    echo -e "Working in ${C_TEMP}${TEMP_DIR}${C_CLEAR}"
 }
 
 if [[ -v GATE_DEBUG && ${GATE_DEBUG} = "1" ]]; then

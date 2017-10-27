@@ -2,7 +2,7 @@
 
 set -e
 
-source ${GATE_UTILS}
+source "${GATE_UTILS}"
 
 # Docker registry (cache) setup
 registry_up

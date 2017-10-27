@@ -2,17 +2,17 @@
 
 set -e
 
-source ${GATE_UTILS}
+source "${GATE_UTILS}"
 
-cd ${TEMP_DIR}
+cd "${TEMP_DIR}"
 mkdir scripts
 
 log Building scripts
 docker run --rm -t \
     -w /target \
-    -v ${TEMP_DIR}:/target \
-    -e PROMENADE_DEBUG=${PROMENADE_DEBUG} \
-    ${IMAGE_PROMENADE} \
+    -v "${TEMP_DIR}:/target" \
+    -e "PROMENADE_DEBUG=${PROMENADE_DEBUG}" \
+    "${IMAGE_PROMENADE}" \
         promenade \
             build-all \
                 --validators \
