@@ -2,6 +2,7 @@ __pycache__
 /*.log
 /.python-version
 /build
+/conformance
 /promenade.egg-info
 /tmp
 .tox/

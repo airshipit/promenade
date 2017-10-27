@@ -24,21 +24,22 @@ promenade {
     log stdout
 }
 
-{{ .Values.coredns.cluster_domain }} {
-    kubernetes {
+. {
+    kubernetes{{- range .Values.coredns.kubernetes_zones }} {{ . -}}{{- end }} {
         endpoint https://{{ .Values.network.kubernetes_netloc }}
         tls /etc/coredns/coredns.pem /etc/coredns/coredns-key.pem /etc/coredns/cluster-ca.pem
+
+        pods insecure
     }
+    {{- if .Values.coredns.upstream_nameservers }}
+    {{ range .Values.coredns.upstream_nameservers }}
+    proxy . {{ . }}
+    {{- end }}
+    {{- end }}
+
     loadbalance
     cache {{ .Values.coredns.cache.ttl }}
-    errors stdout
-    log stdout
-}
 
-. {
-    {{- if .Values.coredns.upstream_nameservers }}
-    proxy .  {{- range .Values.coredns.upstream_nameservers }} {{ . -}}{{- end }}
-    {{- end }}
     errors stdout
     log stdout
 }

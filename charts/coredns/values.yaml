@@ -10,7 +10,8 @@ tls:
   key: placeholder
 
 coredns:
-  cluster_domain: cluster.local
+  kubernetes_zones:
+    - cluster.local
   cache:
     ttl: 60
   host_etc_path: /etc/coredns
@@ -28,7 +29,7 @@ coredns:
 
 images:
   anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-  coredns: coredns/coredns:011
+  coredns: coredns/coredns:0.9.9
 
 network:
   kubernetes_netloc: 10.96.0.1

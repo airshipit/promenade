@@ -500,7 +500,10 @@ data:
     no_hooks: true
   values:
     coredns:
-      cluster_domain: cluster.local
+      kubernetes_zones:
+        - cluster.local
+        - 10.96.0.0/16
+        - 10.97.0.0/16
       upstream_nameservers:
         - 8.8.8.8
         - 8.8.4.4
@@ -522,7 +525,7 @@ data:
                 namespace: kube-system
     images:
       anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-      coredns: coredns/coredns:011
+      coredns: coredns/coredns:0.9.9
     tls:
       ca: placeholder
       cert: placeholder
