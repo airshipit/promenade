@@ -3,6 +3,7 @@ import io
 import itertools
 import os
 import requests
+import stat
 import tarfile
 
 __all__ = ['Builder']
@@ -119,5 +120,8 @@ def _join_name(node_name):
 def _write_script(output_dir, name, script):
     path = os.path.join(output_dir, name)
     with open(path, 'w') as f:
-        os.fchmod(f.fileno(), 0o555)
         f.write(script)
+
+    os.chmod(
+        path,
+        os.stat(path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)

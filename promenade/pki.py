@@ -1,7 +1,9 @@
 from . import logging
 import json
 import os
-import subprocess
+# Ignore bandit false positive: B404:blacklist
+# The purpose of this module is to safely encapsulate calls via fork.
+import subprocess  # nosec
 import tempfile
 import yaml
 
@@ -96,7 +98,10 @@ class PKI:
                 with open(os.path.join(tmp, filename), 'w') as f:
                     f.write(data)
 
-            return json.loads(
+            # Ignore bandit false positive:
+            #   B603:subprocess_without_shell_equals_true
+            # This method wraps cfssl calls originating from this module.
+            return json.loads(  # nosec
                 subprocess.check_output(
                     ['cfssl'] + command, cwd=tmp, stderr=subprocess.PIPE))
 
@@ -109,8 +114,13 @@ class PKI:
                 with open(os.path.join(tmp, filename), 'w') as f:
                     f.write(data)
 
-            subprocess.check_call(
-                ['openssl'] + command, cwd=tmp, stderr=subprocess.PIPE)
+            # Ignore bandit false positive:
+            #   B603:subprocess_without_shell_equals_true
+            # This method wraps openssl calls originating from this module.
+            subprocess.check_call(  # nosec
+                ['openssl'] + command,
+                cwd=tmp,
+                stderr=subprocess.PIPE)
 
             result = {}
             for filename in os.listdir(tmp):

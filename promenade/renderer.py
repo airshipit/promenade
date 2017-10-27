@@ -93,7 +93,9 @@ def render_template(config, *, template, context=None):
 
 
 def _build_env():
-    env = jinja2.Environment(
+    # Ignore bandit false positive: B701:jinja2_autoescape_false
+    # This env is not used to render content that is vulnerable to XSS.
+    env = jinja2.Environment(  # nosec
         loader=jinja2.PackageLoader('promenade', 'templates/include'),
         undefined=jinja2.StrictUndefined)
     env.filters['b64enc'] = _base64_encode

@@ -46,7 +46,10 @@ def _load_schemas():
         with open(os.path.join(schema_dir, schema_file)) as f:
             for schema in yaml.safe_load_all(f):
                 name = schema['metadata']['name']
-                assert name not in SCHEMAS
+                if name in SCHEMAS:
+                    raise RuntimeError(
+                        'Duplicate schema specified for: %s' % name)
+
                 SCHEMAS[name] = schema['data']
 
 
