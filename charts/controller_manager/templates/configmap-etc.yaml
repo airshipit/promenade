@@ -1,29 +1,32 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.manifests.configmap_etc }}
+{{- $envAll := . }}
+
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.service.name }}-etc
 data:
-  cluster-ca.pem: {{ .Values.tls.ca | quote }}
-  controller-manager.pem: {{ .Values.tls.cert | quote }}
+  cluster-ca.pem: {{ .Values.secrets.tls.ca | quote }}
+  controller-manager.pem: {{ .Values.secrets.tls.cert | quote }}
   kubeconfig.yaml: |+
-    ---
-    apiVersion: v1
-    clusters:
-    - cluster:
-        server: https://{{ .Values.network.kubernetes_netloc }}
-        certificate-authority: cluster-ca.pem
-      name: kubernetes
-    contexts:
-    - context:
-        cluster: kubernetes
-        user: controller-manager
-      name: controller-manager@kubernetes
-    current-context: controller-manager@kubernetes
-    kind: Config
-    preferences: {}
-    users:
-    - name: controller-manager
-      user:
-        client-certificate: controller-manager.pem
-        client-key: controller-manager-key.pem
+{{ tuple "etc/_kubeconfig.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+  kubernetes-controller-manager.yaml: |+
+{{ tuple "etc/_kubernetes-controller-manager.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+{{- end }}
