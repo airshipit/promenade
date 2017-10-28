@@ -1,15 +1,25 @@
-__pycache__
-/*.log
+# Pyenv version file
 /.python-version
+
+# Chart artifacts
+/charts/*.tgz
+/charts/*/charts
+/charts/*/requirements.lock
+
+# Build & test artifacts
+/.eggs
+/.helm-pid
+/.tox
 /build
 /conformance
 /promenade.egg-info
 /tmp
-.tox/
-/.eggs
+
+# Python artifacts
+__pycache__
+
+# Sphinx artifacts
+/docs/build/
+/docs/*/_static/
 /AUTHORS
 /ChangeLog
-
-# Sphinx documentation
-docs/build/
-docs/*/_static/
