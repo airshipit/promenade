@@ -59,6 +59,6 @@ ${HELM} repo add local http://localhost:8879/charts
 mkdir -p "${SERVE_DIR}"
 cd "${SERVE_DIR}"
 git clone --depth 1 https://git.openstack.org/openstack/openstack-helm-infra.git || true
-cd openstack-helm
+cd openstack-helm-infra
 
 make helm-toolkit
