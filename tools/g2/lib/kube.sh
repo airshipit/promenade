@@ -30,13 +30,13 @@ kubectl_wait_for_pod() {
         elif [[ $POD_PHASE = "Failed" ]]; then
             log Pod ${POD_NAME} failed.
             kubectl_cmd ${VIA} --request-timeout 10s --namespace ${NAMESPACE} get -o yaml pod ${POD_NAME} 1>&2
-            fail
+            exit 1
         else
             now=$(date +%s)
             if [ $now -gt $end ]; then
                 log Pod did not terminate before timeout.
                 kubectl_cmd ${VIA} --request-timeout 10s --namespace ${NAMESPACE} get -o yaml pod ${POD_NAME} 1>&2
-                fail
+                exit 1
             fi
             sleep 1
         fi

@@ -45,7 +45,12 @@
     },
     {
       "name": "Check Conformance",
-      "script": "conformance.sh"
+      "script": "conformance.sh",
+      "publish": {
+        "junit": [
+          "conformance/plugins/e2e/results/junit_01.xml"
+        ]
+      }
     }
   ],
   "vm": {
