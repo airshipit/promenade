@@ -7,7 +7,7 @@ registry_down() {
 }
 
 registry_list_images() {
-    FILES=$(find "$(config_configuration)" -type f -name '*.yaml')
+    FILES=($(find "$(config_configuration)" -type f -name '*.yaml'))
 
     HOSTNAME_REGEX='[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}'
     DOMAIN_NAME_REGEX="${HOSTNAME_REGEX}(\.${HOSTNAME_REGEX})*"
@@ -41,9 +41,9 @@ registry_populate() {
 }
 
 registry_replace_references() {
-    FILES="${*}"
-    for image in $(registry_list_images "${FILES}"); do
-        sed -i "s;${image};registry:5000/${image};g" "${FILES}"
+    FILES=(${@})
+    for image in $(registry_list_images); do
+        sed -i "s;${image};registry:5000/${image};g" "${FILES[@]}"
     done
 }
 

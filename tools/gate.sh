@@ -5,7 +5,7 @@ set -e
 SCRIPT_DIR=$(realpath "$(dirname "${0}")")
 WORKSPACE=$(realpath "${SCRIPT_DIR}/..")
 GATE_UTILS=${WORKSPACE}/tools/g2/lib/all.sh
-TEMP_DIR=$(mktemp -d)
+TEMP_DIR=${TEMP_DIR:-$(mktemp -d)}
 chmod -R 755 "${TEMP_DIR}"
 
 GATE_COLOR=${GATE_COLOR:-1}
@@ -37,14 +37,8 @@ while read -u 3 stage; do
     NAME=$(echo "${stage}" | jq -r .name)
     STAGE_CMD=${STAGES_DIR}/$(echo "${stage}" | jq -r .script)
 
-    if echo "${stage}" | jq -e .arguments > /dev/null; then
-        ARGUMENTS=($(echo "${stage}" | jq -r '.arguments[]'))
-    else
-        ARGUMENTS=
-    fi
-
     log_stage_header "${NAME}"
-    if $STAGE_CMD ${ARGUMENTS[*]}; then
+    if echo "${stage}" | jq -r '.arguments | @sh' | xargs "${STAGE_CMD}" ; then
         log_stage_success
     else
         log_color_reset

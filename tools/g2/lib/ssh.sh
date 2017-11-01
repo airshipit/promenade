@@ -3,7 +3,7 @@ rsync_cmd() {
 }
 
 ssh_cmd() {
-    if [[ ${GATE_DEBUG} = "1" ]]; then
+    if [[ -v GATE_DEBUG && ${GATE_DEBUG} = "1" ]]; then
         ssh -F "${SSH_CONFIG_DIR}/config" -v "${@}"
     else
         ssh -F "${SSH_CONFIG_DIR}/config" "${@}"
