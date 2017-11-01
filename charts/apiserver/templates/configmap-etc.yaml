@@ -14,18 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if .Values.manifests.configmap_certs }}
+{{- if .Values.manifests.configmap_etc }}
 {{- $envAll := . }}
 
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.service.name }}-certs
+  name: {{ .Values.service.name }}-etc
 data:
-  cluster-ca.pem: {{ .Values.secrets.tls.ca | quote }}
-  apiserver.pem: {{ .Values.secrets.tls.cert | quote }}
-  etcd-client-ca.pem: {{ .Values.secrets.etcd.tls.ca | quote }}
-  etcd-client.pem: {{ .Values.secrets.etcd.tls.cert | quote }}
-  service-account.pub: {{ .Values.secrets.service_account.public_key | quote }}
+  kubernetes-apiserver.yaml: |+
+{{ tuple "etc/_kubernetes-apiserver.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
 {{- end }}

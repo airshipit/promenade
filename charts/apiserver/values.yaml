@@ -1,45 +1,137 @@
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+release_group: null
+
+images:
+  tags:
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+  pull_policy: "IfNotPresent"
+
+labels:
+  kubernetes_apiserver:
+      node_selector_key: kubernetes-apiserver
+      node_selector_value: enabled
+
 anchor:
   dns_policy: Default
   kubelet:
     manifest_path: /etc/kubernetes/manifests
-  node_selector:
-    key: kubernetes-apiserver
-    value: enabled
-  termination_grace_period: 3600
   period: 15
+  files_to_copy:
+    - source: /certs/apiserver.pem
+      dest: /etc/kubernetes/apiserver/pki/apiserver.pem
+    - source: /certs/cluster-ca.pem
+      dest: /etc/kubernetes/apiserver/pki/cluster-ca.pem
+    - source: /certs/etcd-client-ca.pem
+      dest: /etc/kubernetes/apiserver/pki/etcd-client-ca.pem
+    - source: /certs/etcd-client.pem
+      dest: /etc/kubernetes/apiserver/pki/etcd-client.pem
+    - source: /certs/service-account.pub
+      dest: /etc/kubernetes/apiserver/pki/service-account.pub
+    - source: /keys/apiserver-key.pem
+      dest: /etc/kubernetes/apiserver/pki/apiserver-key.pem
+    - source: /keys/etcd-client-key.pem
+      dest: /etc/kubernetes/apiserver/pki/etcd-client-key.pem
+    - source: /tmp/etc/kubernetes-apiserver.yaml
+      dest: /etc/kubernetes/manifests/kubernetes-apiserver.yaml
+
+command_prefix:
+  - /apiserver
+  - --authorization-mode=Node,RBAC
+  - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+  - --apiserver-count=3
+  - --service-cluster-ip-range=10.96.0.0/16
+  - --v=5
 
 apiserver:
-  command: /apiserver
-
+  host_etc_path: /etc/kubernetes/apiserver
   etcd:
     endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
-    tls:
-      ca: placeholder
-      cert: placeholder
-      key: placeholder
-
-  host_etc_path: /etc/kubernetes/apiserver
-
-  port: 6443
-  replicas: 3
-
-images:
-  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-  apiserver: gcr.io/google_containers/hyperkube-amd64:v1.8.0
 
 network:
-  kubernetes_service_ip: 10.96.0.1
-  pod_cidr: 10.97.0.0/16
-  service_cidr: 10.96.0.0/16
+  kubernetes_apiserver:
+    name: kubernetes-apiserver
+    port: 6443
+    enable_node_port: false
 
 service:
   name: kubernetes-apiserver
   ip: null
 
-service_account:
-  public_key: placeholder
+secrets:
+  tls:
+    ca: placeholder
+    cert: placeholder
+    key: placeholder
+  service_account:
+    public_key: placeholder
+  etcd:
+    tls:
+      ca: placeholder
+      cert: placeholder
+      key: placeholder
 
-tls:
-  ca: placeholder
-  cert: placeholder
-  key: placeholder
+dependencies:
+  kubernetes_apiserver:
+
+# typically overriden by environmental
+# values, but should include all endpoints
+# required by this chart
+endpoints:
+  cluster_domain_suffix: cluster.local
+  kubernetes_apiserver:
+    name: kubernetes-apiserver
+    hosts:
+      default: kubernetes-apiserver
+    host_fqdn_override:
+      default: null
+
+pod:
+  mounts:
+    kubernetes_apiserver:
+      init_container: null
+      kubernetes_apiserver:
+  replicas:
+    apiserver: 3
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        kubernetes_apiserver:
+          enabled: false
+          min_ready_seconds: 0
+          max_unavailable: 1
+    termination_grace_period:
+      kubernetes_apiserver:
+        timeout: 3600
+  resources:
+    enabled: false
+    kubernetes_apiserver:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+
+manifests:
+  configmap_bin: true
+  configmap_certs: true
+  configmap_etc: true
+  kubernetes_apiserver: true
+  secret: true
+  service: true

@@ -524,7 +524,7 @@ metadata:
         name: kubernetes
         path: $
       dest:
-        path: $.values.tls.ca
+        path: $.values.secrets.tls.ca
 
     -
       src:
@@ -532,42 +532,42 @@ metadata:
         name: apiserver
         path: $
       dest:
-        path: $.values.tls.cert
+        path: $.values.secrets.tls.cert
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: apiserver
         path: $
       dest:
-        path: $.values.tls.key
+        path: $.values.secrets.tls.key
     -
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes-etcd
         path: $
       dest:
-        path: $.values.apiserver.etcd.tls.ca
+        path: $.values.secrets.etcd.tls.ca
     -
       src:
         schema: deckhand/Certificate/v1
         name: apiserver-etcd
         path: $
       dest:
-        path: $.values.apiserver.etcd.tls.cert
+        path: $.values.secrets.etcd.tls.cert
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: apiserver-etcd
         path: $
       dest:
-        path: $.values.apiserver.etcd.tls.key
+        path: $.values.secrets.etcd.tls.key
     -
       src:
         schema: deckhand/PublicKey/v1
         name: service-account
         path: $
       dest:
-        path: $.values.service_account.public_key
+        path: $.values.secrets.service_account.public_key
 
 data:
   chart_name: apiserver
@@ -580,19 +580,22 @@ data:
     apiserver:
       etcd:
         endpoints: https://etcd.kubernetes.promenade:2379
+    images:
+      tags:
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+    secrets:
+      service_account:
+        public_key: placeholder
+      tls:
+        ca: placeholder
+        cert: placeholder
+        key: placeholder
+      etcd:
         tls:
           ca: placeholder
           cert: placeholder
           key: placeholder
-    images:
-      anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-      apiserver: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-    service_account:
-      public_key: placeholder
-    tls:
-      ca: placeholder
-      cert: placeholder
-      key: placeholder
     network:
       kubernetes_service_ip: 10.96.0.1
       pod_cidr: 10.97.0.0/16

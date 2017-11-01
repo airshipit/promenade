@@ -1,37 +1,63 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.manifests.kubernetes_apiserver }}
+{{- $envAll := . }}
+{{- $dependencies := .Values.dependencies.kubernetes_apiserver }}
+{{- $mounts_kubernetes_apiserver := .Values.pod.mounts.kubernetes_apiserver.kubernetes_apiserver }}
+{{- $mounts_kubernetes_apiserver_init := .Values.pod.mounts.kubernetes_apiserver.init_container }}
 ---
 apiVersion: "extensions/v1beta1"
 kind: DaemonSet
 metadata:
   name: {{ .Values.service.name }}-anchor
-  labels:
-    application: kubernetes
-    component: kubernetes-apiserver-anchor
 spec:
-  selector:
-    matchLabels:
-      {{ .Values.service.name | quote }}: anchor
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
+{{ tuple $envAll "kubernetes-apiserver-anchor" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
+      labels:
+{{ tuple $envAll "kubernetes" "kubernetes-apiserver-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
-      labels:
-        {{ .Values.service.name | quote }}: anchor
+        configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
+        configmap-certs-hash: {{ tuple "configmap-certs.yaml" . | include "helm-toolkit.utils.hash" }}
+        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
-      hostNetwork: true
-      dnsPolicy: {{ .Values.anchor.dns_policy }}
       nodeSelector:
-        {{ .Values.anchor.node_selector.key }}: {{ .Values.anchor.node_selector.value }}
+        {{ .Values.labels.kubernetes_apiserver.node_selector_key }}: {{ .Values.labels.kubernetes_apiserver.node_selector_value }}
+      dnsPolicy: {{ .Values.anchor.dns_policy }}
+      hostNetwork: true
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
         - key: CriticalAddonsOnly
           operator: Exists
+      terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.kubernetes_apiserver.timeout }}
+      initContainers:
+{{ tuple $envAll $dependencies $mounts_kubernetes_apiserver_init | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
       containers:
         - name: anchor
-          image: {{ .Values.images.anchor }}
+          image: {{ .Values.images.tags.anchor }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+          env:
+          - name: MANIFEST_PATH
+            value: /host{{ .Values.anchor.kubelet.manifest_path }}/{{ .Values.service.name }}.yaml
+          - name: PKI_PATH
+            value: /host{{ .Values.apiserver.host_etc_path }}/pki
+{{ tuple $envAll $envAll.Values.pod.resources.kubernetes_apiserver | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:
@@ -40,28 +66,36 @@ spec:
                 command:
                   - /tmp/bin/pre_stop
           volumeMounts:
-            - name: certs
+            - name: {{ .Values.service.name }}-certs
               mountPath: /certs
             - name: host
               mountPath: /host
-            - name: keys
+            - name: {{ .Values.service.name }}-keys
               mountPath: /keys
-            - name: bin
+            - name: {{ .Values.service.name }}-bin
               mountPath: /tmp/bin
-      terminationGracePeriodSeconds: {{ .Values.anchor.termination_grace_period }}
+            - name: {{ .Values.service.name }}-etc
+              mountPath: /tmp/etc
+{{ if $mounts_kubernetes_apiserver.volumeMounts }}{{ toYaml $mounts_kubernetes_apiserver.volumeMounts | indent 12 }}{{ end }}
       volumes:
-        - name: bin
+        - name: {{ .Values.service.name }}-bin
           configMap:
             name: {{ .Values.service.name }}-bin
             defaultMode: 0555
-        - name: certs
+        - name: {{ .Values.service.name }}-certs
           configMap:
             name: {{ .Values.service.name }}-certs
             defaultMode: 0444
         - name: host
           hostPath:
             path: /
-        - name: keys
+        - name: {{ .Values.service.name }}-keys
           secret:
             secretName: {{ .Values.service.name }}-keys
             defaultMode: 0444
+        - name: {{ .Values.service.name }}-etc
+          configMap:
+            name: {{ .Values.service.name }}-etc
+            defaultMode: 0444
+{{ if $mounts_kubernetes_apiserver.volumes }}{{ toYaml $mounts_kubernetes_apiserver.volumes | indent 8 }}{{ end }}
+{{- end }}
