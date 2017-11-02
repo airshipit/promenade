@@ -14,3 +14,4 @@ source "${GATE_UTILS}"
 vm_clean_all
 net_clean
 registry_down
+nginx_down

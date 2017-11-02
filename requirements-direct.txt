@@ -4,7 +4,8 @@ jinja2==2.9.6
 jsonpath-ng==1.4.3
 jsonschema==2.6.0
 keystonemiddleware==4.17.0
-oslo.context==2.14.0
+kubernetes==3.0.0
+oslo.context==2.19.2
 pastedeploy==1.5.2
 pbr==3.0.1
 pyyaml==3.12

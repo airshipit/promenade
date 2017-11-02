@@ -33,6 +33,8 @@ def insert_charts_into_bundler(bundler):
     for root, _dirnames, filenames in os.walk(
             '/opt/promenade/charts', followlinks=True):
         for source_filename in filenames:
+            if _source_file_is_excluded(source_filename):
+                continue
             source_path = os.path.join(root, source_filename)
             destination_path = os.path.join('etc/genesis/armada/assets/charts',
                                             os.path.relpath(
@@ -137,6 +139,10 @@ def _default_no_proxy(network_config):
             'cluster_domain', 'cluster.local'),
     ]
     return ','.join(include)
+
+
+def _source_file_is_excluded(source_filename):
+    return source_filename.endswith('.tgz')
 
 
 def _yaml_safe_dump_all(documents):

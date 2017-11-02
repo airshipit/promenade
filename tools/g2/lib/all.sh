@@ -8,6 +8,7 @@ source "$LIB_DIR"/const.sh
 source "$LIB_DIR"/etcd.sh
 source "$LIB_DIR"/kube.sh
 source "$LIB_DIR"/log.sh
+source "$LIB_DIR"/nginx.sh
 source "$LIB_DIR"/promenade.sh
 source "$LIB_DIR"/registry.sh
 source "$LIB_DIR"/ssh.sh
