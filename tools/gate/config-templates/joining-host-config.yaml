@@ -15,10 +15,17 @@ data:
       - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
+      - ceph-mds=enabled
+      - ceph-mon=enabled
+      - ceph-osd=enabled
+      - ceph-rgw=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
       - kubernetes-scheduler=enabled
+      - openstack-compute-node=enabled
+      - openstack-control-plane=enabled
+      - openvswitch=enabled
       - ucp-control-plane=enabled
 ---
 schema: promenade/KubernetesNode/v1
@@ -37,10 +44,17 @@ data:
       - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
+      - ceph-mds=enabled
+      - ceph-mon=enabled
+      - ceph-osd=enabled
+      - ceph-rgw=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
       - kubernetes-scheduler=enabled
+      - openstack-compute-node=enabled
+      - openstack-control-plane=enabled
+      - openvswitch=enabled
       - ucp-control-plane=enabled
 ---
 schema: promenade/KubernetesNode/v1
@@ -59,10 +73,17 @@ data:
       - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
+      - ceph-mds=enabled
+      - ceph-mon=enabled
+      - ceph-osd=enabled
+      - ceph-rgw=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
       - kubernetes-scheduler=enabled
+      - openstack-compute-node=enabled
+      - openstack-control-plane=enabled
+      - openvswitch=enabled
       - ucp-control-plane=enabled
 ---
 schema: promenade/KubernetesNode/v1
@@ -79,4 +100,11 @@ data:
   labels:
     dynamic:
       - ucp-control-plane=enabled
+      - ceph-mds=enabled
+      - ceph-mon=enabled
+      - ceph-osd=enabled
+      - ceph-rgw=enabled
+      - openstack-compute-node=enabled
+      - openstack-control-plane=enabled
+      - openvswitch=enabled
 ...
