@@ -18,7 +18,7 @@ set -eux
 
 HELM=${1}
 HELM_PIDFILE=${2}
-SERVE_DIR=${3}
+SERVE_DIR=$(mktemp -d)
 
 ${HELM} init --client-only
 
@@ -56,9 +56,12 @@ fi
 
 ${HELM} repo add local http://localhost:8879/charts
 
-mkdir -p "${SERVE_DIR}"
-cd "${SERVE_DIR}"
-git clone --depth 1 https://git.openstack.org/openstack/openstack-helm-infra.git || true
-cd openstack-helm-infra
+{
+    cd "${SERVE_DIR}"
+    git clone --depth 1 https://git.openstack.org/openstack/openstack-helm.git || true
+    cd openstack-helm
 
-make helm-toolkit
+    make helm-toolkit
+}
+
+rm -rf "${SERVE_DIR}"

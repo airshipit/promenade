@@ -13,7 +13,6 @@
 /build
 /conformance
 /promenade.egg-info
-/tmp
 
 # Python artifacts
 __pycache__

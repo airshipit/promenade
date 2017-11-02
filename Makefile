@@ -14,7 +14,6 @@
 
 HELM ?= helm
 HELM_PIDFILE ?= $(abspath ./.helm-pid)
-TMP_DIR ?= $(abspath ./tmp)
 
 CHARTS := $(patsubst %/.,%,$(wildcard charts/*/.))
 
@@ -35,7 +34,7 @@ $(CHARTS): helm-serve
 
 .PHONY: helm-serve
 helm-serve:
-	./tools/helm_tk.sh $(HELM) $(HELM_PIDFILE) $(TMP_DIR)
+	./tools/helm_tk.sh $(HELM) $(HELM_PIDFILE)
 
 .PHONY: clean
 clean:
