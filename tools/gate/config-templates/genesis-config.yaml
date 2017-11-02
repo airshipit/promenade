@@ -10,10 +10,8 @@ data:
   hostname: ${GENESIS_HOSTNAME}
   ip: ${GENESIS_IP}
   labels:
-    static:
-      - calico-etcd=enabled
-      - node-role.kubernetes.io/master=
     dynamic:
+      - calico-etcd=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled

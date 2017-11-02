@@ -487,7 +487,10 @@ data:
     no_hooks: true
   values:
     coredns:
-      cluster_domain: cluster.local
+      kubernetes_zones:
+        - cluster.local
+        - 10.96.0.0/16
+        - 10.97.0.0/16
       upstream_nameservers:
         - 8.8.8.8
         - 8.8.4.4

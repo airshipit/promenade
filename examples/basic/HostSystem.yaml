@@ -13,7 +13,7 @@ data:
       tar_path: kubernetes/node/bin/kubelet
       mode: 0555
   images:
-    coredns: coredns/coredns:011
+    coredns: coredns/coredns:0.9.9
     helm:
       helm: lachlanevenson/k8s-helm:v2.5.1
     kubernetes:

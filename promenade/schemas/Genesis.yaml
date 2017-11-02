@@ -78,8 +78,6 @@ data:
           type: array
           items:
             $ref: '#/definitions/kubernetes_label'
-      required:
-        - static
       additionalProperties: false
 
     images:
