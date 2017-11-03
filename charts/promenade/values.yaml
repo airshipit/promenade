@@ -20,7 +20,7 @@ conf:
       paste.filter_factory: keystonemiddleware.auth_token:filter_factory
     filter:noauth:
       forged_roles: admin
-      paste.filter_factory: promenade.control.middleware:no_auth_filter_factory
+      paste.filter_factory: promenade.control.middleware:noauth_filter_factory
     app:promenade-api:
       paste.app_factory: promenade.promenade:paste_start_promenade
 

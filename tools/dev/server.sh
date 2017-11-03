@@ -13,6 +13,6 @@ export PROMENADE_DEBUG=${PROMENADE_DEBUG:-1}
 exec docker run \
     --rm -it \
     --publish 9000:9000 \
-    --volume "${SOURCE_DIR}/etc/promenade":/etc/promenade \
+    --volume "${SOURCE_DIR}/etc/promenade/noauth-api-paste.ini":/etc/promenade/api-paste.ini:ro \
     quay.io/attcomdev/promenade:latest \
         server
