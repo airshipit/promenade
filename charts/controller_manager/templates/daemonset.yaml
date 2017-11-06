@@ -25,11 +25,11 @@ kind: DaemonSet
 metadata:
   name: {{ .Values.service.name }}-anchor
 spec:
-{{ tuple $envAll "controller_manager" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
+{{ tuple $envAll "kubernetes-controller-manager-anchor" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
       labels:
-{{ tuple $envAll "kubernetes" "controller-manager-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+{{ tuple $envAll "kubernetes" "kubernetes-controller-manager-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
