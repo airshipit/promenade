@@ -1,39 +1,62 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.manifests.controller_manager }}
+{{- $envAll := . }}
+{{- $dependencies := .Values.dependencies.controller_manager }}
+{{- $mounts_controller_manager := .Values.pod.mounts.controller_manager.controller_manager }}
+{{- $mounts_controller_manager_init := .Values.pod.mounts.controller_manager.init_container }}
 ---
 apiVersion: "extensions/v1beta1"
 kind: DaemonSet
 metadata:
   name: {{ .Values.service.name }}-anchor
-  labels:
-    application: kubernetes
-    component: kubernetes-controller-manager-anchor
 spec:
-  selector:
-    matchLabels:
-      {{ .Values.service.name | quote }}: anchor
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
+{{ tuple $envAll "controller_manager" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
+      labels:
+{{ tuple $envAll "kubernetes" "controller-manager-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
-      labels:
-        {{ .Values.service.name | quote }}: anchor
     spec:
-      hostNetwork: true
-      dnsPolicy: {{ .Values.anchor.dns_policy }}
       nodeSelector:
-        {{ .Values.anchor.node_selector.key }}: {{ .Values.anchor.node_selector.value }}
+        {{ .Values.labels.controller_manager.node_selector_key }}: {{ .Values.labels.controller_manager.node_selector_value }}
+      dnsPolicy: {{ .Values.anchor.dns_policy }}
+      hostNetwork: true
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
         - key: CriticalAddonsOnly
           operator: Exists
+      terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.controller_manager.timeout }}
+      initContainers:
+{{ tuple $envAll $dependencies $mounts_controller_manager_init | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
       containers:
         - name: anchor
-          image: {{ .Values.images.anchor }}
+          image: {{ .Values.images.tags.anchor }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+          env:
+          - name: MANIFEST_PATH
+            value: /host{{ .Values.anchor.kubelet.manifest_path }}/kubernetes-controller-manager.yaml
+          - name: ETC_PATH
+            value: /host{{ .Values.controller_manager.host_etc_path }}
+{{ tuple $envAll $envAll.Values.pod.resources.controller_manager | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:
@@ -42,21 +65,21 @@ spec:
                 command:
                   - /tmp/bin/pre_stop
           volumeMounts:
-            - name: bin
+            - name: {{ .Values.service.name }}-bin
               mountPath: /tmp/bin
-            - name: etc
+            - name: {{ .Values.service.name }}-etc
               mountPath: /configmap
             - name: host
               mountPath: /host
             - name: secret
               mountPath: /secret
-      terminationGracePeriodSeconds: {{ .Values.anchor.termination_grace_period }}
+{{ if $mounts_controller_manager.volumeMounts }}{{ toYaml $mounts_controller_manager.volumeMounts | indent 12 }}{{ end }}
       volumes:
-        - name: bin
+        - name: {{ .Values.service.name }}-bin
           configMap:
             name: {{ .Values.service.name }}-bin
             defaultMode: 0555
-        - name: etc
+        - name: {{ .Values.service.name }}-etc
           configMap:
             name: {{ .Values.service.name }}-etc
             defaultMode: 0444
@@ -67,3 +90,5 @@ spec:
           secret:
             secretName: {{ .Values.service.name }}
             defaultMode: 0444
+{{ if $mounts_controller_manager.volumes }}{{ toYaml $mounts_controller_manager.volumes | indent 8 }}{{ end }}
+{{- end }}

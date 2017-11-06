@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-dependencies:
-  - name: helm-toolkit
-    repository: http://localhost:8879/charts
-    version: 0.1.0
+---
+apiVersion: v1
+clusters:
+- cluster:
+    server: https://{{ .Values.network.kubernetes_netloc }}
+    certificate-authority: cluster-ca.pem
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: controller-manager
+  name: controller-manager@kubernetes
+current-context: controller-manager@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: controller-manager
+  user:
+    client-certificate: controller-manager.pem
+    client-key: controller-manager-key.pem
