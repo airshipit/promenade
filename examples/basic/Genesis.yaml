@@ -10,10 +10,8 @@ data:
   hostname: n0
   ip: 192.168.77.10
   labels:
-    static:
-      - calico-etcd=enabled
-      - node-role.kubernetes.io/master=
     dynamic:
+      - calico-etcd=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled

@@ -234,7 +234,7 @@ spec:
     kubernetes.io/hostname: ${NODE}
   containers:
   - name: noisy
-    image: busybox
+    image: busybox:1.27.1
     imagePullPolicy: IfNotPresent
     command:
     - /bin/echo

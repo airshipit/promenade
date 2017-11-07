@@ -11,8 +11,6 @@ data:
   ip: ${GENESIS_IP}
   join_ip: ${MASTER1_IP}
   labels:
-    static:
-      - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
       - ceph-mds=enabled
@@ -40,8 +38,6 @@ data:
   ip: ${MASTER1_IP}
   join_ip: ${GENESIS_IP}
   labels:
-    static:
-      - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
       - ceph-mds=enabled
@@ -69,8 +65,6 @@ data:
   ip: ${MASTER2_IP}
   join_ip: ${GENESIS_IP}
   labels:
-    static:
-      - node-role.kubernetes.io/master=
     dynamic:
       - calico-etcd=enabled
       - ceph-mds=enabled

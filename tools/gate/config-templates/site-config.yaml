@@ -12,6 +12,7 @@ data:
     service_ip: 10.96.0.10
     bootstrap_validation_checks:
       - calico-etcd.kube-system.svc.cluster.local
+      - google.com
       - kubernetes-etcd.kube-system.svc.cluster.local
       - kubernetes.default.svc.cluster.local
     upstream_servers:
