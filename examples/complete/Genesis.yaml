@@ -23,7 +23,7 @@ data:
       - promenade-genesis=enabled
       - ucp-control-plane=enabled
   images:
-    armada: quay.io/attcomdev/armada:v0.7.0
+    armada: quay.io/attcomdev/armada:latest
     helm:
       tiller: gcr.io/kubernetes-helm/tiller:v2.5.1
     kubernetes:
