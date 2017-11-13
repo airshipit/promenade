@@ -16,6 +16,9 @@ for NAME in ${JOIN_TARGETS}; do
 
     ssh_cmd "${NAME}" "/root/promenade/join-${NAME}.sh"
     ssh_cmd "${NAME}" "/root/promenade/validate-${NAME}.sh"
+
+    # NOTE(mark-burnett): Ensure disk cache is flushed after join.
+    ssh_cmd "${NAME}" sync
 done
 
 validate_cluster n0

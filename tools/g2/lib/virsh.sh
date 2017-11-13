@@ -75,8 +75,10 @@ iso_path() {
 }
 
 net_clean() {
-    log net_clean is not yet implemented.
-    exit 1
+    if virsh net-list --name | grep ^promenade$ > /dev/null; then
+        log Destroying promenade network
+        virsh net-destroy "${XML_DIR}/network.xml" &>> "${LOG_FILE}"
+    fi
 }
 
 net_declare() {
@@ -120,6 +122,7 @@ vm_create() {
     vol_create_root "${NAME}"
 
     log Creating VM "${NAME}"
+    DISK_OPTS="bus=virtio,cache=directsync,discard=unmap,format=qcow2"
     virt-install \
         --name "${NAME}" \
         --virt-type kvm \
@@ -130,9 +133,9 @@ vm_create() {
         --vcpus "$(config_vm_vcpus)" \
         --memory "$(config_vm_memory)" \
         --import \
-        --disk "vol=${VIRSH_POOL}/promenade-${NAME}.img,format=qcow2,bus=virtio" \
-        --disk "pool=${VIRSH_POOL},size=20,format=qcow2,bus=virtio" \
-        --disk "pool=${VIRSH_POOL},size=20,format=qcow2,bus=virtio" \
+        --disk "vol=${VIRSH_POOL}/promenade-${NAME}.img,${DISK_OPTS}" \
+        --disk "pool=${VIRSH_POOL},size=20,${DISK_OPTS}" \
+        --disk "pool=${VIRSH_POOL},size=20,${DISK_OPTS}" \
         --disk "vol=${VIRSH_POOL}/cloud-init-${NAME}.iso,device=cdrom" &>> "${LOG_FILE}"
 
     ssh_wait "${NAME}"

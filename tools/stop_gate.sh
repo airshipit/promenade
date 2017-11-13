@@ -12,4 +12,5 @@ export WORKSPACE
 source "${GATE_UTILS}"
 
 vm_clean_all
+net_clean
 registry_down

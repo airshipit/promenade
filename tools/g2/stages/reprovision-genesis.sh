@@ -20,3 +20,6 @@ validate_cluster n1
 
 validate_etcd_membership kubernetes n1 "${EXPECTED_MEMBERS}"
 validate_etcd_membership calico n1 "${EXPECTED_MEMBERS}"
+
+# NOTE(mark-burnett): Ensure disk cache is flushed after join.
+ssh_cmd "${GENESIS_NAME}" sync
