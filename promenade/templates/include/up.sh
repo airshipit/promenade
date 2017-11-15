@@ -49,14 +49,37 @@ log === Installing system packages ===
 set -x
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y --no-install-recommends \
-    {%- for package in config['HostSystem:packages.additional'] | default([]) %}
-    {{ package }} \
-    {%- endfor %}
-    {{ config['HostSystem:packages.required.docker'] }} \
-    {{ config['HostSystem:packages.required.socat'] }}
+end=$(($(date +%s) + 600))
+while true; do
+    if ! apt-get update; then
+        now=$(date +%s)
+        if [[ ${now} -gt ${end} ]]; then
+            log Failed to update apt-cache.
+            exit 1
+        fi
+        sleep 10
+    else
+        break
+    fi
+done
 
+end=$(($(date +%s) + 600))
+while true; do
+    if ! apt-get install -y --no-install-recommends \
+            {%- for package in config['HostSystem:packages.additional'] | default([]) %}
+            {{ package }} \
+            {%- endfor %}
+            {{ config['HostSystem:packages.required.docker'] }} \
+            {{ config['HostSystem:packages.required.socat'] }}; then
+        now=$(date +%s)
+        if [[ ${now} -gt ${end} ]]; then
+            log Failed to install apt packages.
+            exit 1
+        fi
+    else
+        break
+    fi
+done
 
 # Start core processes
 #
