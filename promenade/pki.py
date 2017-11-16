@@ -42,8 +42,8 @@ class PKI:
             })
         self.certificate_authorities[ca_name] = result
 
-        return (self._wrap_ca(ca_name, result['cert']), self._wrap_ca_key(
-            ca_name, result['key']))
+        return (self._wrap_ca(ca_name, result['cert']),
+                self._wrap_ca_key(ca_name, result['key']))
 
     def generate_keypair(self, name):
         priv_result = self._openssl(['genrsa', '-out', 'priv.pem'])
@@ -69,8 +69,8 @@ class PKI:
                 'csr.json': self.csr(name=cn, groups=groups, hosts=hosts),
             })
 
-        return (self._wrap_cert(name, result['cert']), self._wrap_cert_key(
-            name, result['key']))
+        return (self._wrap_cert(name, result['cert']),
+                self._wrap_cert_key(name, result['key']))
 
     def csr(self,
             *,
