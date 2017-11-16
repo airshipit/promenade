@@ -14,6 +14,7 @@ Details about Promenade-specific documents can be found here:
     docker
     genesis
     host-system
+    kubelet
     kubernetes-network
     kubernetes-node
 
