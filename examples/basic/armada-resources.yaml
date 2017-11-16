@@ -66,6 +66,18 @@ data:
     - kubernetes-controller-manager
     - kubernetes-scheduler
 ---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-platform
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  description: UCP platform components
+  chart_group:
+    - promenade
+---
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
@@ -984,4 +996,39 @@ data:
     location: /etc/genesis/armada/assets/charts
     subpath: rbac
   dependencies: []
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: promenade
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  chart_name: promenade
+  release: promenade
+  namespace: ucp
+  timeout: 600
+  values:
+    conf:
+      paste:
+        pipeline:main:
+          pipeline: promenade-api
+    images:
+      tags:
+        api: quay.io/attcomdev/promenade:latest
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+    manifests:
+      job_ks_endpoints: false
+      job_ks_service: false
+      job_ks_user: false
+      secret_keystone: false
+  upgrade:
+    no_hooks: true
+  source:
+    type: local
+    location: /etc/genesis/armada/assets/charts
+    subpath: promenade
+  dependencies:
+    - helm-toolkit
 ...

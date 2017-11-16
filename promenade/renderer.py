@@ -31,13 +31,13 @@ def build_tarball_from_roles(config, *, roles, file_specs):
 
 def insert_charts_into_bundler(bundler):
     for root, _dirnames, filenames in os.walk(
-            '/promenade/charts', followlinks=True):
+            '/opt/promenade/charts', followlinks=True):
         for source_filename in filenames:
             source_path = os.path.join(root, source_filename)
             destination_path = os.path.join('etc/genesis/armada/assets/charts',
                                             os.path.relpath(
                                                 source_path,
-                                                '/promenade/charts'))
+                                                '/opt/promenade/charts'))
             stat = os.stat(source_path)
             LOG.debug('Copying asset file %s (mode=%o)', source_path,
                       stat.st_mode)

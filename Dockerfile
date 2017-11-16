@@ -1,4 +1,4 @@
-# Copyright 2017 The Promenade Authors.
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,13 @@ FROM python:3.6
 VOLUME /etc/promenade
 VOLUME /target
 
-RUN mkdir /promenade
-WORKDIR /promenade
+RUN mkdir /opt/promenade
+WORKDIR /opt/promenade
+
+ENV PORT 9000
+EXPOSE $PORT
+
+ENTRYPOINT ["/opt/promenade/entrypoint.sh"]
 
 RUN set -ex \
     && curl -Lo /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
@@ -27,10 +32,13 @@ RUN set -ex \
     && apt-get install --no-install-recommends -y \
         libyaml-dev \
         rsync \
+    && useradd -u 1000 -g users -d /opt/promenade promenade \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-frozen.txt /promenade
+COPY requirements-frozen.txt /opt/promenade
 RUN pip install --no-cache-dir -r requirements-frozen.txt
 
-COPY . /promenade
-RUN pip install -e /promenade
+COPY . /opt/promenade
+RUN pip install -e /opt/promenade
+
+USER promenade

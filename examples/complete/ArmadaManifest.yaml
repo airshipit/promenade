@@ -16,4 +16,5 @@ data:
     - kubernetes-rbac
     - ceph
     - ucp-infra
+    - ucp-platform
 ...

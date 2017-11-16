@@ -1,0 +1,183 @@
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+conf:
+  paste:
+    pipeline:main:
+      pipeline: authtoken promenade-api
+    filter:authtoken:
+      paste.filter_factory: keystonemiddleware.auth_token:filter_factory
+    filter:noauth:
+      forged_roles: admin
+      paste.filter_factory: promenade.control.middleware:no_auth_filter_factory
+    app:promenade-api:
+      paste.app_factory: promenade.promenade:paste_start_promenade
+
+images:
+  tags:
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+    promenade: quay.io/attcomdev/promenade:latest
+    ks_user: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+    ks_service: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+    ks_endpoints: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+  pull_policy: IfNotPresent
+
+labels:
+  node_selector_key: ucp-control-plane
+  node_selector_value: enabled
+
+manifests:
+  configmap_bin: true
+  configmap_etc: true
+  deployment_api: true
+  rbac: true
+  service_api: true
+  job_ks_endpoints: true
+  job_ks_service: true
+  job_ks_user: true
+  secret_keystone: true
+
+network:
+  api:
+    port: 80
+    target_port: 9000
+    ingress:
+      public: true
+
+dependencies:
+  ks_user:
+    services:
+    - service: identity
+      endpoint: internal
+  ks_service:
+    services:
+    - service: identity
+      endpoint: internal
+  ks_endpoints:
+    jobs:
+    - promenade-ks-service
+    services:
+    - service: identity
+      endpoint: internal
+
+secrets:
+  identity:
+    admin: promenade-keystone-admin
+    user: promenade-keystone-user
+
+endpoints:
+  cluster_domain_suffix: cluster.local
+  identity:
+    name: keystone
+    auth:
+      user:
+        region_name: RegionOne
+        role: admin
+        project_name: service
+        project_domain_name: default
+        user_domain_name: default
+        username: promenade
+        password: password
+      admin:
+        region_name: RegionOne
+        project_name: admin
+        password: password
+        username: admin
+        user_domain_name: default
+        project_domain_name: default
+    hosts:
+      default: keystone-api
+      public: keystone
+    host_fqdn_override:
+      default: null
+    path:
+      default: /v3
+    scheme:
+      default: http
+    port:
+      admin:
+        default: 35357
+      api:
+        default: 80
+
+  kubernetesprovisioner:
+    name: promenade
+    hosts:
+      default: promenade-api
+    port:
+      api:
+        default: 9000
+    path:
+      default: /api/v1.0
+    scheme:
+      default: http
+    host_fqdn_override:
+      default: null
+
+pod:
+  affinity:
+    anti:
+      type:
+        default: preferredDuringSchedulingIgnoredDuringExecution
+      topologyKey:
+        default: kubernetes.io/hostname
+  replicas:
+    api: 1
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 1
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 30
+  resources:
+    enabled: false
+    api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    jobs:
+      ks_user:
+        limits:
+          memory: "128Mi"
+          cpu: "100m"
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+      ks_service:
+        limits:
+          memory: "128Mi"
+          cpu: "100m"
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+      ks_endpoints:
+        limits:
+          memory: "128Mi"
+          cpu: "100m"
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+
+release_group: null

@@ -95,6 +95,18 @@ data:
     - ucp-memcached
     - ucp-keystone
 ---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-platform
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  description: UCP platform components
+  chart_group:
+    - promenade
+---
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
@@ -1271,6 +1283,45 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
     subpath: keystone
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: promenade
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  chart_name: promenade
+  release: promenade
+  namespace: ucp
+  timeout: 600
+  values:
+    conf:
+      paste:
+        filter:authtoken:
+          paste.filter_factory: 'keystonemiddleware.auth_token:filter_factory'
+          admin_password: password
+          admin_tenant_name: service
+          admin_user: promenade
+          identity_uri: 'http://keystone-api.ucp.svc.cluster.local/'
+          service_token_roles_required: true
+
+    images:
+      tags:
+        api: quay.io/attcomdev/promenade:latest
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        ks_user: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+        ks_endpoints: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+  upgrade:
+    no_hooks: true
+  source:
+    type: local
+    location: /etc/genesis/armada/assets/charts
+    subpath: promenade
   dependencies:
     - helm-toolkit
 ...

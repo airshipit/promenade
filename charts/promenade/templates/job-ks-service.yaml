@@ -1,0 +1,63 @@
+{{/*
+# copyright (c) 2017 at&t intellectual property. all rights reserved.
+#
+# licensed under the apache license, version 2.0 (the "license");
+# you may not use this file except in compliance with the license.
+# you may obtain a copy of the license at
+#
+#     http://www.apache.org/licenses/license-2.0
+#
+# unless required by applicable law or agreed to in writing, software
+# distributed under the license is distributed on an "as is" basis,
+# without warranties or conditions of any kind, either express or implied.
+# see the license for the specific language governing permissions and
+# limitations under the license. */}}
+
+{{- if .Values.manifests.job_ks_service -}}
+
+{{- $envAll := . }}
+{{- $ksAdminSecret := .Values.secrets.identity.admin }}
+{{- $dependencies := .Values.dependencies.ks_service }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: promenade-ks-service
+spec:
+  template:
+    metadata:
+      labels:
+{{ tuple $envAll "promenade" "ks-service" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        {{ .Values.labels.node_selector_key }}: {{ .Values.labels.node_selector_value }}
+      initContainers:
+{{ tuple $envAll $dependencies "[]" | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
+      containers:
+{{- range $key1, $osServiceType := tuple "kubernetesprovisioner" }}
+        - name: {{ $osServiceType }}-ks-service-registration
+          image: {{ $envAll.Values.images.tags.ks_service }}
+          imagePullPolicy: {{ $envAll.Values.images.pull_policy }}
+          command:
+            - /tmp/ks-service.sh
+          volumeMounts:
+            - name: ks-service-sh
+              mountPath: /tmp/ks-service.sh
+              subPath: ks-service.sh
+              readOnly: true
+          env:
+{{- with $env := dict "ksUserSecret" $ksAdminSecret }}
+{{- include "helm-toolkit.snippets.keystone_openrc_env_vars" $env | indent 12 }}
+{{- end }}
+            - name: OS_SERVICE_NAME
+              value: {{ tuple $osServiceType $envAll | include "helm-toolkit.endpoints.keystone_endpoint_name_lookup" }}
+            - name: OS_SERVICE_TYPE
+              value: {{ $osServiceType }}
+{{- end }}
+      volumes:
+        - name: ks-service-sh
+          configMap:
+            name: promenade-bin
+            defaultMode: 0555
+{{- end -}}

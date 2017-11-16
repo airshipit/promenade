@@ -14,6 +14,7 @@ data:
     - dns
     - kubernetes
     - kubernetes-rbac
+    - ucp-services
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -66,6 +67,18 @@ data:
   sequenced: true
   chart_group:
     - kubernetes-rbac
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-services
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  description: UCP Services
+  chart_group:
+    - promenade
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -963,4 +976,39 @@ data:
     location: /etc/genesis/armada/assets/charts
     subpath: rbac
   dependencies: []
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: promenade
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  chart_name: promenade
+  release: promenade
+  namespace: ucp
+  timeout: 600
+  values:
+    conf:
+      paste:
+        pipeline:main:
+          pipeline: promenade-api
+    images:
+      tags:
+        api: ${IMAGE_PROMENADE}
+        dep_check: ${IMAGE_DEP_CHECK}
+    manifests:
+      job_ks_endpoints: false
+      job_ks_service: false
+      job_ks_user: false
+      secret_keystone: false
+  upgrade:
+    no_hooks: true
+  source:
+    type: local
+    location: /etc/genesis/armada/assets/charts
+    subpath: promenade
+  dependencies:
+    - helm-toolkit
 ...
