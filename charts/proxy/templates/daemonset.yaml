@@ -1,25 +1,39 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.manifests.daemonset_proxy }}
+{{- $envAll := . }}
+
 ---
 apiVersion: "extensions/v1beta1"
 kind: DaemonSet
 metadata:
   name: kubernetes-proxy
-  labels:
-    component: k8s-proxy
 spec:
+{{ tuple $envAll "proxy" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
       labels:
-        tier: node
-        component: k8s-proxy
+{{ tuple $envAll "kubernetes" "proxy" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
+        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       hostNetwork: true
-      dnsPolicy: {{ .Values.dns_policy }}
-      {{- if .Values.node_selector.key }}
-      nodeSelector:
-        {{ .Values.node_selector.key }}: {{ .Values.node_selector.value }}
-      {{- end }}
+      dnsPolicy: Default
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
@@ -27,13 +41,15 @@ spec:
           operator: Exists
       containers:
       - name: proxy
-        image: {{ .Values.images.proxy }}
+        image: {{ .Values.images.tags.proxy }}
+        imagePullPolicy: {{ .Values.images.pull_policy }}
         command:
-          - {{ .Values.proxy.command }}
-          - --cluster-cidr={{ .Values.network.pod_cidr }}
-          - --hostname-override=$(NODE_NAME)
-          - --kubeconfig=/etc/kubernetes/proxy/kubeconfig.yaml
-          - --proxy-mode=iptables
+          {{- range .Values.command_prefix }}
+          - {{ . }}
+          {{- end }}
+          - --hostname-override=$(NODE_NAME)                  
+          - --kubeconfig=/etc/kubernetes/proxy/kubeconfig.yaml 
+{{ tuple $envAll $envAll.Values.pod.resources.proxy | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
         env:
           - name: NODE_NAME
             valueFrom:
@@ -60,28 +76,24 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 15
         volumeMounts:
-          - name: proxy-cm
+          - name: kubernetes-proxy-etc
             mountPath: /etc/kubernetes/proxy/kubeconfig.yaml
             subPath: kubeconfig.yaml
-          - name: proxy-cm
+          - name: kubernetes-proxy-etc
             mountPath: /etc/kubernetes/proxy/pki/proxy.pem
             subPath: proxy.pem
-          - name: proxy-cm
+          - name: kubernetes-proxy-etc
             mountPath: /etc/kubernetes/proxy/pki/cluster-ca.pem
             subPath: cluster-ca.pem
           - name: proxy-secret
             mountPath: /etc/kubernetes/proxy/pki/proxy-key.pem
             subPath: proxy-key.pem
-      tolerations:
-        - key: CriticalAddonsOnly
-          operator: Exists
-        - key: node-role.kubernetes.io/master
-          operator: Exists
-          effect: NoSchedule
       volumes:
-        - name: proxy-cm
+        - name: kubernetes-proxy-etc
           configMap:
-            name: kubernetes-proxy
+            name: kubernetes-proxy-etc
+            defaultMode: 0444
         - name: proxy-secret
           secret:
             secretName: kubernetes-proxy
+{{- end }}
