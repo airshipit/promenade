@@ -1165,6 +1165,11 @@ data:
             - component: namespace-client-key-generator
             - release_group: armada-ucp
   values:
+    images:
+      tags:
+        bootstrap: quay.io/attcomdev/ceph-daemon:tag-build-master-jewel-ubuntu-16.04
+        ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
     labels:
       jobs:
         node_selector_key: ucp-control-plane
