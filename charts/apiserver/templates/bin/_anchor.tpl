@@ -18,7 +18,7 @@ set -x
 compare_copy_files() {
 
     {{range .Values.anchor.files_to_copy}}
-    if [ ! -e /host{{ .dest }} ] || cmp -s {{ .source }} /host{{ .dest }}; then
+    if [ ! -e /host{{ .dest }} ] || ! cmp -s {{ .source }} /host{{ .dest }}; then
         mkdir -p $(dirname /host{{ .dest }})
         cp {{ .source }} /host{{ .dest }}
     fi
