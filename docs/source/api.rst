@@ -38,7 +38,7 @@ static.labels
     Used to set configuration options in the generated script
 
 Responses
-- 204 No Content: Scripts generated successfully
+- 200 OK: Script returned as response body
 - 400 Bad Request: One or more query parameters is missing or misspelled
 
 

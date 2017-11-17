@@ -80,6 +80,16 @@ class Builder:
     def build_node(self, node_document, *, output_dir):
         node_name = node_document['metadata']['name']
         LOG.info('Building script for node %s', node_name)
+        script = self.build_node_script(node_name)
+
+        _write_script(output_dir, _join_name(node_name), script)
+
+        if self.validators:
+            validate_script = self._build_node_validate_script(node_name)
+            _write_script(output_dir, 'validate-%s.sh' % node_name,
+                          validate_script)
+
+    def build_node_script(self, node_name):
         sub_config = self.config.extract_node_config(node_name)
         file_spec_paths = [
             f['path'] for f in self.config.get_path('HostSystem:files', [])
@@ -88,20 +98,17 @@ class Builder:
         tarball = renderer.build_tarball_from_roles(
             config=sub_config, roles=['common', 'join'], file_specs=file_specs)
 
-        script = renderer.render_template(
+        return renderer.render_template(
             sub_config,
             template='scripts/join.sh',
             context={
                 'tarball': tarball
             })
 
-        _write_script(output_dir, _join_name(node_name), script)
-
-        if self.validators:
-            validate_script = renderer.render_template(
-                sub_config, template='scripts/validate-join.sh')
-            _write_script(output_dir, 'validate-%s.sh' % node_name,
-                          validate_script)
+    def _build_node_validate_script(self, node_name):
+        sub_config = self.config.extract_node_config(node_name)
+        return renderer.render_template(
+            sub_config, template='scripts/validate-join.sh')
 
 
 def _fetch_tar_content(*, url, path):

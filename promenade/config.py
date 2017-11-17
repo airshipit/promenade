@@ -2,6 +2,7 @@ from . import exceptions, logging, validation
 import copy
 import jinja2
 import jsonpath_ng
+import requests
 import yaml
 
 __all__ = ['Configuration']
@@ -31,6 +32,16 @@ class Configuration:
             documents.extend(stream_documents)
 
         return cls(documents=documents, **kwargs)
+
+    @classmethod
+    def from_design_ref(cls, design_ref):
+        response = requests.get(design_ref)
+        response.raise_for_status()
+
+        documents = list(yaml.safe_load_all(response.text))
+        validation.check_schemas(documents)
+
+        return cls(documents=documents)
 
     def __getitem__(self, path):
         value = self.get_path(path)
@@ -124,6 +135,10 @@ class Configuration:
             if data:
                 return data
         return default
+
+    def append(self, item):
+        validation.check_schema(item)
+        self.documents.append(item)
 
 
 def _matches_filter(document, *, schema, labels):

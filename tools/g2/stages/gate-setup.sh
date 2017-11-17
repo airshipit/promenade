@@ -8,6 +8,10 @@ source "${GATE_UTILS}"
 registry_up
 registry_populate
 
+# NginX for serving config files in the absence of Deckhand
+nginx_down
+nginx_up
+
 # SSH setup
 ssh_setup_declare
 

@@ -29,18 +29,42 @@
     },
     {
       "name": "Join Masters",
-      "script": "join-masters.sh",
+      "script": "join-nodes.sh",
       "arguments": [
-        "n1",
-        "n2",
-        "n3"
+        "-v", "n0",
+        "-n", "n1",
+        "-n", "n2",
+        "-n", "n3",
+        "-l", "calico-etcd=enabled",
+        "-l", "kubernetes-apiserver=enabled",
+        "-l", "kubernetes-controller-manager=enabled",
+        "-l", "kubernetes-etcd=enabled",
+        "-l", "kubernetes-scheduler=enabled",
+        "-l", "ucp-control-plane=enabled",
+        "-e", "kubernetes n0 genesis n1 n2 n3",
+        "-e", "calico n0 n0 n1 n2 n3"
       ]
     },
     {
-      "name": "Reprovision Genesis",
-      "script": "reprovision-genesis.sh",
+      "name": "Teardown Genesis",
+      "script": "teardown-nodes.sh",
       "arguments": [
-        "n1 n2 n3"
+        "-v", "n1",
+        "-n", "n0",
+        "-r",
+        "-e", "kubernetes n1 n1 n2 n3",
+        "-e", "calico n1 n1 n2 n3"
+      ]
+    },
+    {
+      "name": "Join n0 as Worker",
+      "script": "join-nodes.sh",
+      "arguments": [
+        "-v", "n1",
+        "-n", "n0",
+        "-l", "ucp-control-plane=enabled",
+        "-e", "kubernetes n1 n1 n2 n3",
+        "-e", "calico n1 n1 n2 n3"
       ]
     },
     {
