@@ -1,18 +1,27 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- $envAll := . }}
 ---
 apiVersion: "extensions/v1beta1"
 kind: DaemonSet
 metadata:
-  name: {{ .Values.service.name }}-anchor
-  labels:
-    application: kubernetes
-    component: kubernetes-scheduler-anchor
+  name: kubernetes-scheduler-anchor
 spec:
-  selector:
-    matchLabels:
-      {{ .Values.service.name | quote }}: anchor
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
+{{ tuple $envAll "scheduler" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
       annotations:
@@ -20,20 +29,23 @@ spec:
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
       labels:
-        {{ .Values.service.name | quote }}: anchor
+{{ tuple $envAll "kubernetes" "kubernetes-scheduler-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
     spec:
       hostNetwork: true
       dnsPolicy: {{ .Values.anchor.dns_policy }}
       nodeSelector:
-        {{ .Values.anchor.node_selector.key }}: {{ .Values.anchor.node_selector.value }}
+        {{ .Values.labels.scheduler.node_selector_key }}: {{ .Values.labels.scheduler.node_selector_value }}
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
         - key: CriticalAddonsOnly
           operator: Exists
+      terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.scheduler.timeout }}
       containers:
         - name: anchor
-          image: {{ .Values.images.anchor }}
+          image: {{ .Values.images.tags.anchor }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple $envAll $envAll.Values.pod.resources.scheduler | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:
@@ -54,16 +66,16 @@ spec:
       volumes:
         - name: bin
           configMap:
-            name: {{ .Values.service.name }}-bin
+            name: kubernetes-scheduler-bin
             defaultMode: 0555
         - name: etc
           configMap:
-            name: {{ .Values.service.name }}-etc
+            name: kubernetes-scheduler-etc
             defaultMode: 0444
         - name: host
           hostPath:
             path: /
         - name: secret
           secret:
-            secretName: {{ .Values.service.name }}
+            secretName: kubernetes-scheduler
             defaultMode: 0444

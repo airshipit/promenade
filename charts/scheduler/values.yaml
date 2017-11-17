@@ -1,28 +1,68 @@
+release_group: null
+
 anchor:
   dns_policy: Default
   kubelet:
     manifest_path: /etc/kubernetes/manifests
-  node_selector:
-    key: kubernetes-scheduler
-    value: enabled
   period: 15
   termination_grace_period: 3600
+  files_to_copy:
+    - source: /configmap/cluster-ca.pem
+      dest: /etc/kubernetes/scheduler/cluster-ca.pem
+    - source: /configmap/scheduler.pem
+      dest: /etc/kubernetes/scheduler/scheduler.pem
+    - source: /configmap/kubeconfig.yaml
+      dest: /etc/kubernetes/scheduler/kubeconfig.yaml
+    - source: /secret/scheduler-key.pem
+      dest: /etc/kubernetes/scheduler/scheduler-key.pem
+    - source: /configmap/kubernetes-scheduler.yaml
+      dest: /etc/kubernetes/manifests/kubernetes-scheduler.yaml
+
+labels:
+  scheduler:
+      node_selector_key: kubernetes-scheduler
+      node_selector_value: enabled
+
+pod:
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        scheduler:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 1
+    termination_grace_period:
+      scheduler:
+        timeout: 3600
+  resources:
+    enabled: false
+    scheduler:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
 
 scheduler:
-  command: /scheduler
   host_etc_path: /etc/kubernetes/scheduler
 
-service:
-  name: kubernetes-scheduler
-
-tls:
-  ca: placeholder
-  cert: placeholder
-  key: placeholder
+secrets:
+  tls:
+    ca: placeholder
+    cert: placeholder
+    key: placeholder
 
 images:
-  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-  scheduler: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+  tags:
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+    scheduler: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+  pull_policy: "IfNotPresent"
 
 network:
   kubernetes_netloc: 10.96.0.1
+
+command_prefix:
+  - /scheduler
+  - --v=5

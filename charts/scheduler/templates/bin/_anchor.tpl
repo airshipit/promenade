@@ -1,55 +1,35 @@
 #!/bin/sh
+{{/*
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+*/}}
 
 set -x
 
-export MANIFEST_PATH=/host{{ .Values.anchor.kubelet.manifest_path }}/{{ .Values.service.name }}.yaml
-export ETC_PATH=/host{{ .Values.scheduler.host_etc_path }}
-
-copy_etc_files() {
-    mkdir -p $ETC_PATH
-    cp /configmap/* /secret/* $ETC_PATH
-}
-
-create_manifest() {
-    mkdir -p $(dirname $MANIFEST_PATH)
-    cat <<EODOC > $MANIFEST_PATH
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: {{ .Values.service.name }}
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{ .Values.service.name }}-service: enabled
-spec:
-  hostNetwork: true
-  containers:
-    - name: scheduler
-      image: {{ .Values.images.scheduler }}
-      env:
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-      command:
-        - {{ .Values.scheduler.command }}
-        - --leader-elect=true
-        - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
-        - --v=5
-
-      volumeMounts:
-        - name: etc
-          mountPath: /etc/kubernetes/scheduler
-  volumes:
-    - name: etc
-      hostPath:
-        path: {{ .Values.scheduler.host_etc_path }}
-EODOC
+compare_copy_files() {
+    {{- range .Values.anchor.files_to_copy }}
+    if [ ! -e /host{{ .dest }} ] || ! cmp -s {{ .source }} /host{{ .dest }}; then
+        mkdir -p $(dirname /host{{ .dest }})
+        cp {{ .source }} /host{{ .dest }}
+    fi
+    {{- end }}
 }
 
 cleanup() {
-    rm -f $MANIFEST_PATH
-    rm -rf $ETC_PATH
+    {{- range .Values.anchor.files_to_copy }}
+    rm -f /host{{ .dest }}
+    {{- end }}
 }
 
 while true; do
@@ -59,10 +39,9 @@ while true; do
         break
     fi
 
-    if [ ! -e $MANIFEST_PATH ]; then
-        copy_etc_files
-        create_manifest
-    fi
+    # Compare and replace files on Genesis host if needed
+    # Copy files to other master nodes
+    compare_copy_files
 
     sleep {{ .Values.anchor.period }}
 done
