@@ -48,7 +48,6 @@ log
 log === Installing system packages ===
 set -x
 
-export DEBIAN_FRONTEND=noninteractive
 end=$(($(date +%s) + 600))
 while true; do
     if ! apt-get update; then
@@ -65,7 +64,7 @@ done
 
 end=$(($(date +%s) + 600))
 while true; do
-    if ! apt-get install -y --no-install-recommends \
+    if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             {%- for package in config['HostSystem:packages.additional'] | default([]) %}
             {{ package }} \
             {%- endfor %}
@@ -76,6 +75,7 @@ while true; do
             log Failed to install apt packages.
             exit 1
         fi
+        sleep 10
     else
         break
     fi
