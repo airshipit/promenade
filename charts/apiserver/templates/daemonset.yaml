@@ -16,7 +16,6 @@ limitations under the License.
 
 {{- if .Values.manifests.kubernetes_apiserver }}
 {{- $envAll := . }}
-{{- $dependencies := .Values.dependencies.kubernetes_apiserver }}
 {{- $mounts_kubernetes_apiserver := .Values.pod.mounts.kubernetes_apiserver.kubernetes_apiserver }}
 {{- $mounts_kubernetes_apiserver_init := .Values.pod.mounts.kubernetes_apiserver.init_container }}
 ---
@@ -46,8 +45,6 @@ spec:
         - key: CriticalAddonsOnly
           operator: Exists
       terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.kubernetes_apiserver.timeout }}
-      initContainers:
-{{ tuple $envAll $dependencies $mounts_kubernetes_apiserver_init | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
       containers:
         - name: anchor
           image: {{ .Values.images.tags.anchor }}

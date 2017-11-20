@@ -16,7 +16,7 @@ data:
     - kubernetes-rbac
     - ceph
     - ucp-infra
-    - ucp-platform
+    - ucp-services
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -113,18 +113,28 @@ data:
     - ucp-mariadb
     - ucp-memcached
     - ucp-keystone
+    - maas-postgresql
+    - maas
+    - ucp-etcd-rabbitmq
+    - ucp-rabbitmq
+    - ucp-barbican
+    - ingress
 ---
 schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
-  name: ucp-platform
+  name: ucp-services
   layeringDefinition:
     abstract: false
     layer: site
 data:
   description: UCP platform components
   chart_group:
+    - armada
+    - deckhand
+    - drydock
     - promenade
+    - shipyard
 ---
 schema: armada/Chart/v1
 metadata:
@@ -135,6 +145,8 @@ data:
   release: helm-toolkit
   namespace: helm-toolkit
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values: {}
@@ -143,8 +155,7 @@ data:
     location: https://git.openstack.org/openstack/openstack-helm
     subpath: helm-toolkit
     reference: master
-  dependencies:
-    - helm-toolkit
+  dependencies: []
 ---
 schema: armada/Chart/v1
 metadata:
@@ -180,6 +191,8 @@ data:
   release: kubernetes-proxy
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -197,7 +210,8 @@ data:
     type: local
     location: /etc/genesis/armada/assets/charts
     subpath: proxy
-  dependencies: []
+  dependencies:
+    - helm-toolkit
 ---
 schema: armada/Chart/v1
 metadata:
@@ -358,6 +372,8 @@ data:
   release: calico-etcd
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -475,6 +491,8 @@ data:
   release: calico
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -536,6 +554,8 @@ data:
   release: coredns
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -643,6 +663,8 @@ data:
   release: kubernetes-apiserver
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -720,6 +742,8 @@ data:
   release: kubernetes-controller-manager
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -781,6 +805,8 @@ data:
   release: kubernetes-scheduler
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -964,6 +990,8 @@ data:
   release: kubernetes-etcd
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
@@ -1054,6 +1082,8 @@ data:
   release: rbac
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 600
   values: {}
   upgrade:
     no_hooks: true
@@ -1072,6 +1102,8 @@ data:
   release: ceph
   namespace: ceph
   timeout: 3600
+  wait:
+    timeout: 3600
   install:
     no_hooks: false
   upgrade:
@@ -1168,6 +1200,8 @@ data:
   release: ucp-ceph-config
   namespace: ucp
   timeout: 3600
+  wait:
+    timeout: 3600
   install:
     no_hooks: false
   upgrade:
@@ -1228,6 +1262,9 @@ data:
     no_hooks: false
   upgrade:
     no_hooks: false
+  timeout: 3600
+  wait:
+    timeout: 3600
   values:
     images:
       tags:
@@ -1331,6 +1368,308 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
+  name: maas-postgresql
+data:
+  chart_name: maas-postgresql
+  release: maas-postgresql
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  pre:
+    delete: []
+    create: []
+  post:
+    delete: []
+    create: []
+  values:
+    development:
+      enabled: false
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: postgresql
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: maas
+data:
+  chart_name: maas
+  release: maas
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        db_init: docker.io/postgres:9.5
+        db_sync: quay.io/attcomdev/maas-region:master
+        maas_rack: quay.io/attcomdev/maas-rack:master
+        maas_region: quay.io/attcomdev/maas-region:master
+        bootstrap: quay.io/attcomdev/maas-region:master
+        export_api_key: quay.io/attcomdev/maas-region:master
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+    labels:
+      rack:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+      region:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+    network:
+      proxy:
+        node_port:
+          enabled: true
+          port: 31800
+      gui:
+        node_port:
+          enabled: true
+          port: 31900
+    conf:
+      drydock:
+        bootaction_url: http://${DRYDOCK_NODE_IP}:${DRYDOCK_NODE_PORT}/api/v1.0/bootactions/nodes/
+      maas:
+        credentials:
+          secret:
+            namespace: ucp
+        url:
+          maas_url: http://192.168.77.10:31900/MAAS
+        proxy:
+          proxy_enabled: 'false'
+        ntp:
+          use_external_only: 'false'
+          ntp_servers: ntp.ubuntu.com
+        dns:
+          require_dnssec: 'no'
+          dns_servers: 8.8.8.8
+    secrets:
+      maas_region:
+        value: 3858a12230ac3c915f300c664f12063f
+  source:
+    type: git
+    location: https://github.com/att-comdev/maas
+    subpath: charts/maas
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-etcd-rabbitmq
+data:
+  chart_name: ucp-etcd-rabbitmq
+  release: etcd-rabbitmq
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  pre:
+    delete: []
+  post:
+    delete: []
+    create: []
+  values:
+    pod:
+      replicas:
+        etcd: 1
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: etcd
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-rabbitmq
+data:
+  chart_name: ucp-rabbitmq
+  release: rabbitmq
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  pre:
+    delete: []
+  post:
+    delete: []
+    create: []
+  values:
+    pod:
+      replicas:
+        server: 1
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: rabbitmq
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ucp-barbican
+data:
+  chart_name: ucp-barbican
+  release: barbican
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  pre:
+    delete: []
+  post:
+    delete: []
+    create: []
+  values:
+    pod:
+      replicas:
+        api: 1
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm
+    subpath: barbican
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ingress
+data:
+  chart_name: ingress
+  release: ingress
+  namespace: ucp
+  timeout: 600
+  wait:
+    timeout: 600
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://github.com/openstack/openstack-helm
+    subpath: ingress
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: deckhand
+data:
+  chart_name: deckhand
+  release: deckhand
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        deckhand: quay.io/attcomdev/deckhand:master
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+    conf:
+      deckhand:
+        DEFAULT:
+          debug: true
+          use_stderr: true
+          use_syslog: true
+        keystone_authtoken:
+          memcache_security_strategy: None
+  source:
+    type: git
+    location: https://github.com/att-comdev/deckhand
+    subpath: charts/deckhand
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: drydock
+data:
+  chart_name: drydock
+  release: drydock
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        drydock: quay.io/attcomdev/drydock:master
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        ks_user: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+        ks_endpoints: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+        drydock_db_init: docker.io/postgres:9.5
+        drydock_db_sync: quay.io/attcomdev/drydock:master
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+    network:
+      drydock:
+        node_port:
+          enabled: true
+          port: 31000
+    endpoints:
+      physicalprovisioner:
+        port:
+          api:
+            nodeport: 31000
+    conf:
+      drydock:
+        maasdriver:
+          maas_api_url: http://192.168.77.10:31900/MAAS/api/2.0/
+        plugins:
+          ingester: drydock_provisioner.ingester.plugins.yaml.YamlIngester
+  source:
+    type: git
+    location: https://github.com/att-comdev/drydock
+    subpath: charts/drydock
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
   name: promenade
   layeringDefinition:
     abstract: false
@@ -1340,6 +1679,8 @@ data:
   release: promenade
   namespace: ucp
   timeout: 600
+  wait:
+    timeout: 600
   values:
     conf:
       paste:
@@ -1364,6 +1705,91 @@ data:
     type: local
     location: /etc/genesis/armada/assets/charts
     subpath: promenade
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: armada
+data:
+  chart_name: armada
+  release: armada
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        api: quay.io/attcomdev/armada:latest
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+    network:
+      api:
+        node_port:
+          enabled: true
+          port: 31903
+  source:
+    type: git
+    location: https://github.com/att-comdev/armada
+    subpath: charts/armada
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: shipyard
+data:
+  chart_name: shipyard
+  release: shipyard
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    prod_environment: true
+    images:
+      tags:
+        airflow: quay.io/attcomdev/airflow:latest
+        shipyard: quay.io/attcomdev/shipyard:latest
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        shipyard_db_init: docker.io/postgres:9.5
+        shipyard_db_sync: docker.io/postgres:9.5
+        airflow_db_init: docker.io/postgres:9.5
+        airflow_db_sync: quay.io/attcomdev/airflow:latest
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+    network:
+      shipyard:
+        node_port: 31901
+        enable_node_port: true
+      airflow:
+        web:
+          node_port: 32080
+          enable_node_port: true
+    conf:
+      shipyard:
+        keystone_authtoken:
+          memcache_security_strategy: None
+  source:
+    type: git
+    location: https://github.com/att-comdev/shipyard
+    subpath: charts/shipyard
+    reference: master
   dependencies:
     - helm-toolkit
 ...

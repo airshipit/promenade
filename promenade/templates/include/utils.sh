@@ -187,7 +187,7 @@ function wait_for_pod_termination {
 
     NAMESPACE=$1
     POD_NAME=$2
-    SEC=${3:-120}
+    SEC=${3:-300}
 
     log Waiting $SEC seconds for termination of pod $POD_NAME
 

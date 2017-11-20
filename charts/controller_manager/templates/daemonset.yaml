@@ -16,7 +16,6 @@ limitations under the License.
 
 {{- if .Values.manifests.controller_manager }}
 {{- $envAll := . }}
-{{- $dependencies := .Values.dependencies.controller_manager }}
 {{- $mounts_controller_manager := .Values.pod.mounts.controller_manager.controller_manager }}
 {{- $mounts_controller_manager_init := .Values.pod.mounts.controller_manager.init_container }}
 ---
@@ -45,8 +44,6 @@ spec:
         - key: CriticalAddonsOnly
           operator: Exists
       terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.controller_manager.timeout }}
-      initContainers:
-{{ tuple $envAll $dependencies $mounts_controller_manager_init | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
       containers:
         - name: anchor
           image: {{ .Values.images.tags.anchor }}

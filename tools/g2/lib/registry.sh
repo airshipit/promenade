@@ -33,7 +33,7 @@ registry_populate() {
             continue
         fi
 
-        if ! docker pull "localhost:5000/${image}" &> /dev/null; then
+        if [[ ${image} =~ .*:(latest|master) ]] || ! docker pull "localhost:5000/${image}" &> /dev/null; then
             log Loading image "${image}" into local registry
             {
                 docker pull "${image}"
