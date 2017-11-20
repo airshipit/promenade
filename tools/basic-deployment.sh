@@ -13,6 +13,7 @@ BUILD_DIR=$(realpath ${2:-${SCRIPT_DIR}/../build})
 echo === Cleaning up old data ===
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
+chmod 777 ${BUILD_DIR}
 
 cp "${CONFIG_SOURCE}"/*.yaml ${BUILD_DIR}
 
