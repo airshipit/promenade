@@ -24,6 +24,10 @@ echo Usinag image ${IMAGE_PROMENADE}.
 echo === Cleaning up old data ===
 rm -f config/*
 rm -f promenade-bundle/*
+mkdir -p config
+chmod 777 config
+mkdir -p promenade-bundle
+chmod 777 promenade-bundle
 
 echo === Validating test environment ===
 env -i - $(cat default-config-env) env $(cat $ENV_PATH) $GATE_DIR/util/validate-test-env.sh

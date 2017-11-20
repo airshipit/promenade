@@ -6,6 +6,7 @@ source "${GATE_UTILS}"
 
 cd "${TEMP_DIR}"
 mkdir scripts
+chmod 777 scripts
 
 log Building scripts
 docker run --rm -t \
