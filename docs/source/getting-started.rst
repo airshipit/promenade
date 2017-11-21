@@ -4,6 +4,9 @@ Getting Started
 Basic Deployment
 ----------------
 
+This approach is quick to get started, but generates the scripts used for
+joining up-front rather than generating them in the API as needed.
+
 Setup
 ^^^^^
 
@@ -12,7 +15,7 @@ you can use the following helper script:
 
 .. code-block:: bash
 
-    ./tools/basic-deployment.sh examples/basic build
+    ./tools/simple-deployment.sh examples/basic build
 
 This will copy the configuration provided in the ``examples/basic`` directory
 into the ``build`` directory.  Then, it will generate self-signed certificates
@@ -41,6 +44,61 @@ Perform the following steps to execute the deployment:
 
 6. Join and validate all remaining nodes using the ``join-<NODE>.sh`` and
    ``validate-<NODE>.sh`` scripts described above.
+
+
+API-Driven Deployment
+---------------------
+
+This approach leverages the Promenade API to fetch join scripts as needed.
+This is the approach used in the functional testing discussed below.
+
+Setup
+^^^^^
+
+Follow the setup instructions above for `Basic Deployment`_.  Then, start a webserver to serve
+configuration to Promenade.
+
+.. code-block:: bash
+
+    cat build/*.yaml > promenade.yaml
+    mv promenade.yaml build/promenade.yaml
+    docker rm -fv promenade-nginx
+    docker run -d \
+        -p 7777:80 \
+        --restart=always \
+        --name promenade-nginx \
+        -v build:/usr/share/nginx/html:ro \
+            nginx:stable
+    export DESIGN_REF=http://192.168.77.1:7777/promenade.yaml
+
+Execution
+^^^^^^^^^
+
+Perform the following steps to execute the deployment:
+
+1. Copy the ``genesis.sh`` script to the genesis node and run it.
+2. Validate the genesis node by running ``validate-genesis.sh`` on it.
+3. Generate join script for a node using:
+
+
+.. code-block:: bash
+
+    URL=http://promenade-api.ucp.svc.cluster.local/api/v1.0/join-scripts?
+    URL="${URL}design_ref=${DESIGN_REF}"
+    URL="${URL}&hostname=<HOSTNAME>&ip=<IP>"
+    URL="${URL}&labels.dynamic=calico-etcd=enabled"
+    URL="${URL}&labels.dynamic=kubernetes-apiserver=enabled"
+    URL="${URL}&labels.dynamic=kubernetes-controller-manager=enabled"
+    URL="${URL}&labels.dynamic=kubernetes-etcd=enabled"
+    URL="${URL}&labels.dynamic=kubernetes-scheduler=enabled"
+    URL="${URL}&labels.dynamic=ucp-control-plane=enabled"
+    curl -Lo join-<NODE>.sh "${URL}"
+
+4. Copy the join script to the node, and run it via ``bash join-<NODE>.sh``.
+5. Repeat 3 and 4 until all nodes are joined.
+6. Reprovision the Genesis node by tearing it down as above in
+   `Basic Deployment`_, then generating and using a join script for it as done
+   in 3 and 4.
 
 
 Running Tests
