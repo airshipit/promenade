@@ -63,7 +63,7 @@ mkdir -p "${SCRIPT_DIR}"
 for NAME in "${NODES[@]}"; do
     log Building join script for node "${NAME}"
 
-    ssh_cmd "${VIA}" curl "$(render_curl_url "${NAME}" "${LABELS[@]}")" > "${SCRIPT_DIR}/join-${NAME}.sh"
+    ssh_cmd "${VIA}" curl --retry 16 --retry-delay 15 "$(render_curl_url "${NAME}" "${LABELS[@]}")" > "${SCRIPT_DIR}/join-${NAME}.sh"
     chmod 755 "${SCRIPT_DIR}/join-${NAME}.sh"
 
     log Joining node "${NAME}"
