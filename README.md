@@ -1,7 +1,9 @@
 # Promenade
 
 Promenade is a tool for bootstrapping a resilient Kubernetes cluster and
-managing its life-cycle.
+managing its life-cycle via Helm charts.
+
+Documentation can be found [here](https://promenade.readthedocs.io).
 
 ## Roadmap
 
@@ -21,9 +23,11 @@ The detailed Roadmap can be viewed on the
 
 ## Getting Started
 
-To get started, see [getting started](docs/getting-started.md).
+To get started, see
+[getting started](https://promenade.readthedocs.io/en/latest/getting-started.html).
 
-Configuration is documented [here](docs/configuration.md).
+Configuration is documented
+[here](https://promenade.readthedocs.io/en/latest/configuration/index.html).
 
 ## Bugs
 
