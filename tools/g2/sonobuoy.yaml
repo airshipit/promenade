@@ -118,7 +118,7 @@ data:
       - env:
         - name: E2E_FOCUS
           value: Conformance
-        image: gcr.io/heptio-images/kube-conformance:v1.8
+        image: gcr.io/heptio-images/kube-conformance:v1.8.0
         imagePullPolicy: Always
         name: e2e
         volumeMounts:
@@ -136,7 +136,7 @@ data:
               fieldPath: spec.nodeName
         - name: RESULTS_DIR
           value: /tmp/results
-        image: gcr.io/heptio-images/sonobuoy:master
+        image: gcr.io/heptio-images/sonobuoy:v0.9.0
         imagePullPolicy: Always
         name: sonobuoy-worker
         volumeMounts:
@@ -178,7 +178,7 @@ data:
           value: /tmp/results
         - name: CHROOT_DIR
           value: /node
-        image: gcr.io/heptio-images/sonobuoy-plugin-systemd-logs:latest
+        image: gcr.io/heptio-images/sonobuoy-plugin-systemd-logs:v0.9.0
         imagePullPolicy: Always
         name: systemd-logs
         securityContext:
@@ -202,7 +202,7 @@ data:
               fieldPath: spec.nodeName
         - name: RESULTS_DIR
           value: /tmp/results
-        image: gcr.io/heptio-images/sonobuoy:master
+        image: gcr.io/heptio-images/sonobuoy:v0.9.0
         imagePullPolicy: Always
         name: sonobuoy-worker
         securityContext:
@@ -260,7 +260,7 @@ spec:
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-    image: gcr.io/heptio-images/sonobuoy:master
+    image: gcr.io/heptio-images/sonobuoy:v0.9.0
     imagePullPolicy: Always
     name: kube-sonobuoy
     volumeMounts:
