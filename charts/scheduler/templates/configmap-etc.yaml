@@ -2,29 +2,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.service.name }}-etc
+  name: kubernetes-scheduler-etc
 data:
-  kubeconfig.yaml: |-
-    ---
-    apiVersion: v1
-    clusters:
-    - cluster:
-        server: https://{{ .Values.network.kubernetes_netloc }}
-        certificate-authority: cluster-ca.pem
-      name: kubernetes
-    contexts:
-    - context:
-        cluster: kubernetes
-        user: scheduler
-      name: scheduler@kubernetes
-    current-context: scheduler@kubernetes
-    kind: Config
-    preferences: {}
-    users:
-    - name: scheduler
-      user:
-        client-certificate: scheduler.pem
-        client-key: scheduler-key.pem
-
-  cluster-ca.pem: {{ .Values.tls.ca | quote }}
-  scheduler.pem: {{ .Values.tls.cert | quote }}
+  cluster-ca.pem: {{ .Values.secrets.tls.ca | quote }}
+  kubeconfig.yaml: |+
+{{ tuple "etc/_kubeconfig.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+  kubernetes-scheduler.yaml: |+
+{{ tuple "etc/_kubernetes-scheduler.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+  scheduler.pem: {{ .Values.secrets.tls.cert | quote }}

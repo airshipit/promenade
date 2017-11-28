@@ -1,4 +1,3 @@
-#!/bin/sh
 {{/*
 # Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
 #
@@ -15,7 +14,23 @@
 # limitations under the License.
 */}}
 
-set -x
-
-touch /tmp/stop
-sleep {{ .Values.anchor.period }}
+---
+apiVersion: v1
+clusters:
+- cluster:
+    server: https://{{ .Values.network.kubernetes_netloc }}
+    certificate-authority: cluster-ca.pem
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: scheduler
+  name: scheduler@kubernetes
+current-context: scheduler@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: scheduler
+  user:
+    client-certificate: scheduler.pem
+    client-key: scheduler-key.pem
