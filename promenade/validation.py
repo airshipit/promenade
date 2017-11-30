@@ -24,6 +24,22 @@ __all__ = ['check_schema', 'check_schemas']
 LOG = logging.getLogger(__name__)
 
 
+def check_design(config):
+    kinds = ['Docker', 'HostSystem', 'Kubelet', 'KubernetesNetwork']
+    for kind in kinds:
+        count = 0
+        for doc in config.documents:
+            schema = doc.get('schema', None)
+            if not schema:
+                raise exceptions.ValidationException(
+                    '"schema" is a required document key.')
+            name = schema.split('/')[1]
+            if name == kind:
+                count += 1
+        if count != 1:
+            raise exceptions.ValidationException()
+
+
 def check_schemas(documents):
     for document in documents:
         check_schema(document)
