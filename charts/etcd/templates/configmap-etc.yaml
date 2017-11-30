@@ -14,19 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if .Values.manifests.configmap_bin }}
+{{- if .Values.manifests.configmap_etc }}
 {{- $envAll := . }}
-
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.service.name }}-bin
+  name: {{ $envAll.Values.service.name }}-etc
 data:
-  etcdctl_anchor: |+
-{{ tuple "bin/_etcdctl_anchor.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
-  pre_stop: |+
-{{ tuple "bin/_pre_stop.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
-  readiness: |+
-{{ tuple "bin/_readiness.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+  {{ .Values.service.name }}.yaml: |+
+{{ tuple "etc/_kubernetes-etcd.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
 {{- end }}

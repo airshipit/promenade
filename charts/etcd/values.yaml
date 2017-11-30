@@ -1,3 +1,29 @@
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+images:
+  tags:
+    etcd: quay.io/coreos/etcd:v3.2.7
+    etcdctl: quay.io/coreos/etcd:v3.2.7
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+  pull_policy: "IfNotPresent"
+
+labels:
+  anchor:
+    node_selector_key: etcd-example
+    node_selector_value: enabled
+
 anchor:
   dns_policy: Default
   etcdctl_endpoint: example-etcd
@@ -6,31 +32,28 @@ anchor:
   kubelet:
     manifest_path: /etc/kubernetes/manifests
 
-  node_selector:
-    key: etcd-example
-    value: enabled
-
-  termination_grace_period: 3600
   period: 15
-
-  tls:
-    cert: placeholder
-    key: placeholder
 
 etcd:
   host_etc_path: /etc/etcd-example
   host_data_path: /var/lib/etcd/example
   cleanup_data: true
 
+network:
+  service_client:
+    name: service_client
+    port: 2379
+    target_port: 2379
+    enable_node_port: false
+  service_peer:
+    name: service_peer
+    port: 2380
+    target_port: 2380
+    enable_node_port: false
+
 service:
   name: example-etcd
   ip: null
-  client:
-    port: 2379
-    target_port: 2379
-  peer:
-    port: 2380
-    target_port: 2380
 
 bootstrapping:
   enabled: false
@@ -39,11 +62,16 @@ bootstrapping:
   # XXX Can I just generalize to an anchor timeout?
   timeout: 300
 
-tls:
-  client:
-    ca: placeholder
-  peer:
-    ca: placeholder
+secrets:
+  tls:
+    client:
+      ca: placeholder
+    peer:
+      ca: placeholder
+  anchor:
+    tls:
+      cert: placeholder
+      key: placeholder
 
 nodes:
   - name: example-0
@@ -55,6 +83,37 @@ nodes:
         cert: placeholder
         key: placeholder
 
-images:
-  etcd: quay.io/coreos/etcd:v3.2.7
-  etcdctl: quay.io/coreos/etcd:v3.2.7
+pod:
+  mounts:
+    daemonset_anchor:
+      daemonset_anchor:
+  replicas:
+    apiserver: 3
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        anchor:
+          enabled: false
+          min_ready_seconds: 0
+          max_unavailable: 1
+    termination_grace_period:
+      daemonset_anchor:
+        timeout: 3600
+  resources:
+    enabled: false
+    daemonset_anchor:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+
+manifests:
+  configmap_bin: true
+  configmap_certs: true
+  configmap_etc: true
+  daemonset_anchor: true
+  secret: true
+  service: true

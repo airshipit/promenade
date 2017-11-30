@@ -1,31 +1,51 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{- if .Values.manifests.daemonset_anchor }}
+{{- $envAll := . }}
+{{- $mounts_daemonset_anchor := .Values.pod.mounts.daemonset_anchor.daemonset_anchor }}
 ---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: {{ .Values.service.name }}-anchor
 spec:
-  selector:
-    matchLabels:
-      {{ .Values.service.name | quote }}: anchor
+{{ tuple $envAll "anchor" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
       labels:
-        {{ .Values.service.name | quote }}: anchor
+{{ tuple $envAll "kubernetes" "anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
     spec:
       hostNetwork: true
       dnsPolicy: {{ .Values.anchor.dns_policy }}
       nodeSelector:
-        {{ .Values.anchor.node_selector.key }}: {{ .Values.anchor.node_selector.value }}
+        {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
         - key: CriticalAddonsOnly
           operator: Exists
+      terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.daemonset_anchor.timeout }}
       containers:
         - name: etcdctl
-          image: {{ .Values.images.etcdctl }}
+          image: {{ .Values.images.tags.etcdctl }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple $envAll $envAll.Values.pod.resources.daemonset_anchor | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/etcdctl_anchor
           env:
@@ -42,13 +62,19 @@ spec:
             - name: ETCDCTL_DIAL_TIMEOUT
               value: 3s
             - name: ETCDCTL_ENDPOINTS
-              value: https://{{ .Values.anchor.etcdctl_endpoint }}:{{ .Values.service.client.port }}
+              value: https://{{ .Values.anchor.etcdctl_endpoint }}:{{ .Values.network.service_client.port }}
             - name: ETCDCTL_CACERT
               value: /etc/etcd/tls/certs/client-ca.pem
             - name: ETCDCTL_CERT
               value: /etc/etcd/tls/certs/anchor-etcd-client.pem
             - name: ETCDCTL_KEY
               value: /etc/etcd/tls/keys/anchor-etcd-client-key.pem
+            - name: CLIENT_ENDPOINT
+              value: https://$(POD_IP):{{ .Values.network.service_client.target_port }}
+            - name: PEER_ENDPOINT
+              value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
+            - name: MANIFEST_PATH
+              value: /manifests/{{ .Values.service.name }}.yaml
           readinessProbe:
             exec:
               command:
@@ -61,13 +87,13 @@ spec:
                 command:
                   - /tmp/pre_stop
           volumeMounts:
-            - name: bin
+            - name: {{ .Values.service.name }}-bin
               mountPath: /tmp
             {{- if .Values.bootstrapping.enabled }}
             - name: bootstrapping
               mountPath: /bootstrapping
             {{- end }}
-            - name: certs
+            - name: {{ .Values.service.name }}-certs
               mountPath: /etc/etcd/tls/certs
             - name: etcd-etc
               mountPath: /etcd-etc
@@ -75,13 +101,15 @@ spec:
             - name: etcd-data
               mountPath: /etcd-data
             {{- end }}
-            - name: keys
+            - name: {{ .Values.service.name }}-keys
               mountPath: /etc/etcd/tls/keys
             - name: kubelet-manifests
               mountPath: /manifests
-      terminationGracePeriodSeconds: {{ .Values.anchor.termination_grace_period }}
+            - name: {{ .Values.service.name }}-etc
+              mountPath: /anchor-etcd
+{{ if $mounts_daemonset_anchor.volumeMounts }}{{ toYaml $mounts_daemonset_anchor.volumeMounts | indent 12 }}{{ end }}
       volumes:
-        - name: bin
+        - name: {{ .Values.service.name }}-bin
           configMap:
             name: {{ .Values.service.name }}-bin
             defaultMode: 0555
@@ -90,7 +118,7 @@ spec:
           hostPath:
             path: {{ .Values.bootstrapping.host_directory }}
         {{- end }}
-        - name: certs
+        - name: {{ .Values.service.name }}-certs
           configMap:
             name: {{ .Values.service.name }}-certs
             defaultMode: 0444
@@ -99,7 +127,7 @@ spec:
           hostPath:
             path: {{ .Values.etcd.host_data_path }}
         {{- end }}
-        - name: keys
+        - name: {{ .Values.service.name }}-keys
           secret:
             secretName: {{ .Values.service.name }}-keys
             defaultMode: 0444
@@ -109,3 +137,9 @@ spec:
         - name: kubelet-manifests
           hostPath:
             path: {{ .Values.anchor.kubelet.manifest_path }}
+        - name: {{ .Values.service.name }}-etc
+          configMap:
+            name: {{ .Values.service.name }}-etc
+            defaultMode: 0444
+{{ if $mounts_daemonset_anchor.volumes }}{{ toYaml $mounts_daemonset_anchor.volumes | indent 8 }}{{ end }}
+{{- end }}
