@@ -184,6 +184,54 @@ on the nodes' file systems, but, e.g. in the case of Etcd_, can actually be
 used to manage more complex cleanup like removal from cluster membership.
 
 
+Pod Checkpointer
+~~~~~~~~~~~~~~~~
+
+Before moving to the Anchor pattern above, the pod-checkpointer approach
+pioneered by the Bootkube_ project was implemented.  While this is an appealing
+approach, it unfortunately suffers from race conditions during full cluster
+reboot.
+
+During cluster reboot, the checkpointer copies essential static manifests into
+place for the ``kubelet`` to run, which allows those components to start and
+become available.  Once the ``apiserver`` and ``etcd`` cluster are functional,
+``kubelet`` is able to register the failure of its workloads, and delete those
+pods via the API.  This is where the race begins.
+
+Once those pods are deleted from the ``apiserver``, the pod checkpointer
+notices that the flagged pods are no longer scheduled to run on its node and
+then deletes the static manifests for those pods.  Concurrently, the
+``controller-manager`` and ``scheduler`` notice that new pods need to be
+created and scheduled (sequentially) and begin that work.
+
+If the new pods are created, scheduled and started on the node before pod
+checkpointers on other nodes delete their critical services, then the cluster
+may remain healthy after the reboot.  If enough nodes running the critical
+services fail to start the newly created pods before too many are removed, then
+the cluster does not recover from hard reboot.
+
+The severity of this race is exacerbated by:
+
+1. The sequence of events required to successfully replace these pods is long
+   (``controller-manager`` must create pods, then ``scheduler`` can schedule
+   pods, then ``kubelet`` can start pods).
+2. The ``controller-manager`` and ``scheduler`` may need to perform leader
+   election during the race, because the leader might have been killed early.
+3. The failure to recover any one of the core sets of processes can cause the
+   entire cluster to fail.  This is somewhat trajectory-dependent, e.g. if at
+   least one ``controller-manager`` is scheduled before the
+   ``controller-manager`` processes are all killed, then assuming the other
+   processes are correctly restarted, then the ``controller-manager`` will also
+   recover.
+4. ``etcd`` is somewhat more sensitive to this race, because it requires two
+   successfully restarted pods (assuming a 3 node cluster) rather than just one
+   as the other components.
+
+This race condition was the motivation for the construction and use of the
+Anchor pattern.  In future versions of Kubernetes_, it may be possible to use
+`built-in checkpointing <https://docs.google.com/document/d/1hhrCa_nv0Sg4O_zJYOnelE8a5ClieyewEsQM6c7-5-o/view#>`_ from the ``kubelet``.
+
+
 Alternatives
 ------------
 
