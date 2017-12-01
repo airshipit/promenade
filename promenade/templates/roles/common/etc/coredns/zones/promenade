@@ -7,3 +7,5 @@ apiserver.kubernetes IN A {{ config['KubernetesNode:join_ip'] }}
 {%- else %}
 apiserver.kubernetes IN A 127.0.0.1
 {%- endif %}
+
+etcd.kubernetes IN A 127.0.0.1

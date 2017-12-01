@@ -27,9 +27,7 @@ spec:
         # Hard coding 3 is a pretty safe move for now.  This can be exposed
         # with additional configuration later.
         - --apiserver-count=3
-        # XXX Temporarily enabled for tiller
-        - --insecure-port=8080
-        - --insecure-bind-address=127.0.0.1
+        - --insecure-port=0
         - --bind-address=0.0.0.0
         - --secure-port=6443
         - --runtime-config=batch/v2alpha1=true

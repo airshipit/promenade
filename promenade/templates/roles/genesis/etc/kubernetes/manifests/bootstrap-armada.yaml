@@ -1,0 +1,132 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bootstrap-armada
+  namespace: kube-system
+  labels:
+    app: promenade
+    component: genesis-tiller
+spec:
+  dnsPolicy: Default
+  hostNetwork: true
+  containers:
+  - env:
+    - name: TILLER_NAMESPACE
+      value: kube-system
+    image: {{ config['Genesis:images.helm.tiller'] }}
+    command:
+      - /tiller
+      - -logtostderr
+      - -v
+      - "99"
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /liveness
+        port: 44135
+        scheme: HTTP
+      initialDelaySeconds: 1
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    name: tiller
+    ports:
+    - containerPort: 44134
+      name: tiller
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /readiness
+        port: 44135
+        scheme: HTTP
+      initialDelaySeconds: 1
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+  - name: armada
+    image: {{ config['Genesis:images.armada'] }}
+    command:
+      - /bin/bash
+      - -c
+      - |-
+        set -x
+
+        while true; do
+            sleep 10
+            if armada --debug apply --tiller-host 127.0.0.1 /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
+                break
+            fi
+        done
+
+        touch /ipc/armada-done
+        sleep 10000
+    env:
+      - name: ARMADA_LOGFILE
+        value: /tmp/log/bootstrap-armada.log
+    volumeMounts:
+      - name: assets
+        mountPath: /etc/genesis/armada/assets
+      - name: auth
+        mountPath: /armada/.kube
+      - name: ipc
+        mountPath: /ipc
+      - name: log
+        mountPath: /tmp/log
+  - name: monitor
+    image: {{ config['HostSystem:images.kubernetes.kubectl'] }}
+    command:
+      - /bin/sh
+      - -c
+      - |-
+        set -x
+
+        while ! [ -e /ipc/armada-done ]; do
+          sleep 5
+        done
+
+        rm -f /etc/kubernetes/manifests/bootstrap-armada.yaml
+        sleep 10000
+    volumeMounts:
+      - name: ipc
+        mountPath: /ipc
+      - name: manifest
+        mountPath: /etc/kubernetes/manifests
+  - name: kubectl-proxy
+    image: {{ config['HostSystem:images.kubernetes.kubectl'] }}
+    command:
+      - kubectl
+      - proxy
+      - --port=8080
+    env:
+      - name: KUBECONFIG
+        value: /etc/kubernetes/admin/config
+    volumeMounts:
+      - name: auth
+        mountPath: /etc/kubernetes/admin
+  volumes:
+    - name: assets
+      hostPath:
+        path: /etc/genesis/armada/assets
+    - name: auth
+      hostPath:
+        path: /etc/genesis/armada/auth
+    - name: manifest
+      hostPath:
+        path: /etc/kubernetes/manifests
+    - name: ipc
+      emptyDir: {}
+    - name: log
+      hostPath:
+        path: /var/log/armada
+
+
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  terminationGracePeriodSeconds: 30
