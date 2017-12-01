@@ -15,8 +15,7 @@
 
 manifests:
   daemonset_proxy: true
-  configmap_etc: true
-  secret: true
+  rbac: true
 
 pod:
   lifecycle:
@@ -45,12 +44,6 @@ images:
     proxy: gcr.io/google_containers/hyperkube-amd64:v1.8.6
   pull_policy: "IfNotPresent"
 
-secrets:
-  tls:
-    ca: placeholder
-    cert: placeholder
-    key: placeholder
-
 command_prefix:
   - /proxy
   - --proxy-mode=iptables
@@ -58,3 +51,7 @@ command_prefix:
 
 network:
   kubernetes_netloc: 10.96.0.1
+
+kube_service:
+  host: 127.0.0.1
+  port: 6553

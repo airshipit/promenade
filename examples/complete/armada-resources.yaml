@@ -196,11 +196,6 @@ data:
   upgrade:
     no_hooks: true
   values:
-    secrets:
-      tls:
-        ca: placeholder
-        cert: placeholder
-        key: placeholder
     images:
       tags:
         proxy: gcr.io/google_containers/hyperkube-amd64:v1.8.6

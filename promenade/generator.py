@@ -56,9 +56,6 @@ class Generator:
 
         self.gen_kubelet_certificates()
 
-        self.gen(
-            'certificate', 'proxy', ca='kubernetes', cn='system:kube-proxy')
-
         # Certificates for kubectl admin
         self.gen(
             'certificate',

@@ -30,7 +30,6 @@ spec:
 {{ tuple $envAll "kubernetes" "proxy" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
-        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       hostNetwork: true
       dnsPolicy: Default
@@ -47,23 +46,22 @@ spec:
           {{- range .Values.command_prefix }}
           - {{ . }}
           {{- end }}
-          - --hostname-override=$(NODE_NAME)                  
-          - --kubeconfig=/etc/kubernetes/proxy/kubeconfig.yaml 
+          - --hostname-override=$(NODE_NAME)
 {{ tuple $envAll $envAll.Values.pod.resources.proxy | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
-        env:
-          - name: NODE_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: spec.nodeName
         securityContext:
           privileged: true
-#        livenessProbe:
-#          httpGet:
-#            path: /healthz
-#            port: 10249
-#          initialDelaySeconds: 15
-#          periodSeconds: 15
-#          failureThreshold: 3
+        # volumeMounts:
+        #  - mountPath: /run/xtables.lock
+        #    name: xtables-lock
+        #   readOnly: false
+        # - mountPath: /lib/modules
+        #   name: lib-modules
+        #   readOnly: true
+        env:
+          - name: KUBERNETES_SERVICE_HOST
+            value: {{ .Values.kube_service.host }}
+          - name: KUBERNETES_SERVICE_PORT
+            value: {{ .Values.kube_service.port | quote }}
         readinessProbe:
           exec:
             command:
@@ -71,29 +69,8 @@ spec:
             - -c
             - |-
               set -ex
-
               iptables-save | grep 'default/kubernetes:https'
           initialDelaySeconds: 15
           periodSeconds: 15
-        volumeMounts:
-          - name: kubernetes-proxy-etc
-            mountPath: /etc/kubernetes/proxy/kubeconfig.yaml
-            subPath: kubeconfig.yaml
-          - name: kubernetes-proxy-etc
-            mountPath: /etc/kubernetes/proxy/pki/proxy.pem
-            subPath: proxy.pem
-          - name: kubernetes-proxy-etc
-            mountPath: /etc/kubernetes/proxy/pki/cluster-ca.pem
-            subPath: cluster-ca.pem
-          - name: proxy-secret
-            mountPath: /etc/kubernetes/proxy/pki/proxy-key.pem
-            subPath: proxy-key.pem
-      volumes:
-        - name: kubernetes-proxy-etc
-          configMap:
-            name: kubernetes-proxy-etc
-            defaultMode: 0444
-        - name: proxy-secret
-          secret:
-            secretName: kubernetes-proxy
+      serviceAccountName: kube-proxy
 {{- end }}
