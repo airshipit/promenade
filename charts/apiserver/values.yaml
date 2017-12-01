@@ -85,9 +85,6 @@ secrets:
       cert: placeholder
       key: placeholder
 
-dependencies:
-  kubernetes_apiserver:
-
 # typically overriden by environmental
 # values, but should include all endpoints
 # required by this chart
