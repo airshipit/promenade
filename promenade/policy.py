@@ -11,15 +11,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-import functools
 
 import falcon
+import functools
+import oslo_policy.policy as op
+from oslo_config import cfg
 
 from promenade import exceptions as ex
+from promenade import logging
 
-# TODO: Add policy_engine
+LOG = logging.getLogger(__name__)
+
 policy_engine = None
+
+POLICIES = [
+    op.RuleDefault(
+        'admin_required',
+        'role:admin or is_admin:1',
+        description='Actions requiring admin authority'),
+    op.DocumentedRuleDefault('kubernetes_provisioner:get_join_scripts',
+                             'role:admin', 'Get join script for node',
+                             [{
+                                 'path': '/api/v1.0/join-scripts',
+                                 'method': 'GET'
+                             }]),
+]
+
+
+class PromenadePolicy:
+    def __init__(self):
+        self.enforcer = op.Enforcer(cfg.CONF)
+
+    def register_policy(self):
+        self.enforcer.register_defaults(POLICIES)
+        self.enforcer.load_rules()
+
+    def authorize(self, action, ctx):
+        target = {'project_id': ctx.project_id, 'user_id': ctx.user_id}
+        return self.enforcer.authorize(action, target, ctx.to_policy_view())
 
 
 class ApiEnforcer(object):
@@ -35,52 +64,55 @@ class ApiEnforcer(object):
         def secure_handler(slf, req, resp, *args, **kwargs):
             ctx = req.context
             policy_eng = ctx.policy_engine
-            slf.info(ctx, "Policy Engine: %s" % policy_eng.__class__.__name__)
-            # perform auth
-            slf.info(ctx, "Enforcing policy %s on request %s" %
-                     (self.action, ctx.request_id))
             # policy engine must be configured
-            if policy_eng is None:
-                slf.error(
-                    ctx,
-                    "Error-Policy engine required-action: %s" % self.action)
+            if policy_eng is not None:
+                LOG.debug(
+                    'Enforcing policy %s on request %s using engine %s',
+                    self.action,
+                    ctx.request_id,
+                    policy_eng.__class__.__name__,
+                    ctx=ctx)
+            else:
+                LOG.error('No policy engine configured', ctx=ctx)
                 raise ex.PromenadeException(
                     title="Auth is not being handled by any policy engine",
                     status=falcon.HTTP_500,
                     retry=False)
+
             authorized = False
             try:
                 if policy_eng.authorize(self.action, ctx):
-                    # authorized
-                    slf.info(ctx, "Request is authorized")
+                    LOG.debug('Request is authorized', ctx=ctx)
                     authorized = True
             except Exception:
-                # couldn't service the auth request
-                slf.error(
-                    ctx,
-                    "Error - Expectation Failed - action: %s" % self.action)
+                LOG.exception(
+                    'Error authorizing request for action %s',
+                    self.action,
+                    ctx=ctx)
                 raise ex.ApiError(
                     title="Expectation Failed",
                     status=falcon.HTTP_417,
                     retry=False)
+
             if authorized:
                 return f(slf, req, resp, *args, **kwargs)
             else:
-                slf.error(
-                    ctx,
-                    "Auth check failed. Authenticated:%s" % ctx.authenticated)
                 # raise the appropriate response exeception
                 if ctx.authenticated:
-                    slf.error(
-                        ctx,
-                        "Error: Forbidden access - action: %s" % self.action)
+                    LOG.error(
+                        'Unauthorized access attempted for action %s',
+                        self.action,
+                        ctx=ctx)
                     raise ex.ApiError(
                         title="Forbidden",
                         status=falcon.HTTP_403,
                         description="Credentials do not permit access",
                         retry=False)
                 else:
-                    slf.error(ctx, "Error - Unauthenticated access")
+                    LOG.error(
+                        'Unathenticated access attempted for action %s',
+                        self.action,
+                        ctx=ctx)
                     raise ex.ApiError(
                         title="Unauthenticated",
                         status=falcon.HTTP_401,

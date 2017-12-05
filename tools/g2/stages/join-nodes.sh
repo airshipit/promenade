@@ -8,7 +8,9 @@ declare -a ETCD_CLUSTERS
 declare -a LABELS
 declare -a NODES
 
-while getopts "e:l:n:v:" opt; do
+GET_KEYSTONE_TOKEN=0
+
+while getopts "e:l:n:tv:" opt; do
     case "${opt}" in
         e)
             ETCD_CLUSTERS+=("${OPTARG}")
@@ -18,6 +20,9 @@ while getopts "e:l:n:v:" opt; do
             ;;
         n)
             NODES+=("${OPTARG}")
+            ;;
+        t)
+            GET_KEYSTONE_TOKEN=1
             ;;
         v)
             VIA=${OPTARG}
@@ -36,6 +41,7 @@ if [ $# -gt 0 ]; then
 fi
 
 SCRIPT_DIR="${TEMP_DIR}/curled-scripts"
+BASE_PROM_URL="http://promenade-api.ucp.svc.cluster.local"
 
 echo Etcd Clusters: "${ETCD_CLUSTERS[@]}"
 echo Labels: "${LABELS[@]}"
@@ -51,11 +57,11 @@ render_curl_url() {
         LABEL_PARAMS+="&labels.dynamic=${label}"
     done
 
-    BASE_URL="http://promenade-api.ucp.svc.cluster.local/api/v1.0/join-scripts"
+    BASE_URL="${BASE_PROM_URL}/api/v1.0/join-scripts"
     DESIGN_REF="design_ref=http://192.168.77.1:7777/promenade.yaml"
     HOST_PARAMS="hostname=${NAME}&ip=$(config_vm_ip "${NAME}")"
 
-    echo "'${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}${LABEL_PARAMS}'"
+    echo "${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}${LABEL_PARAMS}"
 }
 
 mkdir -p "${SCRIPT_DIR}"
@@ -63,12 +69,32 @@ mkdir -p "${SCRIPT_DIR}"
 for NAME in "${NODES[@]}"; do
     log Building join script for node "${NAME}"
 
-    ssh_cmd "${VIA}" curl --max-time 300 --retry 16 --retry-delay 15 "$(render_curl_url "${NAME}" "${LABELS[@]}")" > "${SCRIPT_DIR}/join-${NAME}.sh"
+    CURL_ARGS=("--fail" "--max-time" "300" "--retry" "16" "--retry-delay" "15")
+    if [[ $GET_KEYSTONE_TOKEN == 1 ]]; then
+        TOKEN="$(os_ks_get_token "${VIA}")"
+        if [[ -z $TOKEN ]]; then
+            log Failed to get keystone token, exiting.
+            exit 1
+        fi
+        log "Got keystone token: ${TOKEN}"
+        CURL_ARGS+=("-H" "X-Auth-Token: ${TOKEN}")
+    fi
+
+    log "Checking Promenade API health"
+    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" \
+        "${BASE_PROM_URL}/api/v1.0/health"
+    log "Promenade API healthy"
+
+    log "Fetching join script"
+    ssh_cmd "${VIA}" curl "${CURL_ARGS[@]}" \
+        "$(render_curl_url "${NAME}" "${LABELS[@]}")" > "${SCRIPT_DIR}/join-${NAME}.sh"
+
     chmod 755 "${SCRIPT_DIR}/join-${NAME}.sh"
+    log "Join script received"
 
     log Joining node "${NAME}"
     rsync_cmd "${SCRIPT_DIR}/join-${NAME}.sh" "${NAME}:/root/promenade/"
-    ssh_cmd "${NAME}" "/root/promenade/join-${NAME}.sh"
+    ssh_cmd "${NAME}" "/root/promenade/join-${NAME}.sh" 2>&1 | tee -a "${LOG_FILE}"
 done
 
 for etcd_validation_string in "${ETCD_CLUSTERS[@]}"; do

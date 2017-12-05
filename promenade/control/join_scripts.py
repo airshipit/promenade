@@ -16,6 +16,7 @@ from promenade.control.base import BaseResource
 from promenade.builder import Builder
 from promenade.config import Configuration
 from promenade import logging
+from promenade import policy
 import falcon
 import kubernetes
 import random
@@ -28,6 +29,7 @@ class JoinScriptsResource(BaseResource):
     Lists the versions supported by this API
     """
 
+    @policy.ApiEnforcer('kubernetes_provisioner:get_join_scripts')
     def on_get(self, req, resp):
         design_ref = req.get_param('design_ref', required=True)
         ip = req.get_param('ip', required=True)

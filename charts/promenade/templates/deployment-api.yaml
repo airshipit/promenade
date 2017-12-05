@@ -40,7 +40,7 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.api.timeout | default "30" }}
       containers:
         - name: promenade-api
-          image: {{ .Values.images.tags.api }}
+          image: {{ .Values.images.tags.promenade }}
           imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.api | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:

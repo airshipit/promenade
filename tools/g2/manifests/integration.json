@@ -1,0 +1,61 @@
+{
+  "configuration": [
+    "examples/complete"
+  ],
+  "stages": [
+    {
+      "name": "Gate Setup",
+      "script": "gate-setup.sh"
+    },
+    {
+      "name": "Build Image",
+      "script": "build-image.sh"
+    },
+    {
+      "name": "Generate Certificates",
+      "script": "generate-certificates.sh"
+    },
+    {
+      "name": "Build Scripts",
+      "script": "build-scripts.sh"
+    },
+    {
+      "name": "Create VMs",
+      "script": "create-vms.sh"
+    },
+    {
+      "name": "Genesis",
+      "script": "genesis.sh"
+    },
+    {
+      "name": "Join Master",
+      "script": "join-nodes.sh",
+      "arguments": [
+        "-v", "n0",
+        "-t",
+        "-n", "n1",
+        "-l", "calico-etcd=enabled",
+        "-l", "kubernetes-apiserver=enabled",
+        "-l", "kubernetes-controller-manager=enabled",
+        "-l", "kubernetes-etcd=enabled",
+        "-l", "kubernetes-scheduler=enabled",
+        "-l", "ceph-mds=enabled",
+        "-l", "ceph-mgr=enabled",
+        "-l", "ceph-mon=enabled",
+        "-l", "ceph-osd=enabled",
+        "-l", "ceph-rgw=enabled",
+        "-l", "ucp-control-plane=enabled",
+        "-e", "kubernetes n0 genesis n1",
+        "-e", "calico n0 n0 n1"
+      ]
+    }
+  ],
+  "vm": {
+    "memory": 12288,
+    "names": [
+      "n0",
+      "n1"
+    ],
+    "vcpus": 4
+  }
+}

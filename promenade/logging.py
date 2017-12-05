@@ -1,14 +1,80 @@
+import copy
 import logging
-from logging import getLogger
+import logging.config
 
 __all__ = ['getLogger', 'setup']
 
-LOG_FORMAT = '%(asctime)s %(levelname)-8s %(name)s:%(funcName)s [%(lineno)3d] %(message)s'  # noqa
+LOG_FORMAT = '%(asctime)s %(levelname)-8s %(request_id)s %(external_id)s %(user)s %(name)s:%(funcName)s [%(lineno)3d] %(message)s'  # noqa
+
+BLANK_CONTEXT_VALUES = [
+    'external_id',
+    'request_id',
+    'user',
+]
+
+DEFAULT_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'filters': {
+        'blank_context': {
+            '()': 'promenade.logging.BlankContextFilter',
+        },
+    },
+    'formatters': {
+        'standard': {
+            'format': LOG_FORMAT,
+        },
+    },
+    'handlers': {
+        'default': {
+            'level': 'DEBUG',
+            'formatter': 'standard',
+            'class': 'logging.StreamHandler',
+            'filters': ['blank_context'],
+        },
+    },
+    'loggers': {
+        'promenade': {
+            'handlers': ['default'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['default'],
+        'level': 'INFO',
+    },
+}
+
+
+class BlankContextFilter(logging.Filter):
+    def filter(self, record):
+        for key in BLANK_CONTEXT_VALUES:
+            if getattr(record, key, None) is None:
+                setattr(record, key, '-')
+        return True
+
+
+class Adapter(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        extra = kwargs.get('extra', {})
+
+        ctx = kwargs.pop('ctx', None)
+        if ctx is not None:
+            extra.update(ctx.to_log_context())
+
+        kwargs['extra'] = extra
+
+        return msg, kwargs
 
 
 def setup(*, verbose):
+    log_config = copy.deepcopy(DEFAULT_CONFIG)
     if verbose:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-    logging.basicConfig(format=LOG_FORMAT, level=level)
+        log_config['loggers']['promenade']['level'] = 'DEBUG'
+
+    logging.config.dictConfig(log_config)
+
+
+def getLogger(*args, **kwargs):
+    return Adapter(logging.getLogger(*args, **kwargs), {})

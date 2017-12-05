@@ -22,6 +22,12 @@ log() {
     echo -e "${d} ${*}" >> "${LOG_FILE}"
 }
 
+log_warn() {
+    d=$(date --utc)
+    echo -e "${C_MUTE}${d}${C_CLEAR} ${C_HILIGHT}WARN${C_CLEAR} ${*}" 1>&2
+    echo -e "${d} ${*}" >> "${LOG_FILE}"
+}
+
 log_stage_diagnostic_header() {
             echo -e "  ${C_ERROR}= Diagnostic Report =${C_CLEAR}"
 }

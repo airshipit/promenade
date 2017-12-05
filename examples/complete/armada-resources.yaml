@@ -119,6 +119,7 @@ data:
     - ucp-rabbitmq
     - ucp-barbican
     - ingress
+    - tiller
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -1173,16 +1174,21 @@ data:
       rgw_keystone_user_and_endpoints: false
     bootstrap:
       enabled: true
+    conf:
+      ceph:
+        config:
+          global:
+            osd_pool_default_size: 1
     images:
       tags:
-        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
-        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
-        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
-        bootstrap: quay.io/attcomdev/ceph-daemon:tag-build-master-jewel-ubuntu-16.04
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        daemon: quay.io/attcomdev/ceph-daemon:tag-build-master-jewel-ubuntu-16.04
+        ceph_bootstrap: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
         ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
-        rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
+        ceph_daemon: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
+        ceph_rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1217,9 +1223,14 @@ data:
   values:
     images:
       tags:
-        bootstrap: quay.io/attcomdev/ceph-daemon:tag-build-master-jewel-ubuntu-16.04
+        ceph_bootstrap: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
         ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
+        ceph_daemon: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
+        ceph_rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
     labels:
       jobs:
         node_selector_key: ucp-control-plane
@@ -1342,16 +1353,16 @@ data:
     images:
       tags:
         bootstrap: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
-        test: docker.io/kolla/ubuntu-source-rally:4.0.0
-        db_init: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
-        db_sync: docker.io/kolla/ubuntu-source-keystone:3.0.3
         db_drop: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
-        fernet_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        fernet_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        credential_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        credential_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        api: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        db_init: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        keystone_api: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        keystone_credential_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        keystone_credential_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        keystone_db_sync: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        keystone_fernet_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        keystone_fernet_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
+        test: docker.io/kolla/ubuntu-source-rally:4.0.0
     pod:
       replicas:
         api: 1
@@ -1389,6 +1400,9 @@ data:
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
+    images:
+      tags:
+        postgresql: docker.io/postgres:9.5
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1414,6 +1428,7 @@ data:
       tags:
         db_init: docker.io/postgres:9.5
         db_sync: quay.io/attcomdev/maas-region:master
+        maas_cache: docker.io/sthussey/maas-cache:cachetest
         maas_rack: quay.io/attcomdev/maas-rack:master
         maas_region: quay.io/attcomdev/maas-region:master
         bootstrap: quay.io/attcomdev/maas-region:master
@@ -1487,6 +1502,9 @@ data:
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
+    images:
+      tags:
+        etcd: gcr.io/google_containers/etcd-amd64:2.2.5
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1512,6 +1530,10 @@ data:
     delete: []
     create: []
   values:
+    images:
+      tags:
+        rabbitmq: quay.io/attcomdev/fuel-mcp-rabbitmq:ocata-unstable
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
     pod:
       replicas:
         server: 1
@@ -1549,6 +1571,18 @@ data:
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
+    images:
+      tags:
+        barbican_api: docker.io/kolla/ubuntu-source-barbican-api:3.0.3
+        barbican_db_sync: docker.io/kolla/ubuntu-source-barbican-api:3.0.3
+        bootstrap: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        db_drop: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        db_init: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        scripted_test: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1575,10 +1609,43 @@ data:
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
+    images:
+      tags:
+        entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        # https://github.com/kubernetes/ingress/blob/master/controllers/nginx/Changelog.md
+        ingress: gcr.io/google_containers/nginx-ingress-controller:0.9.0-beta.8
+        error_pages: gcr.io/google_containers/defaultbackend:1.0
   source:
     type: git
     location: https://github.com/openstack/openstack-helm
     subpath: ingress
+    reference: master
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: tiller
+data:
+  chart_name: tiller
+  release: tiller
+  namespace: ucp
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        tiller: gcr.io/kubernetes-helm/tiller:v2.7.0
+    labels:
+      node_selector_key: ucp-control-plane
+      node_selector_value: enabled
+  source:
+    type: git
+    location: https://github.com/att-comdev/armada
+    subpath: charts/tiller
     reference: master
   dependencies:
     - helm-toolkit
@@ -1599,6 +1666,12 @@ data:
     images:
       tags:
         deckhand: quay.io/attcomdev/deckhand:master
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        db_init: docker.io/postgres:9.5
+        db_sync: docker.io/postgres:9.5
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
@@ -1633,13 +1706,13 @@ data:
   values:
     images:
       tags:
-        drydock: quay.io/attcomdev/drydock:master
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        ks_user: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
-        ks_service: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
-        ks_endpoints: docker.io/kolla/ubuntu-source-kolla-toolbox:3.0.3
+        drydock: quay.io/attcomdev/drydock:master
         drydock_db_init: docker.io/postgres:9.5
         drydock_db_sync: quay.io/attcomdev/drydock:master
+        ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
@@ -1689,16 +1762,17 @@ data:
           admin_password: password
           admin_tenant_name: service
           admin_user: promenade
+          delay_auth_decision: true
           identity_uri: 'http://keystone-api.ucp.svc.cluster.local/'
           service_token_roles_required: true
 
     images:
       tags:
-        api: quay.io/attcomdev/promenade:latest
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
-        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
         ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
+        promenade: quay.io/attcomdev/promenade:latest
   upgrade:
     no_hooks: true
   source:
@@ -1721,6 +1795,9 @@ data:
   upgrade:
     no_hooks: false
   values:
+    manifests:
+      deployment_tiller: false
+      service_tiller: false
     images:
       tags:
         api: quay.io/attcomdev/armada:latest

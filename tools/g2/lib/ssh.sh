@@ -3,10 +3,13 @@ rsync_cmd() {
 }
 
 ssh_cmd() {
+    HOST=${1}
+    shift
+    args=$(shell-quote -- "${@}")
     if [[ -v GATE_DEBUG && ${GATE_DEBUG} = "1" ]]; then
-        ssh -F "${SSH_CONFIG_DIR}/config" -v "${@}"
+        ssh -F "${SSH_CONFIG_DIR}/config" -v "${HOST}" "${args}"
     else
-        ssh -F "${SSH_CONFIG_DIR}/config" "${@}"
+        ssh -F "${SSH_CONFIG_DIR}/config" "${HOST}" "${args}"
     fi
 }
 

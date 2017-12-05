@@ -1073,8 +1073,8 @@ data:
           pipeline: noauth promenade-api
     images:
       tags:
-        api: quay.io/attcomdev/promenade:latest
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        promenade: quay.io/attcomdev/promenade:latest
     manifests:
       job_ks_endpoints: false
       job_ks_service: false
