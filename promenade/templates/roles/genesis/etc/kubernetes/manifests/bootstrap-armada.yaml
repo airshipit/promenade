@@ -97,18 +97,46 @@ spec:
         mountPath: /ipc
       - name: manifest
         mountPath: /etc/kubernetes/manifests
-  - name: kubectl-proxy
-    image: {{ config['HostSystem:images.kubernetes.kubectl'] }}
+  - name: kubectl-apiserver
+    image: {{ config['Genesis:images.kubernetes.apiserver'] }}
     command:
-      - kubectl
-      - proxy
-      - --port=8080
+      - /hyperkube
+      - apiserver
+      - --advertise-address={{ config['Genesis:ip'] }}
+      - --authorization-mode=Node,RBAC
+      - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+      - --anonymous-auth=false
+      - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
+      - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
+      - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/apiserver.pem
+      - --kubelet-client-key=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+      # Hard coding to 2 is a pretty safe move for now.  This can be exposed
+      # with additional configuration later.
+      - --apiserver-count=2
+      - --insecure-port=8080
+      - --secure-port=0
+      - --bind-address=0.0.0.0
+      - --runtime-config=batch/v2alpha1=true
+      - --allow-privileged=true
+      - --etcd-servers=https://localhost:2379
+      - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
+      - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
+      - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
+      - --service-cluster-ip-range={{ config['KubernetesNetwork:kubernetes.service_cidr'] }}
+      - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+      - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+      - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
+      - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+      - --v=5
     env:
       - name: KUBECONFIG
         value: /etc/kubernetes/admin/config
     volumeMounts:
       - name: auth
         mountPath: /etc/kubernetes/admin
+      - name: config
+        mountPath: /etc/kubernetes/apiserver
+        readOnly: true
   volumes:
     - name: assets
       hostPath:
@@ -124,7 +152,9 @@ spec:
     - name: log
       hostPath:
         path: /var/log/armada
-
+    - name: config
+      hostPath:
+        path: /etc/genesis/apiserver
 
   restartPolicy: Always
   schedulerName: default-scheduler
