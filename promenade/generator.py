@@ -8,9 +8,8 @@ LOG = logging.getLogger(__name__)
 
 
 class Generator:
-    def __init__(self, config, *, calico_etcd_service_ip):
+    def __init__(self, config):
         self.config = config
-        self.calico_etcd_service_ip = calico_etcd_service_ip
         self.keys = pki.PKI()
         self.documents = []
 
@@ -19,152 +18,37 @@ class Generator:
         return self.config['KubernetesNetwork:dns.cluster_domain']
 
     def generate(self, output_dir):
-        # Certificate Authorities
-        self.gen('ca', 'kubernetes')
-        self.gen('ca', 'kubernetes-etcd')
-        self.gen('ca', 'kubernetes-etcd-peer')
-        self.gen('ca', 'calico-etcd')
-        self.gen('ca', 'calico-etcd-peer')
-
-        # Certificates for Kubernetes API server
-        self.gen(
-            'certificate',
-            'apiserver',
-            ca='kubernetes',
-            cn='apiserver',
-            hosts=self._service_dns('kubernetes', 'default') +
-            ['localhost', '127.0.0.1'] +
-            [self.config['KubernetesNetwork:kubernetes.service_ip']])
-        self.gen(
-            'certificate',
-            'apiserver-etcd',
-            ca='kubernetes-etcd',
-            cn='apiserver')
-
-        # Certificates for other Kubernetes components
-        self.gen(
-            'certificate',
-            'scheduler',
-            ca='kubernetes',
-            cn='system:kube-scheduler')
-        self.gen(
-            'certificate',
-            'controller-manager',
-            ca='kubernetes',
-            cn='system:kube-controller-manager')
-        self.gen('keypair', 'service-account')
-
-        self.gen_kubelet_certificates()
-
-        # Certificates for kubectl admin
-        self.gen(
-            'certificate',
-            'admin',
-            ca='kubernetes',
-            cn='admin',
-            groups=['system:masters'])
-
-        # Certificates for armada
-        self.gen(
-            'certificate',
-            'armada',
-            ca='kubernetes',
-            cn='armada',
-            groups=['system:masters'])
-
-        # Certificates for Kubernetes's etcd servers
-        self.gen_etcd_certificates(
-            ca='kubernetes-etcd',
-            genesis=True,
-            service_name='kubernetes-etcd',
-            service_namespace='kube-system')
-
-        # Certificates for Calico's etcd servers
-        self.gen_etcd_certificates(
-            ca='calico-etcd',
-            service_name='calico-etcd',
-            service_namespace='kube-system',
-            service_ip=self.calico_etcd_service_ip)
-
-        # Certificates for Calico node
-        self.gen(
-            'certificate', 'calico-node', ca='calico-etcd', cn='calico-node')
-
+        for ca_name, ca_def in self.config[
+                'PKICatalog:certificate_authorities'].items():
+            self.gen('ca', ca_name)
+            for cert_def in ca_def.get('certificates', []):
+                hosts = cert_def.get('hosts', [])
+                hosts.extend(
+                    self.get_host_list(
+                        cert_def.get('kubernetes_service_names', [])))
+                self.gen(
+                    'certificate',
+                    cert_def['document_name'],
+                    ca=ca_name,
+                    cn=cert_def['common_name'],
+                    hosts=hosts,
+                    groups=cert_def.get('groups', []))
+        for keypair_def in self.config['PKICatalog:keypairs']:
+            self.gen('keypair', keypair_def['name'])
         _write(output_dir, self.documents)
+
+    def get_host_list(self, service_names):
+        service_list = []
+        for service in service_names:
+            parts = service.split('.')
+            for i in range(len(parts)):
+                service_list.append('.'.join(parts[:i]))
+        return service_list
 
     def gen(self, kind, *args, **kwargs):
         method = getattr(self.keys, 'generate_' + kind)
 
         self.documents.extend(method(*args, **kwargs))
-
-    def gen_kubelet_certificates(self):
-        self._gen_single_kubelet(
-            'genesis', node_data=self.config.get(kind='Genesis'))
-        for node_config in self.config.iterate(kind='KubernetesNode'):
-            self._gen_single_kubelet(
-                node_config['data']['hostname'], node_data=node_config['data'])
-
-    def _gen_single_kubelet(self, name, node_data):
-        self.gen(
-            'certificate',
-            'kubelet-%s' % name,
-            ca='kubernetes',
-            cn='system:node:%s' % node_data['hostname'],
-            hosts=[node_data['hostname'], node_data['ip']],
-            groups=['system:nodes'])
-
-    def gen_etcd_certificates(self, *, ca, genesis=False, **service_args):
-        if genesis:
-            self._gen_single_etcd(
-                name='genesis',
-                ca=ca,
-                node_data=self.config.get(kind='Genesis'),
-                **service_args)
-
-        for node_config in self.config.iterate(kind='KubernetesNode'):
-            self._gen_single_etcd(
-                name=node_config['data']['hostname'],
-                ca=ca,
-                node_data=node_config['data'],
-                **service_args)
-
-        self.gen(
-            'certificate',
-            service_args['service_name'] + '-anchor',
-            ca=ca,
-            cn='anchor')
-
-    def _gen_single_etcd(self,
-                         *,
-                         name,
-                         ca,
-                         node_data,
-                         service_name,
-                         service_namespace,
-                         service_ip=None,
-                         additional_hosts=None):
-        member_name = ca + '-' + name
-
-        hosts = [
-            node_data['hostname'],
-            node_data['ip'],
-            'localhost',
-            '127.0.0.1',
-        ] + (additional_hosts or [])
-
-        hosts.extend(self._service_dns(service_name, service_namespace))
-        if service_ip is not None:
-            hosts.append(service_ip)
-
-        self.gen(
-            'certificate', member_name, ca=ca, cn=member_name, hosts=hosts)
-
-        self.gen(
-            'certificate',
-            member_name + '-peer',
-            ca=ca + '-peer',
-            cn=member_name,
-            hosts=hosts)
 
     def _service_dns(self, name, namespace):
         return [

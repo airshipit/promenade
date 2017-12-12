@@ -32,7 +32,9 @@ spec:
 {{ tuple $envAll "kubernetes" "anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
     spec:
       hostNetwork: true
+      {{- if .Values.anchor.dns_policy }}
       dnsPolicy: {{ .Values.anchor.dns_policy }}
+      {{- end }}
       nodeSelector:
         {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
       tolerations:

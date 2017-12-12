@@ -7,7 +7,7 @@ registry_down() {
 }
 
 registry_list_images() {
-    FILES=($(config_configuration | xargs -n 1 -I DIRNAME find DIRNAME -type f -name '*.yaml'))
+    FILES=($(config_configuration | xargs -n 1 -I DIRNAME find DIRNAME -type f -name '*.yaml' | grep -v PKICatalog))
 
     HOSTNAME_REGEX='[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}'
     DOMAIN_NAME_REGEX="${HOSTNAME_REGEX}(\.${HOSTNAME_REGEX})*"

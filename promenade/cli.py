@@ -48,17 +48,12 @@ def build_all(*, config_files, output_dir, validators):
     required=True,
     help='Location to write *-certificates.yaml')
 @click.argument('config_files', nargs=-1, type=click.File('rb'))
-@click.option(
-    '--calico-etcd-service-ip',
-    default='10.96.232.136',
-    help='Service IP for calico etcd')
-def genereate_certs(*, calico_etcd_service_ip, config_files, output_dir):
+def genereate_certs(*, config_files, output_dir):
     debug = _debug()
     try:
         c = config.Configuration.from_streams(
             debug=debug, streams=config_files, substitute=True, validate=False)
-        g = generator.Generator(
-            c, calico_etcd_service_ip=calico_etcd_service_ip)
+        g = generator.Generator(c)
         g.generate(output_dir)
     except exceptions.PromenadeException as e:
         e.display(debug=debug)

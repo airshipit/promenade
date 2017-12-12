@@ -115,6 +115,8 @@ for NAME in "${NODES[@]}"; do
     ssh_cmd "${NAME}" "/root/promenade/join-${NAME}.sh" 2>&1 | tee -a "${LOG_FILE}"
 done
 
+sleep 10
+
 for etcd_validation_string in "${ETCD_CLUSTERS[@]}"; do
     IFS=' ' read -a etcd_validation_args <<<"${etcd_validation_string}"
     validate_etcd_membership "${etcd_validation_args[@]}"
