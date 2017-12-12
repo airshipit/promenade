@@ -5,7 +5,10 @@ metadata:
   name: coredns
   namespace: kube-system
   labels:
-    coredns-service: enabled
+    # NOTE(mark-burnett): This is a host initialization Pod and should not be
+    # included in the Kubernetes DNS service, so ensure it does not get
+    # selected.
+    coredns-service: disabled
   annotations:
     scheduler.alpha.kubernetes.io/critical-pod: ''
 spec:
