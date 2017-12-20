@@ -1,6 +1,7 @@
 {
   "configuration": [
-    "examples/complete"
+    "examples/complete",
+    "promenade/schemas"
   ],
   "stages": [
     {
@@ -28,11 +29,19 @@
       "script": "genesis.sh"
     },
     {
+      "name": "Load Site Configuration",
+      "script": "load-site-config.sh",
+      "arguments": [
+        "-v", "n0"
+      ]
+    },
+    {
       "name": "Join Master",
       "script": "join-nodes.sh",
       "arguments": [
         "-v", "n0",
         "-t",
+        "-d", "1",
         "-n", "n1",
         "-l", "calico-etcd=enabled",
         "-l", "kubernetes-apiserver=enabled",

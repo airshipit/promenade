@@ -26,6 +26,10 @@ EOBODY
     rsync_cmd "${TEMP_DIR}/${REQUEST_BODY_PATH}" "${VIA}:/root/${REQUEST_BODY_PATH}"
 
     ssh_cmd "${VIA}" curl -isS \
+      --fail \
+      --max-time 60 \
+      --retry 10 \
+      --retry-delay 15 \
       -H 'Content-Type: application/json' \
       -d "@/root/${REQUEST_BODY_PATH}" \
       "${KEYSTONE_URL}/v3/auth/tokens" | grep 'X-Subject-Token' | awk '{print $2}' | sed "s;';;g" | sed "s;\r;;g"

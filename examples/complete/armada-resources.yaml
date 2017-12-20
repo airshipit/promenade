@@ -6,6 +6,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   release_prefix: ucp
   chart_groups:
@@ -24,6 +25,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Kubernetes proxy
   sequenced: true
@@ -37,6 +39,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Container networking via Calico
   sequenced: true
@@ -51,6 +54,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Cluster DNS
   chart_group:
@@ -63,6 +67,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Ceph Storage
   sequenced: true
@@ -77,6 +82,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Kubernetes components
   chart_group:
@@ -92,6 +98,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: UCP Infrastructure
   sequenced: false
@@ -101,7 +108,6 @@ data:
     - ucp-keystone
     - maas-postgresql
     - maas
-    - ucp-etcd-rabbitmq
     - ucp-rabbitmq
     - ucp-barbican
     - ingress
@@ -114,6 +120,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: UCP platform components
   chart_group:
@@ -127,6 +134,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: helm-toolkit
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: helm-toolkit
   release: helm-toolkit
@@ -151,6 +162,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -207,6 +219,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -451,6 +464,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -514,6 +528,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -593,6 +608,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -693,6 +709,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -764,6 +781,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -825,6 +843,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -1061,6 +1080,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: ceph
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ceph
   release: ceph
@@ -1069,17 +1092,11 @@ data:
   wait:
     timeout: 3600
   install:
-    no_hooks: false
+    no_hooks: true
   upgrade:
     no_hooks: false
     pre:
       delete:
-        - name: ceph-bootstrap
-          type: job
-          labels:
-            - application: ceph
-            - component: bootstrap
-            - release_group: armada-ucp
         - name: ceph-mds-keyring-generator
           type: job
           labels:
@@ -1133,6 +1150,7 @@ data:
       storage_secrets: true
       ceph: true
       rbd_provisioner: true
+      cephfs_provisioner: true
       client_secrets: false
       rgw_keystone_user_and_endpoints: false
     bootstrap:
@@ -1148,6 +1166,7 @@ data:
         ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
         ceph_daemon: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
         ceph_rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
+        ceph_cephfs_provisioner: quay.io/external_storage/cephfs-provisioner:v0.1.1
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
         ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
@@ -1164,6 +1183,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: ucp-ceph-config
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ucp-ceph-config
   release: ucp-ceph-config
@@ -1213,6 +1236,7 @@ data:
     deployment:
       storage_secrets: false
       ceph: false
+      cephfs_provisioner: false
       rbd_provisioner: false
       client_secrets: true
       rgw_keystone_user_and_endpoints: false
@@ -1228,6 +1252,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: ucp-mariadb
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ucp-mariadb
   release: ucp-mariadb
@@ -1261,6 +1289,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: ucp-memcached
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ucp-memcached
   release: ucp-memcached
@@ -1288,6 +1320,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: ucp-keystone
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ucp-keystone
   release: keystone
@@ -1345,6 +1381,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: maas-postgresql
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: maas-postgresql
   release: maas-postgresql
@@ -1381,6 +1421,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: maas
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: maas
   release: maas
@@ -1392,15 +1436,13 @@ data:
   values:
     images:
       tags:
+        bootstrap: sthussey/maas-region-controller:2.3
         db_init: docker.io/postgres:9.5
-        db_sync: quay.io/attcomdev/maas-region:latest
+        db_sync: sthussey/maas-region-controller:2.3
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        maas_cache: docker.io/sthussey/maas-cache:cachetest
-        maas_rack: quay.io/attcomdev/maas-rack:latest
-        maas_region: quay.io/attcomdev/maas-region:latest
-        bootstrap: quay.io/attcomdev/maas-region:latest
-        export_api_key: quay.io/attcomdev/maas-region:latest
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        export_api_key: sthussey/maas-region-controller:2.3
+        maas_rack: sthussey/maas-rack-controller:2.3
+        maas_region: sthussey/maas-region-controller:2.3
     labels:
       rack:
         node_selector_key: ucp-control-plane
@@ -1419,7 +1461,7 @@ data:
           port: 31900
     conf:
       drydock:
-        bootaction_url: http://${DRYDOCK_NODE_IP}:${DRYDOCK_NODE_PORT}/api/v1.0/bootactions/nodes/
+        bootaction_url: http://192.168.77.10:31000/api/v1.0/bootactions/nodes/
       maas:
         credentials:
           secret:
@@ -1448,42 +1490,11 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: ucp-etcd-rabbitmq
-data:
-  chart_name: ucp-etcd-rabbitmq
-  release: etcd-rabbitmq
-  namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  pre:
-    delete: []
-  post:
-    delete: []
-    create: []
-  values:
-    pod:
-      replicas:
-        etcd: 1
-    labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
-    images:
-      tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        etcd: gcr.io/google_containers/etcd-amd64:2.2.5
-  source:
-    type: git
-    location: https://git.openstack.org/openstack/openstack-helm
-    subpath: etcd
-  dependencies:
-    - helm-toolkit
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
   name: ucp-rabbitmq
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ucp-rabbitmq
   release: rabbitmq
@@ -1500,7 +1511,7 @@ data:
   values:
     images:
       tags:
-        rabbitmq: quay.io/attcomdev/fuel-mcp-rabbitmq:ocata-unstable
+        rabbitmq: docker.io/rabbitmq:3.7
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
     pod:
       replicas:
@@ -1519,6 +1530,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: ucp-barbican
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ucp-barbican
   release: barbican
@@ -1562,6 +1577,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: ingress
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: ingress
   release: ingress
@@ -1580,10 +1599,10 @@ data:
     images:
       tags:
         entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        # https://github.com/kubernetes/ingress/blob/master/controllers/nginx/Changelog.md
-        ingress: gcr.io/google_containers/nginx-ingress-controller:0.9.0-beta.8
+        # https://github.com/kubernetes/ingress-nginx/blob/09524cd3363693463da5bf4a9bb3900da435ad05/Changelog.md#090
+        ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0
         error_pages: gcr.io/google_containers/defaultbackend:1.0
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
   source:
     type: git
     location: https://github.com/openstack/openstack-helm
@@ -1596,6 +1615,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: tiller
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: tiller
   release: tiller
@@ -1623,6 +1646,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: deckhand
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: deckhand
   release: deckhand
@@ -1664,6 +1691,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: drydock
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: drydock
   release: drydock
@@ -1716,6 +1747,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   chart_name: promenade
   release: promenade
@@ -1724,17 +1756,6 @@ data:
   wait:
     timeout: 600
   values:
-    conf:
-      paste:
-        filter:authtoken:
-          paste.filter_factory: 'keystonemiddleware.auth_token:filter_factory'
-          admin_password: password
-          admin_tenant_name: service
-          admin_user: promenade
-          delay_auth_decision: true
-          identity_uri: 'http://keystone-api.ucp.svc.cluster.local/'
-          service_token_roles_required: true
-
     images:
       tags:
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
@@ -1755,6 +1776,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: armada
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: armada
   release: armada
@@ -1794,6 +1819,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: shipyard
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: shipyard
   release: shipyard

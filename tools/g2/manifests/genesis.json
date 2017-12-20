@@ -1,6 +1,7 @@
 {
   "configuration": [
-    "examples/complete"
+    "examples/complete",
+    "promenade/schemas"
   ],
   "stages": [
     {

@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from oslo_config import cfg
 from promenade.control import api
-from promenade import options  # noqa
+from promenade import options
 from promenade import logging
 from promenade import policy
 
 
-def start_promenade():
-    cfg.CONF()
+def start_promenade(disable=""):
+    options.setup(disable=disable)
+
     # Setup root logger
     logging.setup(verbose=True)
 
@@ -33,7 +33,4 @@ def start_promenade():
 
 # Initialization compatible with PasteDeploy
 def paste_start_promenade(global_conf, **kwargs):
-    return promenade
-
-
-promenade = start_promenade()
+    return start_promenade(**kwargs)

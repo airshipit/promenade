@@ -3,6 +3,7 @@ falcon==1.2.0
 jinja2==2.9.6
 jsonpath-ng==1.4.3
 jsonschema==2.6.0
+keystoneauth1==3.2.0
 keystonemiddleware==4.17.0
 kubernetes==3.0.0
 oslo.context==2.19.2
