@@ -7,6 +7,7 @@
 /charts/*/requirements.lock
 
 # Build & test artifacts
+/.cache
 /.eggs
 /.helm-pid
 /.tox
