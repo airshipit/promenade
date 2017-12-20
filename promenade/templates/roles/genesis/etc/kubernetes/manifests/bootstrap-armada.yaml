@@ -69,6 +69,20 @@ spec:
     env:
       - name: ARMADA_LOGFILE
         value: /tmp/log/bootstrap-armada.log
+{%- if config['KubernetesNetwork:proxy.url'] is defined %}
+      - name: HTTP_PROXY
+        value: {{ config['KubernetesNetwork:proxy.url'] }}
+      - name: HTTPS_PROXY
+        value: {{ config['KubernetesNetwork:proxy.url'] }}
+      - name: NO_PROXY
+        value: {{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
+      - name: http_proxy
+        value: {{ config['KubernetesNetwork:proxy.url'] }}
+      - name: https_proxy
+        value: {{ config['KubernetesNetwork:proxy.url'] }}
+      - name: no_proxy
+        value: {{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
+{%- endif %}
     volumeMounts:
       - name: assets
         mountPath: /etc/genesis/armada/assets
