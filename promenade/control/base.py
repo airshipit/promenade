@@ -24,11 +24,10 @@ import falcon.routing as routing
 from promenade import exceptions as exc
 from promenade import logging
 
+LOG = logging.getLogger(__name__)
+
 
 class BaseResource(object):
-    def __init__(self):
-        self.logger = logging.getLogger('promenade.control')
-
     def on_options(self, req, resp, **kwargs):
         """
         Handle options requests
@@ -88,45 +87,6 @@ class BaseResource(object):
         """
         return json.dumps(body_dict, default=str)
 
-    def log_message(self, ctx, level, msg):
-        """
-        Logs a message with context, and extra populated.
-        """
-        extra = {'user': 'N/A', 'req_id': 'N/A', 'external_ctx': 'N/A'}
-
-        if ctx is not None:
-            extra = {
-                'user': ctx.user,
-                'req_id': ctx.request_id,
-                'external_ctx': ctx.external_marker,
-            }
-
-        self.logger.log(level, msg, extra=extra)
-
-    def debug(self, ctx, msg):
-        """
-        Debug logger for resources, incorporating context.
-        """
-        self.log_message(ctx, logging.DEBUG, msg)
-
-    def info(self, ctx, msg):
-        """
-        Info logger for resources, incorporating context.
-        """
-        self.log_message(ctx, logging.INFO, msg)
-
-    def warn(self, ctx, msg):
-        """
-        Warn logger for resources, incorporating context.
-        """
-        self.log_message(ctx, logging.WARN, msg)
-
-    def error(self, ctx, msg):
-        """
-        Error logger for resources, incorporating context.
-        """
-        self.log_message(ctx, logging.ERROR, msg)
-
 
 class PromenadeRequestContext(context.RequestContext):
     """
@@ -178,6 +138,15 @@ class PromenadeRequestContext(context.RequestContext):
         policy_dict['is_admin_project'] = self.is_admin_project
 
         return policy_dict
+
+    def to_log_context(self):
+        result = {}
+
+        result['request_id'] = self.request_id
+        result['external_id'] = self.external_marker
+        result['user'] = self.user
+
+        return result
 
 
 class PromenadeRequest(request.Request):

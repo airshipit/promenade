@@ -24,6 +24,7 @@ sudo apt-get install -q -y --no-install-recommends \
     docker.io \
     genisoimage \
     jq \
+    libstring-shellquote-perl \
     libvirt-bin \
     qemu-kvm \
     qemu-utils \

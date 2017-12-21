@@ -17,18 +17,17 @@ import uuid
 from promenade import logging
 from promenade import policy
 
+LOG = logging.getLogger('promenade')
+
 
 class AuthMiddleware(object):
-    def __init__(self):
-        self.logger = logging.getLogger('promenade')
-
     # Authentication
     def process_request(self, req, resp):
         ctx = req.context
         ctx.set_policy_engine(policy.policy_engine)
 
         for k, v in req.headers.items():
-            self.logger.debug("Request with header %s: %s" % (k, v))
+            LOG.debug("Request with header %s: %s" % (k, v))
 
         auth_status = req.get_header(
             'X-SERVICE-IDENTITY-STATUS')  # will be set to Confirmed or Invalid
@@ -64,18 +63,19 @@ class AuthMiddleware(object):
                     'X-PROJECT-DOMAIN-NAME')
             if service:
                 # comma delimieted list of case-sensitive role names
-                ctx.add_roles(req.get_header('X-SERVICE-ROLES').split(','))
+                if req.get_header('X-SERVICE-ROLES'):
+                    ctx.add_roles(req.get_header('X-SERVICE-ROLES').split(','))
             else:
-                ctx.add_roles(req.get_header('X-ROLES').split(','))
+                if req.get_header('X-ROLES'):
+                    ctx.add_roles(req.get_header('X-ROLES').split(','))
 
             if req.get_header('X-IS-ADMIN-PROJECT') == 'True':
                 ctx.is_admin_project = True
             else:
                 ctx.is_admin_project = False
 
-            self.logger.debug(
-                'Request from authenticated user %s with roles %s', ctx.user,
-                ','.join(ctx.roles))
+            LOG.debug('Request from authenticated user %s with roles %s',
+                      ctx.user, ctx.roles)
         else:
             ctx.authenticated = False
 
@@ -109,23 +109,11 @@ class ContextMiddleware(object):
 
 
 class LoggingMiddleware(object):
-    def __init__(self):
-        self.logger = logging.getLogger('promenade.control')
-
     def process_response(self, req, resp, resource, req_succeeded):
         ctx = req.context
 
-        extra = {
-            'user': ctx.user,
-            'req_id': ctx.request_id,
-            'external_ctx': ctx.external_marker,
-        }
-
         resp.append_header('X-Promenade-Req', ctx.request_id)
-        self.logger.info(
-            '%s %s - %s', req.method, req.uri, resp.status, extra=extra)
-
-        self.logger.debug('Response body:\n%s', resp.body, extra=extra)
+        LOG.info('%s %s - %s', req.method, req.uri, resp.status, ctx=ctx)
 
 
 class NoAuthFilter(object):
