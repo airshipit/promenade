@@ -117,7 +117,7 @@ endpoints:
       default: promenade-api
     port:
       api:
-        default: 9000
+        default: 80
     path:
       default: /api/v1.0
     scheme:
