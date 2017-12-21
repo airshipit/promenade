@@ -17,8 +17,8 @@ from promenade import logging
 from promenade import policy
 
 
-def start_promenade(disable=""):
-    options.setup(disable=disable)
+def start_promenade(disable=False):
+    options.setup(disable_keystone=disable)
 
     # Setup root logger
     logging.setup(verbose=True)

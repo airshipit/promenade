@@ -73,6 +73,17 @@ render_curl_url() {
     echo "${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}${LABEL_PARAMS}"
 }
 
+render_validate_url() {
+    BASE_URL="${BASE_PROM_URL}/api/v1.0/validatedesign"
+    if [[ ${USE_DECKHAND} == 1 ]]; then
+        HREF="href=deckhand%2Bhttp://deckhand-int.ucp.svc.cluster.local:9000/api/v1.0/revisions/${DECKHAND_REVISION}/rendered-documents"
+    else
+        HREF="href=${NGINX_URL}/promenade.yaml"
+    fi
+
+    echo "${BASE_URL}?${HREF}"
+}
+
 mkdir -p "${SCRIPT_DIR}"
 
 for NAME in "${NODES[@]}"; do
@@ -101,6 +112,9 @@ for NAME in "${NODES[@]}"; do
         fi
         sleep 10
     done
+
+    log "Validating documents"
+    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" -X POST "$(render_validate_url)"
 
     JOIN_CURL_URL="$(render_curl_url "${NAME}" "${LABELS[@]}")"
     log "Fetching join script via: ${JOIN_CURL_URL}"

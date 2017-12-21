@@ -35,6 +35,12 @@ POLICIES = [
                                  'path': '/api/v1.0/join-scripts',
                                  'method': 'GET'
                              }]),
+    op.DocumentedRuleDefault('kubernetes_provisioner:post_validatedesign',
+                             'role:admin', 'Validate documents',
+                             [{
+                                 'path': '/api/v1.0/validatedesign',
+                                 'method': 'POST'
+                             }]),
 ]
 
 

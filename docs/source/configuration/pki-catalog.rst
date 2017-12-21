@@ -1,7 +1,7 @@
 PKI Catalog
 ===========
 
-Configuration for certificate generation in the cluster.
+Configuration for certificate and keypair generation in the cluster.
 
 
 Sample Document
