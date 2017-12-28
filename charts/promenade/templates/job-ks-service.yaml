@@ -18,6 +18,8 @@
 {{- $envAll := . }}
 {{- $ksAdminSecret := .Values.secrets.identity.admin }}
 {{- $dependencies := .Values.dependencies.ks_service }}
+{{- $serviceAccountName := "promenade-ks-service" }}
+{{ tuple $envAll $dependencies $serviceAccountName | include "helm-toolkit.snippets.kubernetes_pod_rbac_serviceaccount" }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -29,11 +31,12 @@ spec:
       labels:
 {{ tuple $envAll "promenade" "ks-service" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
     spec:
+      serviceAccountName: {{ $serviceAccountName }}
       restartPolicy: OnFailure
       nodeSelector:
         {{ .Values.labels.node_selector_key }}: {{ .Values.labels.node_selector_value }}
       initContainers:
-{{ tuple $envAll $dependencies "[]" | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
+{{ tuple $envAll $dependencies list | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
       containers:
 {{- range $key1, $osServiceType := tuple "kubernetesprovisioner" }}
         - name: {{ $osServiceType }}-ks-service-registration
