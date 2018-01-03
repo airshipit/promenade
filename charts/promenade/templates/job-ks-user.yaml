@@ -21,6 +21,7 @@
 {{- $dependencies := .Values.dependencies.ks_user }}
 {{- $serviceAccountName := "promenade-ks-user" }}
 {{ tuple $envAll $dependencies $serviceAccountName | include "helm-toolkit.snippets.kubernetes_pod_rbac_serviceaccount" }}
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
