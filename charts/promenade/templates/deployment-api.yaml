@@ -16,9 +16,6 @@ limitations under the License.
 
 {{- if .Values.manifests.deployment_api }}
 {{- $envAll := . }}
-{{- $dependencies := .Values.dependencies.api }}
-{{- $mounts_promenade := .Values.pod.mounts.promenade_api.promenade_api }}
-{{- $mounts_promenade_init := .Values.pod.mounts.promenade_api.init_container }}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -57,11 +54,9 @@ spec:
               mountPath: /etc/promenade/api-paste.ini
               subPath: api-paste.ini
               readOnly: true
-{{ if $mounts_promenade.volumeMounts }}{{ toYaml $mounts_promenade.volumeMounts | indent 12 }}{{ end }}
       volumes:
         - name: promenade-etc
           configMap:
             name: promenade-etc
             defaultMode: 0444
-{{ if $mounts_promenade.volumes }}{{ toYaml $mounts_promenade.volumes | indent 8 }}{{ end }}
 {{- end }}

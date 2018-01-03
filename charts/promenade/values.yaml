@@ -70,13 +70,6 @@ dependencies:
     services:
     - service: identity
       endpoint: internal
-  api:
-    jobs:
-    - promenade-ks-service
-    - promenade-ks-user
-    services:
-    - service: identity
-      endpoint: internal
 
 secrets:
   identity:
@@ -133,10 +126,6 @@ endpoints:
       default: null
 
 pod:
-  mounts:
-    promenade_api:
-      init_container: null
-      promenade_api:
   affinity:
     anti:
       type:
