@@ -96,13 +96,6 @@ data:
   join_ip: ${MASTER1_IP}
   labels:
     dynamic:
-      - ucp-control-plane=enabled
-      - ceph-mds=enabled
-      - ceph-mon=enabled
-      - ceph-osd=enabled
-      - ceph-rgw=enabled
-      - ceph-mgr=enabled
       - openstack-compute-node=enabled
-      - openstack-control-plane=enabled
       - openvswitch=enabled
 ...
