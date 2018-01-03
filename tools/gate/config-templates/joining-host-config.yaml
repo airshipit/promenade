@@ -17,6 +17,7 @@ data:
       - ceph-mon=enabled
       - ceph-osd=enabled
       - ceph-rgw=enabled
+      - ceph-mgr=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -44,6 +45,7 @@ data:
       - ceph-mon=enabled
       - ceph-osd=enabled
       - ceph-rgw=enabled
+      - ceph-mgr=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -71,6 +73,7 @@ data:
       - ceph-mon=enabled
       - ceph-osd=enabled
       - ceph-rgw=enabled
+      - ceph-mgr=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -98,6 +101,7 @@ data:
       - ceph-mon=enabled
       - ceph-osd=enabled
       - ceph-rgw=enabled
+      - ceph-mgr=enabled
       - openstack-compute-node=enabled
       - openstack-control-plane=enabled
       - openvswitch=enabled
