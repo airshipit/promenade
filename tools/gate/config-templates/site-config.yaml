@@ -94,7 +94,8 @@ data:
         TvBR8Q==
         =Fm3p
         -----END PGP PUBLIC KEY BLOCK-----
-    additional: []
+    additional:
+      - ceph-common=10.2.9-0ubuntu0.16.04.1
     required:
       docker: docker-engine=1.13.1-0~ubuntu-xenial
       socat: socat=1.7.3.1-1
