@@ -22,7 +22,7 @@ Sample Document
       images:
         coredns: coredns/coredns:011
         helm:
-          helm: lachlanevenson/k8s-helm:v2.5.1
+          helm: lachlanevenson/k8s-helm:v2.7.2
         kubernetes:
           kubectl: gcr.io/google_containers/hyperkube-amd64:v1.8.0
       packages:
