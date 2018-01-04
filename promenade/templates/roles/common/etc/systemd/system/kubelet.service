@@ -22,7 +22,7 @@ ExecStart=/opt/kubernetes/bin/kubelet \
     {%- endif %}
     {%- if config['Kubelet:arguments'] is defined %}
     {%- for argument in config['Kubelet:arguments'] %}
-    - {{ argument }} \
+    {{ argument }} \
     {%- endfor %}
     {%- endif %}
     --pod-infra-container-image={{ config['Kubelet:images.pause'] }}
