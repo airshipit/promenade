@@ -1279,6 +1279,7 @@ data:
   values:
     images:
       tags:
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         mariadb: docker.io/mariadb:10.1.23
     labels:
       node_selector_key: ucp-control-plane
@@ -1308,6 +1309,7 @@ data:
   values:
     images:
       tags:
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         memcached: docker.io/memcached:1.4
     labels:
       node_selector_key: ucp-control-plane
@@ -1402,6 +1404,7 @@ data:
       node_selector_value: enabled
     images:
       tags:
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         postgresql: docker.io/postgres:9.5
   source:
     type: git
@@ -1428,6 +1431,7 @@ data:
       tags:
         db_init: docker.io/postgres:9.5
         db_sync: quay.io/attcomdev/maas-region:master
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         maas_cache: docker.io/sthussey/maas-cache:cachetest
         maas_rack: quay.io/attcomdev/maas-rack:master
         maas_region: quay.io/attcomdev/maas-region:master
@@ -1504,6 +1508,7 @@ data:
       node_selector_value: enabled
     images:
       tags:
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         etcd: gcr.io/google_containers/etcd-amd64:2.2.5
   source:
     type: git
@@ -1612,6 +1617,7 @@ data:
     images:
       tags:
         entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         # https://github.com/kubernetes/ingress/blob/master/controllers/nginx/Changelog.md
         ingress: gcr.io/google_containers/nginx-ingress-controller:0.9.0-beta.8
         error_pages: gcr.io/google_containers/defaultbackend:1.0
