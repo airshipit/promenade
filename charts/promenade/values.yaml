@@ -132,6 +132,20 @@ pod:
         default: preferredDuringSchedulingIgnoredDuringExecution
       topologyKey:
         default: kubernetes.io/hostname
+  env:
+    promenade_api:
+#      - name: http_proxy
+#        value: http://proxy.example.com:8080
+#      - name: https_proxy
+#        value: http://proxy.example.com:8080
+#      - name: no_proxy
+#        value: 10.96.0.1
+#      - name: HTTP_PROXY
+#        value: http://proxy.example.com:8080
+#      - name: HTTPS_PROXY
+#        value: http://proxy.example.com:8080
+#      - name: NO_PROXY
+#        value: 10.96.0.1
   replicas:
     api: 1
   lifecycle:
