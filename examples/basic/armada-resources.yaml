@@ -162,7 +162,7 @@ data:
         key: placeholder
     images:
       tags:
-        proxy: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+        proxy: gcr.io/google_containers/hyperkube-amd64:v1.8.6
     network:
       kubernetes_netloc: apiserver.kubernetes.promenade:6443
   source:
@@ -543,7 +543,7 @@ data:
                 name: calico-etcd
                 namespace: kube-system
     images:
-      anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+      anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
       coredns: coredns/coredns:0.9.9
     tls:
       ca: placeholder
@@ -632,8 +632,8 @@ data:
         endpoints: https://etcd.kubernetes.promenade:2379
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
+        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.8.6
     secrets:
       service_account:
         public_key: placeholder
@@ -708,8 +708,8 @@ data:
   values:
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
+        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.8.6
     secrets:
       service_account:
         private_key: placeholder
@@ -780,8 +780,8 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
-        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
+        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.8.6
 
   source:
     type: local

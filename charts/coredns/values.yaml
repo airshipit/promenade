@@ -28,7 +28,7 @@ coredns:
             namespace: default
 
 images:
-  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.0
+  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
   coredns: coredns/coredns:0.9.9
 
 network:
