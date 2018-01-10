@@ -1,6 +1,8 @@
 calico:
   ip_autodetection_method: null
   pod_ip_cidr: 10.97.0.0/16
+  mtu: 1500
+  ipip: always
   ctl:
     install_on_host: false
 

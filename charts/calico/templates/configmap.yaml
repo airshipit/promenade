@@ -6,6 +6,12 @@
 #   calico/cni:v1.8.3
 #   calico/kube-policy-controller:v0.6.0
 
+{{- if eq .Values.calico.ipip "off" }}
+{{- $_ := set .Values "__calicoMTU" .Values.calico.mtu -}}
+{{- else }}
+{{- $_ := set .Values "__calicoMTU" (sub .Values.calico.mtu 20) -}}
+{{- end }}
+
 # This ConfigMap is used to configure a self-hosted Calico installation.
 kind: ConfigMap
 apiVersion: v1
@@ -31,6 +37,7 @@ data:
         "etcd_cert_file": "__ETCD_CERT_FILE__",
         "etcd_ca_cert_file": "__ETCD_CA_CERT_FILE__",
         "log_level": "info",
+        "mtu": {{ .Values.__calicoMTU }},
         "ipam": {
             "type": "calico-ipam"
         },

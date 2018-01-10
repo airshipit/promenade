@@ -450,6 +450,7 @@ data:
     calico:
       ip_autodetection_method: ${CALICO_IP_AUTODETECTION_METHOD}
       pod_ip_cidr: 10.97.0.0/16
+      mtu: 1450
       ctl:
         install_on_host: true
     etcd:
