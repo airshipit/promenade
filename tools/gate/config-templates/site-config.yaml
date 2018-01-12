@@ -6,6 +6,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   dns:
     cluster_domain: cluster.local
@@ -34,6 +35,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   config:
     insecure-registries:
@@ -50,6 +52,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   files:
     - path: /opt/kubernetes/bin/kubelet
@@ -109,6 +112,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   arguments:
     - --cni-bin-dir=/opt/cni/bin

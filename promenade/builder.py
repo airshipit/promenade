@@ -112,8 +112,10 @@ class Builder:
 
 
 def _fetch_tar_content(*, url, path):
+    LOG.debug('Fetching url=%s (tar path=%s)', url, path)
     response = requests.get(url)
     response.raise_for_status()
+    LOG.debug('Finished downloading url=%s (tar path=%s)', url, path)
     f = io.BytesIO(response.content)
     tf = tarfile.open(fileobj=f, mode='r')
     buf_reader = tf.extractfile(path)

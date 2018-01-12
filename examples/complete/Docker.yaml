@@ -6,7 +6,6 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
-  storagePolicy: cleartext
 data:
   config:
     insecure-registries:

@@ -6,6 +6,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   hostname: ${GENESIS_HOSTNAME}
   ip: ${GENESIS_IP}
@@ -34,6 +35,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   hostname: ${MASTER1_HOSTNAME}
   ip: ${MASTER1_IP}
@@ -62,6 +64,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   hostname: ${MASTER2_HOSTNAME}
   ip: ${MASTER2_IP}
@@ -90,6 +93,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   hostname: ${WORKER_HOSTNAME}
   ip: ${WORKER_IP}

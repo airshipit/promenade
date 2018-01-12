@@ -6,7 +6,6 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
-  storagePolicy: cleartext
 data:
   dns:
     cluster_domain: cluster.local

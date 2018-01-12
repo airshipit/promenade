@@ -34,6 +34,11 @@ DEFAULT_CONFIG = {
         },
     },
     'loggers': {
+        'deckhand': {
+            'handlers': ['default'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'promenade': {
             'handlers': ['default'],
             'level': 'INFO',

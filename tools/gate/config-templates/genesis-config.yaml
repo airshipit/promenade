@@ -6,6 +6,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   hostname: ${GENESIS_HOSTNAME}
   ip: ${GENESIS_IP}

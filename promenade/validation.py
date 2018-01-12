@@ -40,13 +40,15 @@ def check_design(config):
             raise exceptions.ValidationException()
 
 
-def check_schemas(documents):
+def check_schemas(documents, schemas=None):
+    if not schemas:
+        schemas = load_schemas_from_docs(documents)
     for document in documents:
-        check_schema(document)
+        check_schema(document, schemas=schemas)
 
 
-def check_schema(document):
-    if type(document) != dict:
+def check_schema(document, schemas=None):
+    if not isinstance(document, dict):
         LOG.error('Non-dictionary document passed to schema validation.')
         return
 
@@ -55,9 +57,11 @@ def check_schema(document):
     LOG.debug('Validating schema for schema=%s metadata.name=%s', schema_name,
               document.get('metadata', {}).get('name', '<missing>'))
 
-    if schema_name in SCHEMAS:
+    schema_set = SCHEMAS if schemas is None else schemas
+
+    if schema_name in schema_set:
         try:
-            jsonschema.validate(document.get('data'), SCHEMAS[schema_name])
+            jsonschema.validate(document.get('data'), schema_set[schema_name])
         except jsonschema.ValidationError as e:
             raise exceptions.ValidationException(str(e))
     else:
@@ -65,6 +69,25 @@ def check_schema(document):
 
 
 SCHEMAS = {}
+
+
+def load_schemas_from_docs(doc_set):
+    '''
+    Fills the cache of known schemas from the document set
+    '''
+    SCHEMA_SCHEMA = "deckhand/DataSchema/v1"
+
+    schema_set = dict()
+    for document in doc_set:
+        if document.get('schema', '') == SCHEMA_SCHEMA:
+            name = document['metadata']['name']
+            LOG.debug("Found schema for %s." % name)
+            if name in schema_set:
+                raise RuntimeError('Duplicate schema specified for: %s' % name)
+
+            schema_set[name] = document['data']
+
+    return schema_set
 
 
 def _load_schemas():

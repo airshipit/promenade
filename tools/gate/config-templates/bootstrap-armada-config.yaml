@@ -6,6 +6,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   release_prefix: ucp
   chart_groups:
@@ -22,6 +23,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Kubernetes proxy
   sequenced: true
@@ -35,6 +37,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Container networking via Calico
   sequenced: true
@@ -49,6 +52,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Cluster DNS
   chart_group:
@@ -61,6 +65,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: UCP Services
   chart_group:
@@ -73,6 +78,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   description: Kubernetes components
   chart_group:
@@ -85,6 +91,10 @@ schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: helm-toolkit
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
 data:
   chart_name: helm-toolkit
   release: helm-toolkit
@@ -107,6 +117,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -161,6 +172,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -403,6 +415,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -465,6 +478,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -542,6 +556,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -640,6 +655,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -709,6 +725,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -768,6 +785,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
   substitutions:
     -
       src:
@@ -968,6 +986,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   chart_name: promenade
   release: promenade
