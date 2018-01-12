@@ -403,8 +403,8 @@ data:
       filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.0.17
-        etcdctl: quay.io/coreos/etcd:v3.0.17
+        etcd: quay.io/coreos/etcd:v3.2.14
+        etcdctl: quay.io/coreos/etcd:v3.2.14
     nodes:
       - name: n0
         tls:
@@ -511,10 +511,10 @@ data:
         cert: placeholder
         key: placeholder
     images:
-      cni: quay.io/calico/cni:v1.11.0
-      ctl: quay.io/calico/ctl:v1.6.1
-      node: quay.io/calico/node:v2.6.1
-      policy_controller: quay.io/calico/kube-controllers:v1.0.0
+      cni: quay.io/calico/cni:v1.11.2
+      ctl: quay.io/calico/ctl:v1.6.3
+      node: quay.io/calico/node:v2.6.5
+      policy_controller: quay.io/calico/kube-controllers:v1.0.2
   source:
     type: local
     location: /etc/genesis/armada/assets/charts
@@ -1017,8 +1017,8 @@ data:
       host_etc_path: /etc/etcd/kubernetes
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.0.17
-        etcdctl: quay.io/coreos/etcd:v3.0.17
+        etcd: quay.io/coreos/etcd:v3.2.14
+        etcdctl: quay.io/coreos/etcd:v3.2.14
     nodes:
       - name: n0
         tls:
@@ -1430,13 +1430,13 @@ data:
     images:
       tags:
         db_init: docker.io/postgres:9.5
-        db_sync: quay.io/attcomdev/maas-region:master
+        db_sync: quay.io/attcomdev/maas-region:latest
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         maas_cache: docker.io/sthussey/maas-cache:cachetest
-        maas_rack: quay.io/attcomdev/maas-rack:master
-        maas_region: quay.io/attcomdev/maas-region:master
-        bootstrap: quay.io/attcomdev/maas-region:master
-        export_api_key: quay.io/attcomdev/maas-region:master
+        maas_rack: quay.io/attcomdev/maas-rack:latest
+        maas_region: quay.io/attcomdev/maas-region:latest
+        bootstrap: quay.io/attcomdev/maas-region:latest
+        export_api_key: quay.io/attcomdev/maas-region:latest
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
     labels:
       rack:
@@ -1671,7 +1671,7 @@ data:
   values:
     images:
       tags:
-        deckhand: quay.io/attcomdev/deckhand:master
+        deckhand: quay.io/attcomdev/deckhand:latest
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         db_init: docker.io/postgres:9.5
         db_sync: docker.io/postgres:9.5
@@ -1713,9 +1713,9 @@ data:
     images:
       tags:
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        drydock: quay.io/attcomdev/drydock:master
+        drydock: quay.io/attcomdev/drydock:latest
         drydock_db_init: docker.io/postgres:9.5
-        drydock_db_sync: quay.io/attcomdev/drydock:master
+        drydock_db_sync: quay.io/attcomdev/drydock:latest
         ks_endpoints: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
         ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
         ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3

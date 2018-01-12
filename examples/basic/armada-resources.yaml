@@ -361,8 +361,8 @@ data:
       filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.0.17
-        etcdctl: quay.io/coreos/etcd:v3.0.17
+        etcd: quay.io/coreos/etcd:v3.2.14
+        etcdctl: quay.io/coreos/etcd:v3.2.14
     nodes:
       - name: n0
         tls:
@@ -469,10 +469,10 @@ data:
         cert: placeholder
         key: placeholder
     images:
-      cni: quay.io/calico/cni:v1.11.0
-      ctl: quay.io/calico/ctl:v1.6.1
-      node: quay.io/calico/node:v2.6.1
-      policy_controller: quay.io/calico/kube-controllers:v1.0.0
+      cni: quay.io/calico/cni:v1.11.2
+      ctl: quay.io/calico/ctl:v1.6.3
+      node: quay.io/calico/node:v2.6.5
+      policy_controller: quay.io/calico/kube-controllers:v1.0.2
   source:
     type: local
     location: /etc/genesis/armada/assets/charts
@@ -975,8 +975,8 @@ data:
       host_etc_path: /etc/etcd/kubernetes
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.0.17
-        etcdctl: quay.io/coreos/etcd:v3.0.17
+        etcd: quay.io/coreos/etcd:v3.2.14
+        etcdctl: quay.io/coreos/etcd:v3.2.14
     nodes:
       - name: n0
         tls:
