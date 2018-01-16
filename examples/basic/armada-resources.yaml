@@ -116,6 +116,31 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
+  name: infra-helm-toolkit
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
+data:
+  chart_name: infra-helm-toolkit
+  release: infra-helm-toolkit
+  namespace: infra-helm-toolkit
+  timeout: 600
+  wait:
+    timeout: 600
+  upgrade:
+    no_hooks: true
+  values: {}
+  source:
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm-infra
+    subpath: helm-toolkit
+    reference: master
+  dependencies: []
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
   name: kubernetes-proxy
   layeringDefinition:
     abstract: false
@@ -142,6 +167,7 @@ data:
     subpath: proxy
   dependencies:
     - helm-toolkit
+
 ---
 schema: armada/Chart/v1
 metadata:
@@ -387,6 +413,7 @@ data:
     subpath: etcd
   dependencies:
     - helm-toolkit
+
 ---
 schema: armada/Chart/v1
 metadata:
@@ -403,21 +430,22 @@ metadata:
         name: calico-etcd
         path: .
       dest:
-        path: '.values.etcd.tls.ca'
+        path: '.values.endpoints.etcd.auth.client.tls.ca'
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-node
         path: .
       dest:
-        path: '.values.etcd.tls.cert'
+        path: '.values.endpoints.etcd.auth.client.tls.crt'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-node
         path: .
       dest:
-        path: '.values.etcd.tls.key'
+        path: '.values.endpoints.etcd.auth.client.tls.key'
+
 data:
   chart_name: calico
   release: calico
@@ -428,29 +456,68 @@ data:
   upgrade:
     no_hooks: true
   values:
-    calico:
-      ip_autodetection_method: interface=ens3
-      pod_ip_cidr: 10.97.0.0/16
-      ctl:
-        install_on_host: true
-    etcd:
-      service:
-        ip: 10.96.232.136
-        port: 6666
-      tls:
-        ca: placeholder
-        cert: placeholder
-        key: placeholder
+    conf:
+      cni_network_config:
+        name: k8s-pod-network
+        cniVersion: 0.1.0
+        type: calico
+        etcd_endpoints: __ETCD_ENDPOINTS__
+        etcd_ca_cert_file: /etc/calico/pki/ca
+        etcd_cert_file: /etc/calico/pki/crt
+        etcd_key_file: /etc/calico/pki/key
+        log_level: debug
+        mtu: 1500
+        ipam:
+          type: calico-ipam
+        policy:
+          type: k8s
+          k8s_api_root: https://__KUBERNETES_SERVICE_HOST__:__KUBERNETES_SERVICE_PORT__
+          k8s_auth_token: __SERVICEACCOUNT_TOKEN__
+
+      policy_controller:
+        K8S_API: "https://10.96.0.1:443"
+
+      node:
+        CALICO_STARTUP_LOGLEVEL: INFO
+        CLUSTER_TYPE:
+          - k8s
+          - bgp
+        IP_AUTODETECTION_METHOD: interface=ens3
+        WAIT_FOR_STORAGE: "true"
+
+    endpoints:
+      etcd:
+        hosts:
+          default: calico-etcd
+        host_fqdn_override:
+          default: 10.96.232.136
+        scheme:
+          default: https
+
+    networking:
+      podSubnet: 10.97.0.0/16
+      mtu: 1500
+
     images:
-      cni: quay.io/calico/cni:v1.11.2
-      ctl: quay.io/calico/ctl:v1.6.3
-      node: quay.io/calico/node:v2.6.5
-      policy_controller: quay.io/calico/kube-controllers:v1.0.2
+      tags:
+        calico_node: quay.io/calico/node:v2.6.5
+        calico_cni: quay.io/calico/cni:v1.11.2
+        calico_ctl: quay.io/calico/ctl:v1.6.2
+        calico_settings: quay.io/calico/ctl:v1.6.2
+        calico_kube_policy_controller: quay.io/calico/kube-policy-controller:v0.7.0
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+
+    manifests:
+      daemonset_calico_etcd: false
+      job_image_repo_sync: false
+      service_calico_etcd: false
   source:
-    type: local
-    location: /etc/genesis/armada/assets/charts
+    type: git
+    location: https://git.openstack.org/openstack/openstack-helm-infra
+    reference: master
     subpath: calico
-  dependencies: []
+  dependencies:
+    - infra-helm-toolkit
 ---
 schema: armada/Chart/v1
 metadata:
