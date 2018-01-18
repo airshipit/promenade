@@ -3,8 +3,8 @@
 set -e
 
 {%- if config['KubernetesNetwork:proxy.url'] is defined %}
-HTTP_PROXY={{ config['KubernetesNetwork:proxy.url'] }}
-NO_PROXY={{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
+HTTP_PROXY=${HTTP_PROXY:-{{ config['KubernetesNetwork:proxy.url'] }}}
+NO_PROXY=${NO_PROXY:-{{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}}
 {%- endif %}
 
 EXTRA_ARGS=
