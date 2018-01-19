@@ -90,13 +90,22 @@ for NAME in "${NODES[@]}"; do
     fi
 
     log "Checking Promenade API health"
-    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" \
-        "${BASE_PROM_URL}/api/v1.0/health"
-    log "Promenade API healthy"
+    MAX_HEALTH_ATTEMPTS=6
+    for attempt in $(seq ${MAX_HEALTH_ATTEMPTS}); do
+        if ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" "${BASE_PROM_URL}/api/v1.0/health"; then
+            log "Promenade API healthy"
+            break
+        elif [[ $attempt == "${MAX_HEALTH_ATTEMPTS}" ]]; then
+            log "Promenade health check failed, max retries (${MAX_HEALTH_ATTEMPTS}) exceeded."
+            exit 1
+        fi
+        sleep 10
+    done
 
-    log "Fetching join script"
+    JOIN_CURL_URL="$(render_curl_url "${NAME}" "${LABELS[@]}")"
+    log "Fetching join script via: ${JOIN_CURL_URL}"
     ssh_cmd "${VIA}" curl "${CURL_ARGS[@]}" \
-        "$(render_curl_url "${NAME}" "${LABELS[@]}")" > "${SCRIPT_DIR}/join-${NAME}.sh"
+        "${JOIN_CURL_URL}" > "${SCRIPT_DIR}/join-${NAME}.sh"
 
     chmod 755 "${SCRIPT_DIR}/join-${NAME}.sh"
     log "Join script received"

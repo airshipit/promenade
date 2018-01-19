@@ -39,6 +39,8 @@ data:
     insecure-registries:
       - 10.24.20.19:30092
     live-restore: true
+    max-concurrent-downloads: 10
+    oom-score-adjust: -999
     storage-driver: overlay2
 ---
 schema: promenade/HostSystem/v1
@@ -114,6 +116,7 @@ data:
     - --eviction-max-pod-grace-period=-1
     - --network-plugin=cni
     - --node-status-update-frequency=5s
+    - --serialize-image-pulls=false
     - --v=5
   images:
     pause: gcr.io/google_containers/pause-amd64:3.0
