@@ -14,14 +14,16 @@
 # limitations under the License.
 */}}
 
+{{- $envAll := . }}
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: kubernetes-scheduler
+  name: {{ .Values.service.name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    kubernetes-scheduler-service: enabled
+    {{ .Values.service.name }}-service: enabled
+{{ tuple $envAll "kubernetes" "scheduler" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   hostNetwork: true
   containers:

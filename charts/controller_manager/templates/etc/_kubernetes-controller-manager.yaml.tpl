@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- $envAll := . }}
 ---
 apiVersion: v1
 kind: Pod
@@ -20,6 +21,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{ .Values.service.name }}-service: enabled
+{{ tuple $envAll "kubernetes" "controller-manager" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   hostNetwork: true
   containers:

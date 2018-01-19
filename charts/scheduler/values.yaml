@@ -20,8 +20,8 @@ anchor:
 
 labels:
   scheduler:
-      node_selector_key: kubernetes-scheduler
-      node_selector_value: enabled
+    node_selector_key: kubernetes-scheduler
+    node_selector_value: enabled
 
 pod:
   lifecycle:
@@ -62,6 +62,9 @@ images:
 
 network:
   kubernetes_netloc: 10.96.0.1
+
+service:
+  name: kubernetes-scheduler
 
 command_prefix:
   - /scheduler

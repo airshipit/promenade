@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- if .Values.manifests.service }}
 {{- $envAll := . }}
 ---
 apiVersion: v1
@@ -22,6 +21,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{ .Values.service.name }}-service: enabled
+{{ tuple $envAll "kubernetes" "apiserver" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   hostNetwork: true
   containers:
@@ -64,4 +64,3 @@ spec:
     - name: etc
       hostPath:
         path: {{ .Values.apiserver.host_etc_path }}
-{{- end }}

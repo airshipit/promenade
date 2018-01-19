@@ -23,8 +23,8 @@ images:
 
 labels:
   controller_manager:
-      node_selector_key: kubernetes-controller-manager
-      node_selector_value: enabled
+    node_selector_key: kubernetes-controller-manager
+    node_selector_value: enabled
 
 anchor:
   dns_policy: Default
