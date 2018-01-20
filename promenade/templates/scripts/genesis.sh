@@ -1,3 +1,8 @@
+if [ "$(hostname)" != "{{ config['Genesis:hostname'] }}" ]; then
+   echo "The node hostname must match the Kubernetes node name" 1>&2
+   exit 1
+fi
+
 {% include "header.sh" with context %}
 
 {% include "up.sh" with context %}
