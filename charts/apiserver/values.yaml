@@ -23,8 +23,8 @@ images:
 
 labels:
   kubernetes_apiserver:
-      node_selector_key: kubernetes-apiserver
-      node_selector_value: enabled
+    node_selector_key: kubernetes-apiserver
+    node_selector_value: enabled
 
 anchor:
   dns_policy: Default
