@@ -17,12 +17,12 @@ from falcon import testing
 import pytest
 
 from promenade.control import health_api
-from promenade.promenade import promenade
+from promenade import promenade
 
 
 @pytest.fixture()
 def client():
-    return testing.TestClient(promenade)
+    return testing.TestClient(promenade.start_promenade(disable='keystone'))
 
 
 def test_get_health(client):

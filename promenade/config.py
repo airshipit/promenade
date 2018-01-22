@@ -1,8 +1,8 @@
 from . import exceptions, logging, validation
+from .design_ref import get_documents
 import copy
 import jinja2
 import jsonpath_ng
-import requests
 import yaml
 
 __all__ = ['Configuration']
@@ -35,10 +35,7 @@ class Configuration:
 
     @classmethod
     def from_design_ref(cls, design_ref):
-        response = requests.get(design_ref)
-        response.raise_for_status()
-
-        documents = list(yaml.safe_load_all(response.text))
+        documents = get_documents(design_ref)
         validation.check_schemas(documents)
 
         return cls(documents=documents)

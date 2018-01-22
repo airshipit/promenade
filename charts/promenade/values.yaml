@@ -13,6 +13,12 @@
 # limitations under the License.
 
 conf:
+  promenade:
+    keystone_authtoken:
+      delay_auth_decision: true
+      auth_type: password
+      auth_section: keystone_authtoken
+
   paste:
     pipeline:main:
       pipeline: authtoken promenade-api
@@ -22,6 +28,7 @@ conf:
       forged_roles: admin
       paste.filter_factory: promenade.control.middleware:noauth_filter_factory
     app:promenade-api:
+      disable: ""
       paste.app_factory: promenade.promenade:paste_start_promenade
 
 images:

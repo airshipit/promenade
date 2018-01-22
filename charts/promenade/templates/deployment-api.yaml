@@ -61,6 +61,10 @@ spec:
               mountPath: /etc/promenade/api-paste.ini
               subPath: api-paste.ini
               readOnly: true
+            - name: promenade-etc
+              mountPath: /etc/promenade/promenade.conf
+              subPath: promenade.conf
+              readOnly: true
       volumes:
         - name: promenade-etc
           configMap:
