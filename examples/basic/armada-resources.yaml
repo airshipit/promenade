@@ -13,7 +13,6 @@ data:
     - container-networking
     - dns
     - kubernetes
-    - kubernetes-rbac
     - ucp-services
 ---
 schema: armada/ChartGroup/v1
@@ -54,19 +53,6 @@ data:
   description: Cluster DNS
   chart_group:
     - coredns
----
-schema: armada/ChartGroup/v1
-metadata:
-  schema: metadata/Document/v1
-  name: kubernetes-rbac
-  layeringDefinition:
-    abstract: false
-    layer: site
-data:
-  description: Role Based Access Control configuration for Kubernetes
-  sequenced: true
-  chart_group:
-    - kubernetes-rbac
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -1032,29 +1018,6 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: kubernetes-rbac
-  layeringDefinition:
-    abstract: false
-    layer: site
-data:
-  chart_name: rbac
-  release: rbac
-  namespace: kube-system
-  timeout: 600
-  wait:
-    timeout: 600
-  values: {}
-  upgrade:
-    no_hooks: true
-  source:
-    type: local
-    location: /etc/genesis/armada/assets/charts
-    subpath: rbac
-  dependencies: []
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
   name: promenade
   layeringDefinition:
     abstract: false
@@ -1069,6 +1032,8 @@ data:
   values:
     conf:
       paste:
+        app:promenade-api:
+          disable: keystone
         pipeline:main:
           pipeline: noauth promenade-api
     images:
