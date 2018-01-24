@@ -1,21 +1,37 @@
 Getting Started
 ===============
 
+Note: This document is meant to give a general understanding of how Promenade
+could be exercised in a development environment or for general learning and
+understanding. For holistic UCP deployment procedures, refer to `Treasuremap <https://github.com/att-comdev/treasuremap>`_
+
 Basic Deployment
 ----------------
 
 This approach is quick to get started, but generates the scripts used for
 joining up-front rather than generating them in the API as needed.
 
-Setup
-^^^^^
+Setup Build Machine
+^^^^^^^^^^^^^^^^^^^
+
+On the machine you wish to use to generate deployment files, install docker:
+
+.. code-block:: console
+
+    sudo apt -y install docker.io
+
+This can be the same machine you intend to be the Genesis host, or it may be
+a separate build machine.
+
+Generate Build files
+^^^^^^^^^^^^^^^^^^^^
 
 To create the certificates and scripts needed to perform a basic deployment,
-you can use the following helper script:
+you can use the following helper script on your build machine:
 
-.. code-block:: bash
+.. code-block:: console
 
-    ./tools/simple-deployment.sh examples/basic build
+    sudo ./tools/simple-deployment.sh examples/basic build
 
 This will copy the configuration provided in the ``examples/basic`` directory
 into the ``build`` directory.  Then, it will generate self-signed certificates
@@ -23,18 +39,31 @@ for all the needed components in Deckhand-compatible format.  Finally, it will
 render the provided configuration into directly-usable ``genesis.sh`` and
 ``join-<NODE>.sh`` scripts.
 
+Genesis Host Provision
+^^^^^^^^^^^^^^^^^^^^^^
+
+Install Ubuntu 16.04 on the machine intended to be the genesis host. Ensure
+the host has outbound internet access and DNS resolution.
+Ensure that the hostname matches the hostname specified in the Genesis.yaml
+file used to build the above configurations.
+
 Execution
 ^^^^^^^^^
 
 Perform the following steps to execute the deployment:
 
-1. Copy the ``genesis.sh`` script to the genesis node and run it.
+1. Copy the ``genesis.sh`` script to the genesis node and run it as sudo. In the
+   event of runtime errors, refer to :doc:`troubleshooting/genesis`
 2. Validate the genesis node by running ``validate-genesis.sh`` on it.
-3. Join master nodes by copying their respective ``join-<NODE>.sh`` scripts to
+3. Nodes for which ``join-<NODE>.sh`` scripts have been generated should be
+   provisioned at this point, and need to have network connectivity to the
+   genesis node. (This could be a manual Ubuntu provision, or a Drydock-
+   initiated PXE boot in the case of a full fledged UCP deployment).
+4. Join master nodes by copying their respective ``join-<NODE>.sh`` scripts to
    them and running them.
-4. Validate the master nodes by copying and running their respective
+5. Validate the master nodes by copying and running their respective
    ``validate-<NODE>.sh`` scripts on each of them.
-5. Re-provision the Genesis node
+6. Re-provision the Genesis node
 
    a) Run the ``/usr/local/bin/promenade-teardown`` script on the Genesis node:
    b) Delete the node from the cluster via one of the other nodes ``kubectl delete node <GENESIS>``.
@@ -42,7 +71,7 @@ Perform the following steps to execute the deployment:
    d) Join the genesis node as a normal node using its ``join-<GENESIS>.sh`` script.
    e) Validate the node using ``validate-<GENSIS>.sh``.
 
-6. Join and validate all remaining nodes using the ``join-<NODE>.sh`` and
+7. Join and validate all remaining nodes using the ``join-<NODE>.sh`` and
    ``validate-<NODE>.sh`` scripts described above.
 
 

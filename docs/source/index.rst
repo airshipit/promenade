@@ -33,4 +33,5 @@ Promenade Configuration Guide
    design
    getting-started
    configuration/index
+   troubleshooting/index
    api
