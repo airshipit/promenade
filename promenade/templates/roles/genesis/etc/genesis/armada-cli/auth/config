@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+clusters:
+- cluster:
+    server: https://localhost:6443
+    certificate-authority: pki/cluster-ca.pem
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: armada
+  name: armada@kubernetes
+current-context: armada@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: armada
+  user:
+    client-certificate: pki/armada.pem
+    client-key: pki/armada-key.pem
