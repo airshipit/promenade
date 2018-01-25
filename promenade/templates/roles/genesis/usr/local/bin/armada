@@ -15,7 +15,7 @@ fi
 
 exec docker run --rm -i \
     --net host \
-    -v /etc/genesis/armada/auth:/armada/.kube \
+    -v /etc/genesis/armada-cli/auth:/armada/.kube \
     -v /etc/genesis/armada/assets:/etc/genesis/armada/assets \
     $EXTRA_ARGS \
     {%- if config['KubernetesNetwork:proxy.url'] is defined %}
