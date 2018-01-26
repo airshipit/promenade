@@ -1630,7 +1630,7 @@ data:
   values:
     images:
       tags:
-        tiller: gcr.io/kubernetes-helm/tiller:v2.7.0
+        tiller: gcr.io/kubernetes-helm/tiller:v2.7.2
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
