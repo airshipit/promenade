@@ -59,7 +59,11 @@ spec:
 
         while true; do
             sleep 10
-            if armada --debug apply --tiller-host 127.0.0.1 /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
+            if armada --debug \
+                    apply \
+                    --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
+                    --tiller-host 127.0.0.1 \
+                    /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
                 break
             fi
         done

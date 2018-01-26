@@ -9,6 +9,8 @@ metadata:
 data:
   hostname: n0
   ip: 192.168.77.10
+  armada:
+    target_manifest: cluster-bootstrap
   labels:
     dynamic:
       - calico-etcd=enabled

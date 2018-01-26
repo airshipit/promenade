@@ -55,11 +55,9 @@ class Configuration:
         return cls(documents=documents, **kwargs)
 
     def __getitem__(self, path):
-        value = self.get_path(path)
-        if value:
-            return value
-        else:
-            return jinja2.StrictUndefined('No match found for path %s' % path)
+        return self.get_path(path,
+                             jinja2.StrictUndefined(
+                                 'No match found for path %s' % path))
 
     def get_first(self, *paths):
         result = self._get_first(*paths)

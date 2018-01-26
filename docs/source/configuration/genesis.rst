@@ -23,6 +23,8 @@ Here is a complete sample document:
     data:
       hostname: n0
       ip: 192.168.77.10
+      armada:
+          target_manifest: cluster-bootstrap
       labels:
         static:
           - calico-etcd=enabled
@@ -47,6 +49,14 @@ Here is a complete sample document:
         - path: /var/lib/anchor/calico-etcd-bootstrap
           content: ""
           mode: 0644
+
+
+Amrada
+------
+
+This section contains particular configuration options for bootstrapping with
+Armada.  It currently only supports a single option: ``target_manifest``, which
+specifies which ``armada/Manifest/v1`` to be used during Genesis.
 
 
 Bootstrapping Images

@@ -57,6 +57,13 @@ data:
 
   type: object
   properties:
+    armada:
+      type: object
+      properties:
+        target_manifest:
+          type: string
+      additionalProperties: false
+
     files:
       type: array
       items:
