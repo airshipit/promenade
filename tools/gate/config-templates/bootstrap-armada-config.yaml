@@ -82,6 +82,7 @@ metadata:
 data:
   description: Kubernetes components
   chart_group:
+    - haproxy
     - kubernetes-etcd
     - kubernetes-apiserver
     - kubernetes-controller-manager
@@ -123,23 +124,23 @@ metadata:
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.tls.ca'
+        path: '.values.secrets.tls.ca'
     -
       src:
         schema: deckhand/Certificate/v1
         name: proxy
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.tls.cert'
+        path: '.values.secrets.tls.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: proxy
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.tls.key'
+        path: '.values.secrets.tls.key'
 data:
   chart_name: proxy
   release: kubernetes-proxy
@@ -157,7 +158,7 @@ data:
       tags:
         proxy: ${IMAGE_HYPERKUBE}
     network:
-      kubernetes_netloc: apiserver.kubernetes.promenade:6443
+      kubernetes_netloc: 127.0.0.1:6553
   source:
     type: local
     location: /etc/genesis/armada/assets/charts
@@ -178,147 +179,147 @@ metadata:
       src:
         schema: deckhand/CertificateAuthority/v1
         name: calico-etcd
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.tls.client.ca'
+        path: '.values.secrets.tls.client.ca'
     -
       src:
         schema: deckhand/CertificateAuthority/v1
         name: calico-etcd-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.tls.peer.ca'
+        path: '.values.secrets.tls.peer.ca'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-anchor
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.anchor.tls.cert'
+        path: '.values.secrets.anchor.tls.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-anchor
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.anchor.tls.key'
+        path: '.values.secrets.anchor.tls.key'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${GENESIS_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.client.cert'
+        path: '.values.nodes[0].tls.client.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${GENESIS_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.client.key'
+        path: '.values.nodes[0].tls.client.key'
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${GENESIS_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.peer.cert'
+        path: '.values.nodes[0].tls.peer.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${GENESIS_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.peer.key'
+        path: '.values.nodes[0].tls.peer.key'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${MASTER1_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.client.cert'
+        path: '.values.nodes[1].tls.client.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${MASTER1_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.client.key'
+        path: '.values.nodes[1].tls.client.key'
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${MASTER1_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.peer.cert'
+        path: '.values.nodes[1].tls.peer.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${MASTER1_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.peer.key'
+        path: '.values.nodes[1].tls.peer.key'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${MASTER2_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.client.cert'
+        path: '.values.nodes[2].tls.client.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${MASTER2_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.client.key'
+        path: '.values.nodes[2].tls.client.key'
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${MASTER2_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.peer.cert'
+        path: '.values.nodes[2].tls.peer.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${MASTER2_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.peer.key'
+        path: '.values.nodes[2].tls.peer.key'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${WORKER_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[3].tls.client.cert'
+        path: '.values.nodes[3].tls.client.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${WORKER_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[3].tls.client.key'
+        path: '.values.nodes[3].tls.client.key'
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-etcd-${WORKER_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[3].tls.peer.cert'
+        path: '.values.nodes[3].tls.peer.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-etcd-${WORKER_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[3].tls.peer.key'
+        path: '.values.nodes[3].tls.peer.key'
 
 data:
   chart_name: etcd
@@ -421,23 +422,23 @@ metadata:
       src:
         schema: deckhand/CertificateAuthority/v1
         name: calico-etcd
-        path: $
+        path: .
       dest:
-        path: '$.values.etcd.tls.ca'
+        path: '.values.etcd.tls.ca'
     -
       src:
         schema: deckhand/Certificate/v1
         name: calico-node
-        path: $
+        path: .
       dest:
-        path: '$.values.etcd.tls.cert'
+        path: '.values.etcd.tls.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: calico-node
-        path: $
+        path: .
       dest:
-        path: '$.values.etcd.tls.key'
+        path: '.values.etcd.tls.key'
 data:
   chart_name: calico
   release: calico
@@ -479,28 +480,6 @@ metadata:
     abstract: false
     layer: site
   storagePolicy: cleartext
-  substitutions:
-    -
-      src:
-        schema: deckhand/CertificateAuthority/v1
-        name: kubernetes
-        path: $
-      dest:
-        path: '$.values.tls.ca'
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: coredns
-        path: $
-      dest:
-        path: '$.values.tls.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: coredns
-        path: $
-      dest:
-        path: '$.values.tls.key'
 data:
   chart_name: coredns
   release: coredns
@@ -509,43 +488,69 @@ data:
   upgrade:
     no_hooks: true
   values:
-    coredns:
-      kubernetes_zones:
-        - cluster.local
-        - 10.96.0.0/16
-        - 10.97.0.0/16
-      upstream_nameservers:
-        - 8.8.8.8
-        - 8.8.4.4
-
-      zones:
-        - name: promenade
-          services:
-            - bind_name: apiserver.kubernetes
-              service:
-                name: kubernetes-apiserver
-                namespace: kube-system
-            - bind_name: etcd.kubernetes
-              service:
-                name: kubernetes-etcd
-                namespace: kube-system
-            - bind_name: etcd.calico
-              service:
-                name: calico-etcd
-                namespace: kube-system
     images:
-      anchor: ${IMAGE_HYPERKUBE}
-      coredns: ${IMAGE_COREDNS}
-    tls:
-      ca: placeholder
-      cert: placeholder
-      key: placeholder
-    network:
-      kubernetes_netloc: apiserver.kubernetes.promenade:6443
+      tags:
+        coredns: ${IMAGE_COREDNS}
   source:
     type: local
     location: /etc/genesis/armada/assets/charts
     subpath: coredns
+  dependencies:
+    - helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: haproxy
+  layeringDefinition:
+    abstract: false
+    layer: site
+data:
+  chart_name: haproxy
+  release: haproxy
+  namespace: kube-system
+  timeout: 600
+  wait:
+    timeout: 600
+  upgrade:
+    no_hooks: true
+  values:
+    conf:
+      anchor:
+        kubernetes_url: https://kubernetes.default:443
+        services:
+          default:
+            kubernetes:
+              server_opts: "check"
+              conf_parts:
+                frontend:
+                  - mode tcp
+                  - option tcpka
+                  - bind *:6553
+                backend:
+                  - mode tcp
+                  - option tcpka
+          kube-system:
+            kubernetes-etcd:
+              server_opts: "check"
+              conf_parts:
+                frontend:
+                  - mode tcp
+                  - option tcpka
+                  - bind *:2378
+                backend:
+                  - mode tcp
+                  - option tcpka
+
+    images:
+      tags:
+        anchor: ${IMAGE_HYPERKUBE}
+        haproxy: ${IMAGE_HAPROXY}
+
+  source:
+    type: local
+    location: /etc/genesis/armada/assets/charts
+    subpath: haproxy
   dependencies:
     - helm-toolkit
 ---
@@ -562,52 +567,52 @@ metadata:
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.ca
+        path: .values.secrets.tls.ca
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: apiserver
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.cert
+        path: .values.secrets.tls.cert
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: apiserver
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.key
+        path: .values.secrets.tls.key
     -
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes-etcd
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.etcd.tls.ca
+        path: .values.secrets.etcd.tls.ca
     -
       src:
         schema: deckhand/Certificate/v1
         name: apiserver-etcd
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.etcd.tls.cert
+        path: .values.secrets.etcd.tls.cert
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: apiserver-etcd
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.etcd.tls.key
+        path: .values.secrets.etcd.tls.key
     -
       src:
         schema: deckhand/PublicKey/v1
         name: service-account
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.service_account.public_key
+        path: .values.secrets.service_account.public_key
 
 data:
   chart_name: apiserver
@@ -619,7 +624,7 @@ data:
   values:
     apiserver:
       etcd:
-        endpoints: https://etcd.kubernetes.promenade:2379
+        endpoints: https://127.0.0.1:2378
     images:
       tags:
         anchor: ${IMAGE_HYPERKUBE}
@@ -661,31 +666,31 @@ metadata:
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.ca
+        path: .values.secrets.tls.ca
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: controller-manager
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.cert
+        path: .values.secrets.tls.cert
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: controller-manager
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.key
+        path: .values.secrets.tls.key
     -
       src:
         schema: deckhand/PrivateKey/v1
         name: service-account
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.service_account.private_key
+        path: .values.secrets.service_account.private_key
 
 data:
   chart_name: controller_manager
@@ -707,7 +712,7 @@ data:
         cert: placeholder
         key: placeholder
     network:
-      kubernetes_netloc: apiserver.kubernetes.promenade:6443
+      kubernetes_netloc: 127.0.0.1:6553
       pod_cidr: 10.97.0.0/16
       service_cidr: 10.96.0.0/16
 
@@ -731,23 +736,23 @@ metadata:
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.ca
+        path: .values.secrets.tls.ca
     -
       src:
         schema: deckhand/Certificate/v1
         name: scheduler
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.cert
+        path: .values.secrets.tls.cert
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: scheduler
-        path: $
+        path: .
       dest:
-        path: $.values.secrets.tls.key
+        path: .values.secrets.tls.key
 
 data:
   chart_name: scheduler
@@ -764,7 +769,7 @@ data:
         key: placeholder
 
     network:
-      kubernetes_netloc: apiserver.kubernetes.promenade:6443
+      kubernetes_netloc: 127.0.0.1:6553
 
     images:
       tags:
@@ -791,118 +796,118 @@ metadata:
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes-etcd
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.tls.client.ca'
+        path: '.values.secrets.tls.client.ca'
     -
       src:
         schema: deckhand/CertificateAuthority/v1
         name: kubernetes-etcd-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.tls.peer.ca'
+        path: '.values.secrets.tls.peer.ca'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: kubernetes-etcd-anchor
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.anchor.tls.cert'
+        path: '.values.secrets.anchor.tls.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: kubernetes-etcd-anchor
-        path: $
+        path: .
       dest:
-        path: '$.values.secrets.anchor.tls.key'
+        path: '.values.secrets.anchor.tls.key'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: kubernetes-etcd-${GENESIS_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.client.cert'
+        path: '.values.nodes[0].tls.client.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: kubernetes-etcd-${GENESIS_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.client.key'
+        path: '.values.nodes[0].tls.client.key'
     -
       src:
         schema: deckhand/Certificate/v1
         name: kubernetes-etcd-${GENESIS_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.peer.cert'
+        path: '.values.nodes[0].tls.peer.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: kubernetes-etcd-${GENESIS_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[0].tls.peer.key'
+        path: '.values.nodes[0].tls.peer.key'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: kubernetes-etcd-${MASTER1_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.client.cert'
+        path: '.values.nodes[1].tls.client.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: kubernetes-etcd-${MASTER1_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.client.key'
+        path: '.values.nodes[1].tls.client.key'
     -
       src:
         schema: deckhand/Certificate/v1
         name: kubernetes-etcd-${MASTER1_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.peer.cert'
+        path: '.values.nodes[1].tls.peer.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: kubernetes-etcd-${MASTER1_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[1].tls.peer.key'
+        path: '.values.nodes[1].tls.peer.key'
 
     -
       src:
         schema: deckhand/Certificate/v1
         name: kubernetes-etcd-${MASTER2_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.client.cert'
+        path: '.values.nodes[2].tls.client.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: kubernetes-etcd-${MASTER2_HOSTNAME}
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.client.key'
+        path: '.values.nodes[2].tls.client.key'
     -
       src:
         schema: deckhand/Certificate/v1
         name: kubernetes-etcd-${MASTER2_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.peer.cert'
+        path: '.values.nodes[2].tls.peer.cert'
     -
       src:
         schema: deckhand/CertificateKey/v1
         name: kubernetes-etcd-${MASTER2_HOSTNAME}-peer
-        path: $
+        path: .
       dest:
-        path: '$.values.nodes[2].tls.peer.key'
+        path: '.values.nodes[2].tls.peer.key'
 
 data:
   chart_name: etcd
@@ -913,7 +918,7 @@ data:
     no_hooks: true
   values:
     anchor:
-      etcdctl_endpoint: 10.96.0.2
+      etcdctl_endpoint: kubernetes-etcd
     labels:
       anchor:
         node_selector_key: kubernetes-etcd
@@ -962,7 +967,6 @@ data:
             key: placeholder
     service:
       name: kubernetes-etcd
-      ip: 10.96.0.2
     network:
       service_client:
         name: service_client

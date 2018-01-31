@@ -1,38 +1,26 @@
-anchor:
-  kubelet:
-    manifest_path: /etc/kubernetes/manifests
-  node_selector: {}
-  period: 30
-
-tls:
-  ca: placeholder
-  cert: placeholder
-  key: placeholder
-
-coredns:
-  kubernetes_zones:
-    - cluster.local
-  cache:
-    ttl: 60
-  host_etc_path: /etc/coredns
-  upstream_nameservers:
-    - 8.8.8.8
-    - 8.8.4.4
-
-  zones:
-    - name: promenade
-      services:
-        - bind_name: apiserver.kubernetes
-          service:
-            name: kubernetes
-            namespace: default
+conf:
+  coredns:
+    corefile: |
+      .:53 {
+          errors
+          health
+          autopath @kubernetes
+          kubernetes cluster.local 10.96.0.0/16 10.97.0.0/16 {
+            pods insecure
+            fallthrough in-addr.arpa ip6.arpa
+            upstream 8.8.8.8
+            upstream 8.8.4.4
+          }
+          prometheus :9153
+          proxy . 8.8.8.8
+          proxy . 8.8.4.4
+          cache 30
+      }
 
 images:
-  anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
-  coredns: coredns/coredns:0.9.9
-
-network:
-  kubernetes_netloc: 10.96.0.1
+  tags:
+    coredns: coredns/coredns:1.0.5
+  pull_policy: "IfNotPresent"
 
 node_selector: {}
 

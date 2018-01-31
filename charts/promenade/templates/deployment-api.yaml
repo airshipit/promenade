@@ -46,11 +46,11 @@ spec:
           command:
             - /opt/promenade/entrypoint.sh
             - server
-          {{- if .Values.pod.env.promenade_api }}
+          {{- if $envAll.Values.pod.env.promenade_api }}
           env:
-            {{- range .Values.pod.env.promenade_api }}
-            - name: {{ .name }}
-              value: {{ .value }}
+            {{- range $envAll.Values.pod.env.promenade_api }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
             {{- end }}
           {{- end }}
           ports:
