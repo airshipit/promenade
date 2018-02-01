@@ -1,6 +1,5 @@
 from . import exceptions, logging, validation
 from .design_ref import get_documents
-import copy
 import jinja2
 import jsonpath_ng
 import yaml
@@ -190,53 +189,11 @@ def _get(documents, kind=None, schema=None, name=None):
             return document
 
 
-def _substitute(documents):
-    result = []
-
-    for document in documents:
-        dest_schema = document.get('schema')
-        dest_name = _mg(document, 'name')
-        LOG.debug('Checking for substitutions in schema=%s metadata.name=%s',
-                  dest_schema, dest_name)
-        final_doc = copy.deepcopy(document)
-        for substitution in _mg(document, 'substitutions', []):
-            source_schema = substitution['src']['schema']
-            source_name = substitution['src']['name']
-            source_path = substitution['src']['path']
-            dest_path = substitution['dest']['path']
-            LOG.debug('Substituting from schema=%s name=%s src_path=%s '
-                      'into dest_path=%s', source_schema, source_name,
-                      source_path, dest_path)
-            source_document = _get(
-                documents, schema=source_schema, name=source_name)
-            if source_document is None:
-                msg = 'Failed to find source document for subsitution.  ' \
-                        'dest_schema=%s dest_name=%s ' \
-                        'source_schema=%s source_name=%s' \
-                        % (dest_schema, dest_name, source_schema, source_name)
-                LOG.critical(msg)
-                raise exceptions.ValidationException(msg)
-
-            source_value = _extract(source_document['data'],
-                                    substitution['src']['path'])
-            final_doc['data'] = _replace(final_doc['data'], source_value,
-                                         substitution['dest']['path'])
-
-        result.append(final_doc)
-
-    return result
-
-
 def _extract(document, jsonpath):
     p = jsonpath_ng.parse(jsonpath)
     matches = p.find(document)
     if matches:
         return matches[0].value
-
-
-def _replace(document, value, jsonpath):
-    p = jsonpath_ng.parse(jsonpath)
-    return p.update(document, value)
 
 
 def _mg(document, field, default=None):
