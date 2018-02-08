@@ -1832,7 +1832,11 @@ data:
   values:
     manifests:
       deployment_tiller: false
-      service_tiller: false
+      service_tiller_deploy: false
+    conf:
+      armada:
+        DEFAULT:
+          tiller_namespace: kube-system
     images:
       tags:
         api: quay.io/attcomdev/armada:latest
