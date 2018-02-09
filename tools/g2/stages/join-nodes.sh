@@ -66,7 +66,7 @@ render_curl_url() {
     if [[ ${USE_DECKHAND} == 1 ]]; then
         DESIGN_REF="design_ref=deckhand%2Bhttp://deckhand-int.ucp.svc.cluster.local:9000/api/v1.0/revisions/${DECKHAND_REVISION}/rendered-documents"
     else
-        DESIGN_REF="design_ref=http://192.168.77.1:7777/promenade.yaml"
+        DESIGN_REF="design_ref=${NGINX_URL}/promenade.yaml"
     fi
     HOST_PARAMS="hostname=${NAME}&ip=$(config_vm_ip "${NAME}")"
 

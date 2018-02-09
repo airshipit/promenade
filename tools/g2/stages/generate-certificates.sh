@@ -14,6 +14,8 @@ for source_dir in $(config_configuration); do
     cat "${WORKSPACE}/${source_dir}"/*.yaml >> "${OUTPUT_FILE}"
 done
 
+log "Setting up local caches.."
+nginx_cache_and_replace_tar_urls "${OUTPUT_DIR}"/*.yaml
 registry_replace_references "${OUTPUT_DIR}"/*.yaml
 
 FILES=($(ls "${OUTPUT_DIR}"))

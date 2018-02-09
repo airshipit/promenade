@@ -20,5 +20,5 @@ docker run --rm -t \
                 -o scripts \
                 config/*.yaml
 
-mkdir -p "${TEMP_DIR}/nginx/"
+mkdir -p "${NGINX_DIR}"
 cat "${TEMP_DIR}"/config/*.yaml > "${TEMP_DIR}/nginx/promenade.yaml"

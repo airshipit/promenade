@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+{% include "header.sh" with context %}
 
 {% set hostname = config.get_first('Genesis:hostname', 'KubernetesNode:hostname') -%}
 
@@ -12,7 +12,29 @@ fi
 # Evict pods
 kubectl drain --force --timeout 3600s --grace-period 1800 --ignore-daemonsets --delete-local-data {{ hostname }} || true
 
-kubectl label node {{ hostname }} $(kubectl get node {{ hostname }} -o 'jsonpath={.metadata.labels}' | sed 's/map\[//' | sed 's/\]//' | tr ' ' '\n' | sed 's/:.*/-/g' | grep -v 'kubernetes.io')
+LABELS=()
+for attempt in $(seq 5); do
+    LABELS=($(kubectl get node {{ hostname }} -o 'jsonpath={.metadata.labels}' | sed 's/map\[//' | sed 's/\]//' | tr ' ' '\n' | sed 's/:.*/-/g' | grep -v 'kubernetes.io'))
+    if [[ ! -z "${LABELS[@]}" ]]; then
+        log "Got labels for host."
+        break
+    fi
+    log "Didn't get labels for host, retrying.."
+    sleep 5
+done
+
+if [[ -z "${LABELS[@]}" ]]; then
+    log "Failed to get labels for host.  Aborting teardown."
+    exit 1
+fi
+
+for attempt in $(seq 5); do
+    if kubectl label node {{ hostname }} "${LABELS[@]}"; then
+        break
+    fi
+    log "Failed to remove labels from node, retrying.."
+    sleep 5
+done
 
 sleep 30
 

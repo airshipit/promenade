@@ -5,8 +5,6 @@ set -e
 SCRIPT_DIR=$(realpath "$(dirname "${0}")")
 WORKSPACE=$(realpath "${SCRIPT_DIR}/..")
 GATE_UTILS=${WORKSPACE}/tools/g2/lib/all.sh
-TEMP_DIR=${TEMP_DIR:-$(mktemp -d)}
-chmod -R 755 "${TEMP_DIR}"
 
 GATE_COLOR=${GATE_COLOR:-1}
 
@@ -16,10 +14,11 @@ GATE_MANIFEST=${WORKSPACE}/tools/g2/manifests/${MANIFEST_ARG}.json
 export GATE_COLOR
 export GATE_MANIFEST
 export GATE_UTILS
-export TEMP_DIR
 export WORKSPACE
 
 source "${GATE_UTILS}"
+
+chmod -R 755 "${TEMP_DIR}"
 
 STAGES_DIR=${WORKSPACE}/tools/g2/stages
 

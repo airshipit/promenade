@@ -1127,7 +1127,10 @@ data:
             - release_group: armada-ucp
   values:
     labels:
-      jobs:
+      job:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+      provisioner:
         node_selector_key: ucp-control-plane
         node_selector_value: enabled
     endpoints:
@@ -1216,7 +1219,7 @@ data:
         ks_service: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
         ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
     labels:
-      jobs:
+      job:
         node_selector_key: ucp-control-plane
         node_selector_value: enabled
     endpoints:
@@ -1271,8 +1274,9 @@ data:
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         mariadb: docker.io/mariadb:10.1.23
     labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
+      server:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
     pod:
       replicas:
         server: 1
@@ -1432,6 +1436,12 @@ data:
   upgrade:
     no_hooks: false
   values:
+    endpoints:
+      maas_db:
+        auth:
+          admin:
+            username: postgres
+            password: sergtsop
     images:
       tags:
         bootstrap: sthussey/maas-region-controller:2.3
@@ -1515,8 +1525,12 @@ data:
       replicas:
         server: 1
     labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
+      server:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+      prometheus_rabbitmq_exporter:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1550,6 +1564,9 @@ data:
       replicas:
         api: 1
     labels:
+      job:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
     images:
@@ -1657,6 +1674,12 @@ data:
   upgrade:
     no_hooks: false
   values:
+    endpoints:
+      postgresql:
+        auth:
+          admin:
+            username: postgres
+            password: sergtsop
     images:
       tags:
         deckhand: quay.io/attcomdev/deckhand:latest
@@ -1720,6 +1743,11 @@ data:
           enabled: true
           port: 31000
     endpoints:
+      postgresql:
+        auth:
+          admin:
+            username: postgres
+            password: sergtsop
       physicalprovisioner:
         port:
           api:
@@ -1835,6 +1863,17 @@ data:
   upgrade:
     no_hooks: false
   values:
+    endpoints:
+      postgresql_airflow_db:
+        auth:
+          admin:
+            username: postgres
+            password: sergtsop
+      postgresql_shipyard_db:
+        auth:
+          admin:
+            username: postgres
+            password: sergtsop
     prod_environment: true
     images:
       tags:
@@ -1842,7 +1881,7 @@ data:
         shipyard: quay.io/attcomdev/shipyard:latest
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         shipyard_db_init: docker.io/postgres:9.5
-        shipyard_db_sync: docker.io/postgres:9.5
+        shipyard_db_sync: quay.io/attcomdev/shipyard:latest
         airflow_db_init: docker.io/postgres:9.5
         airflow_db_sync: quay.io/attcomdev/airflow:latest
         ks_user: docker.io/kolla/ubuntu-source-heat-engine:3.0.3
