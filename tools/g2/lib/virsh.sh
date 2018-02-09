@@ -129,7 +129,7 @@ vm_create() {
         --cpu host \
         --graphics vnc,listen=0.0.0.0 \
         --noautoconsole \
-        --network network=promenade \
+        --network "network=promenade,model=virtio" \
         --vcpus "$(config_vm_vcpus)" \
         --memory "$(config_vm_memory)" \
         --import \

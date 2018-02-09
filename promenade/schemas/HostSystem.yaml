@@ -71,7 +71,10 @@ data:
     images:
       type: object
       properties:
+        # NOTE(mark-burnett): No longer used.
         coredns:
+          $ref: '#/definitions/image'
+        haproxy:
           $ref: '#/definitions/image'
         helm:
           type: object
@@ -90,7 +93,7 @@ data:
             - kubectl
           additionalProperties: false
       required:
-        - coredns
+        - haproxy
         - helm
         - kubernetes
       additionalProperties: false

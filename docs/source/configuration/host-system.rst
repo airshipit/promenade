@@ -20,7 +20,7 @@ Sample Document
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
-        coredns: coredns/coredns:011
+        haproxy: haproxy:1.8.3
         helm:
           helm: lachlanevenson/k8s-helm:v2.7.2
         kubernetes:
@@ -91,21 +91,20 @@ Core Images
 
 These images are used for essential functionality:
 
-``coredns``
-    coredns_ is configured and used for Kubernetes API discovery during
+``haproxy``
+    HAProxy_ is configured and used for Kubernetes API discovery during
     bootstrapping.
 
 ``kubectl``
     Used for label application and validation tasks during bootstrapping.
+
+.. _HAProxy: https://www.haproxy.org/
 
 
 Convenience Images
 ^^^^^^^^^^^^^^^^^^
 
 The ``helm`` image is available for convenience.
-
-
-.. _coredns: https://github.com/coredns/coredns
 
 
 Packages

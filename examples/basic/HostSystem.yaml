@@ -30,7 +30,7 @@ data:
             rotate 1
         }
   images:
-    coredns: coredns/coredns:0.9.9
+    haproxy: haproxy:1.8.3
     helm:
       helm: lachlanevenson/k8s-helm:v2.7.2
     kubernetes:

@@ -33,7 +33,7 @@ class Generator:
             ca='kubernetes',
             cn='apiserver',
             hosts=self._service_dns('kubernetes', 'default') +
-            ['localhost', '127.0.0.1', 'apiserver.kubernetes.promenade'] +
+            ['localhost', '127.0.0.1'] +
             [self.config['KubernetesNetwork:kubernetes.service_ip']])
         self.gen(
             'certificate',
@@ -75,25 +75,19 @@ class Generator:
             cn='armada',
             groups=['system:masters'])
 
-        # Certificates for coredns
-        self.gen('certificate', 'coredns', ca='kubernetes', cn='coredns')
-
         # Certificates for Kubernetes's etcd servers
         self.gen_etcd_certificates(
             ca='kubernetes-etcd',
             genesis=True,
             service_name='kubernetes-etcd',
-            service_namespace='kube-system',
-            service_ip=self.config['KubernetesNetwork:etcd.service_ip'],
-            additional_hosts=['etcd.kubernetes.promenade'])
+            service_namespace='kube-system')
 
         # Certificates for Calico's etcd servers
         self.gen_etcd_certificates(
             ca='calico-etcd',
             service_name='calico-etcd',
             service_namespace='kube-system',
-            service_ip=self.calico_etcd_service_ip,
-            additional_hosts=['etcd.calico.promenade'])
+            service_ip=self.calico_etcd_service_ip)
 
         # Certificates for Calico node
         self.gen(

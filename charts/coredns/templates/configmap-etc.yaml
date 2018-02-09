@@ -4,5 +4,4 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.service.name }}-etc
 data:
-  cluster-ca.pem: {{ .Values.tls.ca | quote }}
-  coredns.pem: {{ .Values.tls.cert | quote }}
+  Corefile: {{ .Values.conf.coredns.corefile | quote }}

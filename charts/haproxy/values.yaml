@@ -1,0 +1,88 @@
+# Copyright 2018 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+conf:
+  anchor:
+    files_to_copy:
+      - source: /tmp/etc/haproxy.yaml
+        dest: /etc/kubernetes/manifests/haproxy.yaml
+    period: 30
+    kubernetes_url: https://kubernetes.default:443
+    services:
+      default:
+        kubernetes:
+          server_opts: "check"
+          conf_parts:
+            frontend:
+              - mode tcp
+              - option tcpka
+              - bind *:6553
+            backend:
+              - mode tcp
+              - option tcpka
+      kube-system:
+        kubernetes-etcd:
+          server_opts: "check"
+          conf_parts:
+            frontend:
+              - mode tcp
+              - option tcpka
+              - bind *:2378
+            backend:
+              - mode tcp
+              - option tcpka
+
+  haproxy:
+    container_config_dir: /usr/local/etc/haproxy
+    host_config_dir: /etc/promenade/haproxy
+    period: 5
+    conf_parts:
+      global:
+        - maxconn 10240
+      defaults:
+        - timeout connect 5000ms
+        - timeout client 24h
+        - timeout server 24h
+      frontend: []
+      backend: []
+
+images:
+  tags:
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
+    haproxy: haproxy:1.8.3
+  pull_policy: "IfNotPresent"
+
+pod:
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        haproxy_anchor:
+          enabled: false
+          min_ready_seconds: 0
+          max_unavailable: 1
+    termination_grace_period:
+      haproxy_anchor:
+        timeout: 3600
+  resources:
+    enabled: false
+    haproxy_anchor:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "2000m"
+
+release_group: null

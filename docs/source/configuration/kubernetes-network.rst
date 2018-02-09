@@ -30,12 +30,15 @@ Sample Document
           - 8.8.4.4
 
       kubernetes:
+        apiserver_port: 6443
+        haproxy_port: 6553
         pod_cidr: 10.97.0.0/16
         service_cidr: 10.96.0.0/16
         service_ip: 10.96.0.1
 
       etcd:
-        service_ip: 10.96.0.2
+        container_port: 2379
+        haproxy_port: 2378
 
       hosts_entries:
         - ip: 192.168.77.1
@@ -71,6 +74,13 @@ Kubernetes
 ----------
 
 The ``kubernetes`` key contains:
+
+``apiserver_port``
+    The port that the Kubernetes API server process will listen on on hosts where it runs.
+
+``haproxy_port``
+    The port that HAProxy will listen on on each host.  This port will be used
+    by the ``kubelet`` and ``kube-proxy`` to find API servers in the cluster.
 
 ``pod_cidr``
     The CIDR from which the Kubernetes Controller Manager assigns pod IPs.

@@ -52,10 +52,16 @@ data:
     etcd:
       type: object
       properties:
+        container_port:
+          type: integer
+        haproxy_port:
+          type: integer
+        # NOTE(mark-burnett): No longer used.
         service_ip:
           $ref: '#/definitions/ip_address'
       required:
-        - service_ip
+        - container_port
+        - haproxy_port
       additionalProperties: false
 
     kubernetes:
@@ -67,10 +73,16 @@ data:
           $ref: '#/definitions/ip_address'
         service_cidr:
           $ref: '#/definitions/cidr'
+        apiserver_port:
+          type: integer
+        haproxy_port:
+          type: integer
       required:
         - pod_cidr
         - service_cidr
         - service_ip
+        - apiserver_port
+        - haproxy_port
       additionalProperties: false
     hosts_entries:
       type: array
