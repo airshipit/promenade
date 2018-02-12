@@ -17,5 +17,4 @@ exec docker run --rm -it \
     -w $WORKDIR \
     -e KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml \
     {{ config['HostSystem:images.helm.helm'] }} \
-        --host 127.0.0.1:44134 \
         $*
