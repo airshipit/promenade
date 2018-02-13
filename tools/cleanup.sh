@@ -8,20 +8,35 @@ log ()  {
 
 
 TO_RM=(
+    "/etc/apt/apt.conf.d/20-proxy.conf"
+    "/etc/apt/sources.list.d/promenade-sources.list"
     "/etc/cni"
     "/etc/coredns"
+    "/etc/docker/daemon.json"
     "/etc/etcd"
     "/etc/genesis"
     "/etc/kubernetes"
+    "/etc/logrotate.d/json-logrotate"
     "/etc/systemd/system/kubelet.service"
+    "/etc/systemd/system/docker.service.d/http-proxy.conf"
     "/home/ceph"
+    "/usr/local/bin/armada"
+    "/usr/local/bin/helm"
+    "/usr/local/bin/kubectl"
+    "/usr/local/bin/promenade-teardown"
+    "/var/lib/anchor/calico-etcd-bootstrap"
     "/var/lib/etcd"
     "/var/lib/kubelet/pods"
     "/var/lib/openstack-helm"
+    "/var/log/armada"
     "/var/log/containers"
     "/var/log/pods"
 )
 
+TO_LEAVE=(
+    "/etc/hosts"
+    "/etc/resolv.conf"
+)
 
 prune_docker() {
     log "Docker prune"
@@ -38,6 +53,12 @@ remove_files() {
     for item in "${TO_RM[@]}"; do
         log "Removing ${item}"
         rm -rf "${item}"
+    done
+}
+
+leave_files() {
+    for item in "${TO_LEAVE[@]}"; do
+        log "WARNING: === ${item} === has been modified, but we didn't revert changes."
     done
 }
 
@@ -113,3 +134,5 @@ systemctl daemon-reload
 if [[ $RESET_DOCKER == "1" ]]; then
     reset_docker
 fi
+
+leave_files
