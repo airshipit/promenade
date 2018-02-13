@@ -26,7 +26,8 @@
     },
     {
       "name": "Genesis",
-      "script": "genesis.sh"
+      "script": "genesis.sh",
+      "on_error": "collect_genesis_info.sh"
     }
   ],
   "vm": {

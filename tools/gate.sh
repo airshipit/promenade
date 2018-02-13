@@ -22,7 +22,7 @@ chmod -R 755 "${TEMP_DIR}"
 
 STAGES_DIR=${WORKSPACE}/tools/g2/stages
 
-log_temp_dir "${TEMP_DIR}"
+log_temp_dir
 echo
 
 STAGES=$(mktemp)
@@ -44,10 +44,11 @@ while read -u 3 stage; do
         log_stage_error "${NAME}" "${LOG_FILE}"
         if echo "${stage}" | jq -e .on_error > /dev/null; then
             log_stage_diagnostic_header
-            ON_ERROR=${WORKSPACE}/$(echo "${stage}" | jq -r .on_error)
+            ON_ERROR=${WORKSPACE}/tools/g2/on_error/$(echo "${stage}" | jq -r .on_error)
             set +e
             $ON_ERROR
         fi
+        log_stage_error "${NAME}" "${TEMP_DIR}"
         exit 1
     fi
     log_stage_footer "${NAME}"

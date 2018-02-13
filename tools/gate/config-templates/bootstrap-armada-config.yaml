@@ -119,28 +119,6 @@ metadata:
     abstract: false
     layer: site
   storagePolicy: cleartext
-  substitutions:
-    -
-      src:
-        schema: deckhand/CertificateAuthority/v1
-        name: kubernetes
-        path: .
-      dest:
-        path: '.values.secrets.tls.ca'
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: proxy
-        path: .
-      dest:
-        path: '.values.secrets.tls.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: proxy
-        path: .
-      dest:
-        path: '.values.secrets.tls.key'
 data:
   chart_name: proxy
   release: kubernetes-proxy
@@ -149,11 +127,6 @@ data:
   upgrade:
     no_hooks: true
   values:
-    secrets:
-      tls:
-        ca: placeholder
-        cert: placeholder
-        key: placeholder
     images:
       tags:
         proxy: ${IMAGE_HYPERKUBE}
