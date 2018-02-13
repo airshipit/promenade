@@ -491,9 +491,19 @@ data:
   upgrade:
     no_hooks: true
   values:
+    conf:
+      test:
+        names_to_resolve:
+          - att.com
+          - calico-etcd.kube-system.svc.cluster.local
+          - google.com
+          - kubernetes-etcd.kube-system.svc.cluster.local
+          - kubernetes.default.svc.cluster.local
+
     images:
       tags:
         coredns: coredns/coredns:1.0.5
+        test: coredns/coredns:1.0.5
   source:
     type: local
     location: /etc/genesis/armada/assets/charts

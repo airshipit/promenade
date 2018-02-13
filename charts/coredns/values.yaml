@@ -6,20 +6,26 @@ conf:
           health
           autopath @kubernetes
           kubernetes cluster.local 10.96.0.0/16 10.97.0.0/16 {
-            pods insecure
+            pods disabled
             fallthrough in-addr.arpa ip6.arpa
             upstream 8.8.8.8
             upstream 8.8.4.4
           }
-          prometheus :9153
+          prometheus :9253
           proxy . 8.8.8.8
           proxy . 8.8.4.4
           cache 30
       }
 
+  test:
+    names_to_resolve:
+      - att.com
+      - kubernetes.default.svc.cluster.local
+
 images:
   tags:
     coredns: coredns/coredns:1.0.5
+    test: coredns/coredns:1.0.5
   pull_policy: "IfNotPresent"
 
 node_selector: {}
