@@ -22,6 +22,7 @@ sudo apt-get update -qq
 sudo apt-get install -q -y --no-install-recommends \
     curl \
     docker.io \
+    fio \
     genisoimage \
     jq \
     libstring-shellquote-perl \

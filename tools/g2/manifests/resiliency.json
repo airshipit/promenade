@@ -5,6 +5,10 @@
   ],
   "stages": [
     {
+      "name": "Report Disk IO",
+      "script": "report-disk-io.sh"
+    },
+    {
       "name": "Gate Setup",
       "script": "gate-setup.sh"
     },
