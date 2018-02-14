@@ -14,25 +14,28 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-=====================================
-Welcome to Promenade's documentation!
-=====================================
 
-Promenade is a tool for bootstrapping a resilient Kubernetes cluster and
-managing its life-cycle.
+Promenade Exceptions
+====================
 
-User's Guide
-============
+.. list-table::
+  :widths: 5 50
+  :header-rows: 1
 
-Promenade Configuration Guide
------------------------------
-
-.. toctree::
-   :maxdepth: 2
-
-   design
-   getting-started
-   configuration/index
-   troubleshooting/index
-   api
-   exceptions
+  * - Exception Name
+    - Description
+  * - ApiError
+    - .. autoexception:: promenade.exceptions.ApiError
+         :members:
+         :show-inheritance:
+         :undoc-members:
+  * - InvalidFormatError
+    - .. autoexception:: promenade.exceptions.InvalidFormatError
+        :members:
+        :show-inheritance:
+        :undoc-members:
+  * - ValidationException
+    - .. autoexception:: promenade.exceptions.ValidationException
+        :members:
+        :show-inheritance:
+        :undoc-members:

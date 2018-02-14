@@ -153,6 +153,10 @@ class PromenadeException(Exception):
     """
     Base error containing enough information to make a promenade-formatted
     error
+
+    **Message:** *Auth is not being handled by any policy engine*.
+
+    **Troubleshoot:**
     """
     EXIT_CODE = 1
 
@@ -221,6 +225,18 @@ class PromenadeException(Exception):
 class ApiError(PromenadeException):
     """
     An error to handle general api errors.
+
+    **Message:** *Expectation Failed*.
+
+    **Troubleshoot:**
+
+    **Message:** *Forbidden*.
+
+    **Troubleshoot:**
+
+    **Message:** *Unauthenticated*.
+
+    **Troubleshoot:**
     """
 
     title = 'Api Error'
@@ -229,7 +245,17 @@ class ApiError(PromenadeException):
 
 class InvalidFormatError(PromenadeException):
     """
-    An exception to cover invalid input formatting
+    An exception to cover invalid input formatting.
+
+    **Message:** *<req.path>: Invalid JSON in body: <various>*.
+
+    **Troubleshoot:** *Make sure the path is correct and the body is valid
+    JSON*.
+
+    **Message:** *<req.path>: Bad input, no body provided*.
+
+    **Troubleshoot:** *Make sure the path is correct and the a body is
+    provided*.
     """
 
     title = 'Invalid Input Error'
@@ -237,6 +263,15 @@ class InvalidFormatError(PromenadeException):
 
 
 class ValidationException(PromenadeException):
+    """
+    **Message:** *"schema" is a required document key*.
+
+    **Troubleshoot:**
+
+    **Message:** *Only kind or schema may be specified, not both*.
+
+    **Troubleshoot:**
+    """
     title = 'Validation Error'
     status = falcon.HTTP_400
 
