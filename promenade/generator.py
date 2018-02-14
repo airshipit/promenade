@@ -24,7 +24,7 @@ class Generator:
             for cert_def in ca_def.get('certificates', []):
                 hosts = cert_def.get('hosts', [])
                 hosts.extend(
-                    self.get_host_list(
+                    get_host_list(
                         cert_def.get('kubernetes_service_names', [])))
                 self.gen(
                     'certificate',
@@ -37,26 +37,19 @@ class Generator:
             self.gen('keypair', keypair_def['name'])
         _write(output_dir, self.documents)
 
-    def get_host_list(self, service_names):
-        service_list = []
-        for service in service_names:
-            parts = service.split('.')
-            for i in range(len(parts)):
-                service_list.append('.'.join(parts[:i]))
-        return service_list
-
     def gen(self, kind, *args, **kwargs):
         method = getattr(self.keys, 'generate_' + kind)
 
         self.documents.extend(method(*args, **kwargs))
 
-    def _service_dns(self, name, namespace):
-        return [
-            name,
-            '.'.join([name, namespace]),
-            '.'.join([name, namespace, 'svc']),
-            '.'.join([name, namespace, 'svc', self.cluster_domain]),
-        ]
+
+def get_host_list(service_names):
+    service_list = []
+    for service in service_names:
+        parts = service.split('.')
+        for i in range(len(parts)):
+            service_list.append('.'.join(parts[:i + 1]))
+    return service_list
 
 
 def _write(output_dir, docs):

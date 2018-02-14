@@ -56,6 +56,23 @@ spec:
           ports:
             - name: api-public
               containerPort: {{ .Values.network.api.port }}
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /api/v1.0/health
+              port: {{ .Values.network.api.target_port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1.0/health
+              port: {{ .Values.network.api.target_port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
           volumeMounts:
             - name: promenade-etc
               mountPath: /etc/promenade/api-paste.ini
