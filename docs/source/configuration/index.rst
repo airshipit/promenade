@@ -17,6 +17,7 @@ Details about Promenade-specific documents can be found here:
     kubelet
     kubernetes-network
     kubernetes-node
+    pki-catalog
 
 
 The provided Armada_ manifest and will be applied on the genesis node as soon
