@@ -6,6 +6,10 @@ metadata:
   labels:
     kubernetes.io/cluster-service: "true"
     kubernetes.io/name: "CoreDNS"
+  annotations:
+{{- if .Values.monitoring.prometheus.enabled }}
+{{ tuple .Values.monitoring.prometheus.coredns | include "helm-toolkit.snippets.prometheus_service_annotations" | indent 4 -}}
+{{- end }}
 spec:
   selector:
     {{ .Values.service.name }}: enabled
