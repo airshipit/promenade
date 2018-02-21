@@ -5,6 +5,7 @@ import jsonpath_ng
 import yaml
 
 from deckhand.engine import layering
+from deckhand import errors as dh_errors
 
 __all__ = ['Configuration']
 
@@ -24,9 +25,18 @@ class Configuration:
         LOG.info("Building config from %d documents." % len(documents))
         if substitute:
             LOG.info("Rendering documents via Deckhand engine.")
-            deckhand_eng = layering.DocumentLayering(
-                documents, substitution_sources=documents)
-            documents = [dict(d) for d in deckhand_eng.render()]
+            try:
+                deckhand_eng = layering.DocumentLayering(
+                    documents,
+                    substitution_sources=documents,
+                    fail_on_missing_sub_src=False)
+                documents = [dict(d) for d in deckhand_eng.render()]
+            except dh_errors.DeckhandException as e:
+                LOG.exception(str(e))
+                LOG.error('An unknown Deckhand exception occurred while trying'
+                          ' to render documents.')
+                raise exceptions.DeckhandException(str(e))
+
             LOG.info("Deckhand engine returned %d documents." % len(documents))
         if validate:
             validation.check_schemas(documents, schemas=schema_set)

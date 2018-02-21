@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from promenade.control.base import BaseResource
-from promenade.builder import Builder
-from promenade.config import Configuration
-from promenade import logging
-from promenade import policy
 import falcon
 import kubernetes
 import random
+
+from promenade.control.base import BaseResource
+from promenade.builder import Builder
+from promenade.config import Configuration
+from promenade import exceptions
+from promenade import logging
+from promenade import policy
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +42,11 @@ class JoinScriptsResource(BaseResource):
 
         join_ip = _get_join_ip()
 
-        config = Configuration.from_design_ref(design_ref)
+        try:
+            config = Configuration.from_design_ref(design_ref)
+        except exceptions.DeckhandException as e:
+            raise falcon.HTTPInternalServerError(description=str(e))
+
         node_document = {
             'schema': 'promenade/KubernetesNode/v1',
             'metadata': {

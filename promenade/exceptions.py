@@ -241,6 +241,11 @@ class ValidationException(PromenadeException):
     status = falcon.HTTP_400
 
 
+class DeckhandException(PromenadeException):
+    title = 'Deckhand Engine Error'
+    status = falcon.HTTP_500
+
+
 def massage_error_list(error_list, placeholder_description):
     """
     Returns a best-effort attempt to make a nice error list
