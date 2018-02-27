@@ -31,7 +31,10 @@ def build_all(*, config_files, output_dir, validators):
     debug = _debug()
     try:
         c = config.Configuration.from_streams(
-            debug=debug, streams=config_files)
+            debug=debug,
+            substitute=True,
+            allow_missing_substitutions=False,
+            streams=config_files)
         b = builder.Builder(c, validators=validators)
         b.build_all(output_dir=output_dir)
     except exceptions.PromenadeException as e:
@@ -52,7 +55,11 @@ def genereate_certs(*, config_files, output_dir):
     debug = _debug()
     try:
         c = config.Configuration.from_streams(
-            debug=debug, streams=config_files, substitute=True, validate=False)
+            debug=debug,
+            streams=config_files,
+            substitute=True,
+            allow_missing_substitutions=True,
+            validate=False)
         g = generator.Generator(c)
         g.generate(output_dir)
     except exceptions.PromenadeException as e:

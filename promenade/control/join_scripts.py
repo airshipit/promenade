@@ -43,7 +43,8 @@ class JoinScriptsResource(BaseResource):
         join_ip = _get_join_ip()
 
         try:
-            config = Configuration.from_design_ref(design_ref)
+            config = Configuration.from_design_ref(
+                design_ref, allow_missing_substitutions=False)
         except exceptions.DeckhandException as e:
             raise falcon.HTTPInternalServerError(description=str(e))
 
