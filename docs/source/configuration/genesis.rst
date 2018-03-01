@@ -24,7 +24,7 @@ Here is a complete sample document:
       hostname: n0
       ip: 192.168.77.10
       armada:
-          target_manifest: cluster-bootstrap
+        target_manifest: cluster-bootstrap
       labels:
         static:
           - calico-etcd=enabled
@@ -51,7 +51,7 @@ Here is a complete sample document:
           mode: 0644
 
 
-Amrada
+Armada
 ------
 
 This section contains particular configuration options for bootstrapping with
