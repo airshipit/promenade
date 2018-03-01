@@ -5,6 +5,7 @@ LIB_DIR=$(realpath "$(dirname "${BASH_SOURCE}")")
 
 source "$LIB_DIR"/config.sh
 source "$LIB_DIR"/const.sh
+source "$LIB_DIR"/docker.sh
 source "$LIB_DIR"/etcd.sh
 source "$LIB_DIR"/kube.sh
 source "$LIB_DIR"/log.sh

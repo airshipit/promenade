@@ -20,11 +20,12 @@ nginx_up() {
 nginx_cache_and_replace_tar_urls() {
     log "Finding tar_url options to cache.."
     TAR_NUM=0
+    mkdir -p "${NGINX_DIR}"
     for file in "$@"; do
         grep -Po "^ +tar_url: \K.+$" "${file}" | while read tar_url ; do
             # NOTE(mark-burnet): Does not yet ignore repeated files.
-            log "Caching ${tar_url} in file: ${file}"
             DEST_PATH="${NGINX_DIR}/cached-tar-${TAR_NUM}.tgz"
+            log "Caching ${tar_url} in file: ${DEST_PATH}"
             REPLACEMENT_URL="${NGINX_URL}/cached-tar-${TAR_NUM}.tgz"
             curl -Lo "${DEST_PATH}" "${tar_url}"
             sed -i "s;${tar_url};${REPLACEMENT_URL};" "${file}"

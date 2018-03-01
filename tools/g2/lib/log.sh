@@ -46,8 +46,7 @@ log_note() {
 
 log_stage_error() {
     NAME=${1}
-    TEMP_DIR=${2}
-    echo -e " ${C_ERROR}== Error in stage ${C_HILIGHT}${NAME}${C_ERROR} ( ${C_TEMP}${TEMP_DIR}${C_ERROR} ) ==${C_CLEAR}"
+    echo -e " ${C_ERROR}== Error in stage ${C_HILIGHT}${NAME}${C_ERROR} ( ${C_TEMP}${LOG_FILE}${C_ERROR} ) ==${C_CLEAR}"
 }
 
 log_stage_footer() {
@@ -65,7 +64,6 @@ log_stage_success() {
 }
 
 log_temp_dir() {
-    TEMP_DIR=${1}
     echo -e "Working in ${C_TEMP}${TEMP_DIR}${C_CLEAR}"
 }
 
