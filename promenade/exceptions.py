@@ -243,6 +243,22 @@ class ApiError(PromenadeException):
     status = falcon.HTTP_400
 
 
+class ExistingKubernetesNodeDocumentError(ApiError):
+    """
+    An exception to represent the unexpected discovery of
+    `promenade/KubernetesNode/v1` documents in the given site design when
+    calling the `join-scripts` api.
+
+    **Message:** *Existing KubernetesNode documents found*
+
+    **Troubleshoot:** *KubernetesNode documents should not be in the site
+    design when using the join-scripts API for join script generation.*
+    """
+
+    title = 'Unexpected KubernetesNode document found'
+    status = falcon.HTTP_400
+
+
 class InvalidFormatError(PromenadeException):
     """
     An exception to cover invalid input formatting.
