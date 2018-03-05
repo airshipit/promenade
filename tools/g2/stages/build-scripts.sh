@@ -19,6 +19,3 @@ docker run --rm -t \
                 --validators \
                 -o scripts \
                 config/*.yaml
-
-mkdir -p "${NGINX_DIR}"
-cat "${TEMP_DIR}"/config/*.yaml > "${TEMP_DIR}/nginx/promenade.yaml"

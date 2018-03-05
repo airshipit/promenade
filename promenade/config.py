@@ -94,7 +94,7 @@ class Configuration:
                 'No document found matching kind=%s schema=%s name=%s' %
                 (kind, schema, name))
 
-    def iterate(self, *, kind=None, schema=None, labels=None):
+    def iterate(self, *, kind=None, schema=None, labels=None, name=None):
         if kind is not None:
             if schema is not None:
                 raise AssertionError(
@@ -102,8 +102,13 @@ class Configuration:
             schema = 'promenade/%s/v1' % kind
 
         for document in self.documents:
-            if _matches_filter(document, schema=schema, labels=labels):
+            if _matches_filter(
+                    document, schema=schema, labels=labels, name=name):
                 yield document
+
+    def find(self, *args, **kwargs):
+        for doc in self.iterate(*args, **kwargs):
+            return doc
 
     def extract_genesis_config(self):
         LOG.debug('Extracting genesis config.')
@@ -179,7 +184,7 @@ class Configuration:
                              ['/apiserver', '--apiserver-count=2', '--v=5'])
 
 
-def _matches_filter(document, *, schema, labels):
+def _matches_filter(document, *, schema, labels, name):
     matches = True
     if schema is not None and not document.get('schema',
                                                '').startswith(schema):
@@ -193,6 +198,10 @@ def _matches_filter(document, *, schema, labels):
             else:
                 if document_labels[key] != value:
                     matches = False
+
+    if name is not None:
+        if _mg(document, 'name') != name:
+            matches = False
 
     return matches
 

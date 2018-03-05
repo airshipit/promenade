@@ -1,4 +1,4 @@
-from . import logging, tar_bundler
+from . import exceptions, logging, tar_bundler
 import base64
 import datetime
 import io
@@ -75,7 +75,13 @@ def render_template_into_bundler(*, bundler, config, destination_path,
     with open(source_path) as f:
         template = env.from_string(f.read())
     now = int(datetime.datetime.utcnow().timestamp())
-    data = template.render(config=config, now=now)
+    try:
+        data = template.render(config=config, now=now)
+    except jinja2.exceptions.TemplateRuntimeError as e:
+        LOG.exception('Error rendering template (%s)' % source_path)
+        raise exceptions.TemplateRenderException(
+            'Error rendering template (%s): %s' % (source_path, e))
+
     bundler.add(path=destination_path, data=data, mode=mode)
 
 
@@ -91,7 +97,12 @@ def render_template(config, *, template, context=None):
     env = _build_env()
 
     template_obj = env.from_string(template_contents.decode('utf-8'))
-    return template_obj.render(config=config, **context)
+    try:
+        return template_obj.render(config=config, **context)
+    except jinja2.exceptions.TemplateRuntimeError as e:
+        LOG.exception('Error rendering template (%s)' % template)
+        raise exceptions.TemplateRenderException(
+            'Error rendering template (%s): %s' % (template, e))
 
 
 def _build_env():

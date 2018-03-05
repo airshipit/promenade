@@ -222,6 +222,24 @@ class PromenadeException(Exception):
             LOG.error(self.title + (self.description or ''))
 
 
+class PKIError(PromenadeException):
+    """
+    A parent error for PKI-related issues.
+    """
+    title = 'PKI Error'
+    # NOTE(mark-burnett): The API should never see these errors.
+    status = falcon.HTTP_500
+
+
+class IncompletePKIPairError(PKIError):
+    """
+    An incomplete pair (Certificate + Key or Pub + Priv) was found in cache.
+    """
+    title = 'Incomplete Pair Error'
+    # NOTE(mark-burnett): The API should never see these errors.
+    status = falcon.HTTP_500
+
+
 class ApiError(PromenadeException):
     """
     An error to handle general api errors.
@@ -294,6 +312,11 @@ class ValidationException(PromenadeException):
 
 class DeckhandException(PromenadeException):
     title = 'Deckhand Engine Error'
+    status = falcon.HTTP_400
+
+
+class TemplateRenderException(PromenadeException):
+    title = 'Template Rendering Error Error'
     status = falcon.HTTP_500
 
 

@@ -4,6 +4,7 @@ export BASE_IMAGE_URL=${BASE_IMAGE_URL:-https://cloud-images.ubuntu.com/releases
 export IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/attcomdev/promenade:latest}
 export NGINX_DIR="${TEMP_DIR}/nginx"
 export NGINX_URL="http://192.168.77.1:7777"
+export PROMENADE_BASE_URL="http://promenade-api.ucp.svc.cluster.local"
 export PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
 export REGISTRY_DATA_DIR=${REGISTRY_DATA_DIR:-/mnt/registry}
 export VIRSH_POOL=${VIRSH_POOL:-promenade}

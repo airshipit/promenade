@@ -18,7 +18,10 @@
     },
     {
       "name": "Generate Certificates",
-      "script": "generate-certificates.sh"
+      "script": "generate-certificates.sh",
+      "arguments": [
+        "-x", "PKICatalog-addition.yaml"
+      ]
     },
     {
       "name": "Build Scripts",
@@ -40,6 +43,36 @@
         "-v", "n0",
         "-n", "n1",
         "-n", "n2",
+        "-l", "calico-etcd=enabled",
+        "-l", "kubernetes-apiserver=enabled",
+        "-l", "kubernetes-controller-manager=enabled",
+        "-l", "kubernetes-etcd=enabled",
+        "-l", "kubernetes-scheduler=enabled",
+        "-l", "ucp-control-plane=enabled",
+        "-e", "kubernetes n0 n0 n1 n2",
+        "-e", "calico n0 n0 n1 n2"
+      ]
+    },
+    {
+      "name": "Verify Join Failure",
+      "script": "fail-join-node.sh",
+      "arguments": [
+        "-v", "n0",
+        "-n", "n3"
+      ]
+    },
+    {
+      "name": "Update Generated Certs",
+      "script": "generate-certificates.sh",
+      "arguments": [
+        "-u"
+      ]
+    },
+    {
+      "name": "Join Final Master",
+      "script": "join-nodes.sh",
+      "arguments": [
+        "-v", "n0",
         "-n", "n3",
         "-l", "calico-etcd=enabled",
         "-l", "coredns=enabled",

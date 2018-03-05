@@ -1,7 +1,10 @@
 PKI Catalog
 ===========
 
-Configuration for certificate and keypair generation in the cluster.
+Configuration for certificate and keypair generation in the cluster.  The
+``promenade generate-certs`` command will read all ``PKICatalog`` documents and
+either find pre-existing certificates/keys, or generate new ones based on the
+given definition.
 
 
 Sample Document

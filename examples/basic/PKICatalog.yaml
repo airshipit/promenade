@@ -48,13 +48,6 @@ data:
             - 192.168.77.12
           groups:
             - system:nodes
-        - document_name: kubelet-n3
-          common_name: system:node:n3
-          hosts:
-            - n3
-            - 192.168.77.13
-          groups:
-            - system:nodes
         - document_name: scheduler
           description: Service certificate for Kubernetes scheduler
           common_name: system:kube-scheduler

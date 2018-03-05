@@ -10,6 +10,7 @@ declare -a NODES
 
 GET_KEYSTONE_TOKEN=0
 USE_DECKHAND=0
+DECKHAND_REVISION=''
 
 while getopts "d:e:l:n:tv:" opt; do
     case "${opt}" in
@@ -46,42 +47,10 @@ if [ $# -gt 0 ]; then
 fi
 
 SCRIPT_DIR="${TEMP_DIR}/curled-scripts"
-BASE_PROM_URL="http://promenade-api.ucp.svc.cluster.local"
 
 echo Etcd Clusters: "${ETCD_CLUSTERS[@]}"
 echo Labels: "${LABELS[@]}"
 echo Nodes: "${NODES[@]}"
-
-render_curl_url() {
-    NAME=${1}
-    shift
-    LABELS=(${@})
-
-    LABEL_PARAMS=
-    for label in "${LABELS[@]}"; do
-        LABEL_PARAMS+="&labels.dynamic=${label}"
-    done
-
-    BASE_URL="${BASE_PROM_URL}/api/v1.0/join-scripts"
-    if [[ ${USE_DECKHAND} == 1 ]]; then
-        DESIGN_REF="design_ref=deckhand%2Bhttp://deckhand-int.ucp.svc.cluster.local:9000/api/v1.0/revisions/${DECKHAND_REVISION}/rendered-documents"
-    else
-        DESIGN_REF="design_ref=${NGINX_URL}/promenade.yaml"
-    fi
-    HOST_PARAMS="hostname=${NAME}&ip=$(config_vm_ip "${NAME}")"
-
-    echo "${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}&leave_kubectl=true${LABEL_PARAMS}"
-}
-
-render_validate_body() {
-    if [[ ${USE_DECKHAND} == 1 ]]; then
-        JSON="{\"rel\":\"design\",\"href\":\"deckhand+http://deckhand-int.ucp.svc.cluster.local:9000/api/v1.0/revisions/${DECKHAND_REVISION}/rendered-documents\",\"type\":\"application/x-yaml\"}"
-    else
-        JSON="{\"rel\":\"design\",\"href\":\"${NGINX_URL}/promenade.yaml\",\"type\":\"application/x-yaml\"}"
-    fi
-
-    echo ${JSON}
-}
 
 mkdir -p "${SCRIPT_DIR}"
 
@@ -100,23 +69,12 @@ for NAME in "${NODES[@]}"; do
         CURL_ARGS+=("-H" "X-Auth-Token: ${TOKEN}")
     fi
 
-    log "Checking Promenade API health"
-    MAX_HEALTH_ATTEMPTS=6
-    for attempt in $(seq ${MAX_HEALTH_ATTEMPTS}); do
-        if ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" "${BASE_PROM_URL}/api/v1.0/health"; then
-            log "Promenade API healthy"
-            break
-        elif [[ $attempt == "${MAX_HEALTH_ATTEMPTS}" ]]; then
-            log "Promenade health check failed, max retries (${MAX_HEALTH_ATTEMPTS}) exceeded."
-            exit 1
-        fi
-        sleep 10
-    done
+    promenade_health_check "${VIA}"
 
     log "Validating documents"
-    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" -X POST -H "Content-Type: application/json" -d $(render_validate_body) "${BASE_PROM_URL}/api/v1.0/validatedesign"
+    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" -X POST -H "Content-Type: application/json" -d "$(promenade_render_validate_body "${USE_DECKHAND}" "${DECKHAND_REVISION}")" "$(promenade_render_validate_url)"
 
-    JOIN_CURL_URL="$(render_curl_url "${NAME}" "${LABELS[@]}")"
+    JOIN_CURL_URL="$(promenade_render_curl_url "${NAME}" "${USE_DECKHAND}" "${DECKHAND_REVISION}" "${LABELS[@]}")"
     log "Fetching join script via: ${JOIN_CURL_URL}"
     ssh_cmd "${VIA}" curl "${CURL_ARGS[@]}" \
         "${JOIN_CURL_URL}" > "${SCRIPT_DIR}/join-${NAME}.sh"

@@ -1,6 +1,7 @@
 import hashlib
 import io
 import tarfile
+import time
 
 from promenade import logging
 
@@ -25,6 +26,7 @@ class TarBundler:
             data_bytes = data
         tar_info.size = len(data_bytes)
         tar_info.mode = mode
+        tar_info.mtime = int(time.time())
 
         if tar_info.size > 0:
             # Ignore bandit false positive: B303:blacklist
