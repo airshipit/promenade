@@ -14,6 +14,7 @@ if [ "$1" = 'server' ]; then
         --harakiri "${UWSGI_TIMEOUT}" \
         --socket-timeout "${UWSGI_TIMEOUT}" \
         --harakiri-verbose \
+        -b 32768 \
         --lazy-apps \
         --master \
         --thunder-lock \
