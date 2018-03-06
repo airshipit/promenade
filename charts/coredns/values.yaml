@@ -33,3 +33,10 @@ node_selector: {}
 service:
   name: coredns
   ip: 10.96.0.10
+
+monitoring:
+  prometheus:
+    enabled: false
+    coredns:
+      scrape: true
+      port: 9253
