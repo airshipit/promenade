@@ -45,6 +45,9 @@
           "name": {
             "type": "string"
           },
+          "on_error": {
+            "$ref": "#/definitions/relativePath"
+          },
           "publish": {
             "$ref": "#/definitions/publish"
           },
