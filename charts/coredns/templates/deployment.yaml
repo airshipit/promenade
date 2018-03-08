@@ -66,6 +66,14 @@ spec:
         - containerPort: 53
           name: dns-tcp
           protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
         livenessProbe:
           httpGet:
             path: /health
