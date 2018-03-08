@@ -18,6 +18,7 @@ class Configuration:
                  documents,
                  debug=False,
                  substitute=True,
+                 allow_missing_substitutions=True,
                  validate=True):
         LOG.info("Parsing document schemas.")
         schema_set = validation.load_schemas_from_docs(documents)
@@ -29,12 +30,12 @@ class Configuration:
                 deckhand_eng = layering.DocumentLayering(
                     documents,
                     substitution_sources=documents,
-                    fail_on_missing_sub_src=False)
+                    fail_on_missing_sub_src=not allow_missing_substitutions)
                 documents = [dict(d) for d in deckhand_eng.render()]
             except dh_errors.DeckhandException as e:
-                LOG.exception(str(e))
-                LOG.error('An unknown Deckhand exception occurred while trying'
-                          ' to render documents.')
+                LOG.exception(
+                    'An unknown Deckhand exception occurred while trying'
+                    ' to render documents.')
                 raise exceptions.DeckhandException(str(e))
 
             LOG.info("Deckhand engine returned %d documents." % len(documents))
