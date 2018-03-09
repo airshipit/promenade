@@ -25,6 +25,8 @@ from promenade import policy
 
 LOG = logging.getLogger(__name__)
 
+SENTINEL = object()
+
 
 class JoinScriptsResource(BaseResource):
     """
@@ -47,6 +49,10 @@ class JoinScriptsResource(BaseResource):
                 design_ref, allow_missing_substitutions=False)
         except exceptions.DeckhandException as e:
             raise falcon.HTTPInternalServerError(description=str(e))
+
+        if config.get_path('KubernetesNode:.', SENTINEL) != SENTINEL:
+            raise exceptions.ExistingKubernetesNodeDocumentError(
+                'Existing KubernetesNode documents found')
 
         node_document = {
             'schema': 'promenade/KubernetesNode/v1',
