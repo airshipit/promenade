@@ -47,7 +47,7 @@ registry_populate() {
 registry_replace_references() {
     FILES=(${@})
     for image in $(registry_list_images); do
-        sed -i "s;${image};registry:5000/${image};g" "${FILES[@]}"
+        sed -i "s;${image}\$;registry:5000/${image};g" "${FILES[@]}"
     done
 }
 

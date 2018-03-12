@@ -1142,8 +1142,6 @@ data:
   timeout: 3600
   wait:
     timeout: 3600
-  install:
-    no_hooks: true
   upgrade:
     no_hooks: false
     pre:
@@ -1151,33 +1149,34 @@ data:
         - name: ceph-mds-keyring-generator
           type: job
           labels:
-            - application: ceph
-            - component: mds-keyring-generator
-            - release_group: armada-ucp
+            application: ceph
+            component: mds-keyring-generator
+            release_group: armada-ucp
         - name: ceph-mon-keyring-generator
           type: job
           labels:
-            - application: ceph
-            - component: mon-keyring-generator
-            - release_group: armada-ucp
+            application: ceph
+            component: mon-keyring-generator
+            release_group: armada-ucp
         - name: ceph-rgw-keyring-generator
           type: job
           labels:
-            - application: ceph
-            - component: rgw-keyring-generator
-            - release_group: armada-ucp
+            application: ceph
+            component: rgw-keyring-generator
+            release_group: armada-ucp
         - name: ceph-storage-keys-generator
           type: job
           labels:
-            - application: ceph
-            - component: storage-keys-generator
-            - release_group: armada-ucp
+            application: ceph
+            component: storage-keys-generator
+            release_group: armada-ucp
         - name: ceph-osd-keyring-generator
           type: job
           labels:
-            - application: ceph
-            - component: osd-keyring-generator
-            - release_group: armada-ucp
+            application: ceph
+            component: osd-keyring-generator
+            release_group: armada-ucp
+
   values:
     labels:
       job:
@@ -1193,10 +1192,6 @@ data:
         namespace: ceph
       ceph_mon:
         namespace: ceph
-    ceph:
-      rgw_keystone_auth: true
-      storage:
-        osd_directory: /var/lib/openstack-helm/ceph/osd
     network:
       public: 192.168.77.0/24
       cluster: 192.168.77.0/24
@@ -1209,11 +1204,24 @@ data:
       rgw_keystone_user_and_endpoints: false
     bootstrap:
       enabled: true
+
     conf:
       ceph:
-        config:
-          global:
-            osd_pool_default_size: 1
+        global:
+          osd_pool_default_size: 1
+        osd:
+          osd_crush_chooseleaf_type: 0
+      features:
+        rgw: false
+      pool:
+        crush:
+          tunables: 'hammer'
+        target:
+          osd: 1
+          pg_per_osd: 100
+        default:
+          crush_rule: same_host
+
     images:
       tags:
         ceph_bootstrap: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
@@ -1248,8 +1256,6 @@ data:
   timeout: 3600
   wait:
     timeout: 3600
-  install:
-    no_hooks: false
   upgrade:
     no_hooks: false
     pre:
@@ -1257,9 +1263,9 @@ data:
         - name: ceph-namespace-client-key-generator
           type: job
           labels:
-            - application: ceph
-            - component: namespace-client-key-generator
-            - release_group: armada-ucp
+            application: ceph
+            component: namespace-client-key-generator
+            release_group: armada-ucp
   values:
     images:
       tags:
@@ -1282,8 +1288,6 @@ data:
         namespace: ceph
       ceph_mon:
         namespace: ceph
-    ceph:
-      rgw_keystone_auth: true
     network:
       public: 192.168.77.0/24
       cluster: 192.168.77.0/24
@@ -1314,10 +1318,6 @@ data:
   chart_name: ucp-mariadb
   release: ucp-mariadb
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   timeout: 3600
   wait:
     timeout: 3600
@@ -1328,6 +1328,9 @@ data:
         mariadb: docker.io/mariadb:10.1.23
     labels:
       server:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+      prometheus_mysql_exporter:
         node_selector_key: ucp-control-plane
         node_selector_value: enabled
     pod:
@@ -1352,18 +1355,15 @@ data:
   chart_name: ucp-memcached
   release: ucp-memcached
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   values:
     images:
       tags:
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        memcached: docker.io/memcached:1.4
+        memcached: docker.io/memcached:1.5.5
     labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
+      server:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1383,23 +1383,18 @@ data:
   chart_name: ucp-keystone
   release: keystone
   namespace: ucp
-  install:
-    no_hooks: false
   upgrade:
     no_hooks: false
-  pre:
-    delete:
-      - name: keystone-db-sync
-        type: job
-        labels:
-          - job-name: keystone-db-sync
-      - name: keystone-db-init
-        type: job
-        labels:
-          - job-name: keystone-db-init
-  post:
-    delete: []
-    create: []
+    pre:
+      delete:
+        - name: keystone-db-sync
+          type: job
+          labels:
+            job-name: keystone-db-sync
+        - name: keystone-db-init
+          type: job
+          labels:
+            job-name: keystone-db-init
   values:
     conf:
       keystone:
@@ -1409,22 +1404,29 @@ data:
     images:
       tags:
         bootstrap: docker.io/openstackhelm/heat:newton
-        db_drop: docker.io/openstackhelm/heat:newton
-        db_init: docker.io/openstackhelm/heat:newton
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        keystone_api: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        keystone_credential_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        keystone_credential_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        keystone_db_sync: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        keystone_fernet_rotate: docker.io/kolla/ubuntu-source-keystone:3.0.3
-        keystone_fernet_setup: docker.io/kolla/ubuntu-source-keystone:3.0.3
         test: docker.io/kolla/ubuntu-source-rally:4.0.0
+        db_init: docker.io/openstackhelm/heat:newton
+        keystone_db_sync: docker.io/openstackhelm/keystone:newton
+        db_drop: docker.io/openstackhelm/heat:newton
+        ks_user: docker.io/openstackhelm/heat:newton
+        rabbit_init: docker.io/rabbitmq:3.7.3-management
+        keystone_fernet_setup: docker.io/openstackhelm/keystone:newton
+        keystone_fernet_rotate: docker.io/openstackhelm/keystone:newton
+        keystone_credential_setup: docker.io/openstackhelm/keystone:newton
+        keystone_credential_rotate: docker.io/openstackhelm/keystone:newton
+        keystone_api: docker.io/openstackhelm/keystone:newton
+        keystone_domain_manage: docker.io/openstackhelm/keystone:newton
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
     pod:
       replicas:
         api: 1
     labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
+      api:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+      job:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1444,22 +1446,18 @@ data:
   chart_name: maas-postgresql
   release: maas-postgresql
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  pre:
-    delete: []
-    create: []
-  post:
-    delete: []
-    create: []
   values:
     development:
       enabled: false
+    endpoints:
+      postgresql:
+        auth:
+          admin:
+            password: sergtsop
     labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
+      server:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
     images:
       tags:
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
@@ -1484,10 +1482,13 @@ data:
   chart_name: maas
   release: maas
   namespace: ucp
-  install:
-    no_hooks: false
   upgrade:
     no_hooks: false
+    pre:
+      delete:
+        - type: 'job'
+          labels:
+            application: 'maas'
   values:
     endpoints:
       maas_db:
@@ -1497,13 +1498,14 @@ data:
             password: sergtsop
     images:
       tags:
-        bootstrap: sthussey/maas-region-controller:2.3
+        bootstrap: sthussey/maas-region-controller:2.3_patchv4
         db_init: docker.io/postgres:9.5
-        db_sync: sthussey/maas-region-controller:2.3
+        db_sync: sthussey/maas-region-controller:2.3_patchv4
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        export_api_key: sthussey/maas-region-controller:2.3
+        export_api_key: sthussey/maas-region-controller:2.3_patchv4
         maas_rack: sthussey/maas-rack-controller:2.3
-        maas_region: sthussey/maas-region-controller:2.3
+        maas_region: sthussey/maas-region-controller:2.3_patchv4
+        maas_cache: quay.io/attcomdev/sstream-cache:latest
     labels:
       rack:
         node_selector_key: ucp-control-plane
@@ -1560,19 +1562,12 @@ data:
   chart_name: ucp-rabbitmq
   release: rabbitmq
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  pre:
-    delete: []
-  post:
-    delete: []
-    create: []
   values:
     images:
       tags:
-        rabbitmq: docker.io/rabbitmq:3.7
+        prometheus_rabbitmq_exporter: docker.io/kbudde/rabbitmq-exporter:v0.21.0
+        prometheus_rabbitmq_exporter_helm_tests: docker.io/openstackhelm/heat:newton
+        rabbitmq: docker.io/rabbitmq:3.7.3
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
     pod:
       replicas:
@@ -1603,15 +1598,6 @@ data:
   chart_name: ucp-barbican
   release: barbican
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  pre:
-    delete: []
-  post:
-    delete: []
-    create: []
   values:
     pod:
       replicas:
@@ -1620,20 +1606,22 @@ data:
       job:
         node_selector_key: ucp-control-plane
         node_selector_value: enabled
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
+      api:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
     images:
       tags:
-        barbican_api: docker.io/kolla/ubuntu-source-barbican-api:3.0.3
-        barbican_db_sync: docker.io/kolla/ubuntu-source-barbican-api:3.0.3
         bootstrap: docker.io/openstackhelm/heat:newton
-        db_drop: docker.io/openstackhelm/heat:newton
-        db_init: docker.io/openstackhelm/heat:newton
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
         scripted_test: docker.io/openstackhelm/heat:newton
+        db_init: docker.io/openstackhelm/heat:newton
+        barbican_db_sync: docker.io/openstackhelm/barbican:newton
+        db_drop: docker.io/openstackhelm/heat:newton
+        ks_user: docker.io/openstackhelm/heat:newton
+        ks_service: docker.io/openstackhelm/heat:newton
+        ks_endpoints: docker.io/openstackhelm/heat:newton
+        barbican_api: docker.io/openstackhelm/barbican:newton
+        rabbit_init: docker.io/rabbitmq:3.7.3-management
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1656,14 +1644,14 @@ data:
   timeout: 600
   wait:
     timeout: 600
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   values:
     labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
+      server:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
+      error_server:
+        node_selector_key: ucp-control-plane
+        node_selector_value: enabled
     images:
       tags:
         entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
@@ -1691,10 +1679,6 @@ data:
   chart_name: tiller
   release: tiller
   namespace: kube-system
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   values:
     images:
       tags:
@@ -1722,10 +1706,6 @@ data:
   chart_name: deckhand
   release: deckhand
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   values:
     endpoints:
       postgresql:
@@ -1773,10 +1753,6 @@ data:
   chart_name: drydock
   release: drydock
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   values:
     images:
       tags:
@@ -1868,10 +1844,6 @@ data:
   chart_name: armada
   release: armada
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   values:
     manifests:
       deployment_tiller: false
@@ -1915,10 +1887,6 @@ data:
   chart_name: shipyard
   release: shipyard
   namespace: ucp
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
   values:
     endpoints:
       postgresql_airflow_db:
