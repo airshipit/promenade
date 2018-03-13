@@ -10,7 +10,7 @@ else
     WORKDIR=/up/$(basename $(pwd))
 fi
 
-exec docker run --rm -it \
+exec docker run --rm \
     --net host \
     -v $UPDIR:/up \
     -v /etc/kubernetes/admin:/etc/kubernetes/admin \
