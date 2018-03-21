@@ -47,7 +47,7 @@
         "-l", "kubernetes-etcd=enabled",
         "-l", "kubernetes-scheduler=enabled",
         "-l", "ucp-control-plane=enabled",
-        "-e", "kubernetes n0 genesis n1 n2 n3",
+        "-e", "kubernetes n0 n0 n1 n2 n3",
         "-e", "calico n0 n0 n1 n2 n3"
       ]
     },
