@@ -629,6 +629,8 @@ data:
                 backend:
                   - mode tcp
                   - option tcpka
+                  - option tcp-check
+                  - option redispatch
           kube-system:
             kubernetes-etcd:
               server_opts: "check"
@@ -640,6 +642,8 @@ data:
                 backend:
                   - mode tcp
                   - option tcpka
+                  - option tcp-check
+                  - option redispatch
 
     images:
       tags:

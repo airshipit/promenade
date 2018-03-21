@@ -580,7 +580,7 @@ data:
         services:
           default:
             kubernetes:
-              server_opts: "check"
+              server_opts: "check port 6443"
               conf_parts:
                 frontend:
                   - mode tcp
@@ -589,9 +589,11 @@ data:
                 backend:
                   - mode tcp
                   - option tcpka
+                  - option tcp-check
+                  - option redispatch
           kube-system:
             kubernetes-etcd:
-              server_opts: "check"
+              server_opts: "check port 2379"
               conf_parts:
                 frontend:
                   - mode tcp
@@ -600,6 +602,8 @@ data:
                 backend:
                   - mode tcp
                   - option tcpka
+                  - option tcp-check
+                  - option redispatch
 
     images:
       tags:

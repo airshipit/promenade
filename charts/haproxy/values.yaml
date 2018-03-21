@@ -31,6 +31,8 @@ conf:
             backend:
               - mode tcp
               - option tcpka
+              - option tcp-check
+              - option redispatch
       kube-system:
         kubernetes-etcd:
           server_opts: "check"
@@ -42,6 +44,8 @@ conf:
             backend:
               - mode tcp
               - option tcpka
+              - option tcp-check
+              - option redispatch
 
   haproxy:
     container_config_dir: /usr/local/etc/haproxy
