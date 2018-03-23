@@ -32,6 +32,7 @@ anchor:
     manifest_path: /etc/kubernetes/manifests
 
   period: 15
+  health_wait_period: 60
 
 etcd:
   host_etc_path: /etc/etcd-example

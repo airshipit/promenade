@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+# Copyright 2018 AT&T Intellectual Property.  All other rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,37 +12,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 set -x
-
-function copy_certificates {
-    ETCD_NAME=$1
-
-    set -e
-
+TEMP_MANIFEST=/tmp/etcd.yaml
+function sync_file {
+    if ! cmp "$1" "$2"; then
+        cp -f "$1" "$2"
+    fi
+}
+function sync_certificates {
     mkdir -p /etcd-etc/tls
-    # Copy CA Certificates in place
-    cp \
-        /etc/etcd/tls/certs/client-ca.pem \
-        /etc/etcd/tls/certs/peer-ca.pem \
-        /etcd-etc/tls
-
-    cp /etc/etcd/tls/certs/$ETCD_NAME-etcd-client.pem /etcd-etc/tls/etcd-client.pem
-    cp /etc/etcd/tls/certs/$ETCD_NAME-etcd-peer.pem /etcd-etc/tls/etcd-peer.pem
-
-    cp /etc/etcd/tls/keys/$ETCD_NAME-etcd-client-key.pem /etcd-etc/tls/etcd-client-key.pem
-    cp /etc/etcd/tls/keys/$ETCD_NAME-etcd-peer-key.pem /etcd-etc/tls/etcd-peer-key.pem
-
-    set +e
+    sync_file /etc/etcd/tls/certs/client-ca.pem /etcd-etc/tls/client-ca.pem
+    sync_file /etc/etcd/tls/certs/peer-ca.pem /etcd-etc/tls/peer-ca.pem
+    sync_file "/etc/etcd/tls/certs/${ETCD_NAME}-etcd-client.pem" /etcd-etc/tls/etcd-client.pem
+    sync_file "/etc/etcd/tls/certs/${ETCD_NAME}-etcd-peer.pem" /etcd-etc/tls/etcd-peer.pem
+    sync_file "/etc/etcd/tls/keys/${ETCD_NAME}-etcd-client-key.pem" /etcd-etc/tls/etcd-client-key.pem
+    sync_file "/etc/etcd/tls/keys/${ETCD_NAME}-etcd-peer-key.pem" /etcd-etc/tls/etcd-peer-key.pem
 }
-
 function create_manifest {
-    sed -i -e 's#_ETCD_INITIAL_CLUSTER_STATE_#'$2'#g' /anchor-etcd/{{ .Values.service.name }}.yaml
-    sed -i -e 's#_ETCD_INITIAL_CLUSTER_#'$1'#g' /anchor-etcd/{{ .Values.service.name }}.yaml
-
-    cp /anchor-etcd/{{ .Values.service.name }}.yaml $MANIFEST_PATH
+    WIP=/tmp/wip-manifest.yaml
+    cp -f /anchor-etcd/{{ .Values.service.name }}.yaml $WIP
+    sed -i -e 's#_ETCD_INITIAL_CLUSTER_STATE_#'$2'#g' $WIP
+    sed -i -e 's#_ETCD_INITIAL_CLUSTER_#'$1'#g' $WIP
+    mv -f "$WIP" "$3"
 }
-
+function sync_configuration {
+    sync_certificates
+    ETCD_INITIAL_CLUSTER=$(grep -v $PEER_ENDPOINT "$1" \
+        | awk -F ', ' '{ print $3 "=" $4 }' \
+        | tr '\n' ',' \
+        | sed "s;\$;$ETCD_NAME=https://\$\(POD_IP\):{{ .Values.network.service_peer.target_port }};")
+    ETCD_INITIAL_CLUSTER_STATE=existing
+    create_manifest "$ETCD_INITIAL_CLUSTER" "$ETCD_INITIAL_CLUSTER_STATE" "$TEMP_MANIFEST"
+    sync_file "${TEMP_MANIFEST}" "${MANIFEST_PATH}"
+}
+firstrun=true
 while true; do
     # TODO(mark-burnett) Need to monitor a file(s) when shutting down/starting
     # up so I don't try to take two actions on the node at once.
@@ -67,62 +70,56 @@ while true; do
             fi
         done
     fi
-
     if [ -e /bootstrapping/{{ .Values.bootstrapping.filename }} ]; then
         # Bootstrap the first node
-        copy_certificates ${ETCD_NAME}
+        sync_certificates
         ETCD_INITIAL_CLUSTER=${ETCD_NAME}=https://\$\(POD_IP\):{{ .Values.network.service_peer.target_port }}
         ETCD_INITIAL_CLUSTER_STATE=new
-        create_manifest $ETCD_INITIAL_CLUSTER $ETCD_INITIAL_CLUSTER_STATE
-
+        create_manifest "$ETCD_INITIAL_CLUSTER" "$ETCD_INITIAL_CLUSTER_STATE" "$MANIFEST_PATH"
         continue
     fi
     {{- end }}
-
     sleep {{ .Values.anchor.period }}
-
     if [ -e /tmp/stopped ]; then
         echo Stopping
         break
     fi
-
     if [ -e /tmp/stopping ]; then
         echo Waiting to stop..
         continue
     fi
-
-    if [ ! -e $MANIFEST_PATH ]; then
-        if ! etcdctl member list > /tmp/members; then
-            echo Failed to locate existing cluster
+    etcdctl member list > /tmp/members
+    # if never started or (ever started and not currently started); then
+    #   resync
+    # fi
+    if ! grep $PEER_ENDPOINT /tmp/members; then
+        # If this member is not in the cluster, try to add it.
+        if grep -v '\bstarted\b' /tmp/members; then
+            echo Cluster does not appear fully online, waiting.
             continue
         fi
-
-        if ! grep $PEER_ENDPOINT /tmp/members; then
-            if grep -v '\bstarted\b' /tmp/members; then
-                echo Cluster does not appear fully online, waiting.
-                continue
-            fi
-
-            # Add this member to the cluster
-            etcdctl member add $HOSTNAME --peer-urls $PEER_ENDPOINT
+        # Add this member to the cluster
+        if ! etcdctl member add $HOSTNAME --peer-urls $PEER_ENDPOINT; then
+            echo Failed to add $HOSTNAME to member list.  Waiting.
+            continue
         fi
-
-        # If needed, drop the file in place
-        if [ ! -e FILE ]; then
-            # Refresh member list
-            etcdctl member list > /tmp/members
-
-            if grep $PEER_ENDPOINT /tmp/members; then
-                copy_certificates ${ETCD_NAME}
-
-                ETCD_INITIAL_CLUSTER=$(grep -v $PEER_ENDPOINT /tmp/members \
-                    | awk -F ', ' '{ print $3 "=" $4 }' \
-                    | tr '\n' ',' \
-                    | sed "s;\$;$ETCD_NAME=https://\$\(POD_IP\):{{ .Values.network.service_peer.target_port }};")
-                ETCD_INITIAL_CLUSTER_STATE=existing
-
-                create_manifest $ETCD_INITIAL_CLUSTER $ETCD_INITIAL_CLUSTER_STATE
-            fi
+        echo Successfully added $HOSTNAME to cluster members.
+        # Refresh member list so we start with the right configuration.
+        etcdctl member list > /tmp/members
+    fi
+    if $firstrun; then
+        sync_configuration /tmp/members
+        firstrun=false
+    fi
+    if ! ETCDCTL_ENDPOINTS=$CLIENT_ENDPOINT etcdctl endpoint health; then
+        # If not health, sleeps before checking again and then updating configs.
+        echo Member is not healthy, sleeping before checking again.
+        sleep {{ .Values.anchor.health_wait_period }}
+        if ! ETCDCTL_ENDPOINTS=$CLIENT_ENDPOINT etcdctl endpoint health; then
+            # If still not healthy updates the configs.
+            echo Member is not healthy, syncing configurations.
+            sync_configuration /tmp/members
+            continue
         fi
     fi
 done
