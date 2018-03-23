@@ -39,6 +39,8 @@ spec:
       tolerations:
         - key: "CriticalAddonsOnly"
           operator: "Exists"
+      nodeSelector:
+        {{ .Values.labels.coredns.node_selector_key }}: {{ .Values.labels.coredns.node_selector_value }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

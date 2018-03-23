@@ -42,6 +42,7 @@
         "-n", "n2",
         "-n", "n3",
         "-l", "calico-etcd=enabled",
+        "-l", "coredns=enabled",
         "-l", "kubernetes-apiserver=enabled",
         "-l", "kubernetes-controller-manager=enabled",
         "-l", "kubernetes-etcd=enabled",

@@ -54,6 +54,7 @@
         "-l", "ceph-mon=enabled",
         "-l", "ceph-osd=enabled",
         "-l", "ceph-rgw=enabled",
+        "-l", "coredns=enabled",
         "-l", "ucp-control-plane=enabled",
         "-e", "kubernetes n0 genesis n1",
         "-e", "calico n0 n0 n1"

@@ -19,6 +19,7 @@ data:
       - ceph-osd=enabled
       - ceph-rgw=enabled
       - ceph-mgr=enabled
+      - coredns=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -48,6 +49,7 @@ data:
       - ceph-osd=enabled
       - ceph-rgw=enabled
       - ceph-mgr=enabled
+      - coredns=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled
@@ -77,6 +79,7 @@ data:
       - ceph-osd=enabled
       - ceph-rgw=enabled
       - ceph-mgr=enabled
+      - coredns=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled

@@ -14,6 +14,7 @@ data:
   labels:
     dynamic:
       - calico-etcd=enabled
+      - coredns=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
       - kubernetes-etcd=enabled

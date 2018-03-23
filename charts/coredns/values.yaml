@@ -28,7 +28,10 @@ images:
     test: coredns/coredns:1.0.5
   pull_policy: "IfNotPresent"
 
-node_selector: {}
+labels:
+  coredns:
+    node_selector_key: coredns
+    node_selector_value: enabled
 
 service:
   name: coredns
