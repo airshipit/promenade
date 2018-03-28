@@ -39,6 +39,7 @@ spec:
       containers:
         - name: calico-policy-controller
           image: {{ .Values.images.policy_controller }}
+{{ tuple . .Values.pod.resources.calico_policy_controller | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           env:
             # The location of the Calico etcd cluster.
             - name: ETCD_ENDPOINTS

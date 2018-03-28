@@ -37,6 +37,24 @@ service:
   name: coredns
   ip: 10.96.0.10
 
+pod:
+  resources:
+    enabled: false
+    coredns:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    pod_test:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+
 monitoring:
   prometheus:
     enabled: false

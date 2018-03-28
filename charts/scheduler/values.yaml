@@ -37,7 +37,14 @@ pod:
         timeout: 3600
   resources:
     enabled: false
-    scheduler:
+    anchor_daemonset:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    scheduler_pod:
       requests:
         memory: "128Mi"
         cpu: "100m"

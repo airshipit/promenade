@@ -23,3 +23,21 @@ images:
   ctl: quay.io/calico/ctl:v1.6.3
   node: quay.io/calico/node:v2.6.5
   policy_controller: quay.io/calico/kube-controllers:v1.0.2
+
+pod:
+  resources:
+    enabled: false
+    calico_node:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    calico_policy_controller:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"

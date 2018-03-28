@@ -88,5 +88,12 @@ pod:
       limits:
         memory: "256Mi"
         cpu: "2000m"
+    haproxy_pod:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "2000m"
 
 release_group: null

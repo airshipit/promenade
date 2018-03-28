@@ -45,7 +45,7 @@ spec:
         - name: anchor
           image: {{ .Values.images.tags.anchor }}
           imagePullPolicy: {{ .Values.images.pull_policy }}
-{{ tuple $envAll $envAll.Values.pod.resources.scheduler | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ tuple $envAll $envAll.Values.pod.resources.anchor_daemonset | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:

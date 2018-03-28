@@ -30,6 +30,7 @@ spec:
     - name: etcd
       image: {{ .Values.images.tags.etcd }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple $envAll $envAll.Values.pod.resources.etcd_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
       env:
         - name: ETCD_NAME
           valueFrom:

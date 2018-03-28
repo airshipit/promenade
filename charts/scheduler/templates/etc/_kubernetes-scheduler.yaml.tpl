@@ -29,6 +29,7 @@ spec:
   containers:
     - name: scheduler
       image: {{ .Values.images.tags.scheduler }}
+{{ tuple $envAll $envAll.Values.pod.resources.scheduler_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
       env:
         - name: POD_IP
           valueFrom:

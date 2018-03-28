@@ -57,6 +57,7 @@ spec:
       - name: coredns
         image: {{ .Values.images.tags.coredns | quote }}
         imagePullPolicy: {{ .Values.images.pull_policy | quote }}
+{{ tuple . .Values.pod.resources.coredns | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
         args: [ "-conf", "/etc/coredns/Corefile" ]
         volumeMounts:
         - name: config-volume

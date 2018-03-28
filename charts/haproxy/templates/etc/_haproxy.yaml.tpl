@@ -25,6 +25,7 @@ spec:
     - name: haproxy
       image: {{ .Values.images.tags.haproxy }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple . .Values.pod.resources.haproxy_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
       hostNetwork: true
       env:
         - name: HAPROXY_CONF

@@ -26,6 +26,7 @@ spec:
     - name: {{ .Release.Name }}-test
       image: {{ .Values.images.tags.test }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple . .Values.pod.resources.pod_test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
       command:
         - /bin/sh
         - -c
