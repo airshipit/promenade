@@ -49,14 +49,18 @@ class ValidateDesignResource(base.BaseResource):
 
     @policy.ApiEnforcer('kubernetes_provisioner:post_validatedesign')
     def on_post(self, req, resp):
-        href = req.get_param('href', required=True)
+
         try:
+            json_data = self.req_json(req)
+            href = json_data.get('href', None)
             config = Configuration.from_design_ref(
                 href, allow_missing_substitutions=False)
             validation.check_design(config)
             msg = "Promenade validations succeeded"
             return self._return_msg(resp, falcon.HTTP_200, message=msg)
+        except exceptions.InvalidFormatError as e:
+            msg = "Invalid JSON Format: %s" % str(e)
         except exceptions.ValidationException as e:
             msg = "Promenade validations failed: %s" % str(e)
-            return self._return_msg(
-                resp, falcon.HTTP_400, status="Invalid", message=msg)
+        return self._return_msg(
+            resp, falcon.HTTP_400, status="Invalid", message=msg)
