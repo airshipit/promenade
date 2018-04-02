@@ -27,6 +27,7 @@ spec:
   containers:
     - name: controller-manager
       image: {{ .Values.images.tags.controller_manager }}
+{{ tuple $envAll $envAll.Values.pod.resources.controller_manager | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
       env:
         - name: POD_IP
           valueFrom:

@@ -53,7 +53,7 @@ spec:
             value: /host{{ .Values.anchor.kubelet.manifest_path }}/kubernetes-controller-manager.yaml
           - name: ETC_PATH
             value: /host{{ .Values.controller_manager.host_etc_path }}
-{{ tuple $envAll $envAll.Values.pod.resources.controller_manager | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ tuple $envAll $envAll.Values.pod.resources.anchor_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:
