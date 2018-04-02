@@ -27,6 +27,7 @@ spec:
   containers:
     - name: apiserver
       image: {{ .Values.images.tags.apiserver }}
+{{ tuple $envAll $envAll.Values.pod.resources.kubernetes_apiserver | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
       env:
         - name: POD_IP
           valueFrom:
