@@ -520,7 +520,10 @@ data:
   chart_name: coredns
   release: coredns
   namespace: kube-system
+  test: true
   timeout: 600
+  wait:
+    timeout: 600
   upgrade:
     no_hooks: true
   values:
