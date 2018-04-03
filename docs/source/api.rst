@@ -11,8 +11,9 @@ GET /v1.0/health
 
 Returns the health status.
 
-Responses
-- 204 No Content
+Responses:
+
++ 204 No Content
 
 
 /v1.0/join-scripts
@@ -37,9 +38,10 @@ dynamic.labels
 static.labels
     Used to set configuration options in the generated script
 
-Responses
-- 200 OK: Script returned as response body
-- 400 Bad Request: One or more query parameters is missing or misspelled
+Responses:
+
++ 200 OK: Script returned as response body
++ 400 Bad Request: One or more query parameters is missing or misspelled
 
 
 /v1.0/validatedesign
@@ -55,10 +57,8 @@ Message Body
 
 href
     Location of the document to be validated
-type
-    Type of document to be validated
 
 Responses:
-- 200 OK: Documents were successfully validated
-- 400 Bad Request: Documents were not successfully validated
-- 404 Not Found: The document (of that type) was not found at the specified location
+
++ 200 OK: Documents were successfully validated
++ 400 Bad Request: Documents were not successfully validated

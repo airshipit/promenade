@@ -26,13 +26,15 @@ LOG = logging.getLogger(__name__)
 
 
 class ValidateDesignResource(base.BaseResource):
-    def _return_msg(self, resp, status_code, status="Valid", message=""):
-        if status_code is falcon.HTTP_200:
-            count = 0
-            msg_list = []
+    def _return_msg(self, resp, result):
+        if result['err_count'] == 0:
+            message = "Promenade validations succeeded."
+            status_code = falcon.HTTP_200
+            status = "Valid"
         else:
-            count = 1
-            msg_list = [message]
+            message = "Promenade validations failed."
+            status_code = falcon.HTTP_400
+            status = "Invalid"
         resp.body = json.dumps({
             "kind": "Status",
             "apiVersion": "v1",
@@ -41,8 +43,8 @@ class ValidateDesignResource(base.BaseResource):
             "message": message,
             "reason": "Validation",
             "details": {
-                "errorCount": count,
-                "messageList": msg_list,
+                "errorCount": result['err_count'],
+                "messageList": result['msg'],
             },
             "code": status_code,
         })
@@ -55,12 +57,10 @@ class ValidateDesignResource(base.BaseResource):
             href = json_data.get('href', None)
             config = Configuration.from_design_ref(
                 href, allow_missing_substitutions=False)
-            validation.check_design(config)
-            msg = "Promenade validations succeeded"
-            return self._return_msg(resp, falcon.HTTP_200, message=msg)
+            result = validation.check_design(config)
         except exceptions.InvalidFormatError as e:
             msg = "Invalid JSON Format: %s" % str(e)
-        except exceptions.ValidationException as e:
-            msg = "Promenade validations failed: %s" % str(e)
-        return self._return_msg(
-            resp, falcon.HTTP_400, status="Invalid", message=msg)
+            result = {'msg': [msg], 'err_count': 1}
+        except exceptions.DeckhandException as e:
+            result = {'msg': [str(e)], 'err_count': 1}
+        return self._return_msg(resp, result)
