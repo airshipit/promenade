@@ -13,4 +13,4 @@ pbr==3.0.1
 pyyaml==3.12
 requests==2.18.4
 uwsgi==2.0.15
-git+https://github.com/att-comdev/deckhand.git@b9845fa72c079dadb05e741aa9134cf03bf3ce48#egg=deckhand
+git+https://github.com/att-comdev/deckhand.git@c962eeb975af5ecf9793f794d536538d210b7735#egg=deckhand
