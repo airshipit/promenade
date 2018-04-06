@@ -73,15 +73,14 @@ render_curl_url() {
     echo "${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}${LABEL_PARAMS}"
 }
 
-render_validate_url() {
-    BASE_URL="${BASE_PROM_URL}/api/v1.0/validatedesign"
+render_validate_body() {
     if [[ ${USE_DECKHAND} == 1 ]]; then
-        HREF="href=deckhand%2Bhttp://deckhand-int.ucp.svc.cluster.local:9000/api/v1.0/revisions/${DECKHAND_REVISION}/rendered-documents"
+        JSON="{\"rel\":\"design\",\"href\":\"deckhand+http://deckhand-int.ucp.svc.cluster.local:9000/api/v1.0/revisions/${DECKHAND_REVISION}/rendered-documents\",\"type\":\"application/x-yaml\"}"
     else
-        HREF="href=${NGINX_URL}/promenade.yaml"
+        JSON="{\"rel\":\"design\",\"href\":\"${NGINX_URL}/promenade.yaml\",\"type\":\"application/x-yaml\"}"
     fi
 
-    echo "${BASE_URL}?${HREF}"
+    echo ${JSON}
 }
 
 mkdir -p "${SCRIPT_DIR}"
@@ -115,7 +114,7 @@ for NAME in "${NODES[@]}"; do
     done
 
     log "Validating documents"
-    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" -X POST "$(render_validate_url)"
+    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" -X POST -H "Content-Type: application/json" -d $(render_validate_body) "${BASE_PROM_URL}/api/v1.0/validatedesign"
 
     JOIN_CURL_URL="$(render_curl_url "${NAME}" "${LABELS[@]}")"
     log "Fetching join script via: ${JOIN_CURL_URL}"
