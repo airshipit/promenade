@@ -47,7 +47,7 @@ spec:
           - {{ . }}
           {{- end }}
           - --hostname-override=$(NODE_NAME)
-{{ tuple $envAll $envAll.Values.pod.resources.proxy | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ tuple $envAll $envAll.Values.pod.resources.proxy | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
         securityContext:
           privileged: true
         # volumeMounts:

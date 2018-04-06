@@ -49,12 +49,12 @@ spec:
         - name: anchor
           image: {{ .Values.images.tags.anchor }}
           imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple $envAll $envAll.Values.pod.resources.anchor_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           env:
           - name: MANIFEST_PATH
             value: /host{{ .Values.anchor.kubelet.manifest_path }}/{{ .Values.service.name }}.yaml
           - name: PKI_PATH
             value: /host{{ .Values.apiserver.host_etc_path }}/pki
-{{ tuple $envAll $envAll.Values.pod.resources.kubernetes_apiserver | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:

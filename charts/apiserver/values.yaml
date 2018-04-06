@@ -117,6 +117,13 @@ pod:
         timeout: 3600
   resources:
     enabled: false
+    anchor_pod:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
     kubernetes_apiserver:
       requests:
         memory: "128Mi"
