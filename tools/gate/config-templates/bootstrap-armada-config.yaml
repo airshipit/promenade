@@ -564,11 +564,9 @@ data:
               conf_parts:
                 frontend:
                   - mode tcp
-                  - option tcpka
                   - bind *:6553
                 backend:
                   - mode tcp
-                  - option tcpka
                   - option tcp-check
                   - option redispatch
           kube-system:
@@ -577,11 +575,9 @@ data:
               conf_parts:
                 frontend:
                   - mode tcp
-                  - option tcpka
                   - bind *:2378
                 backend:
                   - mode tcp
-                  - option tcpka
                   - option tcp-check
                   - option redispatch
 

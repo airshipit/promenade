@@ -612,6 +612,7 @@ data:
   timeout: 600
   wait:
     timeout: 600
+  test: true
   upgrade:
     no_hooks: true
   values:
@@ -625,11 +626,9 @@ data:
               conf_parts:
                 frontend:
                   - mode tcp
-                  - option tcpka
                   - bind *:6553
                 backend:
                   - mode tcp
-                  - option tcpka
                   - option tcp-check
                   - option redispatch
           kube-system:
@@ -638,11 +637,9 @@ data:
               conf_parts:
                 frontend:
                   - mode tcp
-                  - option tcpka
                   - bind *:2378
                 backend:
                   - mode tcp
-                  - option tcpka
                   - option tcp-check
                   - option redispatch
 
@@ -650,6 +647,7 @@ data:
       tags:
         anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
         haproxy: haproxy:1.8.3
+        test: busybox:1.28.3
 
   source:
     type: local
@@ -1816,6 +1814,7 @@ data:
   timeout: 600
   wait:
     timeout: 600
+  test: true
   values:
     pod:
       env:

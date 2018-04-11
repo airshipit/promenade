@@ -14,25 +14,29 @@
 # limitations under the License.
 */}}
 {{/*
-Test that the API is up and the health endpoint returns a 2XX code */}}
-{{- if .Values.manifests.test_promenade_api }}
+Test that HAProxy is running and the config is valid */}}
+{{- if .Values.manifests.test_haproxy }}
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ .Release.Name }}-api-test"
+  name: "{{ .Release.Name }}-haproxy-test"
   annotations:
     "helm.sh/hook": "test-success"
 spec:
   restartPolicy: Never
   containers:
-    - name: "{{ .Release.Name }}-api-test"
+    - name: "{{ .Release.Name }}-haproxy-test"
       env:
-        - name: 'PROM_URL'
-          value: {{ tuple "kubernetesprovisioner" "internal" "api" . | include "helm-toolkit.endpoints.host_and_port_endpoint_uri_lookup" | quote }}
-      image: {{ .Values.images.tags.promenade }}
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: 'HAPROXY_URL'
+          value: https://$(HOST_IP):{{ .Values.endpoints.health.port }}/{{ .Values.endpoints.health.path }}
+      image: {{ .Values.images.tags.test }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
-      command: ["/bin/bash", "-c", "curl -v -X GET --fail ${PROM_URL}/api/v1.0/health; exit $?"]
+      command: ["/bin/sh", "-c", "wget --no-check-certificate --spider ${HAPROXY_URL}; exit $?"]
 ...
 {{- end }}
