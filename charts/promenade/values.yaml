@@ -202,12 +202,11 @@ pod:
           memory: "128Mi"
           cpu: "100m"
     test:
-      api:
-        limits:
-          memory: "128Mi"
-          cpu: "100m"
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
 
 release_group: null
