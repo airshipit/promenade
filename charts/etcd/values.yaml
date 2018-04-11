@@ -116,6 +116,13 @@ pod:
       limits:
         memory: "1024Mi"
         cpu: "2000m"
+    test:
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
 
 manifests:
   configmap_bin: true
@@ -124,3 +131,4 @@ manifests:
   daemonset_anchor: true
   secret: true
   service: true
+  test_etcd_health: true
