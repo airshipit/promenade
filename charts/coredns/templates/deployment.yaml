@@ -34,6 +34,8 @@ spec:
     metadata:
       labels:
         {{ .Values.service.name }}: enabled
+      annotations:
+        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       serviceAccountName: coredns
       tolerations:
