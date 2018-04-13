@@ -70,7 +70,7 @@ render_curl_url() {
     fi
     HOST_PARAMS="hostname=${NAME}&ip=$(config_vm_ip "${NAME}")"
 
-    echo "${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}${LABEL_PARAMS}"
+    echo "${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}&leave_kubectl=true${LABEL_PARAMS}"
 }
 
 render_validate_body() {

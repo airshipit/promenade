@@ -26,14 +26,19 @@ def promenade(*, verbose):
     required=True,
     help='Location to write complete cluster configuration.')
 @click.option('--validators', is_flag=True, help='Generate validation scripts')
+@click.option(
+    '--leave-kubectl',
+    is_flag=True,
+    help='Leave behind kubectl on joined nodes')
 @click.argument('config_files', nargs=-1, type=click.File('rb'))
-def build_all(*, config_files, output_dir, validators):
+def build_all(*, config_files, leave_kubectl, output_dir, validators):
     debug = _debug()
     try:
         c = config.Configuration.from_streams(
             debug=debug,
             substitute=True,
             allow_missing_substitutions=False,
+            leave_kubectl=leave_kubectl,
             streams=config_files)
         b = builder.Builder(c, validators=validators)
         b.build_all(output_dir=output_dir)

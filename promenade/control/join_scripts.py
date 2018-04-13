@@ -35,6 +35,7 @@ class JoinScriptsResource(BaseResource):
 
     @policy.ApiEnforcer('kubernetes_provisioner:get_join_scripts')
     def on_get(self, req, resp):
+        leave_kubectl = req.get_param_as_bool('leave_kubectl')
         design_ref = req.get_param('design_ref', required=True)
         ip = req.get_param('ip', required=True)
         hostname = req.get_param('hostname', required=True)
@@ -46,7 +47,9 @@ class JoinScriptsResource(BaseResource):
 
         try:
             config = Configuration.from_design_ref(
-                design_ref, allow_missing_substitutions=False)
+                design_ref,
+                allow_missing_substitutions=False,
+                leave_kubectl=leave_kubectl)
         except exceptions.DeckhandException as e:
             raise falcon.HTTPInternalServerError(description=str(e))
 

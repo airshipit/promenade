@@ -1,5 +1,18 @@
 {% include "header.sh" with context %}
 
+{%- if not config.leave_kubectl %}
+function delete_kubectl() {
+    set +x
+    log
+    log === Removing kubectl and credentials ===
+    set -x
+    rm -rf /etc/kubernetes/admin
+    rm -f /usr/local/bin/kubectl
+}
+
+trap delete_kubectl EXIT
+{%- endif %}
+
 {% include "basic-host-validation.sh" with context %}
 
 {% include "up.sh" with context %}
