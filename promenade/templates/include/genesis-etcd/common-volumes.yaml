@@ -1,6 +1,6 @@
-    - name: data
+    - name: data-{{ etcd_name }}
       hostPath:
-        path: /var/lib/etcd/{{ etcd_name }}
-    - name: pki
+        path: /var/lib/etcd/{{ volume_name }}
+    - name: pki-{{ etcd_name }}
       hostPath:
         path: /etc/genesis/etcd/pki

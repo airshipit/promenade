@@ -69,6 +69,8 @@ images:
 
 network:
   kubernetes_netloc: 10.96.0.1
+  kubernetes_scheduler:
+    port: 10251
 
 service:
   name: kubernetes-scheduler

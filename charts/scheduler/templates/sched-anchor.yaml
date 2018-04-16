@@ -53,6 +53,16 @@ spec:
               exec:
                 command:
                   - /tmp/bin/pre_stop
+
+          readinessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: {{ .Values.network.kubernetes_scheduler.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+
           volumeMounts:
             - name: bin
               mountPath: /tmp/bin

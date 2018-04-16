@@ -9,7 +9,7 @@ metadata:
     kubernetes-etcd-service: enabled
 spec:
   hostNetwork: true
-{%- with etcd_name = 'genesis', client_port = 2379, peer_port = 2380  %}
+{%- with etcd_name = config['Genesis:hostname'], client_port = 2379, peer_port = 2380, volume_name = 'kubernetes' %}
   containers:
 {% include "genesis-etcd/server-container.yaml" with context %}
   volumes:

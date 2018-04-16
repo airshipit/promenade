@@ -9,9 +9,15 @@ metadata:
     promenade: genesis
 spec:
   hostNetwork: true
-{%- with etcd_name = 'auxiliary', client_port = 12379, peer_port = 12380  %}
   containers:
+{%- with etcd_name = 'auxiliary-0', client_port = 12379, peer_port = 12380  %}
 {% include "genesis-etcd/server-container.yaml" with context %}
+{%- endwith %}
+
+{%- with etcd_name = 'auxiliary-1', client_port = 22379, peer_port = 22380  %}
+{% include "genesis-etcd/server-container.yaml" with context %}
+{%- endwith %}
+
     - name: monitor
       image: {{ config['Genesis:images.kubernetes.etcd'] }}
       command:
@@ -19,21 +25,41 @@ spec:
         - -c
         - |-
           set -x
-          MEMBER_COUNT=$(etcdctl member list | grep '\bstarted\b' | wc -l)
-          if [ $MEMBER_COUNT -gt 1 ]; then
-              MEMBER_ID=$(etcdctl member list | grep auxiliary | awk -F ', ' '{ print $1 }')
-              if [ -n $MEMBER_ID ]; then
-                  while [ $MEMBER_COUNT -lt 3 ]; do
-                      sleep 30
-                      MEMBER_COUNT=$(etcdctl member list | grep '\bstarted\b' | wc -l)
-                  done
-                  set -e
+
+          function external_member_count() {
+              etcdctl member list \
+                  | grep '\bstarted\b' \
+                  | grep -Ev "\\b({{ config['Genesis:hostname'] }}|auxiliary-0|auxiliary-1)\\b" \
+                  | wc -l
+          }
+
+          function remove_if_possible() {
+              MEMBER_NAME=$1
+              MEMBER_ID=$(etcdctl member list | grep "${MEMBER_NAME}" | awk -F ', ' '{ print $1 }')
+              if [ -n "${MEMBER_ID}" ]; then
                   etcdctl member remove $MEMBER_ID
               fi
+          }
 
-              rm -rf /var/lib/etcd/* /manifests/auxiliary-kubernetes-etcd.yaml
-              sleep 10000
-          fi
+          # NOTE(mark-burnett): If there are any non-genesis members, then we are ready to
+          # remove the auxiliary members.  Otherwise, wait.
+          while [ ! "$(external_member_count)" -gt 0 ]; do
+              sleep 10
+          done
+
+          # NOTE(mark-burnett): Failures beyond this point are unexpected, but
+          # should be recovered by restarting this container.
+          set -e
+
+          remove_if_possible auxiliary-0
+          remove_if_possible auxiliary-1
+
+          rm -rf \
+              /var/lib/etcd/auxiliary-0 \
+              /var/lib/etcd/auxiliary-1 \
+              /manifests/auxiliary-kubernetes-etcd.yaml
+
+          sleep 10000
       env:
         - name: ETCDCTL_API
           value: '3'
@@ -48,16 +74,23 @@ spec:
         - name: ETCDCTL_KEY
           value: /etc/etcd/pki/etcd-client-key.pem
       volumeMounts:
-        - name: data
+        - name: all-etcd-data
           mountPath: /var/lib/etcd
-        - name: pki
+        - name: pki-auxiliary-0
           mountPath: /etc/etcd/pki
         - name: manifest
           mountPath: /manifests
   volumes:
+{%- with etcd_name = 'auxiliary-0', client_port = 12379, peer_port = 12380, volume_name = 'auxiliary-0' %}
 {% include "genesis-etcd/common-volumes.yaml" with context %}
+{%- endwith %}
+{%- with etcd_name = 'auxiliary-1', client_port = 22379, peer_port = 22380, volume_name = 'auxiliary-1' %}
+{% include "genesis-etcd/common-volumes.yaml" with context %}
+{%- endwith %}
     - name: manifest
       hostPath:
         path: /etc/kubernetes/manifests
-{%- endwith %}
+    - name: all-etcd-data
+      hostPath:
+        path: /var/lib/etcd
 ...

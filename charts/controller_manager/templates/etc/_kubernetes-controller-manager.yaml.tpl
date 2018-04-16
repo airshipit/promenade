@@ -39,6 +39,8 @@ spec:
         {{- range .Values.command_prefix }}
         - {{ . }}
         {{- end }}
+        - --address=127.0.0.1
+        - --port={{ .Values.network.kubernetes_controller_manager.port }}
         - --configure-cloud-routes=false
         - --leader-elect=true
         - --kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
@@ -46,6 +48,26 @@ spec:
         - --service-account-private-key-file=/etc/kubernetes/controller-manager/service-account.priv
         - --use-service-account-credentials=true
         - --v=5
+
+      readinessProbe:
+        httpGet:
+          host: 127.0.0.1
+          path: /healthz
+          port: {{ .Values.network.kubernetes_controller_manager.port }}
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        timeoutSeconds: 5
+
+      livenessProbe:
+        failureThreshold: 2
+        httpGet:
+          host: 127.0.0.1
+          path: /healthz
+          port: {{ .Values.network.kubernetes_controller_manager.port }}
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 10
 
       volumeMounts:
         - name: etc

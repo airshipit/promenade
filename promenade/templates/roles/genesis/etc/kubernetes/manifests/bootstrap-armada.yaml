@@ -59,7 +59,7 @@ spec:
 
         while true; do
             sleep 10
-            if armada --debug \
+            if armada \
                     apply \
                     --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
                     --tiller-host 127.0.0.1 \
@@ -134,7 +134,7 @@ spec:
       - --bind-address=0.0.0.0
       - --runtime-config=batch/v2alpha1=true
       - --allow-privileged=true
-      - --etcd-servers=https://localhost:2379
+      - --etcd-servers=https://localhost:12379
       - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
       - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
       - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem

@@ -62,6 +62,17 @@ spec:
               exec:
                 command:
                   - /tmp/bin/pre_stop
+
+          readinessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: {{ .Values.network.kubernetes_apiserver.port }}
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+
           volumeMounts:
             - name: {{ .Values.service.name }}-certs
               mountPath: /certs
