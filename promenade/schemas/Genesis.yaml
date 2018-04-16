@@ -64,6 +64,15 @@ data:
           type: string
       additionalProperties: false
 
+    apiserver:
+      type: object
+      properties:
+        command_prefix:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+
     files:
       type: array
       items:

@@ -618,10 +618,11 @@ data:
   values:
     conf:
       anchor:
-        kubernetes_url: https://kubernetes.default:443
+        kubernetes_url: https://10.96.0.1:443
         services:
-          default:
-            kubernetes:
+          default: null
+          kube-system:
+            kubernetes-apiserver:
               server_opts: "check port 6443"
               conf_parts:
                 frontend:
@@ -631,7 +632,6 @@ data:
                   - mode tcp
                   - option tcp-check
                   - option redispatch
-          kube-system:
             kubernetes-etcd:
               server_opts: "check port 2379"
               conf_parts:

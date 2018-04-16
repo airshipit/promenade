@@ -170,6 +170,10 @@ class Configuration:
         validation.check_schema(item)
         self.documents.append(item)
 
+    def bootstrap_apiserver_prefix(self):
+        return self.get_path('Genesis:apiserver.command_prefix',
+                             ['/apiserver', '--apiserver-count=2', '--v=5'])
+
 
 def _matches_filter(document, *, schema, labels):
     matches = True
