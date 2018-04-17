@@ -2,6 +2,9 @@
 #
 resolvconf --disable-updates
 
+mkdir -p /etc/kubernetes
+chmod 700 /etc/kubernetes
+
 # Unpack prepared files into place
 #
 set +x
