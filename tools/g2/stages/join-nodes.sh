@@ -96,7 +96,8 @@ for NAME in "${NODES[@]}"; do
             log Failed to get keystone token, exiting.
             exit 1
         fi
-        log "Got keystone token: ${TOKEN}"
+        TOKEN_HASH=$(echo -n ${TOKEN} | md5sum)
+        log "Got keystone token, token md5sum: ${TOKEN_HASH}"
         CURL_ARGS+=("-H" "X-Auth-Token: ${TOKEN}")
     fi
 
