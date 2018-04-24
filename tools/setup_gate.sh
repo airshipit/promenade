@@ -32,9 +32,9 @@ sudo apt-get install -q -y --no-install-recommends \
     virtinst
 
 log_stage_header "Joining User Groups"
-for grp in docker libvirtd; do
+for grp in docker libvirtd libvirt; do
     if ! groups | grep $grp > /dev/null; then
-        sudo adduser "$(id -un)" $grp
+        sudo adduser "$(id -un)" $grp || echo "Group $grp not found, not added to user"
         REQUIRE_RELOG=1
     fi
 done
