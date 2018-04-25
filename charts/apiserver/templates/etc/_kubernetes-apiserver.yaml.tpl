@@ -38,7 +38,7 @@ spec:
         - {{ . }}
         {{- end }}
         - --advertise-address=$(POD_IP)
-        - --anonymous-auth=false
+        - --anonymous-auth=true
         - --bind-address=0.0.0.0
         - --secure-port={{ .Values.network.kubernetes_apiserver.port }}
         - --insecure-port=0
