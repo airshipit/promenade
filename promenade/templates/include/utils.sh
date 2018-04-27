@@ -242,6 +242,7 @@ spec:
 ...
 EOPOD
 
+    wait_for_node_ready $NODE 300
     wait_for_pod_termination $NAMESPACE $POD_NAME
     ACTUAL_LOGS=$(kubectl --namespace $NAMESPACE logs $POD_NAME)
     if [ "x$ACTUAL_LOGS" != "xEXPECTED RESULT" ]; then
