@@ -17,6 +17,15 @@
 from setuptools import setup
 
 setup(
-    setup_requires=['pbr>=1.9', 'setuptools>=17.1'],
-    pbr=True,
+    setup_requires=['setuptools>=17.1'],
+    name='promenade',
+    version='0.8.0',
+    packages=['promenade'],
+    package_data={
+        'schemas': 'schemas/*',
+        'templates': 'templates/*',
+    },
+    entry_points={
+        'console_scripts': 'promenade=promenade.cli:promenade',
+    },
 )

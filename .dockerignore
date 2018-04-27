@@ -8,6 +8,8 @@ charts/*/requirements.lock
 
 # Build & test artifacts
 .eggs
+.fiotest
+.git
 .helm-pid
 .tox
 AUTHORS
