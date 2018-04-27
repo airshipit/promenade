@@ -60,6 +60,7 @@ docker run --rm -t \
         promenade \
             build-all \
                 --validators \
+                --leave-kubectl \
                 -o promenade-bundle \
                 config/*.yaml
 

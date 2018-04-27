@@ -19,6 +19,7 @@ class Configuration:
                  debug=False,
                  substitute=True,
                  allow_missing_substitutions=True,
+                 leave_kubectl=False,
                  validate=True):
         LOG.info("Parsing document schemas.")
         schema_set = validation.load_schemas_from_docs(documents)
@@ -43,6 +44,7 @@ class Configuration:
             validation.check_schemas(documents, schemas=schema_set)
         self.debug = debug
         self.documents = documents
+        self.leave_kubectl = leave_kubectl
 
     @classmethod
     def from_streams(cls, *, streams, **kwargs):
@@ -111,6 +113,7 @@ class Configuration:
         return Configuration(
             debug=self.debug,
             documents=documents,
+            leave_kubectl=self.leave_kubectl,
             substitute=False,
             validate=False)
 
@@ -133,6 +136,7 @@ class Configuration:
         return Configuration(
             debug=self.debug,
             documents=documents,
+            leave_kubectl=self.leave_kubectl,
             substitute=False,
             validate=False)
 
