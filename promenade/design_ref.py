@@ -18,15 +18,15 @@ def get_documents(design_ref):
     LOG.debug('Fetching design_ref="%s"', design_ref)
     if design_ref.startswith(_DECKHAND_PREFIX):
         response = _get_from_deckhand(design_ref)
-        should_validate = False
+        use_dh_engine = False
     else:
         response = _get_from_basic_web(design_ref)
-        should_validate = True
+        use_dh_engine = True
     LOG.debug('Got response for design_ref="%s"', design_ref)
 
     response.raise_for_status()
 
-    return list(yaml.safe_load_all(response.text)), should_validate
+    return list(yaml.safe_load_all(response.text)), use_dh_engine
 
 
 def _get_from_basic_web(design_ref):

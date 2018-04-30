@@ -63,9 +63,13 @@ class Configuration:
 
     @classmethod
     def from_design_ref(cls, design_ref, **kwargs):
-        documents, should_validate = get_documents(design_ref)
+        documents, use_dh_engine = get_documents(design_ref)
 
-        return cls(documents=documents, validate=should_validate, **kwargs)
+        return cls(
+            documents=documents,
+            substitute=use_dh_engine,
+            validate=use_dh_engine,
+            **kwargs)
 
     def __getitem__(self, path):
         return self.get_path(path,
