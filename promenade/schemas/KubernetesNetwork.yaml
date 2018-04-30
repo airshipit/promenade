@@ -102,7 +102,7 @@ data:
         additional_no_proxy:
           type: array
           items:
-            $ref: '#/definitions/hostname_or_ip_address'
+            type: 'string'
         url:
           $ref: '#/definitions/url'
       required:
