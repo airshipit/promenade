@@ -1,4 +1,4 @@
-    - name: etcd
+    - name: etcd-{{ etcd_name }}
       image: {{ config['Genesis:images.kubernetes.etcd'] }}
       env:
         - name: ETCD_NAME
@@ -38,7 +38,7 @@
         - name: ETCD_INITIAL_CLUSTER_STATE
           value: new
         - name: ETCD_INITIAL_CLUSTER
-          value: genesis=https://{{ config['Genesis:ip'] }}:2380,auxiliary=https://{{ config['Genesis:ip'] }}:12380
+          value: {{ config['Genesis:hostname'] }}=https://{{ config['Genesis:ip'] }}:2380,auxiliary-0=https://{{ config['Genesis:ip'] }}:12380,auxiliary-1=https://{{ config['Genesis:ip'] }}:22380
         - name: ETCDCTL_API
           value: '3'
         - name: ETCDCTL_DIAL_TIMEOUT
@@ -57,7 +57,7 @@
         - name: peer
           containerPort: {{ peer_port }}
       volumeMounts:
-        - name: data
+        - name: data-{{ etcd_name }}
           mountPath: /var/lib/etcd
-        - name: pki
+        - name: pki-{{ etcd_name }}
           mountPath: /etc/etcd/pki

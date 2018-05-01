@@ -68,6 +68,7 @@ metadata:
   storagePolicy: cleartext
 data:
   description: Kubernetes components
+  sequenced: true
   chart_group:
     - haproxy
     - kubernetes-etcd
@@ -86,6 +87,7 @@ metadata:
   storagePolicy: cleartext
 data:
   description: UCP platform components
+  sequenced: true
   chart_group:
     - promenade
 ---
@@ -585,6 +587,10 @@ data:
             kubernetes-apiserver:
               server_opts: "check port 6443"
               conf_parts:
+                global:
+                  - timeout connect 5000ms
+                  - timeout client 30s
+                  - timeout server 30s
                 frontend:
                   - mode tcp
                   - bind *:6553
@@ -1107,6 +1113,9 @@ data:
     no_hooks: false
   upgrade:
     no_hooks: false
+  timeout: 600
+  wait:
+    timeout: 600
   values:
     images:
       tags:

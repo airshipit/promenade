@@ -68,6 +68,8 @@ network:
   kubernetes_netloc: 10.96.0.1
   pod_cidr: 10.97.0.0/16
   service_cidr: 10.96.0.0/16
+  kubernetes_controller_manager:
+    port: 10252
 
 service:
   name: kubernetes-controller-manager

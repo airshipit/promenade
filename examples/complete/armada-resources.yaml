@@ -373,6 +373,7 @@ data:
   timeout: 600
   wait:
     timeout: 600
+  test: true
   upgrade:
     no_hooks: true
   values:

@@ -24,18 +24,12 @@ metadata:
   annotations:
     "helm.sh/hook": "test-success"
 spec:
+  nodeSelector:
+    {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
   restartPolicy: Never
   containers:
     - name: "{{ .Release.Name }}-etcd-test"
       env:
-        - name: ETCD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
         - name: ETCDCTL_API
           value: '3'
         - name: ETCDCTL_DIAL_TIMEOUT
@@ -48,37 +42,19 @@ spec:
           value: /etc/etcd/tls/certs/anchor-etcd-client.pem
         - name: ETCDCTL_KEY
           value: /etc/etcd/tls/keys/anchor-etcd-client-key.pem
-        - name: CLIENT_ENDPOINT
-          value: https://$(POD_IP):{{ .Values.network.service_client.target_port }}
-        - name: PEER_ENDPOINT
-          value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
       image: {{ .Values.images.tags.etcdctl }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
       command:
-        - /bin/sh
-        - -c
-        - |
-          HEALTH=$(etcdctl endpoint health)
-          CODE=$?
-          echo $HEALTH
-          exit $CODE
+        - etcdctl
+        - endpoint
+        - health
       volumeMounts:
-        - name: {{ .Values.service.name }}-bin
-          mountPath: /tmp
         - name: {{ .Values.service.name }}-certs
           mountPath: /etc/etcd/tls/certs
-        - name: etcd-etc
-          mountPath: /etcd-etc
         - name: {{ .Values.service.name }}-keys
           mountPath: /etc/etcd/tls/keys
-        - name: {{ .Values.service.name }}-etc
-          mountPath: /anchor-etcd
   volumes:
-    - name: {{ .Values.service.name }}-bin
-      configMap:
-        name: {{ .Values.service.name }}-bin
-        defaultMode: 0555
     - name: {{ .Values.service.name }}-certs
       configMap:
         name: {{ .Values.service.name }}-certs
@@ -86,13 +62,6 @@ spec:
     - name: {{ .Values.service.name }}-keys
       secret:
         secretName: {{ .Values.service.name }}-keys
-        defaultMode: 0444
-    - name: etcd-etc
-      hostPath:
-        path: {{ .Values.etcd.host_etc_path }}
-    - name: {{ .Values.service.name }}-etc
-      configMap:
-        name: {{ .Values.service.name }}-etc
         defaultMode: 0444
 ...
 {{- end }}

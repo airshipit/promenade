@@ -134,8 +134,6 @@ vm_create() {
         --memory "$(config_vm_memory)" \
         --import \
         --disk "vol=${VIRSH_POOL}/promenade-${NAME}.img,${DISK_OPTS}" \
-        --disk "pool=${VIRSH_POOL},size=20,${DISK_OPTS}" \
-        --disk "pool=${VIRSH_POOL},size=20,${DISK_OPTS}" \
         --disk "vol=${VIRSH_POOL}/cloud-init-${NAME}.iso,device=cdrom" &>> "${LOG_FILE}"
 
     ssh_wait "${NAME}"

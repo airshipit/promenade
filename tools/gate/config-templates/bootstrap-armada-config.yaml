@@ -324,6 +324,9 @@ data:
   release: calico-etcd
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 6000
+  test: true
   upgrade:
     no_hooks: true
   values:
@@ -953,6 +956,9 @@ data:
   release: kubernetes-etcd
   namespace: kube-system
   timeout: 600
+  wait:
+    timeout: 6000
+  test: true
   upgrade:
     no_hooks: true
   values:

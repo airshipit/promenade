@@ -39,8 +39,30 @@ spec:
         {{- range .Values.command_prefix }}
         - {{ . }}
         {{- end }}
+        - --address=127.0.0.1
+        - --port={{ .Values.network.kubernetes_scheduler.port }}
         - --leader-elect=true
         - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
+
+      readinessProbe:
+        httpGet:
+          host: 127.0.0.1
+          path: /healthz
+          port: {{ .Values.network.kubernetes_scheduler.port }}
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        timeoutSeconds: 5
+
+      livenessProbe:
+        failureThreshold: 2
+        httpGet:
+          host: 127.0.0.1
+          path: /healthz
+          port: {{ .Values.network.kubernetes_scheduler.port }}
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 15
 
       volumeMounts:
         - name: etc
