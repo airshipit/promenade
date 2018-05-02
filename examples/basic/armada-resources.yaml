@@ -551,8 +551,8 @@ data:
 
     images:
       tags:
-        coredns: coredns/coredns:1.0.5
-        test: coredns/coredns:1.0.5
+        coredns: coredns/coredns:1.1.2
+        test: coredns/coredns:1.1.2
   source:
     type: local
     location: /etc/genesis/armada/assets/charts

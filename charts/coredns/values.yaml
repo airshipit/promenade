@@ -12,8 +12,7 @@ conf:
             upstream 8.8.4.4
           }
           prometheus :9253
-          proxy . 8.8.8.8
-          proxy . 8.8.4.4
+          forward . 8.8.8.8 8.8.4.4
           cache 30
       }
 
@@ -24,8 +23,8 @@ conf:
 
 images:
   tags:
-    coredns: coredns/coredns:1.0.5
-    test: coredns/coredns:1.0.5
+    coredns: coredns/coredns:1.1.2
+    test: coredns/coredns:1.1.2
   pull_policy: "IfNotPresent"
 
 labels:
