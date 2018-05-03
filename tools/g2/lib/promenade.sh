@@ -43,7 +43,7 @@ promenade_render_validate_body() {
         JSON="{\"rel\":\"design\",\"href\":\"${NGINX_URL}/promenade.yaml\",\"type\":\"application/x-yaml\"}"
     fi
 
-    echo ${JSON}
+    echo "${JSON}"
 }
 
 promenade_health_check() {

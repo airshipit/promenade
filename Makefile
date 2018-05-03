@@ -18,9 +18,13 @@ HELM_PIDFILE ?= $(abspath ./.helm-pid)
 CHARTS := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
 
 .PHONY: all
-all: banner charts
+all: charts lint
 
-banner:
+.PHONY: tests
+tests: gate-lint
+	tox
+
+chartbanner:
 	@echo Building charts: $(CHARTS)
 
 .PHONY: charts
@@ -36,7 +40,15 @@ helm-init-%: helm-serve
 	cd charts;if [ -s $*/requirements.yaml ]; then echo "Initializing $*";$(HELM) dep up $*; fi
 
 .PHONY: lint
-lint: helm-lint
+lint: helm-lint gate-lint
+
+.PHONY: gate-lint
+gate-lint: gate-lint-deps
+	tox -e gate-lint
+
+.PHONY: gate-lint-deps
+gate-lint-deps:
+	sudo apt-get install -y --no-install-recommends shellcheck
 
 .PHONY: helm-lint
 helm-lint: $(addprefix helm-lint-,$(CHARTS))
@@ -55,7 +67,7 @@ dry-run-%: helm-lint-%
 	cd charts;$(HELM) template --set pod.resources.enabled=true $*
 
 .PHONY: $(CHARTS)
-$(CHARTS): $(addprefix dry-run-,$(CHARTS))
+$(CHARTS): $(addprefix dry-run-,$(CHARTS)) chartbanner
 	$(HELM) package -d charts charts/$@
 
 .PHONY: helm-serve
