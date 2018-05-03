@@ -16,7 +16,7 @@ Sample Document
     data:
       files:
         - path: /opt/kubernetes/bin/kubelet
-          tar_url: https://dl.k8s.io/v1.8.6/kubernetes-node-linux-amd64.tar.gz
+          tar_url: https://dl.k8s.io/v1.10.2/kubernetes-node-linux-amd64.tar.gz
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
@@ -24,7 +24,7 @@ Sample Document
         helm:
           helm: lachlanevenson/k8s-helm:v2.7.2
         kubernetes:
-          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.8.6
+          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.10.2
       packages:
         repositories:
           - deb http://apt.dockerproject.org/repo ubuntu-xenial main

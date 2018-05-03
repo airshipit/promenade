@@ -76,7 +76,7 @@ spec:
             path: /health
             port: 8080
             scheme: HTTP
-          initialDelaySeconds: 5
+          initialDelaySeconds: 2
           timeoutSeconds: 5
           successThreshold: 1
         livenessProbe:
@@ -84,10 +84,10 @@ spec:
             path: /health
             port: 8080
             scheme: HTTP
-          initialDelaySeconds: 60
+          initialDelaySeconds: 10
           timeoutSeconds: 5
           successThreshold: 1
-          failureThreshold: 5
+          failureThreshold: 3
       dnsPolicy: Default
       volumes:
         - name: config-volume

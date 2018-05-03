@@ -18,8 +18,6 @@ spec:
       - kube-controller-manager
       - --allocate-node-cidrs=true
       - --cluster-cidr={{ config['KubernetesNetwork:kubernetes.pod_cidr'] }}
-      - --cluster-signing-cert-file=/etc/kubernetes/controller-manager/pki/cluster-ca.pem
-      - --cluster-signing-key-file=/etc/kubernetes/controller-manager/pki/cluster-ca-key.pem
       - --configure-cloud-routes=false
       - --leader-elect=true
       - --kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml

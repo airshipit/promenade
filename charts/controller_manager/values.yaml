@@ -16,8 +16,8 @@ release_group: null
 
 images:
   tags:
-    anchor: gcr.io/google_containers/hyperkube-amd64:v1.8.6
-    controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.8.6
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.2
+    controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.10.2
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
   pull_policy: "IfNotPresent"
 
