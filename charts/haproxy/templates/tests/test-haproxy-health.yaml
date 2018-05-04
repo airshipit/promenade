@@ -37,6 +37,14 @@ spec:
       image: {{ .Values.images.tags.test }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
-      command: ["/bin/sh", "-c", "wget --no-check-certificate --spider ${HAPROXY_URL}; exit $?"]
+      command:
+        - /bin/bash
+        - -c
+        - |-
+          CODE=$(curl -k -s -o /dev/null -w "%{http_code}" ${HAPROXY_URL})
+          if [ $CODE -ne 000 ]; then
+            exit 0
+          fi
+          exit 1
 ...
 {{- end }}
