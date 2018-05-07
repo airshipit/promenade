@@ -49,7 +49,7 @@ spec:
           imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.daemonset_anchor | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
-            - /tmp/etcdctl_anchor
+            - /tmp/bin/etcdctl_anchor
           env:
             - name: ETCD_NAME
               valueFrom:
@@ -80,17 +80,17 @@ spec:
           readinessProbe:
             exec:
               command:
-                - /tmp/readiness
+                - /tmp/bin/readiness
             initialDelaySeconds: 15
             periodSeconds: 30
           lifecycle:
             preStop:
               exec:
                 command:
-                  - /tmp/pre_stop
+                  - /tmp/bin/pre_stop
           volumeMounts:
             - name: {{ .Values.service.name }}-bin
-              mountPath: /tmp
+              mountPath: /tmp/bin
             {{- if .Values.bootstrapping.enabled }}
             - name: bootstrapping
               mountPath: /bootstrapping
