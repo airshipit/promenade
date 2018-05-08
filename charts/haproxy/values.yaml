@@ -20,8 +20,8 @@ conf:
     period: 30
     kubernetes_url: https://kubernetes.default:443
     services:
-      default:
-        kubernetes:
+      kube-system:
+        kubernetes-apiserver:
           server_opts: "check"
           conf_parts:
             frontend:
@@ -31,7 +31,6 @@ conf:
               - mode tcp
               - option tcp-check
               - option redispatch
-      kube-system:
         kubernetes-etcd:
           server_opts: "check"
           conf_parts:
