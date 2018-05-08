@@ -33,7 +33,7 @@ spec:
             fieldRef:
               fieldPath: status.hostIP
         - name: 'HAPROXY_URL'
-          value: https://$(HOST_IP):{{ .Values.endpoints.health.port }}/{{ .Values.endpoints.health.path }}
+          value: https://$(HOST_IP):{{ .Values.endpoints.health.port }}
       image: {{ .Values.images.tags.test }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}

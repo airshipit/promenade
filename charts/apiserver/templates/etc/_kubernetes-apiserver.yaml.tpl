@@ -39,7 +39,7 @@ spec:
         - {{ . }}
         {{- end }}
         - --advertise-address=$(POD_IP)
-        - --anonymous-auth=true
+        - --anonymous-auth=false
         - --bind-address=0.0.0.0
         - --secure-port={{ .Values.network.kubernetes_apiserver.port }}
         - --insecure-port=0
@@ -61,22 +61,32 @@ spec:
         - containerPort: {{ .Values.network.kubernetes_apiserver.port }}
 
       readinessProbe:
-        httpGet:
-          host: 127.0.0.1
-          path: /healthz
-          port: {{ .Values.network.kubernetes_apiserver.port }}
-          scheme: HTTPS
+        exec:
+          command:
+          - /bin/bash
+          - -c
+          - |-
+            if [ ! -f /etc/kubernetes/apiserver/pki/apiserver-both.pem ]; then
+              cat /etc/kubernetes/apiserver/pki/apiserver-key.pem /etc/kubernetes/apiserver/pki/apiserver.pem > /etc/kubernetes/apiserver/pki/apiserver-both.pem
+            fi
+            echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/etc/kubernetes/apiserver/pki/apiserver-both.pem,cafile=/etc/kubernetes/apiserver/pki/cluster-ca.pem | grep '200 OK'
+            exit $?
         initialDelaySeconds: 10
         periodSeconds: 5
         timeoutSeconds: 5
 
       livenessProbe:
+        exec:
+          command:
+          - /bin/bash
+          - -c
+          - |-
+            if [ ! -f /etc/kubernetes/apiserver/pki/apiserver-both.pem ]; then
+              cat /etc/kubernetes/apiserver/pki/apiserver-key.pem /etc/kubernetes/apiserver/pki/apiserver.pem > /etc/kubernetes/apiserver/pki/apiserver-both.pem
+            fi
+            echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/etc/kubernetes/apiserver/pki/apiserver-both.pem,cafile=/etc/kubernetes/apiserver/pki/cluster-ca.pem | grep '200 OK'
+            exit $?
         failureThreshold: 2
-        httpGet:
-          host: 127.0.0.1
-          path: /healthz
-          port: {{ .Values.network.kubernetes_apiserver.port }}
-          scheme: HTTPS
         initialDelaySeconds: 15
         periodSeconds: 10
         successThreshold: 1
