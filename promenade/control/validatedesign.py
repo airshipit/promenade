@@ -30,11 +30,11 @@ class ValidateDesignResource(base.BaseResource):
         if result['err_count'] == 0:
             message = "Promenade validations succeeded."
             status_code = falcon.HTTP_200
-            status = "Valid"
+            status = "Success"
         else:
             message = "Promenade validations failed."
             status_code = falcon.HTTP_400
-            status = "Invalid"
+            status = "Failure"
         resp.body = json.dumps({
             "kind": "Status",
             "apiVersion": "v1",
