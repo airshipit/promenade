@@ -13,19 +13,24 @@ data:
       pattern: '^(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\/([0-9]|[1-2][0-9]|3[0-2])$'
     domain_name:
       type: string
-      pattern: '^([a-z][a-z0-9-]+\.)+[a-z]+\.?$'
+      format: hostname
+    domain_suffix:
+      type: string
+      pattern: '^\.[a-z0-9][a-z0-9-\.]*$'
     hostname:
       type: string
-      pattern: '^([a-z][a-z0-9-]+)(\.+[a-z]+\.)?$'
+      format: hostname
     hostname_or_ip_address:
-      type: string
-      pattern: '^(([a-z][a-z0-9-]+)(\.+[a-z]+\.)?|(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5])))$'
+      anyOf:
+        - $ref: '#/definitions/hostname'
+        - $ref: '#/definitions/ip_address'
+        - $ref: '#/definitions/domain_suffix'
     ip_address:
       type: string
-      pattern: '^(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))$'
+      format: ipv4
     url:
       type: string
-      # XXX add regex
+      format: uri
 
   type: object
   properties:
@@ -102,7 +107,7 @@ data:
         additional_no_proxy:
           type: array
           items:
-            type: 'string'
+            $ref: '#/definitions/hostname_or_ip_address'
         url:
           $ref: '#/definitions/url'
       required:
