@@ -20,7 +20,7 @@ spec:
         - --advertise-address={{ config['Genesis:ip'] }}
         - --authorization-mode=Node,RBAC
         - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
-        - --anonymous-auth=true
+        - --anonymous-auth=false
         - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
         - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
         - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/apiserver.pem

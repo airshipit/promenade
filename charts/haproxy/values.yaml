@@ -70,7 +70,6 @@ manifests:
 endpoints:
   health:
     port: 6553
-    path: "healthz"
 
 pod:
   lifecycle:
