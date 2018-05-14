@@ -17,7 +17,7 @@
 Test that the API is up and the health endpoint returns a 2XX code */}}
 {{- if .Values.manifests.test_promenade_api }}
 {{- $envAll := . }}
-{{- $dependencies := .Values.dependencies.test }}
+{{- $mounts_promenade_api_init := .Values.pod.mounts.promenade_api.init_container }}
 ---
 apiVersion: v1
 kind: Pod
@@ -28,7 +28,7 @@ metadata:
 spec:
   restartPolicy: Never
   initContainers:
-{{ tuple $envAll $dependencies list | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 4 }}
+{{ tuple $envAll "test" $mounts_promenade_api_init | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
   containers:
     - name: "{{ .Release.Name }}-api-test"
       env:

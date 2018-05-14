@@ -11,61 +11,10 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License. */}}
+# limitations under the License.
+*/}}
 
 {{- if .Values.manifests.job_ks_user }}
-
-{{- $ksAdminSecret := .Values.secrets.identity.admin }}
-{{- $ksUserSecret := .Values.secrets.identity.user }}
-{{- $envAll := . }}
-{{- $dependencies := .Values.dependencies.ks_user }}
-{{- $serviceAccountName := "promenade-ks-user" }}
-{{ tuple $envAll $dependencies $serviceAccountName | include "helm-toolkit.snippets.kubernetes_pod_rbac_serviceaccount" }}
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: promenade-ks-user
-spec:
-  template:
-    metadata:
-      labels:
-{{ tuple $envAll "promenade" "ks-user" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
-    spec:
-      serviceAccountName: {{ $serviceAccountName }}
-      restartPolicy: OnFailure
-      nodeSelector:
-        {{ .Values.labels.node_selector_key }}: {{ .Values.labels.node_selector_value }}
-      initContainers:
-{{ tuple $envAll $dependencies list | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
-      containers:
-        - name: promenade-ks-user
-          image: {{ .Values.images.tags.ks_user }}
-          imagePullPolicy: {{ .Values.images.pull_policy }}
-{{ tuple $envAll $envAll.Values.pod.resources.jobs.ks_user | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
-          command:
-            - /tmp/ks-user.sh
-          volumeMounts:
-            - name: ks-user-sh
-              mountPath: /tmp/ks-user.sh
-              subPath: ks-user.sh
-              readOnly: true
-          env:
-{{- with $env := dict "ksUserSecret" $ksAdminSecret }}
-{{- include "helm-toolkit.snippets.keystone_openrc_env_vars" $env | indent 12 }}
-{{- end }}
-            - name: SERVICE_OS_SERVICE_NAME
-              value: {{ $envAll.Values.endpoints.kubernetesprovisioner.name | quote }}
-            - name: SERVICE_OS_DOMAIN_NAME
-              value: {{ $envAll.Values.endpoints.identity.auth.user.project_domain_name | quote }}
-{{- with $env := dict "ksUserSecret" $ksUserSecret }}
-{{- include "helm-toolkit.snippets.keystone_user_create_env_vars" $env | indent 12 }}
-{{- end }}
-            - name: SERVICE_OS_ROLE
-              value: {{ $envAll.Values.endpoints.identity.auth.user.role | quote }}
-      volumes:
-        - name: ks-user-sh
-          configMap:
-            name: promenade-bin
-            defaultMode: 0555
+{{- $ksUserJob := dict "envAll" . "serviceName" "promenade" -}}
+{{ $ksUserJob | include "helm-toolkit.manifests.job_ks_user" }}
 {{- end -}}

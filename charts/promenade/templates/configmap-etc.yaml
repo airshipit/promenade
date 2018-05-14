@@ -27,7 +27,7 @@ limitations under the License.
 {{- tuple "identity" "internal" "api" . | include "helm-toolkit.endpoints.keystone_endpoint_uri_lookup"| set .Values.conf.promenade.keystone_authtoken "auth_url" | quote | trunc 0 -}}
 {{- end -}}
 
-{{- $userIdentity := .Values.endpoints.identity.auth.user -}}
+{{- $userIdentity := .Values.endpoints.identity.auth.promenade -}}
 
 {{- if empty .Values.conf.promenade.keystone_authtoken.project_name -}}
 {{- set .Values.conf.promenade.keystone_authtoken "project_name" $userIdentity.project_name | quote | trunc 0 -}}

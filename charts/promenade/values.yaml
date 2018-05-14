@@ -33,19 +33,23 @@ conf:
 
 images:
   tags:
-    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
     promenade: quay.io/attcomdev/promenade:latest
     ks_user: docker.io/openstackhelm/heat:newton
     ks_service: docker.io/openstackhelm/heat:newton
     ks_endpoints: docker.io/openstackhelm/heat:newton
-  pull_policy: IfNotPresent
-
-dependencies:
-  test:
-    services:
-      - service: promenade-api
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+    image_repo_sync: docker.io/docker:17.07.0
+  pull_policy: "IfNotPresent"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
 
 labels:
+  job:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
   node_selector_key: ucp-control-plane
   node_selector_value: enabled
 
@@ -69,32 +73,36 @@ network:
       public: true
 
 dependencies:
-  ks_user:
-    services:
-    - service: identity
-      endpoint: internal
-  ks_service:
-    services:
-    - service: identity
-      endpoint: internal
-  ks_endpoints:
-    jobs:
-    - promenade-ks-service
-    services:
-    - service: identity
-      endpoint: internal
+  static:
+    test:
+      services:
+        - service: promenade-api
+    ks_user:
+      services:
+      - service: identity
+        endpoint: internal
+    ks_service:
+      services:
+      - service: identity
+        endpoint: internal
+    ks_endpoints:
+      jobs:
+      - promenade-ks-service
+      services:
+      - service: identity
+        endpoint: internal
 
 secrets:
   identity:
     admin: promenade-keystone-admin
-    user: promenade-keystone-user
+    promenade: promenade-keystone-user
 
 endpoints:
   cluster_domain_suffix: cluster.local
   identity:
     name: keystone
     auth:
-      user:
+      promenade:
         region_name: RegionOne
         role: admin
         project_name: service
@@ -145,6 +153,10 @@ pod:
         default: preferredDuringSchedulingIgnoredDuringExecution
       topologyKey:
         default: kubernetes.io/hostname
+  mounts:
+    promenade_api:
+      init_container: null
+      promenade_api:
   env:
     promenade_api:
 #      - name: http_proxy

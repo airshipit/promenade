@@ -58,8 +58,8 @@ ${HELM} repo add local http://localhost:8879/charts
 
 {
     cd "${SERVE_DIR}"
-    git clone --depth 1 https://git.openstack.org/openstack/openstack-helm.git || true
-    cd openstack-helm
+    git clone --depth 1 https://git.openstack.org/openstack/openstack-helm-infra.git || true
+    cd openstack-helm-infra
 
     make helm-toolkit
 }
