@@ -100,7 +100,7 @@ class ContextMiddleware(object):
     def process_request(self, req, resp):
         ctx = req.context
         ext_marker = req.get_header('X-Context-Marker')
-        if ext_marker is not None and self.is_uuid_like(ext_marker):
+        if ext_marker is not None and self._is_uuid_like(ext_marker):
             # external passed in an ok context marker
             ctx.set_external_marker(ext_marker)
         else:
