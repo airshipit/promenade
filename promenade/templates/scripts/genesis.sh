@@ -42,7 +42,8 @@ while true; do
             log Armada static pod manifest still in place after expected duration
             fail
         fi
-        sleep 5
+        sleep 30
+        kubectl get pods --all-namespaces || echo "Could not get current pod status."
     else
         log Armada static pod manifest removed
         break
