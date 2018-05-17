@@ -19,8 +19,8 @@
 __pycache__
 
 # Sphinx artifacts
-/docs/build/
-/docs/*/_static/
+/doc/build/
+/doc/*/_static/
 /AUTHORS
 /ChangeLog
 
