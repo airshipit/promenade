@@ -5,6 +5,7 @@ metadata:
   name: auxiliary-etcd
   namespace: kube-system
   labels:
+    application: kubernetes
     component: auxiliary-etcd
     promenade: genesis
 spec:

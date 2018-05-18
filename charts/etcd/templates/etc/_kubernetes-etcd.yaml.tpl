@@ -14,8 +14,11 @@
 # limitations under the License.
 */}}
 
-{{- if .Values.manifests.service }}
 {{- $envAll := . }}
+# Strip off "etcd" from service name to get the application name
+# Note that application can either be kubernetes or calico for now
+# and may expand in scope in the future
+{{- $applicationName := .Values.service.name | replace "-etcd" "" }}
 ---
 apiVersion: v1
 kind: Pod
@@ -24,6 +27,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{ .Values.service.name }}-service: enabled
+{{ tuple $envAll $applicationName "etcd" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   hostNetwork: true
   containers:
@@ -104,4 +108,3 @@ spec:
     - name: etc
       hostPath:
         path: {{ .Values.etcd.host_etc_path }}
-{{- end }}

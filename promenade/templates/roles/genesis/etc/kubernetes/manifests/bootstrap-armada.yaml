@@ -5,7 +5,7 @@ metadata:
   name: bootstrap-armada
   namespace: kube-system
   labels:
-    app: promenade
+    application: promenade
     component: genesis-tiller
 spec:
   dnsPolicy: Default

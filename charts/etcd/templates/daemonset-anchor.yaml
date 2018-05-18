@@ -17,6 +17,10 @@ limitations under the License.
 {{- if .Values.manifests.daemonset_anchor }}
 {{- $envAll := . }}
 {{- $mounts_daemonset_anchor := .Values.pod.mounts.daemonset_anchor.daemonset_anchor }}
+# Strip off "etcd" from service name to get the application name
+# Note that application can either be kubernetes or calico for now
+# and may expand in scope in the future
+{{- $applicationName := .Values.service.name | replace "-etcd" "" }}
 ---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
@@ -29,7 +33,7 @@ spec:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
       labels:
-{{ tuple $envAll "kubernetes" "anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+{{ tuple $envAll $applicationName "etcd-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
     spec:
       hostNetwork: true
       {{- if .Values.anchor.dns_policy }}

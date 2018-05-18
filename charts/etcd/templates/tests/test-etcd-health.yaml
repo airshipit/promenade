@@ -16,6 +16,8 @@
 {{/*
 Test etcdctl endpoint health */}}
 {{- if .Values.manifests.test_etcd_health }}
+{{- $envAll := . }}
+{{- $applicationName := .Release.Name }}
 ---
 apiVersion: v1
 kind: Pod
@@ -23,6 +25,8 @@ metadata:
   name: "{{ .Release.Name }}-etcd-test"
   annotations:
     "helm.sh/hook": "test-success"
+  labels:
+{{ tuple $envAll $applicationName "etcd-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   nodeSelector:
     {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}

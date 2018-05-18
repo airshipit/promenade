@@ -60,3 +60,6 @@ monitoring:
     coredns:
       scrape: true
       port: 9253
+
+manifests:
+  pod_test: true

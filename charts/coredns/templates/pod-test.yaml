@@ -13,6 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */}}
+
+{{- if .Values.manifests.pod_test }}
+{{- $envAll := . }}
 ---
 apiVersion: v1
 kind: Pod
@@ -20,6 +23,8 @@ metadata:
   name: {{ print .Release.Name "-test" }}
   annotations:
     "helm.sh/hook": test-success
+  labels:
+{{ tuple $envAll "coredns" "test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   restartPolicy: Never
   containers:
@@ -44,3 +49,4 @@ spec:
             echo "Test failed to resolve all names."
             exit 1
           fi
+{{- end }}

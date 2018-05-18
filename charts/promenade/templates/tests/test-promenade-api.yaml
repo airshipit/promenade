@@ -25,6 +25,8 @@ metadata:
   name: "{{ .Release.Name }}-api-test"
   annotations:
     "helm.sh/hook": "test-success"
+  labels:
+{{ tuple $envAll "promenade" "api-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   restartPolicy: Never
   initContainers:

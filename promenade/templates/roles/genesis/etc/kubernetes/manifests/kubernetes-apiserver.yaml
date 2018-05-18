@@ -5,6 +5,8 @@ metadata:
   name: kubernetes-apiserver
   namespace: kube-system
   labels:
+    application: kubernetes
+    component: apiserver
     kubernetes-apiserver-service: enabled
   annotations:
     scheduler.alpha.kubernetes.io/critical-pod: ''

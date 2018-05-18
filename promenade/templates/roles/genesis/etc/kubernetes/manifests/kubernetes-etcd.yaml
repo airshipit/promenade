@@ -5,6 +5,8 @@ metadata:
   name: kubernetes-etcd
   namespace: kube-system
   labels:
+    application: kubernetes
+    component: etcd
     # NOTE: This label needs coordination with the etcd deployed via chart.
     kubernetes-etcd-service: enabled
 spec:
