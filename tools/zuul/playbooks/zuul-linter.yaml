@@ -15,6 +15,6 @@
 - hosts: primary
   tasks:
     - name: Execute a Whitespace Linter check
-      command: find . -not -path "*/\.*" -not -path "*/docs/build/*" -not -name "*.tgz"  -type f -exec egrep -l " +$" {} \;
+      command: find . -not -path "*/\.*" -not -path "*/doc/build/*" -not -name "*.tgz"  -type f -exec egrep -l " +$" {} \;
       register: result
       failed_when: result.stdout != ""
