@@ -1,0 +1,56 @@
+- hosts: all
+  tasks:
+    - name: Install Docker (Debian)
+      block:
+        - apt:
+            name: "{{ item }}"
+          with_items:
+            - docker.io
+            - python-pip
+          when: ansible_os_family == 'Debian'
+        - pip:
+            name: docker
+            version: 2.7.0
+      become: True
+
+    - name: Debug tag generation inputs
+      block:
+        - debug:
+            var: publish
+        - debug:
+            var: tags
+        - debug:
+            var: zuul
+        - debug:
+            msg: "{{ tags | to_json }}"
+
+    - name: Determine tags
+      shell: echo '{{ tags | to_json }}' | python {{ zuul.project.src_dir }}/tools/image_tags.py
+      environment:
+        BRANCH: "{{ zuul.branch }}"
+        CHANGE: "{{ zuul.change }}"
+        COMMIT: "{{ zuul.newrev }}"
+        PATCHSET: "{{ zuul.patchset }}"
+      register: image_tags
+
+    - name: Debug computed tags
+      debug:
+        var: image_tags
+
+    - name: Build images
+      docker_image:
+        name: airshipit/promenade
+        dockerfile: "Dockerfile"
+        path: "{{ zuul.project.src_dir }}"
+        pull: false
+        tag: "{{ item }}"
+      with_items: "{{ image_tags.stdout_lines }}"
+      become: True
+
+    - name: Push to Docker Hub
+      block:
+        - command: docker login -u {{ airship_dockerhub_creds.username }} -p {{ airship_dockerhub_creds.password }}
+          no_log: True
+        - command: docker push docker.io/airshipit/promenade:{{ item }}
+          with_items: "{{ image_tags.stdout_lines }}"
+      when: publish

@@ -14,11 +14,72 @@
     check:
       jobs:
         - airship-promenade-linter
+        - airship-docker-build-gate
+
     gate:
       jobs:
         - airship-promenade-linter
+        - airship-docker-build-gate
+
+    post:
+      jobs:
+        - airship-docker-build-post
 
 - job:
     name: airship-promenade-linter
     run: tools/gate/playbooks/zuul-linter.yaml
     nodeset: openstack-helm-single-node
+
+- job:
+    name: airship-docker-build-base
+    run: tools/gate/playbooks/docker-image-build.yaml
+    nodeset: ubuntu-xenial
+
+- job:
+    name: airship-docker-build-gate
+    parent: airship-docker-build-base
+    vars:
+      publish: false
+      tags:
+        dynamic:
+          patch_set: true
+
+- job:
+    name: airship-docker-build-post
+    parent: airship-docker-build-base
+    secrets:
+      - airship_dockerhub_creds
+    vars:
+      publish: true
+      tags:
+        dynamic:
+          branch: true
+          commit: true
+        static:
+          - latest
+
+- secret:
+    name: airship_dockerhub_creds
+    data:
+      username: !encrypted/pkcs1-oaep
+        - KIl1I3Ki2tvGCCqlRNE0BPgkJo5Fw8St5eX9gCr9TncYtnvZuusDjlbvJS5jFd4o0Coj8
+          4LniBnmitm+mQiaPrWvM0Op4w8fA12oFA2bF6ZG/R2ZhzDzRSC7ucpoHoNDuZWeSh2v38
+          /rNPTRw4wgm6p3tPHeNLelBOkE8WbN/v6Wj03pKGBQC5Z1Ua1BD2DoNZqAfH2mnxrgEs1
+          r7jvc3Livw3qvJVqtleRBldxN89GOlH9uU6XUdlUVUBecEv03SfgrRXU5njGa16KunyOE
+          cs3VdLqh65EXrrx4vc7RPOx+Ql6wshDtD6vhF4zEthEfRdYUK+6rY368b9O5WdOSHJTL5
+          yMQwItXYn+4AzPKPwf4dHeJmbHhXp3q7aI57WlMip71ReJNGpS2S2WekNGrPrl/5Fp/Ns
+          XdpEZwoq2wAVDZe9nsfSAOLICxurQVawpOrJBcCot8zCe/7xYPHVBnvktV08oTIyykMOx
+          LYtl7Vq/0VwI+aoMfEUPBjuzApvgRIRi0IbkzrEJvD6Y17nrJ7uGbimyYhz76g2GrCPex
+          mCDZ7DReoX/ECIwpsurib51O7KH4uQh3fX5yrbnuXCQzfdCrX12b5uRPWnfFDMcj6rq4+
+          36N7tof6O6ooTl0fbQSGHK38Smaz7lWt69WW2FjT6IfNiI7rEV3aeACtfbG6JU=
+      password: !encrypted/pkcs1-oaep
+        - PleEYq7618O5ujy1Hy3a3nT2WLjYC46PPWnGwra2KKKfvoDSB/wfwLhZ9p9M9OODb5xHJ
+          Me0V+7bD0xBPK9VQIpOlj1BA3PXcyX6zzVvbCSJKmILFhg81++aGBUnSDuKe+Y7qPTgjI
+          l5hW69LJkyHtj6WVKWGo+7Le3kjbtEMZt7lqhtdhWlWfFNWoTDfpAzvj/14yRp5xTZPFt
+          zWYdj2grjjDmFjUHRbdbyUnfNEI+WZeXM5U+0F7jyAEkW3yqBeQV9InM1dhwNFqpGFflk
+          XXIamyjhf/DpT0e7kBDd8NKvb6m+ubPUE8HG+TLEqcSN0mOxfTYWHx4okrkAXrSDhYyi5
+          DWj0lfrr/YE7XE5NnPfmDEgo53lx8yiFmiQ4iz4UtAhjSftUm99EOrL2vFCRawKVW+liw
+          9nExTVGUexLiy+DcIAShVWEVwQPtIr/HcleuO4zLfaljNS9NHBke9lHrU+QZ3AZnkd0/A
+          wcA8OJdGauWiAMvSLqvQEWP3xRBiZe63OATtaWQTmOxzn+9crmIf1eVhCpiNEQNTlmTNe
+          fB0SPYANzVkAF8+ZAmcGBt24Ivc+uSBqrqzR7lFkbDaEbBrTjddKcfbUCoul0yye+qfPj
+          cow63ecH56++tyGyfMKpNL5WJ2GpbCPwiB8ZwDQZv7iQD0TpinhJxAmvt5qhcs=
