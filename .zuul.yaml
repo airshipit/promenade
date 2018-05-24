@@ -31,13 +31,9 @@
     nodeset: openstack-helm-single-node
 
 - job:
-    name: airship-docker-build-base
+    name: airship-docker-build-gate
     run: tools/gate/playbooks/docker-image-build.yaml
     nodeset: ubuntu-xenial
-
-- job:
-    name: airship-docker-build-gate
-    parent: airship-docker-build-base
     vars:
       publish: false
       tags:
@@ -46,7 +42,8 @@
 
 - job:
     name: airship-docker-build-post
-    parent: airship-docker-build-base
+    run: tools/gate/playbooks/docker-image-build.yaml
+    nodeset: ubuntu-xenial
     secrets:
       - airship_dockerhub_creds
     vars:
