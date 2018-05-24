@@ -37,20 +37,20 @@
       debug:
         var: image_tags
 
-    - name: Build images
+    - name: Docker login
+      docker_login:
+        username: "{{ airship_dockerhub_creds.username }}"
+        password: "{{ airship_dockerhub_creds.password }}"
+      become: True
+      when: publish
+
+    - name: Build (and push) images
       docker_image:
         name: airshipit/promenade
         dockerfile: "Dockerfile"
         path: "{{ zuul.project.src_dir }}"
         pull: false
+        push: "{{ publish }}"
         tag: "{{ item }}"
       with_items: "{{ image_tags.stdout_lines }}"
       become: True
-
-    - name: Push to Docker Hub
-      block:
-        - command: docker login -u {{ airship_dockerhub_creds.username }} -p {{ airship_dockerhub_creds.password }}
-          no_log: True
-        - command: docker push docker.io/airshipit/promenade:{{ item }}
-          with_items: "{{ image_tags.stdout_lines }}"
-      when: publish

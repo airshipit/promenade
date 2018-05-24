@@ -62,24 +62,24 @@
     name: airship_dockerhub_creds
     data:
       username: !encrypted/pkcs1-oaep
-        - KIl1I3Ki2tvGCCqlRNE0BPgkJo5Fw8St5eX9gCr9TncYtnvZuusDjlbvJS5jFd4o0Coj8
-          4LniBnmitm+mQiaPrWvM0Op4w8fA12oFA2bF6ZG/R2ZhzDzRSC7ucpoHoNDuZWeSh2v38
-          /rNPTRw4wgm6p3tPHeNLelBOkE8WbN/v6Wj03pKGBQC5Z1Ua1BD2DoNZqAfH2mnxrgEs1
-          r7jvc3Livw3qvJVqtleRBldxN89GOlH9uU6XUdlUVUBecEv03SfgrRXU5njGa16KunyOE
-          cs3VdLqh65EXrrx4vc7RPOx+Ql6wshDtD6vhF4zEthEfRdYUK+6rY368b9O5WdOSHJTL5
-          yMQwItXYn+4AzPKPwf4dHeJmbHhXp3q7aI57WlMip71ReJNGpS2S2WekNGrPrl/5Fp/Ns
-          XdpEZwoq2wAVDZe9nsfSAOLICxurQVawpOrJBcCot8zCe/7xYPHVBnvktV08oTIyykMOx
-          LYtl7Vq/0VwI+aoMfEUPBjuzApvgRIRi0IbkzrEJvD6Y17nrJ7uGbimyYhz76g2GrCPex
-          mCDZ7DReoX/ECIwpsurib51O7KH4uQh3fX5yrbnuXCQzfdCrX12b5uRPWnfFDMcj6rq4+
-          36N7tof6O6ooTl0fbQSGHK38Smaz7lWt69WW2FjT6IfNiI7rEV3aeACtfbG6JU=
+        - oY8olc1MvtkAHQ6nDELIX4Kih4fpwpjHhd6Mr5b/NgxX7+bhQVtr4SYNjmWpdiNzTCPfT
+          +OFSjqmMDzCusVO5ZjURU4gmsN3ip0YLUAT85CPcCfPxyuNH/r0/5HIg+35W7v+g7BUH0
+          CqUAM9Qw57O0cfsa+88v6Hz05nmz6e71YjItwOwhyjJ9QXHtSVJ/cAMelWfmFuohRwQ0w
+          9RikqAa+882Qrnl8mm/MUI2W8vi07EY78sjo5mp4AWDK04TuOpMv4Pa2yoJ42pLyiqy9Z
+          /ofnA1EgNf22d5iUUZQMXQDsST89vuTNbM/V2Frk2nlJjjSwhlLypdhCDzE0UBzDnWOGH
+          WRZzha51hIjhwOr0mAzw3J/I0LVCovrbut+RvOX5UnK9x4BKIv8b4JFhUgPgaaRtk5IeR
+          CwjWg7JARt+N01rXDR6K58QsmpmYG3oUvUhS1HtUYq9cXpgtz7H2oVb26hdLBEaxC1+8e
+          LEul+wkZ6nCXs0h9FlfbvA1/aYl1Qhezw9JUIoThTkWxhahXZVBnFQM0LlJBZjNAjDvQi
+          4NgVWXAFcmimNZbgDgI7LPEozyqYvqGq9s6vq1YgiwPfnddlegLWX/TN3cE1glE4rase8
+          Bmc6rPW+hb+5abTS64LoFqz6cQW7AG6hveq8vwTfdS53er0u135/R2VDjXUkSA=
       password: !encrypted/pkcs1-oaep
-        - PleEYq7618O5ujy1Hy3a3nT2WLjYC46PPWnGwra2KKKfvoDSB/wfwLhZ9p9M9OODb5xHJ
-          Me0V+7bD0xBPK9VQIpOlj1BA3PXcyX6zzVvbCSJKmILFhg81++aGBUnSDuKe+Y7qPTgjI
-          l5hW69LJkyHtj6WVKWGo+7Le3kjbtEMZt7lqhtdhWlWfFNWoTDfpAzvj/14yRp5xTZPFt
-          zWYdj2grjjDmFjUHRbdbyUnfNEI+WZeXM5U+0F7jyAEkW3yqBeQV9InM1dhwNFqpGFflk
-          XXIamyjhf/DpT0e7kBDd8NKvb6m+ubPUE8HG+TLEqcSN0mOxfTYWHx4okrkAXrSDhYyi5
-          DWj0lfrr/YE7XE5NnPfmDEgo53lx8yiFmiQ4iz4UtAhjSftUm99EOrL2vFCRawKVW+liw
-          9nExTVGUexLiy+DcIAShVWEVwQPtIr/HcleuO4zLfaljNS9NHBke9lHrU+QZ3AZnkd0/A
-          wcA8OJdGauWiAMvSLqvQEWP3xRBiZe63OATtaWQTmOxzn+9crmIf1eVhCpiNEQNTlmTNe
-          fB0SPYANzVkAF8+ZAmcGBt24Ivc+uSBqrqzR7lFkbDaEbBrTjddKcfbUCoul0yye+qfPj
-          cow63ecH56++tyGyfMKpNL5WJ2GpbCPwiB8ZwDQZv7iQD0TpinhJxAmvt5qhcs=
+        - TPFxTDwm4ZbS1ILLpvkOQTJzkVnI4EPfSchGkL8kSiVwybdFzTNlMg2LHZGsXmoa9Pz4M
+          jWyQmFwyKCJ0oGfBl1UzB2ZGgR1vuUZR9EXio4BzYCxz4qYcxSosPw9dxU9RKqgJymjZI
+          WjkID4e9bfadyM6l33l9b9o3YwINd2YuHszedxSXUEo3JeqB4qFLeh0y96yvnbWa9ne24
+          lz4w3hRn3azY9hFxzMDbuKrcJCjnXjcWvinuNFAMYYGyPaPd9QGWotVkdHao7psc+YHhQ
+          ERvJpPkvHBHMvCgYakdjMtpNbIARtyj4IdDm7/EYqXJZHmUC0hl6IVQXY0+uyJHWQjYYc
+          2EqqTioiO0QLcXliqfLobeTLsnNgjSt7H5KJsHXujKqPhFVrfvaScqTg3wtctplh0rEgY
+          q7J8/RQM4FCZr5ds0qqGeHd3zl6SMZDRB1mtzJJbVHjXBsCypV5PFipKVR1sNXr/M3WJP
+          e0l2V9DB0+EuIz9edPRpa3vsh3sgdjj8mjxyJKMpm45UKh6nQU2iFwxs1yBYTm36e9YQk
+          sUcWtrtIEz6tuaVuv5Dg/V46MuPJbD6ICcGOCDAFIsxLgAYzbQiTq/uLcLk8lqi0H9VmB
+          QTIjYorotK3OoLAGvZaCRP37PG3d5iNzYtdVNq37p1jFoPYpFdiBLb0dqAn4Qk=
