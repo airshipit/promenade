@@ -39,8 +39,9 @@
 
     - name: Docker login
       docker_login:
-        username: "{{ airship_dockerhub_creds.username }}"
+        email: "{{ airship_dockerhub_creds.email }}"
         password: "{{ airship_dockerhub_creds.password }}"
+        username: "{{ airship_dockerhub_creds.username }}"
       become: True
       when: publish
 
