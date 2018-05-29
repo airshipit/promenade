@@ -100,7 +100,6 @@ data:
   chart_name: helm-toolkit
   release: helm-toolkit
   namespace: helm-toolkit
-  timeout: 600
   upgrade:
     no_hooks: true
   values: {}
@@ -123,9 +122,6 @@ data:
   chart_name: infra-helm-toolkit
   release: infra-helm-toolkit
   namespace: infra-helm-toolkit
-  timeout: 600
-  wait:
-    timeout: 600
   upgrade:
     no_hooks: true
   values: {}
@@ -148,7 +144,8 @@ data:
   chart_name: proxy
   release: kubernetes-proxy
   namespace: kube-system
-  timeout: 600
+  wait:
+    timeout: 120
   upgrade:
     no_hooks: true
   values:
@@ -323,9 +320,8 @@ data:
   chart_name: etcd
   release: calico-etcd
   namespace: kube-system
-  timeout: 600
   wait:
-    timeout: 6000
+    timeout: 300
   upgrade:
     no_hooks: true
   values:
@@ -443,7 +439,8 @@ data:
   chart_name: calico
   release: calico
   namespace: kube-system
-  timeout: 600
+  wait:
+    timeout: 300
   upgrade:
     no_hooks: true
   values:
@@ -523,9 +520,8 @@ data:
   release: coredns
   namespace: kube-system
   test: true
-  timeout: 600
   wait:
-    timeout: 600
+    timeout: 300
   upgrade:
     no_hooks: true
   values:
@@ -550,9 +546,8 @@ data:
   chart_name: haproxy
   release: haproxy
   namespace: kube-system
-  timeout: 600
   wait:
-    timeout: 600
+    timeout: 300
   upgrade:
     no_hooks: true
   values:
@@ -659,7 +654,8 @@ data:
   chart_name: apiserver
   release: kubernetes-apiserver
   namespace: kube-system
-  timeout: 600
+  wait:
+    timeout: 300
   upgrade:
     no_hooks: true
   values:
@@ -737,7 +733,8 @@ data:
   chart_name: controller_manager
   release: kubernetes-controller-manager
   namespace: kube-system
-  timeout: 600
+  wait:
+    timeout: 300
   upgrade:
     no_hooks: true
   values:
@@ -799,7 +796,8 @@ data:
   chart_name: scheduler
   release: kubernetes-scheduler
   namespace: kube-system
-  timeout: 600
+  wait:
+    timeout: 300
   upgrade:
     no_hooks: true
   values:
@@ -954,9 +952,8 @@ data:
   chart_name: etcd
   release: kubernetes-etcd
   namespace: kube-system
-  timeout: 600
   wait:
-    timeout: 6000
+    timeout: 300
   test: true
   upgrade:
     no_hooks: true
@@ -1039,7 +1036,8 @@ data:
   chart_name: promenade
   release: promenade
   namespace: ucp
-  timeout: 600
+  wait:
+    timeout: 120
   values:
     conf:
       paste:
