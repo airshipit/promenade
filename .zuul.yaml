@@ -13,27 +13,91 @@
 - project:
     check:
       jobs:
-        - airship-promenade-linter
-        - airship-docker-build-gate
+        - airship-promenade-lint-ws
+        - airship-promenade-docker-build-gate
+        - airship-promenade-doc-build
+        - airship-promenade-lint-pep8
+        - airship-promenade-lint-chart
+        - airship-promenade-unit-py35
+        - airship-promenade-security-bandit
 
     gate:
       jobs:
-        - airship-promenade-linter
-        - airship-docker-build-gate
+        - airship-promenade-lint-ws
+        - airship-promenade-docker-build-gate
+        - airship-promenade-doc-build
+        - airship-promenade-lint-pep8
+        - airship-promenade-lint-chart
+        - airship-promenade-unit-py35
+        - airship-promenade-security-bandit
 
     post:
       jobs:
         - airship-docker-build-post
 
-- job:
-    name: airship-promenade-linter
-    run: tools/gate/playbooks/zuul-linter.yaml
-    nodeset: openstack-helm-single-node
+- nodeset:
+    name: airship-promenade-single-node
+    nodes:
+      - name: primary
+        label: ubuntu-xenial
 
 - job:
-    name: airship-docker-build-gate
-    run: tools/gate/playbooks/docker-image-build.yaml
-    nodeset: ubuntu-xenial
+    name: airship-promenade-lint-ws
+    description: |
+      Lints all files for trailing whitespace
+    run: tools/zuul/playbooks/zuul-linter.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node
+
+- job:
+    name: airship-promenade-lint-pep8
+    description: |
+      Lints Python files against the PEP8 standard
+    run: tools/zuul/playbooks/pep8-linter.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node
+
+- job:
+    name: airship-promenade-lint-chart
+    description: |
+      Lints Helm charts for validity
+    run: tools/zuul/playbooks/helm-linter.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node
+
+- job:
+    name: airship-promenade-unit-py35
+    description: |
+      Executes unit tests under Python 3.5
+    run: tools/zuul/playbooks/unit-py35.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node
+
+- job:
+    name: airship-promenade-security-bandit
+    description: |
+      Executes the Bandit security scanner against Python files
+    run: tools/zuul/playbooks/security-bandit.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node
+
+- job:
+    name: airship-promenade-doc-build
+    description: |
+      Locally build the documentation to check for errors
+    run: tools/zuul/playbooks/doc-build.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node
+
+- job:
+    name: airship-promenade-linter
+    run: tools/zuul/playbooks/zuul-linter.yaml
+    nodeset: airship-promenade-single-node
+
+- job:
+    name: airship-promenade-docker-build-gate
+    run: tools/zuul/playbooks/docker-image-build.yaml
+    nodeset: airship-promenade-single-node
     vars:
       publish: false
       tags:
@@ -42,7 +106,7 @@
 
 - job:
     name: airship-docker-build-post
-    run: tools/gate/playbooks/docker-image-build.yaml
+    run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: ubuntu-xenial
     secrets:
       - airship_dockerhub_creds

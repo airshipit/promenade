@@ -56,6 +56,13 @@ fi
 
 ${HELM} repo add local http://localhost:8879/charts
 
+
+#OSH Makefile is bugged, so ensure helm is in the path
+if [[ ${HELM} != "helm" ]]
+then
+  export PATH=${PATH}:$(dirname ${HELM})
+fi
+
 {
     cd "${SERVE_DIR}"
     git clone --depth 1 https://git.openstack.org/openstack/openstack-helm-infra.git || true

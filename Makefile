@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+BUILD_DIR := $(shell mktemp -d)
+HELM := $(BUILD_DIR)/helm
 HELM ?= helm
 HELM_PIDFILE ?= $(abspath ./.helm-pid)
 
@@ -23,6 +25,22 @@ all: charts lint
 .PHONY: tests
 tests: gate-lint
 	tox
+
+.PHONY: tests-security
+tests-security:
+	tox -e bandit
+
+.PHONY: docs
+docs:
+	tox -e docs
+
+.PHONY: tests-unit
+tests-unit:
+	tox -e unit
+
+.PHONY: tests-pep8
+tests-pep8:
+	tox -e lint
 
 chartbanner:
 	@echo Building charts: $(CHARTS)
@@ -54,7 +72,7 @@ gate-lint-deps:
 helm-lint: $(addprefix helm-lint-,$(CHARTS))
 
 .PHONY: helm-lint-%
-helm-lint-%: helm-init-%
+helm-lint-%: helm-install helm-init-%
 	@echo Linting chart $*
 	cd charts;$(HELM) lint $*
 
@@ -71,7 +89,7 @@ $(CHARTS): $(addprefix dry-run-,$(CHARTS)) chartbanner
 	$(HELM) package -d charts charts/$@
 
 .PHONY: helm-serve
-helm-serve:
+helm-serve: helm-install
 	./tools/helm_tk.sh $(HELM) $(HELM_PIDFILE)
 
 .PHONY: clean
@@ -79,3 +97,8 @@ clean:
 	rm -f charts/*.tgz
 	rm -f charts/*/requirements.lock
 	rm -rf charts/*/charts
+
+# Install helm binary
+.PHONY: helm-install
+helm-install:
+	tools/helm_install.sh $(HELM)
