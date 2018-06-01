@@ -30,6 +30,7 @@ Promenade Configuration Guide
 .. toctree::
    :maxdepth: 2
 
+   developer-onboarding
    design
    getting-started
    configuration/index
