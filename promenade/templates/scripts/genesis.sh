@@ -34,18 +34,12 @@ done
 tail -f /var/log/armada/bootstrap-armada.log &
 
 set +x
-end=$(($(date +%s) + 3600))
 while true; do
     if [[ -e /etc/kubernetes/manifests/bootstrap-armada.yaml ]]; then
-        now=$(date +%s)
-        if [ $now -gt $end ]; then
-            log Armada static pod manifest still in place after expected duration
-            fail
-        fi
         sleep 30
         kubectl get pods --all-namespaces || echo "Could not get current pod status."
     else
-        log Armada static pod manifest removed
+        log Armada bootstrap manifest deployed
         break
     fi
 done
