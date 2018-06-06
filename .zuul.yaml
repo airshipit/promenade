@@ -56,6 +56,8 @@
     run: tools/zuul/playbooks/pep8-linter.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
+    files:
+      - ^.*\.py$
 
 - job:
     name: airship-promenade-lint-chart
@@ -64,6 +66,8 @@
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
+    files:
+      - ^charts/.*$
 
 - job:
     name: airship-promenade-unit-py35
@@ -72,6 +76,8 @@
     run: tools/zuul/playbooks/unit-py35.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
+    files:
+      - ^.*\.py$
 
 - job:
     name: airship-promenade-security-bandit
@@ -80,6 +86,8 @@
     run: tools/zuul/playbooks/security-bandit.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
+    files:
+      - ^.*\.py$
 
 - job:
     name: airship-promenade-doc-build
@@ -88,6 +96,11 @@
     run: tools/zuul/playbooks/doc-build.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
+    irrelevant-files:
+      - ^charts/.*$
+      - ^etc/.*$
+      - ^tests/.*$
+      - ^tools/.*$
 
 - job:
     name: airship-promenade-linter
@@ -103,6 +116,11 @@
       tags:
         dynamic:
           patch_set: true
+    irrelevant-files:
+      - ^charts/.*$
+      - ^etc/.*$
+      - ^tests/.*$
+      - ^tools/.*$
 
 - job:
     name: airship-docker-build-post
@@ -118,6 +136,11 @@
           commit: true
         static:
           - latest
+    irrelevant-files:
+      - ^charts/.*$
+      - ^etc/.*$
+      - ^tests/.*$
+      - ^tools/.*$
 
 - secret:
     name: airship_dockerhub_creds
