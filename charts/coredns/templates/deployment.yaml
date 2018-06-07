@@ -38,6 +38,7 @@ spec:
 {{ tuple $envAll "kubernetes" "coredns" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
         {{ .Values.service.name }}: enabled
       annotations:
+        configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       serviceAccountName: coredns
@@ -67,6 +68,8 @@ spec:
         volumeMounts:
         - name: config-volume
           mountPath: /etc/coredns
+        - name: scripts
+          mountPath: /tmp/bin
         ports:
         - containerPort: 53
           name: dns
@@ -75,18 +78,16 @@ spec:
           name: dns-tcp
           protocol: TCP
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-            scheme: HTTP
+          exec:
+            command:
+              - /tmp/bin/probe.sh
           initialDelaySeconds: 2
           timeoutSeconds: 5
           successThreshold: 1
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-            scheme: HTTP
+          exec:
+            command:
+              - /tmp/bin/probe.sh
           initialDelaySeconds: 10
           timeoutSeconds: 5
           successThreshold: 1
@@ -99,3 +100,7 @@ spec:
             items:
             - key: Corefile
               path: Corefile
+        - name: scripts
+          configMap:
+            name: {{ .Values.service.name }}-bin
+            defaultMode: 0555
