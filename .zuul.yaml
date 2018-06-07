@@ -127,7 +127,7 @@
     run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: ubuntu-xenial
     secrets:
-      - airship_dockerhub_creds
+      - airship_promenade_quay_creds
     vars:
       publish: true
       tags:
@@ -143,38 +143,27 @@
       - ^tools/.*$
 
 - secret:
-    name: airship_dockerhub_creds
+    name: airship_promenade_quay_creds
     data:
       username: !encrypted/pkcs1-oaep
-        - oY8olc1MvtkAHQ6nDELIX4Kih4fpwpjHhd6Mr5b/NgxX7+bhQVtr4SYNjmWpdiNzTCPfT
-          +OFSjqmMDzCusVO5ZjURU4gmsN3ip0YLUAT85CPcCfPxyuNH/r0/5HIg+35W7v+g7BUH0
-          CqUAM9Qw57O0cfsa+88v6Hz05nmz6e71YjItwOwhyjJ9QXHtSVJ/cAMelWfmFuohRwQ0w
-          9RikqAa+882Qrnl8mm/MUI2W8vi07EY78sjo5mp4AWDK04TuOpMv4Pa2yoJ42pLyiqy9Z
-          /ofnA1EgNf22d5iUUZQMXQDsST89vuTNbM/V2Frk2nlJjjSwhlLypdhCDzE0UBzDnWOGH
-          WRZzha51hIjhwOr0mAzw3J/I0LVCovrbut+RvOX5UnK9x4BKIv8b4JFhUgPgaaRtk5IeR
-          CwjWg7JARt+N01rXDR6K58QsmpmYG3oUvUhS1HtUYq9cXpgtz7H2oVb26hdLBEaxC1+8e
-          LEul+wkZ6nCXs0h9FlfbvA1/aYl1Qhezw9JUIoThTkWxhahXZVBnFQM0LlJBZjNAjDvQi
-          4NgVWXAFcmimNZbgDgI7LPEozyqYvqGq9s6vq1YgiwPfnddlegLWX/TN3cE1glE4rase8
-          Bmc6rPW+hb+5abTS64LoFqz6cQW7AG6hveq8vwTfdS53er0u135/R2VDjXUkSA=
+        - rZUvxa5mOBb4fmFmoYCcT67hrkI7oqrmuTb3eFzgB7LOJbiZN9/3JSnbBmgG9qeaa8kog
+          ttxjwgu0+YdpKjSk/XEyWtDi6s1yqFwhlJprhS/FR91pjUxO/PGSFwhlZvTp91cb60xjL
+          smg9Kp41GLHwynRboL78GyhSMLlW76Ok/xCCqnpW+60/W0iXDte0tRd5LLKtUl2b8z9kd
+          Ki1MzPLMMXFZKJVtnwnjub1DWPuN9hlwasMwISsOJjE0Ri+aFz5m6qfx0jwHgCRTzPsnZ
+          osHiVeRbZCjdFFRK9AWNid983VGxLz79MObO3lx1wUt9YLH2uwUSmdtBuBbHlEciOWi7x
+          cUm1EWlXqx7XFTKCazYq4SYBzltqYIG9NNdIHBC7WdLTIoHBuxkDvo9fSEnR/82s80LtQ
+          e4+9GPcM4dXsXy4MxRTKdQCfa87qJD8ItbTlHBYLJEQRNkKvGFOqVGtQY7DjRSZwK5GHl
+          cq+9DJShfe4++d3grTJo0zp2Mv/8ronbXqRKkr5zoO3KmmaI+y1FPwsMpfjwXyWhJFEo+
+          Abp9LvThSoaQLWdbLDyZrEp17Wb7fjCnoDfv9oNyD/GOEXTQJ0PYQYYsApAFGYSKA41pg
+          XLCVcT1JtT9F7lbUa3fRyzLcbsjGf9PfToeYTc5BPRPZOYG0vhFcxBcj460SNo=
       password: !encrypted/pkcs1-oaep
-        - TPFxTDwm4ZbS1ILLpvkOQTJzkVnI4EPfSchGkL8kSiVwybdFzTNlMg2LHZGsXmoa9Pz4M
-          jWyQmFwyKCJ0oGfBl1UzB2ZGgR1vuUZR9EXio4BzYCxz4qYcxSosPw9dxU9RKqgJymjZI
-          WjkID4e9bfadyM6l33l9b9o3YwINd2YuHszedxSXUEo3JeqB4qFLeh0y96yvnbWa9ne24
-          lz4w3hRn3azY9hFxzMDbuKrcJCjnXjcWvinuNFAMYYGyPaPd9QGWotVkdHao7psc+YHhQ
-          ERvJpPkvHBHMvCgYakdjMtpNbIARtyj4IdDm7/EYqXJZHmUC0hl6IVQXY0+uyJHWQjYYc
-          2EqqTioiO0QLcXliqfLobeTLsnNgjSt7H5KJsHXujKqPhFVrfvaScqTg3wtctplh0rEgY
-          q7J8/RQM4FCZr5ds0qqGeHd3zl6SMZDRB1mtzJJbVHjXBsCypV5PFipKVR1sNXr/M3WJP
-          e0l2V9DB0+EuIz9edPRpa3vsh3sgdjj8mjxyJKMpm45UKh6nQU2iFwxs1yBYTm36e9YQk
-          sUcWtrtIEz6tuaVuv5Dg/V46MuPJbD6ICcGOCDAFIsxLgAYzbQiTq/uLcLk8lqi0H9VmB
-          QTIjYorotK3OoLAGvZaCRP37PG3d5iNzYtdVNq37p1jFoPYpFdiBLb0dqAn4Qk=
-      email: !encrypted/pkcs1-oaep
-        - cxcAl94P4831hThRHYbve05Xk1E5NsG/CzQgvBr6hzmF7wiHIPMMYRf9dMXpZ5/2KUjxE
-          PVHy6ymbZPtLLjOJ1ESPH2f+Evt2p02JECqJYdjV8p/S3YcWSb9omTe5Ss1bSEjmmvQS3
-          uhnPrX7xj8Fx0h87p0JfRc/rZiwJWjfxTmQxg1R9g9vuq1KYfnfsvRNX0q8ZMjeDlz3yu
-          7YemnqtDQSmlgNUUmwX7MfFsbXg2gkzrlIzfZQ+MIMWnLYP+F5UEPX8BaRQpcLXDlwB8V
-          112Qlr9P5Rj/9Hb9Yk8ehVfbXNAfroR/b6Cp5zGicAS3DURfeYayo3lprjaIsTFuzzrPa
-          jmQLyPW3FWHAC4WcTs2PjO2QTawV4hUoU9eoKXoKPfmO2g1r9SLaQNqwr7KSIGhPwZ2pC
-          EYA2TSrbsggMwVO6F0fujsu6xr0jhR/0wY+JWDoruIhJ46EfQrWnMqIKbu4LyYQrRhAmG
-          IX8rPYWPNaeSm5v8gHakgMY/KUQtKsF+rWF9dpRsOzbEKFMq0ukLIGw4vCtzQuv+MKhpV
-          apusK7+y9CGWj36WK2Mnl52GOI2p221LdwSXHWNePbgnYaIA4EeSItdUX4VPap3F6AJjY
-          WwMw7h+u+413aZNTkIwHOTLM3K8Zx5zZLv4c0booyLc7v0bxxi41IZ5tnl/UB0=
+        - o3z8xpLEED7CslvrePRIXPSnhv0y7FmffIzQmnJUDtevtxIdpHZ6wJll69FwN0gFtucLb
+          WXC4Y5QHZJMmRQa444dCtvqb4Cut58fVd9EJ3hcoSYbcsvenpoq99paehOIYBuUHkq5jR
+          HwolBcGAZjUavdTrDIGyDr/2nbUsfkXmAVlqYSH6Fb/H25IXn6G1ksntDm0Q2OSvtoj99
+          xR9HXfpSsBWk17Cw+MJwDKsp6DZApo3Dr0todp6nOuj7l+heG8IntugxtgL5RD2NQCAZk
+          KYRUjqjLpEjGFIR394ndUlLf3E4H4v+uK9lKca3tCDCMSJfRd7SUXLWhauWVHIPAvy3oR
+          V20u7BrripCXuBEgg6FkMuwnkE+U9TlxaRhtoM1zZdNSMvXNyC/EDFI+HkYho+NHaj1ge
+          o0oGHiqJlKMQfhNY5HpZqTPHKUmqKWShhvF7eyKYu3ynOmPyqO6SL8q/Yp7cRtm4B1s+U
+          phFn3dA1xr/cNRWeEDDQvWnC2cJ5obtsDG5Fk6QqJXKtEsLguqys5B3/4ortFTxboN5Wg
+          B8LXgIGR6nvi3c+UgWR1REVXIencbYUX2zAmr449NZ2kEys4WZ51EAX0u9C6uCPnwKU/T
+          cnoFa9ZcVtbUzddA4j8SfRdIPUH0FmUMHAiXdcfCYhJwbRzzKC9m8C84Emf6Io=
