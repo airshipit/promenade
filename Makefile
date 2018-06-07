@@ -36,11 +36,11 @@ docs:
 
 .PHONY: tests-unit
 tests-unit:
-	tox -e unit
+	tox -e py35
 
 .PHONY: tests-pep8
 tests-pep8:
-	tox -e lint
+	tox -e pep8
 
 chartbanner:
 	@echo Building charts: $(CHARTS)
