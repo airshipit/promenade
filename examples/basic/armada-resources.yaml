@@ -607,7 +607,6 @@ data:
       anchor:
         kubernetes_url: https://10.96.0.1:443
         services:
-          default: null
           kube-system:
             kubernetes-apiserver:
               server_opts: "check port 6443"
