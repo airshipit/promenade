@@ -5,7 +5,7 @@ set -x
 SUCCESS=1
 
 {{/* Use built-in health check */}}
-if ! wget http://localhost:8080/health; then
+if ! wget -O - http://127.0.0.1:8080/health; then
     echo "Failed CoreDNS health check endpoint"
     SUCCESS=0
 fi
