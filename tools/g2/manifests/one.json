@@ -1,0 +1,22 @@
+{
+  "configuration": [
+    "promenade/schemas"
+  ],
+  "stages": [
+    {
+      "name": "Gate Setup",
+      "script": "gate-setup.sh"
+    },
+    {
+      "name": "Create VMs",
+      "script": "create-vms.sh"
+    }
+  ],
+  "vm": {
+    "memory": 20480,
+    "names": [
+      "n0"
+    ],
+    "vcpus": 4
+  }
+}

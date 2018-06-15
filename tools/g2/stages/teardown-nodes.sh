@@ -4,16 +4,12 @@ set -eu
 
 source "${GATE_UTILS}"
 
-declare -a ETCD_CLUSTERS
 declare -a NODES
 
 RECREATE=0
 
-while getopts "e:n:rv:" opt; do
+while getopts "n:rv:" opt; do
     case "${opt}" in
-        e)
-            ETCD_CLUSTERS+=("${OPTARG}")
-            ;;
         n)
             NODES+=("${OPTARG}")
             ;;
@@ -43,9 +39,4 @@ for NAME in "${NODES[@]}"; do
     if [[ ${RECREATE} == "1" ]]; then
         vm_create "${NAME}"
     fi
-done
-
-for etcd_validation_string in "${ETCD_CLUSTERS[@]}"; do
-    IFS=' ' read -a etcd_validation_args <<<"${etcd_validation_string}"
-    validate_etcd_membership "${etcd_validation_args[@]}"
 done

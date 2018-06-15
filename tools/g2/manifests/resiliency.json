@@ -48,7 +48,14 @@
         "-l", "kubernetes-controller-manager=enabled",
         "-l", "kubernetes-etcd=enabled",
         "-l", "kubernetes-scheduler=enabled",
-        "-l", "ucp-control-plane=enabled",
+        "-l", "ucp-control-plane=enabled"
+      ]
+    },
+    {
+      "name": "Check initial etcd cluster",
+      "script": "check-etcd-health.sh",
+      "arguments": [
+        "-w", "10",
         "-e", "kubernetes n0 n0 n1 n2",
         "-e", "calico n0 n0 n1 n2"
       ]
@@ -59,6 +66,14 @@
       "arguments": [
         "-v", "n0",
         "-n", "n3"
+      ]
+    },
+    {
+      "name": "Power off n2",
+      "script": "power-down-node.sh",
+      "arguments": [
+        "-s",
+        "-n", "n2"
       ]
     },
     {
@@ -80,7 +95,21 @@
         "-l", "kubernetes-controller-manager=enabled",
         "-l", "kubernetes-etcd=enabled",
         "-l", "kubernetes-scheduler=enabled",
-        "-l", "ucp-control-plane=enabled",
+        "-l", "ucp-control-plane=enabled"
+      ]
+    },
+    {
+      "name": "Power up n2",
+      "script": "power-up-node.sh",
+      "arguments": [
+        "-n", "n2"
+      ]
+    },
+    {
+      "name": "Check full etcd cluster",
+      "script": "check-etcd-health.sh",
+      "arguments": [
+        "-w", "30",
         "-e", "kubernetes n0 n0 n1 n2 n3",
         "-e", "calico n0 n0 n1 n2 n3"
       ]
@@ -91,7 +120,13 @@
       "arguments": [
         "-v", "n1",
         "-n", "n0",
-        "-r",
+        "-r"
+      ]
+    },
+    {
+      "name": "Check post-teardown etcd cluster",
+      "script": "check-etcd-health.sh",
+      "arguments": [
         "-e", "kubernetes n1 n1 n2 n3",
         "-e", "calico n1 n1 n2 n3"
       ]
@@ -102,7 +137,13 @@
       "arguments": [
         "-v", "n1",
         "-n", "n0",
-        "-l", "ucp-control-plane=enabled",
+        "-l", "ucp-control-plane=enabled"
+      ]
+    },
+    {
+      "name": "Check final etcd cluster",
+      "script": "check-etcd-health.sh",
+      "arguments": [
         "-e", "kubernetes n1 n1 n2 n3",
         "-e", "calico n1 n1 n2 n3"
       ]

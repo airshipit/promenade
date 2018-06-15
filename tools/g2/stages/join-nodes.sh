@@ -4,7 +4,6 @@ set -eu
 
 source "${GATE_UTILS}"
 
-declare -a ETCD_CLUSTERS
 declare -a LABELS
 declare -a NODES
 
@@ -12,11 +11,8 @@ GET_KEYSTONE_TOKEN=0
 USE_DECKHAND=0
 DECKHAND_REVISION=''
 
-while getopts "d:e:l:n:tv:" opt; do
+while getopts "d:l:n:tv:" opt; do
     case "${opt}" in
-        e)
-            ETCD_CLUSTERS+=("${OPTARG}")
-            ;;
         d)
             USE_DECKHAND=1
             DECKHAND_REVISION=${OPTARG}
@@ -48,7 +44,6 @@ fi
 
 SCRIPT_DIR="${TEMP_DIR}/curled-scripts"
 
-echo Etcd Clusters: "${ETCD_CLUSTERS[@]}"
 echo Labels: "${LABELS[@]}"
 echo Nodes: "${NODES[@]}"
 
@@ -85,11 +80,4 @@ for NAME in "${NODES[@]}"; do
     log Joining node "${NAME}"
     rsync_cmd "${SCRIPT_DIR}/join-${NAME}.sh" "${NAME}:/root/promenade/"
     ssh_cmd "${NAME}" "/root/promenade/join-${NAME}.sh" 2>&1 | tee -a "${LOG_FILE}"
-done
-
-sleep 10
-
-for etcd_validation_string in "${ETCD_CLUSTERS[@]}"; do
-    IFS=' ' read -a etcd_validation_args <<<"${etcd_validation_string}"
-    validate_etcd_membership "${etcd_validation_args[@]}"
 done

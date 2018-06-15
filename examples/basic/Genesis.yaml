@@ -9,6 +9,13 @@ metadata:
 data:
   hostname: n0
   ip: 192.168.77.10
+  apiserver:
+    command_prefix:
+      - /apiserver
+      - --authorization-mode=Node,RBAC
+      - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+      - --service-cluster-ip-range=10.96.0.0/16
+      - --endpoint-reconciler-type=lease
   armada:
     target_manifest: cluster-bootstrap
   labels:
