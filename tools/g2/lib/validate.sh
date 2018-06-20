@@ -14,7 +14,7 @@ validate_etcd_membership() {
 
     # NOTE(mark-burnett): Wait a moment for disks in test environment to settle.
     sleep 10
-    log Validating "${CLUSTER}" etcd membership via "${VM}"
+    log Validating "${CLUSTER}" etcd membership via "${VM}" for members: "${EXPECTED_MEMBERS[@]}"
     FOUND_MEMBERS=$(etcdctl_member_list "${CLUSTER}" "${VM}" | tr '\n' ' ' | sed 's/ $//')
 
     if [[ "x${EXPECTED_MEMBERS}" != "x${FOUND_MEMBERS}" ]]; then
