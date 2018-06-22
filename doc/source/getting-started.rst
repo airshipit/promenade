@@ -241,7 +241,7 @@ To build the image from behind a proxy, you can:
 
     export http_proxy=...
     export no_proxy=...
-    docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy --build-arg no_proxy=$no_proxy  -t promenade:local .
+    docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy --build-arg no_proxy=$no_proxy -t promenade:local .
 
 
 For convenience, there is a script which builds an image from the current code,
