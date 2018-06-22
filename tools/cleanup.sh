@@ -127,11 +127,11 @@ fi
 stop_kubelet
 remove_containers
 remove_files
-prune_docker
 
 systemctl daemon-reload
 
 if [[ $RESET_DOCKER == "1" ]]; then
+    prune_docker
     reset_docker
 fi
 
