@@ -33,6 +33,12 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: KUBECONFIG
+          value: /etc/kubernetes/apiserver/kubeconfig.yaml
 
       command:
         {{- range .Values.command_prefix }}
@@ -81,13 +87,10 @@ spec:
           - /bin/bash
           - -c
           - |-
-            if [ ! -f /etc/kubernetes/apiserver/pki/apiserver-both.pem ]; then
-              cat /etc/kubernetes/apiserver/pki/apiserver-key.pem /etc/kubernetes/apiserver/pki/apiserver.pem > /etc/kubernetes/apiserver/pki/apiserver-both.pem
-            fi
-            echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/etc/kubernetes/apiserver/pki/apiserver-both.pem,cafile=/etc/kubernetes/apiserver/pki/cluster-ca.pem | grep '200 OK'
+            kubectl get nodes ${NODENAME} | grep ${NODENAME}
             exit $?
-        failureThreshold: 2
-        initialDelaySeconds: 15
+        failureThreshold: 3
+        initialDelaySeconds: 60
         periodSeconds: 10
         successThreshold: 1
         timeoutSeconds: 10
