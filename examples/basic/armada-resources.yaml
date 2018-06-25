@@ -1155,7 +1155,7 @@ data:
       node_selector_value: enabled
   source:
     type: git
-    location: https://github.com/att-comdev/armada
+    location: https://github.com/openstack/airship-armada
     subpath: charts/tiller
     reference: 8d1521e96c6b3163f7f6598ef15a11af0052cf04
   dependencies:
@@ -1192,7 +1192,7 @@ data:
     images:
       tags:
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        promenade: quay.io/attcomdev/promenade:latest
+        promenade: quay.io/airshipit/promenade:master
     manifests:
       job_ks_endpoints: false
       job_ks_service: false

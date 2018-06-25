@@ -1,4 +1,4 @@
-IMAGE_ARMADA=quay.io/attcomdev/armada:latest
+IMAGE_ARMADA=quay.io/airshipit/armada:master
 IMAGE_CALICO_CNI=quay.io/calico/cni:v1.11.2
 IMAGE_CALICO_CTL=quay.io/calico/ctl:v1.6.3
 IMAGE_CALICO_KUBE_CONTROLLERS=quay.io/calico/kube-controllers:v1.0.2

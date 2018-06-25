@@ -2,7 +2,7 @@
 
 set -eux
 
-IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/attcomdev/promenade:latest}
+IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
 PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
 
 SCRIPT_DIR=$(realpath $(dirname $0))
