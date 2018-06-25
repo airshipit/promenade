@@ -195,19 +195,19 @@ function wait_for_pod_termination {
 
     end=$(($(date +%s) + $SEC))
     while true; do
-        POD_PHASE=$(kubectl --request-timeout 10s --namespace $NAMESPACE get -o jsonpath="${POD_PHASE_JSONPATH}" pod $POD_NAME)
+        POD_PHASE=$(kubectl --request-timeout 120s --namespace $NAMESPACE get -o jsonpath="${POD_PHASE_JSONPATH}" pod $POD_NAME)
         if [ "x$POD_PHASE" = "xSucceeded" ]; then
             log Pod $POD_NAME succeeded.
             break
         elif [ "x$POD_PHASE" = "xFailed" ]; then
             log Pod $POD_NAME failed.
-            kubectl --request-timeout 10s --namespace $NAMESPACE get -o yaml pod $POD_NAME 1>&2
+            kubectl --request-timeout 120s --namespace $NAMESPACE get -o yaml pod $POD_NAME 1>&2
             fail
         else
             now=$(date +%s)
             if [ $now -gt $end ]; then
                 log Pod did not terminate before timeout.
-                kubectl --request-timeout 10s --namespace $NAMESPACE get -o yaml pod $POD_NAME 1>&2
+                kubectl --request-timeout 120s --namespace $NAMESPACE get -o yaml pod $POD_NAME 1>&2
                 fail
             fi
             sleep 1

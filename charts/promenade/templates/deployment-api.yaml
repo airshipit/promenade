@@ -82,9 +82,13 @@ spec:
               mountPath: /etc/promenade/promenade.conf
               subPath: promenade.conf
               readOnly: true
+            - name: cache
+              mountPath: /tmp/cache
       volumes:
         - name: promenade-etc
           configMap:
             name: promenade-etc
             defaultMode: 0444
+        - name: cache
+          emptyDir: {}
 {{- end }}

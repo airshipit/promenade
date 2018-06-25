@@ -109,7 +109,7 @@
       "name": "Check full etcd cluster",
       "script": "check-etcd-health.sh",
       "arguments": [
-        "-w", "30",
+        "-w", "60",
         "-e", "kubernetes n0 n0 n1 n2 n3",
         "-e", "calico n0 n0 n1 n2 n3"
       ]

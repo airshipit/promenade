@@ -1,4 +1,7 @@
 from . import logging, renderer
+from beaker.cache import CacheManager
+from beaker.util import parse_cache_config_options
+
 import io
 import itertools
 import os
@@ -9,6 +12,18 @@ import tarfile
 __all__ = ['Builder']
 
 LOG = logging.getLogger(__name__)
+
+# Ignore bandit false positive:
+#   B108:hardcoded_tmp_directory
+# This cache needs to be shared by all forks within the same container, and so
+# must be at a well-known location.
+CACHE_OPTS = {
+    'cache.type': 'file',
+    'cache.data_dir': '/tmp/cache/data',  # nosec
+    'cache.lock_dir': '/tmp/cache/lock',  # nosec
+}
+
+CACHE = CacheManager(**parse_cache_config_options(CACHE_OPTS))
 
 
 class Builder:
@@ -30,8 +45,8 @@ class Builder:
             if 'content' in file_spec:
                 data = file_spec['content']
             elif 'tar_url' in file_spec:
-                data = _fetch_tar_content(
-                    url=file_spec['tar_url'], path=file_spec['tar_path'])
+                data = _fetch_tar_content(file_spec['tar_url'],
+                                          file_spec['tar_path'])
             self._file_cache[path] = {
                 'path': path,
                 'data': data,
@@ -111,15 +126,22 @@ class Builder:
             sub_config, template='scripts/validate-join.sh')
 
 
-def _fetch_tar_content(*, url, path):
-    LOG.debug('Fetching url=%s (tar path=%s)', url, path)
-    response = requests.get(url)
-    response.raise_for_status()
-    LOG.debug('Finished downloading url=%s (tar path=%s)', url, path)
-    f = io.BytesIO(response.content)
+@CACHE.cache('fetch_tarball_content', expire=72 * 3600)
+def _fetch_tar_content(url, path):
+    content = _fetch_tar_url(url)
+    f = io.BytesIO(content)
     tf = tarfile.open(fileobj=f, mode='r')
     buf_reader = tf.extractfile(path)
     return buf_reader.read()
+
+
+@CACHE.cache('fetch_tarball_url', expire=72 * 3600)
+def _fetch_tar_url(url):
+    LOG.debug('Fetching url=%s', url)
+    response = requests.get(url)
+    response.raise_for_status()
+    LOG.debug('Finished downloading url=%s', url)
+    return response.content
 
 
 def _join_name(node_name):
