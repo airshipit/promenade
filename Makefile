@@ -12,7 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BUILD_DIR := $(shell mktemp -d)
+BUILD_DIR         := $(shell mktemp -d)
+DOCKER_REGISTRY   ?= quay.io
+IMAGE_PREFIX      ?= airshipit
+IMAGE_NAME        ?= promenade
+IMAGE_TAG         ?= latest
+HELM              ?= helm
+PROXY             ?= http://proxy.foo.com:8000
+NO_PROXY          ?= localhost,127.0.0.1,.svc.cluster.local
+USE_PROXY         ?= false
+PUSH_IMAGE        ?= false
+LABEL             ?= commit-id
+PYTHON            = python3
+CHARTS            := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
+IMAGE             := ${DOCKER_REGISTRY}/${IMAGE_PREFIX}/${IMAGE_NAME}:${IMAGE_TAG}
+PYTHON_BASE_IMAGE ?= python:3.6
+
 HELM := $(BUILD_DIR)/helm
 HELM ?= helm
 HELM_PIDFILE ?= $(abspath ./.helm-pid)
@@ -76,6 +91,16 @@ helm-lint-%: helm-install helm-init-%
 	@echo Linting chart $*
 	cd charts;$(HELM) lint $*
 
+.PHONY: images
+images: check-docker build_promenade
+
+.PHONY: check-docker
+check-docker:
+	@if [ -z $$(which docker) ]; then \
+		echo "Missing \`docker\` client which is required for development"; \
+		exit 2; \
+	fi
+
 .PHONY: dry-run
 dry-run: $(addprefix dry-run-,$(CHARTS))
 
@@ -87,6 +112,26 @@ dry-run-%: helm-lint-%
 .PHONY: $(CHARTS)
 $(CHARTS): $(addprefix dry-run-,$(CHARTS)) chartbanner
 	$(HELM) package -d charts charts/$@
+
+.PHONY: build_promenade
+build_promenade:
+ifeq ($(USE_PROXY), true)
+	docker build --network host -t $(IMAGE) --label $(LABEL) -f ./Dockerfile \
+		--build-arg FROM=$(PYTHON_BASE_IMAGE) \
+		--build-arg http_proxy=$(PROXY) \
+		--build-arg https_proxy=$(PROXY) \
+		--build-arg HTTP_PROXY=$(PROXY) \
+		--build-arg HTTPS_PROXY=$(PROXY) \
+		--build-arg no_proxy=$(NO_PROXY) \
+		--build-arg NO_PROXY=$(NO_PROXY) .
+else
+	docker build --network host -t $(IMAGE) --label $(LABEL) -f ./Dockerfile \
+		--build-arg FROM=$(PYTHON_BASE_IMAGE) .
+endif
+ifeq ($(PUSH_IMAGE), true)
+	docker push $(IMAGE)
+endif
+
 
 .PHONY: helm-serve
 helm-serve: helm-install
