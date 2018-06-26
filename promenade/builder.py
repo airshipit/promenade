@@ -8,6 +8,7 @@ import os
 import requests
 import stat
 import tarfile
+import time
 
 __all__ = ['Builder']
 
@@ -138,8 +139,19 @@ def _fetch_tar_content(url, path):
 @CACHE.cache('fetch_tarball_url', expire=72 * 3600)
 def _fetch_tar_url(url):
     LOG.debug('Fetching url=%s', url)
-    response = requests.get(url)
-    response.raise_for_status()
+    # NOTE(mark-burnett): Retry with linear backoff until we are killed, e.g.
+    # by a timeout.
+    for attempt in itertools.count():
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            break
+        except requests.exceptions.RequestException:
+            backoff = 5 * attempt
+            LOG.exception('Failed to fetch %s, retrying in %d seconds', url,
+                          backoff)
+            time.sleep(backoff)
+
     LOG.debug('Finished downloading url=%s', url)
     return response.content
 
