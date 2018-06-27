@@ -131,6 +131,17 @@ data:
         - required
       additionalProperties: false
 
+    validation:
+      type: object
+      properties:
+        pod_logs:
+          type: object
+          properties:
+            image:
+              type: string
+          additionalProperties: false
+      additionalProperties: false
+
   required:
     - images
     - packages

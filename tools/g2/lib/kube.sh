@@ -42,3 +42,33 @@ kubectl_wait_for_pod() {
         fi
     done
 }
+
+kubectl_wait_for_node_ready() {
+    set +x
+
+    VIA=${1}
+    NODE_NAME=${2}
+    SEC=${3:-300}
+
+    log Waiting $SEC seconds for $NODE_NAME to be ready.
+
+    NODE_READY_JSONPATH='{.status.conditions[?(@.type=="Ready")].status}'
+
+    end=$(($(date +%s) + $SEC))
+    while true; do
+        if (kubectl_cmd "${VIA}" --request-timeout 10s get nodes $NODE_NAME -o jsonpath="${NODE_READY_JSONPATH}" | grep True) ; then
+            log Node $NODE_NAME is ready.
+            break
+        else
+            now=$(date +%s)
+            if [ $now -gt $end ]; then
+                log Node $NODE_NAME was not ready before timeout.
+                fail
+            fi
+            echo -n .
+            sleep 15
+        fi
+    done
+
+    set -x
+}
