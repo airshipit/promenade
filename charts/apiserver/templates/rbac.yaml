@@ -1,5 +1,5 @@
 {{/*
-Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+Copyright 2018 AT&T Intellectual Property.  All other rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if .Values.manifests.configmap_etc }}
-{{- $envAll := . }}
-
 ---
-apiVersion: v1
-kind: ConfigMap
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Values.service.name }}-etc
-data:
-  kubernetes-apiserver.yaml: |+
-{{ tuple "etc/_kubernetes-apiserver.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
-  kubeconfig.yaml: |+
-{{ tuple "etc/_kubeconfig.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
-{{- end }}
+  name: apiserver
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+    verbs:
+      - get
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: apiserver
+  namespace: kube-system
+subjects:
+  - kind: User
+    name: apiserver
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: apiserver
+  apiGroup: rbac.authorization.k8s.io

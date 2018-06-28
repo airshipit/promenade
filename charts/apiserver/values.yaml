@@ -48,6 +48,8 @@ anchor:
       dest: /etc/kubernetes/apiserver/pki/etcd-client-key.pem
     - source: /tmp/etc/kubernetes-apiserver.yaml
       dest: /etc/kubernetes/manifests/kubernetes-apiserver.yaml
+    - source: /tmp/etc/kubeconfig.yaml
+      dest: /etc/kubernetes/apiserver/kubeconfig.yaml
 
 command_prefix:
   - /apiserver
