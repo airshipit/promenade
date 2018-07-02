@@ -234,7 +234,7 @@ spec:
     kubernetes.io/hostname: ${NODE}
   containers:
   - name: noisy
-    image: busybox:1.28.3
+    image: {{ config.get_path('HostSystem:validation.pod_logs.image', default='busybox:1.28.3') }}
     imagePullPolicy: IfNotPresent
     command:
     - /bin/echo

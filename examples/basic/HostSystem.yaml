@@ -75,4 +75,7 @@ data:
     required:
       docker: docker-engine=1.13.1-0~ubuntu-xenial
       socat: socat=1.7.3.1-1
+  validation:
+    pod_logs:
+      image: busybox:1.28.3
 ...
