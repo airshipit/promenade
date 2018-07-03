@@ -1,7 +1,7 @@
 export TEMP_DIR=${TEMP_DIR:-$(mktemp -d)}
 export BASE_IMAGE_SIZE=${BASE_IMAGE_SIZE:-68719476736}
 export BASE_IMAGE_URL=${BASE_IMAGE_URL:-https://cloud-images.ubuntu.com/releases/16.04/release/ubuntu-16.04-server-cloudimg-amd64-disk1.img}
-export IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/attcomdev/promenade:latest}
+export IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
 export NGINX_DIR="${TEMP_DIR}/nginx"
 export NGINX_URL="http://192.168.77.1:7777"
 export PROMENADE_BASE_URL="http://promenade-api.ucp.svc.cluster.local"
