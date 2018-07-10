@@ -16,6 +16,7 @@
 {{/*
 Test that HAProxy is running and the config is valid */}}
 {{- if .Values.manifests.test_haproxy }}
+{{- $envAll := . }}
 ---
 apiVersion: v1
 kind: Pod
@@ -23,6 +24,8 @@ metadata:
   name: "{{ .Release.Name }}-haproxy-test"
   annotations:
     "helm.sh/hook": "test-success"
+  labels:
+{{ tuple $envAll "kubernetes" "haproxy-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   restartPolicy: Never
   containers:
