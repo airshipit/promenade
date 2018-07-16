@@ -14,4 +14,4 @@ pbr==3.0.1
 pyyaml==3.12
 requests==2.18.4
 uwsgi==2.0.15
-git+https://git.openstack.org/openstack/airship-deckhand@177675e96fffcda9799c68bbce831424c1167020#egg=deckhand
+git+https://git.openstack.org/openstack/airship-deckhand@0ac33c233d59a731bf289db23ec4a882ff359168
