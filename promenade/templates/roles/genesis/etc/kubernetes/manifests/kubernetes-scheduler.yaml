@@ -20,6 +20,7 @@ spec:
       - scheduler
       - --leader-elect=true
       - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
+      - --feature-gates=TaintNodesByCondition=true
       - --v=5
       volumeMounts:
         - name: config
