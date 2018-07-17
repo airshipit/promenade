@@ -62,6 +62,16 @@ spec:
             value: {{ .Values.kube_service.host }}
           - name: KUBERNETES_SERVICE_PORT
             value: {{ .Values.kube_service.port | quote }}
+        livenessProbe:
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 10256
+          failureThreshold: 3
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
         readinessProbe:
           exec:
             command:
