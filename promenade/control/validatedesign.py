@@ -26,19 +26,17 @@ LOG = logging.getLogger(__name__)
 class ValidateDesignResource(base.BaseResource):
     @policy.ApiEnforcer('kubernetes_provisioner:post_validatedesign')
     def on_post(self, req, resp):
-
+        result = ValidationMessage()
         try:
             json_data = self.req_json(req)
             href = json_data.get('href', None)
             config = Configuration.from_design_ref(
                 href, allow_missing_substitutions=False)
             result = validation.check_design(config)
-        except (exceptions.InvalidFormatError,
-                exceptions.DeckhandException) as e:
-            if isinstance(e, exceptions.InvalidFormatError):
-                msg = "Invalid JSON Format: %s" % str(e)
-            else:
-                msg = str(e)
-            result = ValidationMessage()
+        except exceptions.InvalidFormatError as e:
+            msg = "Invalid JSON Format: %s" % str(e)
             result.add_error_message(msg, name=e.title)
-        return result.get_output()
+        except Exception as e:
+            result.add_error_message(str(e), name=e.title)
+
+        result.update_response(resp)
