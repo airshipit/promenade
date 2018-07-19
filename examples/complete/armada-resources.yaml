@@ -1276,7 +1276,7 @@ data:
         ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
         ceph_daemon: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
         ceph_rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         ks_endpoints: docker.io/openstackhelm/heat:newton
         ks_service: docker.io/openstackhelm/heat:newton
         ks_user: docker.io/openstackhelm/heat:newton
@@ -1327,7 +1327,7 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         mariadb: docker.io/mariadb:10.1.23
     labels:
       server:
@@ -1361,7 +1361,7 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         memcached: docker.io/memcached:1.5.5
     labels:
       server:
@@ -1419,7 +1419,7 @@ data:
         keystone_credential_rotate: docker.io/openstackhelm/keystone:newton
         keystone_api: docker.io/openstackhelm/keystone:newton
         keystone_domain_manage: docker.io/openstackhelm/keystone:newton
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
     pod:
       replicas:
         api: 1
@@ -1463,7 +1463,7 @@ data:
         node_selector_value: enabled
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         postgresql: docker.io/postgres:9.5
   source:
     type: git
@@ -1504,7 +1504,7 @@ data:
         bootstrap: sthussey/maas-region-controller:2.3_patchv4
         db_init: docker.io/postgres:9.5
         db_sync: sthussey/maas-region-controller:2.3_patchv4
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         export_api_key: sthussey/maas-region-controller:2.3_patchv4
         maas_rack: sthussey/maas-rack-controller:2.3
         maas_region: sthussey/maas-region-controller:2.3_patchv4
@@ -1571,7 +1571,7 @@ data:
         prometheus_rabbitmq_exporter: docker.io/kbudde/rabbitmq-exporter:v0.21.0
         prometheus_rabbitmq_exporter_helm_tests: docker.io/openstackhelm/heat:newton
         rabbitmq: docker.io/rabbitmq:3.7.3
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
     pod:
       replicas:
         server: 1
@@ -1615,7 +1615,7 @@ data:
     images:
       tags:
         bootstrap: docker.io/openstackhelm/heat:newton
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         scripted_test: docker.io/openstackhelm/heat:newton
         db_init: docker.io/openstackhelm/heat:newton
         barbican_db_sync: docker.io/openstackhelm/barbican:newton
@@ -1657,11 +1657,11 @@ data:
         node_selector_value: enabled
     images:
       tags:
-        entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         # https://github.com/kubernetes/ingress-nginx/blob/09524cd3363693463da5bf4a9bb3900da435ad05/Changelog.md#090
         ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0
         error_pages: gcr.io/google_containers/defaultbackend:1.0
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
   source:
     type: git
     location: https://github.com/openstack/openstack-helm
@@ -1719,7 +1719,7 @@ data:
     images:
       tags:
         deckhand: quay.io/airshipit/deckhand:master
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         db_init: docker.io/postgres:9.5
         db_sync: docker.io/postgres:9.5
         ks_endpoints: docker.io/openstackhelm/heat:newton
@@ -1759,7 +1759,7 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         drydock: quay.io/airshipit/drydock:master
         drydock_db_init: docker.io/postgres:9.5
         drydock_db_sync: quay.io/airshipit/drydock:master
@@ -1822,7 +1822,7 @@ data:
             value: '1'
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         ks_endpoints: docker.io/openstackhelm/heat:newton
         ks_service: docker.io/openstackhelm/heat:newton
         ks_user: docker.io/openstackhelm/heat:newton
@@ -1859,7 +1859,7 @@ data:
     images:
       tags:
         api: quay.io/airshipit/armada:master
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         ks_endpoints: docker.io/openstackhelm/heat:newton
         ks_service: docker.io/openstackhelm/heat:newton
         ks_user: docker.io/openstackhelm/heat:newton
@@ -1908,7 +1908,7 @@ data:
       tags:
         airflow: quay.io/airshipit/airflow:master
         shipyard: quay.io/airshipit/shipyard:master
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         shipyard_db_init: docker.io/postgres:9.5
         shipyard_db_sync: quay.io/airshipit/shipyard:master
         airflow_db_init: docker.io/postgres:9.5
