@@ -1044,7 +1044,6 @@ data:
           pipeline: promenade-api
     images:
       tags:
-        dep_check: ${IMAGE_DEP_CHECK}
         promenade: ${IMAGE_PROMENADE}
     manifests:
       job_ks_endpoints: false
