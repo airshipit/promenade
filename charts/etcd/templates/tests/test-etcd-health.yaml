@@ -25,12 +25,32 @@ metadata:
   name: "{{ .Release.Name }}-etcd-test"
   annotations:
     "helm.sh/hook": "test-success"
+    scheduler.alpha.kubernetes.io/critical-pod: ''
   labels:
 {{ tuple $envAll $applicationName "etcd-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   nodeSelector:
     {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
   restartPolicy: Never
+  hostNetwork: true
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+    - key: node.kubernetes.io/memory-pressure
+      effect: NoSchedule
+      operator: Exists
+    - key: node.kubernetes.io/disk-pressure
+      effect: NoSchedule
+      operator: Exists
+    - key: node.kubernetes.io/out-of-disk
+      effect: NoSchedule
+      operator: Exists
+    - key: node.kubernetes.io/unschedulable
+      effect: NoSchedule
+      operator: Exists
+    - key: node.kubernetes.io/network-unavailable
+      effect: NoSchedule
+      operator: Exists
   containers:
     - name: "{{ .Release.Name }}-etcd-test"
       env:
