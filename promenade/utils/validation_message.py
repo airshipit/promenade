@@ -87,3 +87,8 @@ class ValidationMessage(object):
         :rtype: json
         """
         return json.dumps(self.output, indent=2)
+
+    def update_response(self, resp):
+        output = self.get_output()
+        resp.status = output['code']
+        resp.body = json.dumps(output)

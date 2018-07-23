@@ -26,16 +26,18 @@ LOG = logging.getLogger(__name__)
 
 
 def check_design(config):
-    kinds = ['Docker', 'HostSystem', 'Kubelet', 'KubernetesNetwork']
+    kinds = ['Docker', 'Genesis', 'HostSystem', 'Kubelet', 'KubernetesNetwork']
     validation_msg = ValidationMessage()
     for kind in kinds:
         count = 0
+        schema = None
+        name = None
         for doc in config.documents:
             schema = doc.get('schema', None)
             if not schema:
                 msg = '"schema" is a required document key.'
-                validation_msg.add_error_message(
-                    msg, name=exceptions.ValidationException(msg))
+                exc = exceptions.ValidationException(msg)
+                validation_msg.add_error_message(str(exc), name=exc.title)
                 return validation_msg
             name = schema.split('/')[1]
             if name == kind:
@@ -43,11 +45,9 @@ def check_design(config):
         if count != 1:
             msg = ('There are {0} {1} documents. However, there should be one.'
                    ).format(count, kind)
+            exc = exceptions.ValidationException(msg)
             validation_msg.add_error_message(
-                msg,
-                name=exceptions.ValidationException(msg),
-                schema=schema,
-                doc_name=kind)
+                str(exc), name=exc.title, schema=schema, doc_name=kind)
     return validation_msg
 
 

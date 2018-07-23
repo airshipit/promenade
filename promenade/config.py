@@ -1,5 +1,5 @@
 from . import exceptions, logging, validation
-from .design_ref import get_documents
+from . import design_ref as dr
 import jinja2
 import jsonpath_ng
 import yaml
@@ -63,7 +63,7 @@ class Configuration:
 
     @classmethod
     def from_design_ref(cls, design_ref, **kwargs):
-        documents, use_dh_engine = get_documents(design_ref)
+        documents, use_dh_engine = dr.get_documents(design_ref)
 
         return cls(
             documents=documents,
