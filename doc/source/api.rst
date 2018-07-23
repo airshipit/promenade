@@ -62,3 +62,33 @@ Responses:
 
 + 200 OK: Documents were successfully validated
 + 400 Bad Request: Documents were not successfully validated
+
+
+/v1.0/node-labels/<node_name>
+-----------------------------
+
+Update node labels
+
+PUT /v1.0/node-labels/<node_name>
+
+Updates node labels eg: adding new labels, overriding existing
+labels and deleting labels from a node.
+
+Message Body:
+
+dict of labels
+
+.. code-block:: json
+
+   {"label-a": "value1", "label-b": "value2", "label-c": "value3"}
+
+Responses:
+
++ 200 OK: Labels successfully updated
++ 400 Bad Request: Bad input format
++ 401 Unauthorized: Unauthenticated access
++ 403 Forbidden: Unauthorized access
++ 404 Not Found: Bad URL or Node not found
++ 500 Internal Server Error: Server error encountered
++ 502 Bad Gateway: Kubernetes Config Error
++ 503 Service Unavailable: Failed to interact with Kubernetes API

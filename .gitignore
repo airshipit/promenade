@@ -10,6 +10,7 @@
 /.cache
 /.eggs
 /.helm-pid
+/.pytest_cache
 /.tox
 /build
 /conformance

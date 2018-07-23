@@ -61,3 +61,8 @@ promenade_health_check() {
         sleep 10
     done
 }
+
+promenade_put_labels_url() {
+    NODE_NAME=${1}
+    echo "${PROMENADE_BASE_URL}/api/v1.0/node-labels/${NODE_NAME}"
+}

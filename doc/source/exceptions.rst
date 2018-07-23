@@ -39,3 +39,18 @@ Promenade Exceptions
         :members:
         :show-inheritance:
         :undoc-members:
+  * - KubernetesConfigException
+    - .. autoexception:: promenade.exceptions.KubernetesConfigException
+        :members:
+        :show-inheritance:
+        :undoc-members:
+  * - KubernetesApiError
+    - .. autoexception:: promenade.exceptions.KubernetesApiError
+        :members:
+        :show-inheritance:
+        :undoc-members:
+  * - NodeNotFoundException
+    - .. autoexception:: promenade.exceptions.NodeNotFoundException
+        :members:
+        :show-inheritance:
+        :undoc-members:

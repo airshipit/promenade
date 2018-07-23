@@ -295,6 +295,14 @@ class InvalidFormatError(PromenadeException):
     title = 'Invalid Input Error'
     status = falcon.HTTP_400
 
+    def __init__(self, title="", description=""):
+        if not title:
+            title = self.title
+        if not description:
+            description = self.title
+        super(InvalidFormatError, self).__init__(
+            title, description, status=self.status)
+
 
 class ValidationException(PromenadeException):
     """
@@ -318,6 +326,21 @@ class DeckhandException(PromenadeException):
 class TemplateRenderException(PromenadeException):
     title = 'Template Rendering Error Error'
     status = falcon.HTTP_500
+
+
+class KubernetesConfigException(PromenadeException):
+    title = 'Kubernetes Config Error'
+    status = falcon.HTTP_502
+
+
+class KubernetesApiError(PromenadeException):
+    title = 'Kubernetes API Error'
+    status = falcon.HTTP_503
+
+
+class NodeNotFoundException(KubernetesApiError):
+    title = 'Node not found'
+    status = falcon.HTTP_404
 
 
 def massage_error_list(error_list, placeholder_description):

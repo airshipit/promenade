@@ -19,6 +19,7 @@ from promenade.control.health_api import HealthResource
 from promenade.control.join_scripts import JoinScriptsResource
 from promenade.control.middleware import (AuthMiddleware, ContextMiddleware,
                                           LoggingMiddleware)
+from promenade.control.node_labels import NodeLabelsResource
 from promenade.control.validatedesign import ValidateDesignResource
 from promenade import exceptions as exc
 from promenade import logging
@@ -41,6 +42,7 @@ def start_api():
         ('/health', HealthResource()),
         ('/join-scripts', JoinScriptsResource()),
         ('/validatedesign', ValidateDesignResource()),
+        ('/node-labels/{node_name}', NodeLabelsResource()),
     ]
 
     # Set up the 1.0 routes
