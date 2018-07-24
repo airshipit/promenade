@@ -1193,7 +1193,6 @@ data:
           pipeline: noauth promenade-api
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
         promenade: quay.io/airshipit/promenade:master
     manifests:
       job_ks_endpoints: false
