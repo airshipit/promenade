@@ -30,7 +30,6 @@ class Configuration:
             try:
                 deckhand_eng = layering.DocumentLayering(
                     documents,
-                    substitution_sources=documents,
                     fail_on_missing_sub_src=not allow_missing_substitutions)
                 documents = [dict(d) for d in deckhand_eng.render()]
             except dh_errors.DeckhandException as e:
