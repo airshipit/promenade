@@ -542,6 +542,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   chart_name: haproxy
   release: haproxy

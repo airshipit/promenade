@@ -65,9 +65,21 @@ apiserver:
 
 network:
   kubernetes_apiserver:
+    ingress:
+      public: true
+      classes:
+        namespace: "nginx-cluster"
+        cluster: "nginx-cluster"
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/secure-backends: "true"
     name: kubernetes-apiserver
     port: 6443
-    enable_node_port: false
+    node_port:
+      enabled: false
+      port: 31943
 
 service:
   name: kubernetes-apiserver
@@ -95,8 +107,24 @@ endpoints:
     name: kubernetes-apiserver
     hosts:
       default: kubernetes-apiserver
+    port:
+      https:
+        default: 6443
+        public: 443
+    path:
+      default: /
+    scheme:
+      default: https
+      public: https
     host_fqdn_override:
       default: null
+      # NOTE: this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
 
 pod:
   mounts:
@@ -137,6 +165,9 @@ manifests:
   configmap_bin: true
   configmap_certs: true
   configmap_etc: true
+  ingress_api: false
   kubernetes_apiserver: true
   secret: true
+  secret_ingress_tls: false
   service: true
+  service_ingress: false
