@@ -6,6 +6,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   hostname: n0
   ip: 192.168.77.10

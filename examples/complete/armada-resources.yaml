@@ -567,6 +567,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   chart_name: coredns
   release: coredns
@@ -605,6 +606,7 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+  storagePolicy: cleartext
 data:
   chart_name: haproxy
   release: haproxy
