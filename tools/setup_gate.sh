@@ -20,8 +20,9 @@ log_stage_header "Installing Packages"
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update -qq
 sudo apt-get install -q -y --no-install-recommends \
+    apt-transport-https \
+    ca-certificates \
     curl \
-    docker.io \
     fio \
     genisoimage \
     jq \
@@ -29,7 +30,22 @@ sudo apt-get install -q -y --no-install-recommends \
     libvirt-bin \
     qemu-kvm \
     qemu-utils \
+    software-properties-common \
     virtinst
+
+# Install the docker gpg key & Add the repository
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+sudo apt-get update -qq
+
+# Remove old versions of docker, if installed
+sudo apt-get remove -q -y docker docker-engine docker.io
+# Install docker
+sudo apt-get install -q -y --no-install-recommends \
+    docker-ce
 
 log_stage_header "Joining User Groups"
 for grp in docker libvirtd libvirt; do
