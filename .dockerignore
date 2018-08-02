@@ -25,4 +25,5 @@ __pycache__
 # Non-image related files
 docs
 examples
+tests
 tools
