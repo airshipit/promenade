@@ -103,7 +103,7 @@ VALID_DOCS = [
             'images': {
                 'armada': 'quay.io/airshipit/armada:master',
                 'helm': {
-                    'tiller': 'gcr.io/kubernetes-helm/tiller:v2.7.2'
+                    'tiller': 'gcr.io/kubernetes-helm/tiller:v2.9.1'
                 },
                 'kubernetes': {
                     'apiserver':
@@ -160,7 +160,7 @@ VALID_DOCS = [
             'images': {
                 'haproxy': 'haproxy:1.8.3',
                 'helm': {
-                    'helm': 'lachlanevenson/k8s-helm:v2.7.2'
+                    'helm': 'lachlanevenson/k8s-helm:v2.9.1'
                 },
                 'kubernetes': {
                     'kubectl':
