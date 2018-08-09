@@ -41,6 +41,12 @@ POLICIES = [
                                  'path': '/api/v1.0/validatedesign',
                                  'method': 'POST'
                              }]),
+    op.DocumentedRuleDefault('kubernetes_provisioner:update_node_labels',
+                             'role:admin', 'Update Node Labels',
+                             [{
+                                 'path': '/api/v1.0/node-labels/{node_name}',
+                                 'method': 'PUT'
+                             }]),
 ]
 
 

@@ -15,8 +15,10 @@
 import falcon
 import json
 
+from promenade.utils.message import Message
 
-class ValidationMessage(object):
+
+class ValidationMessage(Message):
     """ ValidationMessage per UCP convention:
     https://github.com/att-comdev/ucp-integration/blob/master/docs/source/api-conventions.rst#output-structure  # noqa
 
@@ -34,15 +36,8 @@ class ValidationMessage(object):
     """
 
     def __init__(self):
-        self.error_count = 0
-        self.details = {'errorCount': 0, 'messageList': []}
-        self.output = {
-            'kind': 'Status',
-            'apiVersion': 'v1.0',
-            'metadata': {},
-            'reason': 'Validation',
-            'details': self.details,
-        }
+        super(ValidationMessage, self).__init__()
+        self.output.update({'reason': 'Validation'})
 
     def add_error_message(self,
                           msg,
@@ -79,14 +74,6 @@ class ValidationMessage(object):
             self.output['message'] = 'Promenade validations succeeded'
             self.output['status'] = 'Success'
         return self.output
-
-    def get_output_json(self):
-        """ Return ValidationMessage message as JSON.
-
-        :returns: The ValidationMessage formatted in JSON, for logging.
-        :rtype: json
-        """
-        return json.dumps(self.output, indent=2)
 
     def update_response(self, resp):
         output = self.get_output()
