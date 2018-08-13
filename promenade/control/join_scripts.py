@@ -14,7 +14,6 @@
 
 import falcon
 import kubernetes
-import random
 
 from promenade.control.base import BaseResource
 from promenade.builder import Builder
@@ -43,7 +42,7 @@ class JoinScriptsResource(BaseResource):
         dynamic_labels = _get_param_list(req, 'labels.dynamic')
         static_labels = _get_param_list(req, 'labels.static')
 
-        join_ip = _get_join_ip()
+        join_ips = _get_join_ips()
 
         try:
             config = Configuration.from_design_ref(
@@ -71,7 +70,7 @@ class JoinScriptsResource(BaseResource):
             'data': {
                 'hostname': hostname,
                 'ip': ip,
-                'join_ip': join_ip,
+                'join_ips': join_ips,
                 'labels': {
                     'dynamic': dynamic_labels,
                     'static': static_labels,
@@ -88,16 +87,13 @@ class JoinScriptsResource(BaseResource):
         resp.status = falcon.HTTP_200
 
 
-def _get_join_ip():
+def _get_join_ips():
     # TODO(mark-burnett): Handle errors
     kubernetes.config.load_incluster_config()
     client = kubernetes.client.CoreV1Api()
     response = client.list_node(label_selector='kubernetes-apiserver=enabled')
 
-    # Ignore bandit false positive: B311:blacklist
-    # The choice of which master to join to is a load-balancing concern, not a
-    # security concern.
-    return random.choice(list(map(_extract_ip, response.items)))  # nosec
+    return list(map(_extract_ip, response.items))
 
 
 def _extract_ip(item):

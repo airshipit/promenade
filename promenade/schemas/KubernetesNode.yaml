@@ -29,6 +29,11 @@ data:
     join_ip:
       $ref: '#/definitions/ip_address'
 
+    join_ips:
+      type: array
+      item:
+        $ref: '#/definitions/ip_address'
+
     labels:
       properties:
         static:
@@ -43,6 +48,5 @@ data:
 
   required:
     - ip
-    - join_ip
   additionalProperties: false
 ...

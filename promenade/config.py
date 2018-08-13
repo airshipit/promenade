@@ -165,6 +165,18 @@ class Configuration:
             if value:
                 return value
 
+    @property
+    def join_ips(self):
+        maybe_ips = self.get_path('KubernetesNode:join_ips')
+        if maybe_ips is not None:
+            return maybe_ips
+        else:
+            maybe_ip = self._get_first('KubernetesNode:join_ip', 'Genesis:ip')
+            if maybe_ip:
+                return [maybe_ip]
+            else:
+                return jinja2.StrictUndefined('Could not find join IPs')
+
     def get_path(self, path, default=None):
         kind, jsonpath = path.split(':')
         document = _get(self.documents, kind=kind)

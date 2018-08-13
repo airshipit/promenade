@@ -70,7 +70,9 @@ metadata:
 data:
   hostname: ${MASTER2_HOSTNAME}
   ip: ${MASTER2_IP}
-  join_ip: ${GENESIS_IP}
+  join_ips:
+    - ${GENESIS_IP}
+    - ${MASTER1_IP}
   labels:
     dynamic:
       - calico-etcd=enabled
@@ -100,7 +102,10 @@ metadata:
 data:
   hostname: ${WORKER_HOSTNAME}
   ip: ${WORKER_IP}
-  join_ip: ${MASTER1_IP}
+  join_ips:
+    - ${GENESIS_IP}
+    - ${MASTER1_IP}
+    - ${MASTER2_IP}
   labels:
     dynamic:
       - openstack-compute-node=enabled
