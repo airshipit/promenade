@@ -13,23 +13,21 @@
 - project:
     check:
       jobs:
+        - openstack-tox-pep8
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
         - airship-promenade-doc-build
-        - airship-promenade-lint-pep8
         - airship-promenade-lint-chart
         - airship-promenade-unit-py35
-        - airship-promenade-security-bandit
 
     gate:
       jobs:
+        - openstack-tox-pep8
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
         - airship-promenade-doc-build
-        - airship-promenade-lint-pep8
         - airship-promenade-lint-chart
         - airship-promenade-unit-py35
-        - airship-promenade-security-bandit
 
     post:
       jobs:
@@ -50,16 +48,6 @@
     nodeset: airship-promenade-single-node
 
 - job:
-    name: airship-promenade-lint-pep8
-    description: |
-      Lints Python files against the PEP8 standard
-    run: tools/zuul/playbooks/pep8-linter.yaml
-    timeout: 300
-    nodeset: airship-promenade-single-node
-    files:
-      - ^.*\.py$
-
-- job:
     name: airship-promenade-lint-chart
     description: |
       Lints Helm charts for validity
@@ -74,16 +62,6 @@
     description: |
       Executes unit tests under Python 3.5
     run: tools/zuul/playbooks/unit-py35.yaml
-    timeout: 300
-    nodeset: airship-promenade-single-node
-    files:
-      - ^.*\.py$
-
-- job:
-    name: airship-promenade-security-bandit
-    description: |
-      Executes the Bandit security scanner against Python files
-    run: tools/zuul/playbooks/security-bandit.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
     files:
