@@ -10,17 +10,16 @@ LOG = logging.getLogger(__name__)
 
 
 class Generator:
-    def __init__(self, config):
+    def __init__(self, config, block_strings=True):
         self.config = config
-        self.keys = pki.PKI()
-        self.documents = []
+        self.keys = pki.PKI(block_strings=block_strings)
         self.outputs = collections.defaultdict(dict)
 
     @property
     def cluster_domain(self):
         return self.config['KubernetesNetwork:dns.cluster_domain']
 
-    def generate(self, output_dir):
+    def generate(self, output_dir=None):
         for catalog in self.config.iterate(kind='PKICatalog'):
             for ca_name, ca_def in catalog['data'].get(
                     'certificate_authorities', {}).items():
@@ -40,7 +39,8 @@ class Generator:
                 document_name = keypair_def['name']
                 self.get_or_gen_keypair(document_name)
 
-        self._write(output_dir)
+        if output_dir:
+            self._write(output_dir)
 
     def get_or_gen_ca(self, document_name):
         kinds = [
@@ -126,17 +126,20 @@ class Generator:
         return result
 
     def _write(self, output_dir):
-        docs = list(
-            itertools.chain.from_iterable(
-                v.values() for v in self.outputs.values()))
+        documents = self.get_documents()
         with open(os.path.join(output_dir, 'certificates.yaml'), 'w') as f:
             # Don't use safe_dump_all so we can block format certificate data.
             yaml.dump_all(
-                docs,
+                documents,
                 stream=f,
                 default_flow_style=False,
                 explicit_start=True,
                 indent=2)
+
+    def get_documents(self):
+        return list(
+            itertools.chain.from_iterable(
+                v.values() for v in self.outputs.values()))
 
 
 def get_host_list(service_names):

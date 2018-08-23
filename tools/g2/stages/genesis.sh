@@ -7,7 +7,7 @@ source "${GATE_UTILS}"
 rsync_cmd "${TEMP_DIR}/scripts"/*genesis* "${GENESIS_NAME}:/root/promenade/"
 
 set -o pipefail
-ssh_cmd "${GENESIS_NAME}" /root/promenade/genesis.sh 2>&1 | tee -a "${LOG_FILE}"
+ssh_cmd "${GENESIS_NAME}" env "PROMENADE_ENCRYPTION_KEY=${PROMENADE_ENCRYPTION_KEY}" /root/promenade/genesis.sh 2>&1 | tee -a "${LOG_FILE}"
 ssh_cmd "${GENESIS_NAME}" /root/promenade/validate-genesis.sh 2>&1 | tee -a "${LOG_FILE}"
 set +o pipefail
 

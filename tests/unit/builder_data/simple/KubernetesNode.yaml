@@ -1,0 +1,31 @@
+---
+schema: promenade/KubernetesNode/v1
+metadata:
+  schema: metadata/Document/v1
+  name: n1
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
+data:
+  hostname: n1
+  ip: 192.169.77.11
+  join_ip: 192.169.77.10
+  labels:
+    dynamic:
+      - calico-etcd=enabled
+      - ceph-mds=enabled
+      - ceph-mon=enabled
+      - ceph-osd=enabled
+      - ceph-rgw=enabled
+      - ceph-mgr=enabled
+      - coredns=enabled
+      - kubernetes-apiserver=enabled
+      - kubernetes-controller-manager=enabled
+      - kubernetes-etcd=enabled
+      - kubernetes-scheduler=enabled
+      - openstack-compute-node=enabled
+      - openstack-control-plane=enabled
+      - openvswitch=enabled
+      - ucp-control-plane=enabled
+...

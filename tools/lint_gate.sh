@@ -12,7 +12,7 @@ done
 
 if [[ -x $(which shellcheck) ]]; then
     echo Checking shell scripts..
-    shellcheck -s bash -e SC2029 "${WORKSPACE}"/tools/cleanup.sh "${WORKSPACE}"/tools/*gate*.sh "${WORKSPACE}"/tools/g2/stages/* "${WORKSPACE}"/tools/g2/lib/*
+    shellcheck -s bash -e SC2029 "${WORKSPACE}"/tools/cleanup.sh "${WORKSPACE}"/tools/*gate*.sh "${WORKSPACE}"/tools/g2/stages/* "${WORKSPACE}"/tools/g2/lib/* "${WORKSPACE}"/tools/install-external-deps.sh
 else
     echo No shellcheck executable found.  Please, install it.
     exit 1

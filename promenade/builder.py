@@ -1,4 +1,4 @@
-from . import logging, renderer
+from . import encryption_method, logging, renderer
 from beaker.cache import CacheManager
 from beaker.util import parse_cache_config_options
 
@@ -72,6 +72,14 @@ class Builder:
             _write_script(output_dir, 'validate-cluster.sh', validate_script)
 
     def build_genesis(self, *, output_dir):
+        script = self.build_genesis_script()
+        _write_script(output_dir, 'genesis.sh', script)
+
+        if self.validators:
+            validate_script = self._build_genesis_validate_script()
+            _write_script(output_dir, 'validate-genesis.sh', validate_script)
+
+    def build_genesis_script(self):
         LOG.info('Building genesis script')
         sub_config = self.config.extract_genesis_config()
         tarball = renderer.build_tarball_from_roles(
@@ -79,17 +87,23 @@ class Builder:
             roles=['common', 'genesis'],
             file_specs=self.file_cache.values())
 
-        script = renderer.render_template(
+        (encrypted_tarball, decrypt_setup_command, decrypt_command,
+         decrypt_teardown_command) = _encrypt_genesis(sub_config, tarball)
+
+        return renderer.render_template(
             sub_config,
             template='scripts/genesis.sh',
-            context={'tarball': tarball})
+            context={
+                'decrypt_command': decrypt_command,
+                'decrypt_setup_command': decrypt_setup_command,
+                'decrypt_teardown_command': decrypt_teardown_command,
+                'encrypted_tarball': encrypted_tarball,
+            })
 
-        _write_script(output_dir, 'genesis.sh', script)
-
-        if self.validators:
-            validate_script = renderer.render_template(
-                sub_config, template='scripts/validate-genesis.sh')
-            _write_script(output_dir, 'validate-genesis.sh', validate_script)
+    def _build_genesis_validate_script(self):
+        sub_config = self.config.extract_genesis_config()
+        return renderer.render_template(
+            sub_config, template='scripts/validate-genesis.sh')
 
     def build_node(self, node_document, *, output_dir):
         node_name = node_document['metadata']['name']
@@ -112,15 +126,41 @@ class Builder:
         tarball = renderer.build_tarball_from_roles(
             config=sub_config, roles=['common', 'join'], file_specs=file_specs)
 
+        (encrypted_tarball, decrypt_setup_command, decrypt_command,
+         decrypt_teardown_command) = _encrypt_node(sub_config, tarball)
+
         return renderer.render_template(
             sub_config,
             template='scripts/join.sh',
-            context={'tarball': tarball})
+            context={
+                'decrypt_command': decrypt_command,
+                'decrypt_setup_command': decrypt_setup_command,
+                'decrypt_teardown_command': decrypt_teardown_command,
+                'encrypted_tarball': encrypted_tarball,
+            })
 
     def _build_node_validate_script(self, node_name):
         sub_config = self.config.extract_node_config(node_name)
         return renderer.render_template(
             sub_config, template='scripts/validate-join.sh')
+
+
+def _encrypt_genesis(config, data):
+    return _encrypt(config.get_path('EncryptionPolicy:scripts.genesis'), data)
+
+
+def _encrypt_node(config, data):
+    return _encrypt(config.get_path('EncryptionPolicy:scripts.join'), data)
+
+
+def _encrypt(cfg_dict, data):
+    method = encryption_method.EncryptionMethod.from_config(cfg_dict)
+    encrypted_data = method.encrypt(data)
+    decrypt_setup_command = method.get_decrypt_setup_command()
+    decrypt_command = method.get_decrypt_command()
+    decrypt_teardown_command = method.get_decrypt_teardown_command()
+    return (encrypted_data, decrypt_setup_command, decrypt_command,
+            decrypt_teardown_command)
 
 
 @CACHE.cache('fetch_tarball_content', expire=72 * 3600)

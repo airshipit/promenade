@@ -13,6 +13,7 @@ docker run --rm -t \
     -w /target \
     -v "${TEMP_DIR}:/target" \
     -e "PROMENADE_DEBUG=${PROMENADE_DEBUG}" \
+    -e "PROMENADE_ENCRYPTION_KEY=${PROMENADE_ENCRYPTION_KEY}" \
     "${IMAGE_PROMENADE}" \
         promenade \
             build-all \

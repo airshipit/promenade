@@ -12,6 +12,7 @@ Details about Promenade-specific documents can be found here:
     :caption: Documents
 
     docker
+    encryption-policy
     genesis
     host-system
     kubelet

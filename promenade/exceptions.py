@@ -343,6 +343,16 @@ class NodeNotFoundException(KubernetesApiError):
     status = falcon.HTTP_404
 
 
+class EncryptionException(ApiError):
+    title = 'Payload encryption error'
+    status = falcon.HTTP_500
+
+
+class GPGDetectionException(ApiError):
+    title = 'Failed to detect GPG version'
+    status = falcon.HTTP_500
+
+
 def massage_error_list(error_list, placeholder_description):
     """
     Returns a best-effort attempt to make a nice error list

@@ -1,0 +1,33 @@
+---
+schema: deckhand/DataSchema/v1
+metadata:
+  schema: metadata/Control/v1
+  name: promenade/EncryptionPolicy/v1
+  labels:
+    application: promenade
+data:
+  $schema: http://json-schema.org/schema#
+
+  definitions:
+    script_encryption:
+      oneof:
+        - { $ref: '#/definitions/encryption_method_gpg' }
+
+    encryption_method_gpg:
+      properties:
+        gpg:
+          type: object
+          additionalProperties: false
+      required:
+        - gpg
+      additionalProperties: false
+
+  properties:
+    scripts:
+      properties:
+        genesis:
+          $ref: '#/definitions/script_encryption'
+        join:
+          $ref: '#/definitions/script_encryption'
+      additionalProperties: false
+...

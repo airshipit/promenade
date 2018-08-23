@@ -10,7 +10,10 @@ chmod 700 /etc/kubernetes
 set +x
 log
 log === Extracting prepared files ===
-echo "{{ tarball | b64enc }}" | base64 -d | tar -zxv -C / | tee /etc/promenade-manifest
+{{ decrypt_setup_command }}
+echo "{{ encrypted_tarball | b64enc }}" | base64 -d | {{ decrypt_command }} | tar -zxv -C / | tee /etc/promenade-manifest
+{{ decrypt_teardown_command }}
+set -x
 
 # Adding apt repositories
 #
