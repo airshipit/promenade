@@ -75,23 +75,29 @@ class Configuration:
                              jinja2.StrictUndefined(
                                  'No match found for path %s' % path))
 
-    def get_first(self, *paths):
+    def get_first(self, *paths, default=None):
         result = self._get_first(*paths)
         if result:
             return result
         else:
-            return jinja2.StrictUndefined(
-                'Nothing found matching paths: %s' % ','.join(paths))
+            if default:
+                return default
+            else:
+                return jinja2.StrictUndefined(
+                    'Nothing found matching paths: %s' % ','.join(paths))
 
-    def get(self, *, kind=None, name=None, schema=None):
+    def get(self, *, kind=None, name=None, schema=None, default=None):
         result = _get(self.documents, kind=kind, schema=schema, name=name)
 
         if result:
             return result['data']
         else:
-            return jinja2.StrictUndefined(
-                'No document found matching kind=%s schema=%s name=%s' %
-                (kind, schema, name))
+            if default:
+                return default
+            else:
+                return jinja2.StrictUndefined(
+                    'No document found matching kind=%s schema=%s name=%s' %
+                    (kind, schema, name))
 
     def iterate(self, *, kind=None, schema=None, labels=None, name=None):
         if kind is not None:

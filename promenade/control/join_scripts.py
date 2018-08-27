@@ -38,6 +38,8 @@ class JoinScriptsResource(BaseResource):
         design_ref = req.get_param('design_ref', required=True)
         ip = req.get_param('ip', required=True)
         hostname = req.get_param('hostname', required=True)
+        # NOTE(sh8121att): Set a default here for backward compatability
+        dns_domain = req.get_param('domain', default='local')
 
         dynamic_labels = _get_param_list(req, 'labels.dynamic')
         static_labels = _get_param_list(req, 'labels.static')
@@ -69,6 +71,7 @@ class JoinScriptsResource(BaseResource):
             },
             'data': {
                 'hostname': hostname,
+                'domain': dns_domain,
                 'ip': ip,
                 'join_ips': join_ips,
                 'labels': {
