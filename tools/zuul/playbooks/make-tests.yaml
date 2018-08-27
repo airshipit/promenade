@@ -12,9 +12,9 @@
 
 - hosts: primary
   tasks:
-    - name: Execute the make target for unit testing
+    - name: Execute the make target for basic testing
       make:
         chdir: "{{ zuul.project.src_dir }}"
-        target: tests-unit
+        target: tests
       register: result
       failed_when: result.failed
