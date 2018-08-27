@@ -54,8 +54,8 @@ spec:
         - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
         - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
         - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
-        - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/apiserver.pem
-        - --kubelet-client-key=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+        - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/kubelet-client.pem
+        - --kubelet-client-key=/etc/kubernetes/apiserver/pki/kubelet-client-key.pem
         - --etcd-servers={{ .Values.apiserver.etcd.endpoints }}
         - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
         - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
