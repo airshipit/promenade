@@ -80,7 +80,7 @@ class Configuration:
         if result:
             return result
         else:
-            if default:
+            if default is not None:
                 return default
             else:
                 return jinja2.StrictUndefined(
@@ -92,7 +92,7 @@ class Configuration:
         if result:
             return result['data']
         else:
-            if default:
+            if default is not None:
                 return default
             else:
                 return jinja2.StrictUndefined(
