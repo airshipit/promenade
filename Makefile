@@ -14,10 +14,10 @@
 
 BUILD_DIR         := $(shell mktemp -d)
 DOCKER_REGISTRY   ?= quay.io
+HELM              := $(BUILD_DIR)/helm
 IMAGE_PREFIX      ?= airshipit
 IMAGE_NAME        ?= promenade
 IMAGE_TAG         ?= latest
-HELM              ?= helm
 PROXY             ?= http://proxy.foo.com:8000
 NO_PROXY          ?= localhost,127.0.0.1,.svc.cluster.local
 USE_PROXY         ?= false
@@ -28,8 +28,6 @@ CHARTS            := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
 IMAGE             := ${DOCKER_REGISTRY}/${IMAGE_PREFIX}/${IMAGE_NAME}:${IMAGE_TAG}
 PYTHON_BASE_IMAGE ?= python:3.6
 
-HELM := $(BUILD_DIR)/helm
-HELM ?= helm
 HELM_PIDFILE ?= $(abspath ./.helm-pid)
 
 CHARTS := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
