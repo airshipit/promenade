@@ -20,42 +20,70 @@ import os
 import pkg_resources
 import yaml
 
-__all__ = ['check_schema', 'check_schemas']
+__all__ = ['check_schema', 'check_schemas', 'validate_all']
 
 LOG = logging.getLogger(__name__)
 
 
-def check_design(config):
-    kinds = ['Docker', 'Genesis', 'HostSystem', 'Kubelet', 'KubernetesNetwork']
+def validate_all(config):
+    """Run all available Promenade validations on the config."""
+
+    exception_list = check_schemas(config.documents)
+    exception_list.extend(check_design(config))
+
     validation_msg = ValidationMessage()
-    for kind in kinds:
-        count = 0
-        schema = None
-        name = None
-        for doc in config.documents:
-            schema = doc.get('schema', None)
-            if not schema:
-                msg = '"schema" is a required document key.'
-                exc = exceptions.ValidationException(msg)
-                validation_msg.add_error_message(str(exc), name=exc.title)
-                return validation_msg
-            name = schema.split('/')[1]
-            if name == kind:
-                count += 1
-        if count != 1:
-            msg = ('There are {0} {1} documents. However, there should be one.'
-                   ).format(count, kind)
-            exc = exceptions.ValidationException(msg)
-            validation_msg.add_error_message(
-                str(exc), name=exc.title, schema=schema, doc_name=kind)
+
+    for ex in exception_list:
+        validation_msg.add_error_message(str(ex))
+
     return validation_msg
+
+
+def check_design(config):
+    """Check that each document type has the correct cardinality."""
+
+    expected_count = {
+        'Docker': 1,
+        'Genesis': 1,
+        'HostSystem': 1,
+        'Kubelet': 1,
+        'KubernetesNetwork': 1,
+    }
+
+    counts = {}
+    exception_list = []
+
+    for k in expected_count.keys():
+        counts[k] = 0
+
+    for doc in config.documents:
+        schema = doc.get('schema', None)
+        if not schema:
+            msg = '"schema" is a required document key.'
+            exception_list.append(exceptions.ValidationException(msg))
+            continue
+        name = schema.split('/')[1]
+        if name in counts:
+            counts[name] += 1
+
+    for kind, cnt in counts.items():
+        if cnt != 1:
+            msg = ('There are {0} {1} documents. However, there should be one.'
+                   ).format(cnt, kind)
+            exception_list.append(exceptions.ValidationException(msg))
+    return exception_list
 
 
 def check_schemas(documents, schemas=None):
     if not schemas:
         schemas = load_schemas_from_docs(documents)
+    exception_list = []
     for document in documents:
-        check_schema(document, schemas=schemas)
+        try:
+            check_schema(document, schemas=schemas)
+        except exceptions.ValidationException as ex:
+            exception_list.append(ex)
+    return exception_list
 
 
 def check_schema(document, schemas=None):
