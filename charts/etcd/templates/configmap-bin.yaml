@@ -29,4 +29,6 @@ data:
 {{ tuple "bin/_pre_stop.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
   readiness: |+
 {{ tuple "bin/_readiness.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+  etcdbackup: |+
+{{ tuple "bin/_etcdbackup.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
 {{- end }}
