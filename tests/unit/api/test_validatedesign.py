@@ -140,7 +140,8 @@ VALID_DOCS = [
     },
     {
         'data': {
-            'files': [{
+            'files':
+            [{
                 'mode':
                 365,
                 'path':
@@ -149,14 +150,15 @@ VALID_DOCS = [
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
                 'https://dl.k8s.io/v1.10.2/kubernetes-node-linux-amd64.tar.gz'
-            }, {
-                'content':
-                '/var/lib/docker/containers/*/*-json.log\n{\n    compress\n    copytruncate\n    create 0644 root root\n    daily\n    dateext\n    dateformat -%Y%m%d-%s\n    maxsize 10M\n    missingok\n    notifempty\n    su root root\n    rotate 1\n}',
-                'mode':
-                292,
-                'path':
-                '/etc/logrotate.d/json-logrotate'
-            }],
+            },
+             {
+                 'content':
+                 '/var/lib/docker/containers/*/*-json.log\n{\n    compress\n    copytruncate\n    create 0644 root root\n    daily\n    dateext\n    dateformat -%Y%m%d-%s\n    maxsize 10M\n    missingok\n    notifempty\n    su root root\n    rotate 1\n}',
+                 'mode':
+                 292,
+                 'path':
+                 '/etc/logrotate.d/json-logrotate'
+             }],
             'images': {
                 'haproxy': 'haproxy:1.8.3',
                 'helm': {

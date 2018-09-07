@@ -36,10 +36,9 @@ def insert_charts_into_bundler(bundler):
             if _source_file_is_excluded(source_filename):
                 continue
             source_path = os.path.join(root, source_filename)
-            destination_path = os.path.join('etc/genesis/armada/assets/charts',
-                                            os.path.relpath(
-                                                source_path,
-                                                '/opt/promenade/charts'))
+            destination_path = os.path.join(
+                'etc/genesis/armada/assets/charts',
+                os.path.relpath(source_path, '/opt/promenade/charts'))
             stat = os.stat(source_path)
             LOG.debug('Copying asset file %s (mode=%o)', source_path,
                       stat.st_mode)
@@ -49,10 +48,8 @@ def insert_charts_into_bundler(bundler):
 
 
 def render_role_into_bundler(*, bundler, config, role):
-    role_root = pkg_resources.resource_filename('promenade',
-                                                os.path.join(
-                                                    'templates', 'roles',
-                                                    role))
+    role_root = pkg_resources.resource_filename(
+        'promenade', os.path.join('templates', 'roles', role))
     for root, _dirnames, filenames in os.walk(role_root, followlinks=True):
         destination_base = os.path.relpath(root, role_root)
         for source_filename in filenames:
@@ -89,10 +86,8 @@ def render_template(config, *, template, context=None):
     if context is None:
         context = {}
 
-    template_contents = pkg_resources.resource_string('promenade',
-                                                      os.path.join(
-                                                          'templates',
-                                                          template))
+    template_contents = pkg_resources.resource_string(
+        'promenade', os.path.join('templates', template))
 
     env = _build_env()
 

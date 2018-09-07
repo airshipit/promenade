@@ -82,9 +82,7 @@ class Builder:
         script = renderer.render_template(
             sub_config,
             template='scripts/genesis.sh',
-            context={
-                'tarball': tarball
-            })
+            context={'tarball': tarball})
 
         _write_script(output_dir, 'genesis.sh', script)
 
@@ -117,9 +115,7 @@ class Builder:
         return renderer.render_template(
             sub_config,
             template='scripts/join.sh',
-            context={
-                'tarball': tarball
-            })
+            context={'tarball': tarball})
 
     def _build_node_validate_script(self, node_name):
         sub_config = self.config.extract_node_config(node_name)

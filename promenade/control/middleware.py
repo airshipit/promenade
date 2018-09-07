@@ -87,8 +87,9 @@ class ContextMiddleware(object):
     """
 
     def _format_uuid_string(self, string):
-        return (string.replace('urn:', '').replace('uuid:', '').strip('{}')
-                .replace('-', '').lower())
+        return (string.replace('urn:', '').replace('uuid:',
+                                                   '').strip('{}').replace(
+                                                       '-', '').lower())
 
     def _is_uuid_like(self, val):
         try:

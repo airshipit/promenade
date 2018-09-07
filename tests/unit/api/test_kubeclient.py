@@ -33,65 +33,69 @@ TEST_DATA = [(
         "label-c": "value4",
         "label-d": "value99",
     },
-), (
-    'Add labels when none exist',
-    None,
-    {
-        "label-a": "value1",
-        "label-b": "value2",
-        "label-c": "value3",
-    },
-    {
-        "label-a": "value1",
-        "label-b": "value2",
-        "label-c": "value3",
-    },
-), (
-    'No updates',
-    {
-        "label-a": "value1",
-        "label-b": "value2",
-        "label-c": "value3",
-    },
-    {
-        "label-a": "value1",
-        "label-b": "value2",
-        "label-c": "value3",
-    },
-    {},
-), (
-    'Delete labels',
-    {
-        "label-a": "value1",
-        "label-b": "value2",
-        "label-c": "value3",
-    },
-    {},
-    {
-        "label-a": None,
-        "label-b": None,
-        "label-c": None,
-    },
-), (
-    'Delete labels when none',
-    None,
-    {},
-    {},
-), (
-    'Avoid kubernetes.io labels Deletion',
-    {
-        "label-a": "value1",
-        "label-b": "value2",
-        "kubernetes.io/hostname": "ubutubox",
-    },
-    {
-        "label-a": "value99",
-    },
-    {
-        "label-a": "value99",
-        "label-b": None,
-    },
-)]
+),
+             (
+                 'Add labels when none exist',
+                 None,
+                 {
+                     "label-a": "value1",
+                     "label-b": "value2",
+                     "label-c": "value3",
+                 },
+                 {
+                     "label-a": "value1",
+                     "label-b": "value2",
+                     "label-c": "value3",
+                 },
+             ),
+             (
+                 'No updates',
+                 {
+                     "label-a": "value1",
+                     "label-b": "value2",
+                     "label-c": "value3",
+                 },
+                 {
+                     "label-a": "value1",
+                     "label-b": "value2",
+                     "label-c": "value3",
+                 },
+                 {},
+             ),
+             (
+                 'Delete labels',
+                 {
+                     "label-a": "value1",
+                     "label-b": "value2",
+                     "label-c": "value3",
+                 },
+                 {},
+                 {
+                     "label-a": None,
+                     "label-b": None,
+                     "label-c": None,
+                 },
+             ), (
+                 'Delete labels when none',
+                 None,
+                 {},
+                 {},
+             ),
+             (
+                 'Avoid kubernetes.io labels Deletion',
+                 {
+                     "label-a": "value1",
+                     "label-b": "value2",
+                     "kubernetes.io/hostname": "ubutubox",
+                 },
+                 {
+                     "label-a": "value99",
+                 },
+                 {
+                     "label-a": "value99",
+                     "label-b": None,
+                 },
+             )]
 
 
 @pytest.mark.parametrize('description,existing_lbl,input_lbl,expected',
