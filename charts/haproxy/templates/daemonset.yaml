@@ -67,6 +67,8 @@ spec:
               mountPath: /tmp/etc
             - name: host
               mountPath: /host
+      securityContext:
+        readOnlyRootFilesystem: true
       volumes:
         - name: haproxy-bin
           configMap:
