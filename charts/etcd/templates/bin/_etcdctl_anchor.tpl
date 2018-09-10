@@ -76,6 +76,7 @@ while true; do
         ETCD_INITIAL_CLUSTER=${ETCD_NAME}=https://\$\(POD_IP\):{{ .Values.network.service_peer.target_port }}
         ETCD_INITIAL_CLUSTER_STATE=new
         create_manifest "$ETCD_INITIAL_CLUSTER" "$ETCD_INITIAL_CLUSTER_STATE" "$MANIFEST_PATH"
+        sleep {{ .Values.anchor.period }}
         continue
     fi
     {{- end }}
