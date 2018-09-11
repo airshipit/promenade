@@ -63,24 +63,23 @@ spec:
           - name: KUBERNETES_SERVICE_PORT
             value: {{ .Values.kube_service.port | quote }}
         livenessProbe:
-          httpGet:
-            host: 127.0.0.1
-            path: /healthz
-            port: 10256
-          failureThreshold: 3
-          initialDelaySeconds: 15
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 5
+{{ toYaml .Values.livenessProbe.config | indent 10 }}
+          exec:
+            command:
+              - /tmp/bin/liveness-probe.sh
         readinessProbe:
           exec:
             command:
-            - sh
-            - -c
-            - |-
-              set -ex
-              iptables-save | grep 'default/kubernetes:https'
+              - /tmp/bin/readiness-probe.sh
           initialDelaySeconds: 15
           periodSeconds: 15
+        volumeMounts:
+          - name: bin
+            mountPath: /tmp/bin/
       serviceAccountName: kube-proxy
+      volumes:
+        - name: bin
+          configMap:
+            name: kubernetes-proxy-bin
+            defaultMode: 0555
 {{- end }}
