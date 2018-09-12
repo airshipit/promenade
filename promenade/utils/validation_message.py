@@ -55,7 +55,7 @@ class ValidationMessage(Message):
             'kind': 'ValidationMessage'
         }
         if schema and doc_name:
-            self.output['documents'].append(dict(schema=schema, name=doc_name))
+            new_error['documents'].append(dict(schema=schema, name=doc_name))
         self.details['errorCount'] += 1
         self.details['messageList'].append(new_error)
 
