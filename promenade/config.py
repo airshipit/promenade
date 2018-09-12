@@ -37,11 +37,12 @@ class Configuration:
                 raise exceptions.DeckhandException(str(e))
 
             LOG.info("Deckhand engine returned %d documents." % len(documents))
-        if validate:
-            validation.validate_all(documents)
         self.debug = debug
         self.documents = documents
         self.leave_kubectl = leave_kubectl
+
+        if validate:
+            validation.validate_all(self)
 
     @classmethod
     def from_streams(cls, *, streams, **kwargs):
