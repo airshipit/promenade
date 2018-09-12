@@ -61,7 +61,7 @@
     name: airship-promenade-unit-py35
     description: |
       Executes unit tests under Python 3.5
-    run: tools/zuul/playbooks/unit-py35.yaml
+    run: tools/zuul/playbooks/make-tests.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
     files:
