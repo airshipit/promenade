@@ -70,9 +70,8 @@ class Configuration:
             **kwargs)
 
     def __getitem__(self, path):
-        return self.get_path(path,
-                             jinja2.StrictUndefined(
-                                 'No match found for path %s' % path))
+        return self.get_path(
+            path, jinja2.StrictUndefined('No match found for path %s' % path))
 
     def get_first(self, *paths, default=None):
         result = self._get_first(*paths)

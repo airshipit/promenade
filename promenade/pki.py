@@ -34,11 +34,11 @@ class PKI:
         return self._ca_config_string
 
     def generate_ca(self, ca_name):
-        result = self._cfssl(
-            ['gencert', '-initca', 'csr.json'],
-            files={
-                'csr.json': self.csr(name=ca_name, groups=['Kubernetes']),
-            })
+        result = self._cfssl(['gencert', '-initca', 'csr.json'],
+                             files={
+                                 'csr.json':
+                                 self.csr(name=ca_name, groups=['Kubernetes']),
+                             })
 
         return (self._wrap_ca(ca_name, result['cert']),
                 self._wrap_ca_key(ca_name, result['key']))

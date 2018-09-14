@@ -1,6 +1,6 @@
 pytest
 flake8>=3.3.0
 bandit>=1.5
-yapf
+yapf==0.24.0
 sphinx>=1.6.2
 sphinx_rtd_theme==0.2.4

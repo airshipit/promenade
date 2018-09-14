@@ -69,8 +69,8 @@ class KubeClient(object):
                 self.client.patch_node(node_name, body)
             return resp_body_succ.get_output_json()
         except (ApiException, MaxRetryError) as e:
-            LOG.exception(
-                "An exception occurred during node labels update: " + str(e))
+            LOG.exception("An exception occurred during node labels update: " +
+                          str(e))
             raise KubernetesApiError
 
     def get_node_labels(self, node_name):
@@ -89,8 +89,8 @@ class KubeClient(object):
             else:
                 return {}
         except (ApiException, MaxRetryError) as e:
-            LOG.exception(
-                "An exception occurred in fetching node labels: " + str(e))
+            LOG.exception("An exception occurred in fetching node labels: " +
+                          str(e))
             if hasattr(e, 'status') and str(e.status) == "404":
                 raise NodeNotFoundException
             else:
