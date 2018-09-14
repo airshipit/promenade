@@ -23,6 +23,8 @@ metadata:
   labels:
     {{ .Values.service.name }}: enabled
     kubernetes.io/name: "CoreDNS"
+  annotations:
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
   replicas: {{ .Values.pod.replicas.coredns }}
   strategy:

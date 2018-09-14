@@ -26,6 +26,8 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: {{ .Values.service.name }}-anchor
+  annotations:
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
 {{ tuple $envAll "anchor" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:

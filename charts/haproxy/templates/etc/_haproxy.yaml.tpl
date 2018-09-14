@@ -23,6 +23,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
 {{ tuple $envAll "haproxy" "server" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+  annotations:
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
   hostNetwork: true
   containers:

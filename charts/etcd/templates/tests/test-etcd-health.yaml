@@ -26,6 +26,7 @@ metadata:
   annotations:
     "helm.sh/hook": "test-success"
     scheduler.alpha.kubernetes.io/critical-pod: ''
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
   labels:
 {{ tuple $envAll $applicationName "etcd-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
