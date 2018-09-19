@@ -21,6 +21,7 @@ images:
     scripted_test: docker.io/openstackhelm/heat:newton
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
     image_repo_sync: docker.io/docker:17.07.0
+    ks_user: docker.io/openstackhelm/heat:ocata
   pull_policy: IfNotPresent
   local_registry:
     active: false
@@ -30,80 +31,101 @@ images:
 
 labels:
   kubernetes_apiserver:
-    node_selector_key: kubernetes-apiserver
+    node_selector_key: apiserver-webhook
+    node_selector_value: enabled
+  job:
+    node_selector_key: apiserver-webhook
     node_selector_value: enabled
 
 command_prefix:
   - /apiserver
   - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
-  - --service-cluster-ip-range=10.96.0.0/16
   - --v=5
 
-apiserver:
-  host_etc_path: /etc/kubernetes/apiserver
-
 network:
-  kubernetes_apiserver:
+  pod_cidr: '10.97.0.0/16'
+  service_cidr: '10.96.0.0/16'
+  api:
     ingress:
       public: true
       classes:
-        namespace: "nginx-cluster"
+        namespace: "nginx"
         cluster: "nginx-cluster"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
         nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
         nginx.ingress.kubernetes.io/ssl-redirect: "true"
         nginx.ingress.kubernetes.io/secure-backends: "true"
-    name: kubernetes-apiserver
-    port: 6443
-    node_port:
-      enabled: false
-      port: 31943
-
-service:
-  name: kubernetes-webhook-apiserver
-  ip: null
-
-secrets:
-  tls:
-    ca: placeholder
-    cert: placeholder
-    key: placeholder
-  service_account:
-    public_key: placeholder
-  etcd:
-    tls:
-      ca: placeholder
+    name: webhook_apiserver
+#
+# Insert TLS certificates, keys and CAs
+# here. Server is for server-terminated TLS (basic)
+# and client is for mTLS. Each group of certificates
+# will generate two secrets <groupname>-client and <groupname>-server
+# built to the kubernetes.io/tls secret type with keys 'tls.crt', 'tls.key'
+# and 'ca.crt'
+#
+certificates:
+  apiserver_webhook_pod:
+    server:
       cert: placeholder
       key: placeholder
-  identity:
-    admin: kubernetes-keystone-webhook-admin
-  certificates:
-    api: kubernetes-keystone-webhook-certs
+      ca: placeholder
+  keystone_webhook:
+    server:
+      cert: placeholder
+      key: placeholder
+      ca: placeholder
+  kubelet:
+    client:
+      cert: placeholder
+      key: placeholder
+    server:
+      ca: placeholder
+  etcd:
+    client:
+      cert: placeholder
+      key: placeholder
+    server:
+      ca: placeholder
 
-kubernetes_keystone_webhook:
-  port: 8443
-  endpoints: https://k8sksauth-api.kube-system.svc.cluster.local
+secrets:
+  service_account:
+    public_key: placeholder
+  identity:
+    admin: apiserver-webhook-keystone-creds-admin
+    webhook: apiserver-webhook-keystone-creds-webhook
+  tls:
+    webhook_apiserver:
+      api:
+        public: apiserver-webhook-public
+        server:
+          cert: placeholder
+          key: placeholder
+          ca: placeholder
 
 # typically overriden by environmental
 # values, but should include all endpoints
 # required by this chart
 endpoints:
   cluster_domain_suffix: cluster.local
-  kubernetes_apiserver:
-    name: kubernetes-webhook-apiserver
+  webhook_apiserver:
+    name: webhook_apiserver
     hosts:
-      default: keystone
-      internal: keystone-api
+      default: apiserver-webhook
+      internal: apiserver-webhook-int
     port:
-      https:
+      api:
         default: 6443
         public: 443
+      webhook:
+        podport: 8443
     path:
       default: /
+      webhook: /webhook
     scheme:
-      default: http
-      public: http
+      default: https
+      public: https
     host_fqdn_override:
       default: null
       # NOTE: this chart supports TLS for fqdn over-ridden public
@@ -113,12 +135,6 @@ endpoints:
       #   tls:
       #     crt: null
       #     key: null
-  kubernetes:
-    auth:
-      api:
-        tls:
-          crt: null
-          key: null
   identity:
     name: keystone
     namespace: null
@@ -130,6 +146,14 @@ endpoints:
         project_name: admin
         user_domain_name: default
         project_domain_name: default
+      webhook:
+        region_name: RegionOne
+        username: webhook
+        password: password
+        project_name: service
+        user_domain_name: default
+        project_domain_name: default
+        role: admin
     hosts:
       default: keystone
       internal: keystone-api
@@ -143,22 +167,6 @@ endpoints:
       api:
         default: 80
         internal: 5000
-  kubernetes_keystone_webhook:
-    namespace: null
-    name: k8sksauth
-    hosts:
-      default: k8sksauth-api
-      public: k8sksauth
-    host_fqdn_override:
-      default: null
-    path:
-      default: /webhook
-    scheme:
-      default: https
-    port:
-      api:
-        default: 8443
-        public: 443
   etcd:
     name: etcd
     namespace: kube-system
@@ -182,6 +190,14 @@ pod:
   replicas:
     apiserver: 1
     api: 1
+  probes:
+    readinessProbe:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    livenessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 15
+      periodSeconds: 20
   lifecycle:
     upgrades:
       daemonsets:
@@ -232,6 +248,12 @@ pod:
       init_container: null
       kubernetes_keystone_webhook_tests: null
 conf:
+  paths:
+    base: '/etc/webhook_apiserver/'
+    pki: '/etc/webhook_apiserver/pki'
+    conf: '/etc/webhook_apiserver/webhook.kubeconfig'
+    policy: '/etc/webhook_apiserver/conf/policy.json'
+    sapubkey: '/etc/webhook_apiserver/pki/service-accounts.pub'
   policy:
     - resource:
         verbs:
@@ -273,23 +295,35 @@ conf:
           - "*"
         resources:
           - "*"
-        namespace: "openstack"
+        namespace: "ucp"
         version: "*"
       match:
         - type: project
           values:
-            - openstack-system
+            - ucp-admin
+            - airship-admin
+
+dependencies:
+  static:
+    ks_user:
+      services:
+        - service: identity
+          endpoint: internal
+    api:
+      jobs:
+        - webhook-apiserver-ks-user
+      services:
+        - service: identity
+          endpoint: internal
 
 manifests:
   configmap_bin: true
   configmap_certs: true
   configmap_etc: true
+  job_ks_user: true
   deployment: true
-  ingress_api: false
+  ingress_api: true
   pod_test: false
-  kubernetes_apiserver: true
-  secret: true
-  secret_ingress_tls: false
-  secret_webhook: true
+  secret_keystone: true
+  secret_tls: true
   service: true
-  service_ingress: false
