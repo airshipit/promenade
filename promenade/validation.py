@@ -105,7 +105,7 @@ def check_schema(document, schemas=None):
         except jsonschema.ValidationError as e:
             raise exceptions.ValidationException(str(e))
     else:
-        LOG.warning('Skipping validation for unknown schema: %s', schema_name)
+        LOG.debug('Skipping validation for unknown schema: %s', schema_name)
 
 
 SCHEMAS = {}

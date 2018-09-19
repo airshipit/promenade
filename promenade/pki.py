@@ -13,7 +13,8 @@ LOG = logging.getLogger(__name__)
 
 
 class PKI:
-    def __init__(self):
+    def __init__(self, *, block_strings=True):
+        self.block_strings = block_strings
         self._ca_config_string = None
 
     @property
@@ -116,9 +117,11 @@ class PKI:
             # Ignore bandit false positive:
             #   B603:subprocess_without_shell_equals_true
             # This method wraps cfssl calls originating from this module.
-            return json.loads(  # nosec
-                subprocess.check_output(
-                    ['cfssl'] + command, cwd=tmp, stderr=subprocess.PIPE))
+            result = subprocess.check_output(  # nosec
+                ['cfssl'] + command, cwd=tmp, stderr=subprocess.PIPE)
+            if not isinstance(result, str):
+                result = result.decode('utf-8')
+            return json.loads(result)
 
     def _openssl(self, command, *, files=None):
         if not files:
@@ -175,8 +178,14 @@ class PKI:
                 },
                 'storagePolicy': 'cleartext',
             },
-            'data': block_literal(data),
+            'data': self._block_literal(data),
         }
+
+    def _block_literal(self, data):
+        if self.block_strings:
+            return block_literal(data)
+        else:
+            return data
 
 
 class block_literal(str):

@@ -1,0 +1,14 @@
+---
+schema: promenade/EncryptionPolicy/v1
+metadata:
+  schema: metadata/Document/v1
+  name: encryption-policy
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
+data:
+  scripts:
+    genesis:
+      gpg: {}
+...

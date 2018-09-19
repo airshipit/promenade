@@ -6,6 +6,7 @@ export NGINX_DIR="${TEMP_DIR}/nginx"
 export NGINX_URL="http://192.168.77.1:7777"
 export PROMENADE_BASE_URL="http://promenade-api.ucp.svc.cluster.local"
 export PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
+export PROMENADE_ENCRYPTION_KEY=${PROMENADE_ENCRYPTION_KEY:-testkey}
 export REGISTRY_DATA_DIR=${REGISTRY_DATA_DIR:-/mnt/registry}
 export VIRSH_POOL=${VIRSH_POOL:-promenade}
 export VIRSH_POOL_PATH=${VIRSH_POOL_PATH:-/var/lib/libvirt/promenade}
