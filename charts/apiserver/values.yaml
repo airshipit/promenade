@@ -33,6 +33,10 @@ anchor:
   files_to_copy:
     - source: /certs/apiserver.pem
       dest: /etc/kubernetes/apiserver/pki/apiserver.pem
+    - source: /certs/kubelet-client.pem
+      dest: /etc/kubernetes/apiserver/pki/kubelet-client.pem
+    - source: /certs/kubelet-client-ca.pem
+      dest: /etc/kubernetes/apiserver/pki/kubelet-client-ca.pem
     - source: /certs/cluster-ca.pem
       dest: /etc/kubernetes/apiserver/pki/cluster-ca.pem
     - source: /certs/etcd-client-ca.pem
@@ -43,6 +47,8 @@ anchor:
       dest: /etc/kubernetes/apiserver/pki/service-account.pub
     - source: /keys/apiserver-key.pem
       dest: /etc/kubernetes/apiserver/pki/apiserver-key.pem
+    - source: /keys/kubelet-client-key.pem
+      dest: /etc/kubernetes/apiserver/pki/kubelet-client-key.pem
     - source: /keys/etcd-client-key.pem
       dest: /etc/kubernetes/apiserver/pki/etcd-client-key.pem
     - source: /tmp/etc/kubernetes-apiserver.yaml
@@ -97,6 +103,12 @@ secrets:
       ca: placeholder
       cert: placeholder
       key: placeholder
+  kubelet:
+    tls:
+      ca: null
+      cert: null
+      key: null
+
 
 # typically overriden by environmental
 # values, but should include all endpoints

@@ -664,7 +664,6 @@ metadata:
         path: .
       dest:
         path: .values.secrets.tls.ca
-
     -
       src:
         schema: deckhand/Certificate/v1
@@ -679,6 +678,29 @@ metadata:
         path: .
       dest:
         path: .values.secrets.tls.key
+
+    -
+      src:
+        schema: deckhand/CertificateAuthority/v1
+        name: kubelet
+        path: .
+      dest:
+        path: .values.secrets.kubelet.tls.ca
+    -
+      src:
+        schema: deckhand/Certificate/v1
+        name: apiserver-kubelet-client
+        path: .
+      dest:
+        path: .values.secrets.kubelet.tls.cert
+    -
+      src:
+        schema: deckhand/CertificateKey/v1
+        name: apiserver-kubelet-client
+        path: .
+      dest:
+        path: .values.secrets.kubelet.tls.key
+
     -
       src:
         schema: deckhand/CertificateAuthority/v1
@@ -731,18 +753,6 @@ data:
       tags:
         anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.2
         apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.2
-    secrets:
-      service_account:
-        public_key: placeholder
-      tls:
-        ca: placeholder
-        cert: placeholder
-        key: placeholder
-      etcd:
-        tls:
-          ca: placeholder
-          cert: placeholder
-          key: placeholder
     network:
       kubernetes_service_ip: 10.96.0.1
       pod_cidr: 10.97.0.0/16

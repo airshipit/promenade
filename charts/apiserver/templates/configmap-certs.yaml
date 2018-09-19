@@ -28,4 +28,6 @@ data:
   etcd-client-ca.pem: {{ .Values.secrets.etcd.tls.ca | quote }}
   etcd-client.pem: {{ .Values.secrets.etcd.tls.cert | quote }}
   service-account.pub: {{ .Values.secrets.service_account.public_key | quote }}
+  kubelet-client-ca.pem: {{ .Values.secrets.kubelet.tls.ca | default .Values.secrets.tls.ca | quote }}
+  kubelet-client.pem: {{ .Values.secrets.kubelet.tls.cert | default .Values.secrets.tls.cert | quote }}
 {{- end }}
