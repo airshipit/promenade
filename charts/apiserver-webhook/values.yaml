@@ -1,0 +1,295 @@
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+release_group: null
+
+images:
+  tags:
+    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.2
+    kubernetes_keystone_webhook: docker.io/k8scloudprovider/k8s-keystone-auth:latest
+    scripted_test: docker.io/openstackhelm/heat:newton
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+    image_repo_sync: docker.io/docker:17.07.0
+  pull_policy: IfNotPresent
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
+
+labels:
+  kubernetes_apiserver:
+    node_selector_key: kubernetes-apiserver
+    node_selector_value: enabled
+
+command_prefix:
+  - /apiserver
+  - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+  - --service-cluster-ip-range=10.96.0.0/16
+  - --v=5
+
+apiserver:
+  host_etc_path: /etc/kubernetes/apiserver
+
+network:
+  kubernetes_apiserver:
+    ingress:
+      public: true
+      classes:
+        namespace: "nginx-cluster"
+        cluster: "nginx-cluster"
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/secure-backends: "true"
+    name: kubernetes-apiserver
+    port: 6443
+    node_port:
+      enabled: false
+      port: 31943
+
+service:
+  name: kubernetes-webhook-apiserver
+  ip: null
+
+secrets:
+  tls:
+    ca: placeholder
+    cert: placeholder
+    key: placeholder
+  service_account:
+    public_key: placeholder
+  etcd:
+    tls:
+      ca: placeholder
+      cert: placeholder
+      key: placeholder
+  identity:
+    admin: kubernetes-keystone-webhook-admin
+  certificates:
+    api: kubernetes-keystone-webhook-certs
+
+kubernetes_keystone_webhook:
+  port: 8443
+  endpoints: https://k8sksauth-api.kube-system.svc.cluster.local
+
+# typically overriden by environmental
+# values, but should include all endpoints
+# required by this chart
+endpoints:
+  cluster_domain_suffix: cluster.local
+  kubernetes_apiserver:
+    name: kubernetes-webhook-apiserver
+    hosts:
+      default: keystone
+      internal: keystone-api
+    port:
+      https:
+        default: 6443
+        public: 443
+    path:
+      default: /
+    scheme:
+      default: http
+      public: http
+    host_fqdn_override:
+      default: null
+      # NOTE: this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
+  kubernetes:
+    auth:
+      api:
+        tls:
+          crt: null
+          key: null
+  identity:
+    name: keystone
+    namespace: null
+    auth:
+      admin:
+        region_name: RegionOne
+        username: admin
+        password: password
+        project_name: admin
+        user_domain_name: default
+        project_domain_name: default
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      default: null
+    path:
+      default: /v3
+    scheme:
+      default: http
+    port:
+      api:
+        default: 80
+        internal: 5000
+  kubernetes_keystone_webhook:
+    namespace: null
+    name: k8sksauth
+    hosts:
+      default: k8sksauth-api
+      public: k8sksauth
+    host_fqdn_override:
+      default: null
+    path:
+      default: /webhook
+    scheme:
+      default: https
+    port:
+      api:
+        default: 8443
+        public: 443
+  etcd:
+    name: etcd
+    namespace: kube-system
+    hosts:
+      default: kubernetes-etcd
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: https
+    port:
+      client:
+        default: 2379
+
+pod:
+  mounts:
+    kubernetes_apiserver:
+      init_container: null
+      kubernetes_apiserver:
+  replicas:
+    apiserver: 1
+    api: 1
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        kubernetes_apiserver:
+          enabled: false
+          min_ready_seconds: 0
+          max_unavailable: 1
+    termination_grace_period:
+      kubernetes_apiserver:
+        timeout: 3600
+  resources:
+    enabled: false
+    anchor_pod:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    kubernetes_apiserver:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+    jobs:
+      tests:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"
+  mounts:
+    kubernetes_keystone_webhook_api:
+      init_container: null
+      kubernetes_keystone_webhook_api: null
+    kubernetes_keystone_webhook_tests:
+      init_container: null
+      kubernetes_keystone_webhook_tests: null
+conf:
+  policy:
+    - resource:
+        verbs:
+          - "*"
+        resources:
+          - "*"
+        namespace: "*"
+        version: "*"
+      match:
+        - type: role
+          values:
+            - admin
+    - resource:
+        verbs:
+          - "*"
+        resources:
+          - "*"
+        namespace: "kube-system"
+        version: "*"
+      match:
+        - type: role
+          values:
+            - kube-system-admin
+    - resource:
+        verbs:
+          - get
+          - list
+          - watch
+        resources:
+          - "*"
+        namespace: "kube-system"
+        version: "*"
+      match:
+        - type: role
+          values:
+            - kube-system-viewer
+    - resource:
+        verbs:
+          - "*"
+        resources:
+          - "*"
+        namespace: "openstack"
+        version: "*"
+      match:
+        - type: project
+          values:
+            - openstack-system
+
+manifests:
+  configmap_bin: true
+  configmap_certs: true
+  configmap_etc: true
+  deployment: true
+  ingress_api: false
+  pod_test: false
+  kubernetes_apiserver: true
+  secret: true
+  secret_ingress_tls: false
+  secret_webhook: true
+  service: true
+  service_ingress: false
