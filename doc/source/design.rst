@@ -107,8 +107,9 @@ implemented.
 Adding and removing node labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is currently only possible directly via ``kubectl``, though API support
-for this functionality is planned.
+Promenade provides ``node-labels`` API for updating node labels.
+For more information about updating node labels, please reference
+the :ref:`api-ref`.
 
 It through relabeling nodes that key day 2 operations functionality like moving
 a master node are achieved.

@@ -1,5 +1,7 @@
-Promenade API
-=============
+.. _api-ref:
+
+Promenade API Documentation
+===========================
 
 
 /v1.0/health

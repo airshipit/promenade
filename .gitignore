@@ -21,6 +21,7 @@ __pycache__
 
 # Sphinx artifacts
 /doc/build/
+/doc/source/.doctrees/
 /doc/*/_static/
 /AUTHORS
 /ChangeLog
