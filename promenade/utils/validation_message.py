@@ -19,8 +19,8 @@ from promenade.utils.message import Message
 
 
 class ValidationMessage(Message):
-    """ ValidationMessage per UCP convention:
-    https://github.com/att-comdev/ucp-integration/blob/master/docs/source/api-conventions.rst#output-structure  # noqa
+    """ ValidationMessage per Airship convention:
+    https://github.com/openstack/airship-in-a-bottle/blob/master/doc/source/api-conventions.rst#output-structure  # noqa
 
     Construction of ValidationMessage message:
 

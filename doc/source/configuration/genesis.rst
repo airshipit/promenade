@@ -37,7 +37,7 @@ Here is a complete sample document:
           - promenade-genesis=enabled
           - ucp-control-plane=enabled
       images:
-        armada: quay.io/attcomdev/armada:latest
+        armada: quay.io/airshipit/armada:latest
         helm:
           tiller: gcr.io/kubernetes-helm/tiller:v2.10.0
         kubernetes:

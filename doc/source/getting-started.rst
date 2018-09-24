@@ -3,7 +3,7 @@ Getting Started
 
 Note: This document is meant to give a general understanding of how Promenade
 could be exercised in a development environment or for general learning and
-understanding. For holistic UCP deployment procedures, refer to `Treasuremap <https://github.com/att-comdev/treasuremap>`_
+understanding. For holistic Airship deployment procedures, refer to `Treasuremap <https://github.com/openstack/airship-treasuremap>`_
 
 Basic Deployment
 ----------------
@@ -58,7 +58,7 @@ Perform the following steps to execute the deployment:
 3. Nodes for which ``join-<NODE>.sh`` scripts have been generated should be
    provisioned at this point, and need to have network connectivity to the
    genesis node. (This could be a manual Ubuntu provision, or a Drydock-
-   initiated PXE boot in the case of a full fledged UCP deployment).
+   initiated PXE boot in the case of a full fledged Airship deployment).
 4. Join master nodes by copying their respective ``join-<NODE>.sh`` scripts to
    them and running them.
 5. Validate the master nodes by copying and running their respective

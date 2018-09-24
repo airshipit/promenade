@@ -18,7 +18,7 @@ from promenade.utils.message import Message
 
 
 class SuccessMessage(Message):
-    """SuccessMessage per UCP convention:
+    """SuccessMessage per Airship convention:
     https://airshipit.readthedocs.io/en/latest/api-conventions.html#status-responses
     """
 

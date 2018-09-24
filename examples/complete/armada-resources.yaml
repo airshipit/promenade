@@ -101,7 +101,7 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
-  description: UCP Infrastructure
+  description: Airship Infrastructure
   sequenced: false
   chart_group:
     - ucp-mariadb
@@ -123,7 +123,7 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
-  description: UCP platform components
+  description: Airship platform components
   chart_group:
     - armada
     - deckhand
