@@ -108,10 +108,17 @@ install_config() {
 }
 
 cleanup() {
+    cleanup_message_file=$(dirname "$HAPROXY_CONF")/cleanup
+    backup_dir=$(dirname "$HAPROXY_CONF")/backup
+    mkdir -p $backup_dir
+    echo "Starting haproxy-anchor cleanup, files are backed up:" > $cleanup_message_file
     {{- range .Values.conf.anchor.files_to_copy }}
-    rm -f /host{{ .dest }}
+    echo /host{{ .dest }} >> $cleanup_message_file
+    mv /host{{ .dest }} $backup_dir
     {{- end }}
-    rm -f "$HAPROXY_CONF" "$NEXT_HAPROXY_CONF"
+    echo "$HAPROXY_CONF" >> $cleanup_message_file
+    echo "$NEXT_HAPROXY_CONF" >> $cleanup_message_file
+    mv "$HAPROXY_CONF" "$NEXT_HAPROXY_CONF" $backup_dir
 }
 
 while true; do
