@@ -6,7 +6,7 @@ Promenade is a Kubernetes_ cluster deployment tool with the following goals:
 * Resiliency in the face of node loss and full cluster reboot.
 * Bare metal node support without external runtime dependencies.
 * Providing a fully functional single-node cluster to allow cluster-hosted
-  `tooling <https://github.com/att-comdev/treasuremap>`_ to provision the
+  `tooling <https://github.com/openstack/airship-treasuremap>`_ to provision the
   remaining cluster nodes.
 * Helm_ chart managed component life-cycle.
 * API-managed cluster life-cycle.
@@ -261,18 +261,18 @@ Alternatives
     * Does not support chart-based management of components
 
 
-.. _Armada: https://github.com/att-comdev/armada
+.. _Armada: https://github.com/openstack/airship-armada
 .. _Bootkube: https://github.com/kubernetes-incubator/bootkube
 .. _CNI: https://github.com/containernetworking/cni
 .. _Calico: https://github.com/projectcalico/calico
 .. _CoreDNS: https://github.com/coredns/coredns
-.. _Deckhand: https://github.com/att-comdev/deckhand
+.. _Deckhand: https://github.com/openstack/airship-deckhand
 .. _Docker: https://www.docker.com
-.. _Drydock: https://github.com/att-comdev/drydock
+.. _Drydock: https://github.com/openstack/airship-drydock
 .. _Etcd: https://github.com/coreos/etcd
 .. _HAProxy: http://www.haproxy.org
 .. _Helm: https://github.com/kubernetes/helm
 .. _kops: https://github.com/kubernetes/kops
 .. _Kubeadm: https://github.com/kubernetes/kubeadm
 .. _Kubernetes: https://github.com/kubernetes/kubernetes
-.. _Shipyard: https://github.com/att-comdev/shipyard
+.. _Shipyard: https://github.com/openstack/airship-shipyard

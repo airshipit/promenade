@@ -67,7 +67,7 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
-  description: UCP Services
+  description: Airship Services
   chart_group:
     - promenade
 ---

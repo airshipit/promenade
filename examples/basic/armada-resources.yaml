@@ -86,7 +86,7 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
-  description: UCP platform components
+  description: Airship platform components
   sequenced: true
   chart_group:
     - promenade
