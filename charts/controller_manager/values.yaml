@@ -54,6 +54,7 @@ command_prefix:
   - --node-monitor-grace-period=20s
   - --pod-eviction-timeout=60s
   - --service-cluster-ip-range=10.96.0.0/16
+  - --terminated-pod-gc-threshold=1000
 
 secrets:
   tls:
