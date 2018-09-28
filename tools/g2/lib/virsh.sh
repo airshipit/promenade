@@ -126,7 +126,7 @@ vm_create() {
     virt-install \
         --name "${NAME}" \
         --virt-type kvm \
-        --cpu host \
+        --cpu host,+x2apic,-avx2 \
         --graphics vnc,listen=0.0.0.0 \
         --noautoconsole \
         --network "network=promenade,model=virtio" \
