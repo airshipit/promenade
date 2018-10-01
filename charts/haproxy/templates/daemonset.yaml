@@ -26,6 +26,8 @@ spec:
     metadata:
       labels:
 {{ tuple $envAll "kubernetes" "haproxy-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       tolerations:
         - key: node-role.kubernetes.io/master
