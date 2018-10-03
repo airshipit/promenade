@@ -15,7 +15,8 @@ data:
     - --network-plugin=cni
     - --node-status-update-frequency=5s
     - --serialize-image-pulls=false
-    - --v=5
+    - --anonymous-auth=false
+    - --v=3
   images:
     pause: gcr.io/google_containers/pause-amd64:3.0
 ...
