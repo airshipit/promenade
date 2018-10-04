@@ -53,6 +53,8 @@ pod:
       limits:
         memory: "1024Mi"
         cpu: "2000m"
+  replicas:
+    coredns: 3
 
 monitoring:
   prometheus:

@@ -24,7 +24,7 @@ metadata:
     {{ .Values.service.name }}: enabled
     kubernetes.io/name: "CoreDNS"
 spec:
-  replicas: 2
+  replicas: {{ .Values.pod.replicas.coredns }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
