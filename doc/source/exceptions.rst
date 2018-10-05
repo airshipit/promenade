@@ -18,39 +18,32 @@
 Promenade Exceptions
 ====================
 
-.. list-table::
-  :widths: 5 50
-  :header-rows: 1
+.. autoexception:: promenade.exceptions.ApiError
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
-  * - Exception Name
-    - Description
-  * - ApiError
-    - .. autoexception:: promenade.exceptions.ApiError
-         :members:
-         :show-inheritance:
-         :undoc-members:
-  * - InvalidFormatError
-    - .. autoexception:: promenade.exceptions.InvalidFormatError
-        :members:
-        :show-inheritance:
-        :undoc-members:
-  * - ValidationException
-    - .. autoexception:: promenade.exceptions.ValidationException
-        :members:
-        :show-inheritance:
-        :undoc-members:
-  * - KubernetesConfigException
-    - .. autoexception:: promenade.exceptions.KubernetesConfigException
-        :members:
-        :show-inheritance:
-        :undoc-members:
-  * - KubernetesApiError
-    - .. autoexception:: promenade.exceptions.KubernetesApiError
-        :members:
-        :show-inheritance:
-        :undoc-members:
-  * - NodeNotFoundException
-    - .. autoexception:: promenade.exceptions.NodeNotFoundException
-        :members:
-        :show-inheritance:
-        :undoc-members:
+.. autoexception:: promenade.exceptions.InvalidFormatError
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+.. autoexception:: promenade.exceptions.ValidationException
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+.. autoexception:: promenade.exceptions.KubernetesConfigException
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+.. autoexception:: promenade.exceptions.KubernetesApiError
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+.. autoexception:: promenade.exceptions.NodeNotFoundException
+   :members:
+   :show-inheritance:
+   :undoc-members:
