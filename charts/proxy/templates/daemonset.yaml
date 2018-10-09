@@ -50,18 +50,15 @@ spec:
 {{ tuple $envAll $envAll.Values.pod.resources.proxy | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
         securityContext:
           privileged: true
-        # volumeMounts:
-        #  - mountPath: /run/xtables.lock
-        #    name: xtables-lock
-        #   readOnly: false
-        # - mountPath: /lib/modules
-        #   name: lib-modules
-        #   readOnly: true
         env:
           - name: KUBERNETES_SERVICE_HOST
             value: {{ .Values.kube_service.host }}
           - name: KUBERNETES_SERVICE_PORT
             value: {{ .Values.kube_service.port | quote }}
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
         livenessProbe:
 {{ toYaml .Values.livenessProbe.config | indent 10 }}
           exec:
@@ -76,10 +73,23 @@ spec:
         volumeMounts:
           - name: bin
             mountPath: /tmp/bin/
+          - mountPath: /run/xtables.lock
+            name: xtables-lock
+            readOnly: false
+          - mountPath: /lib/modules
+            name: lib-modules
+            readOnly: true
       serviceAccountName: kube-proxy
       volumes:
         - name: bin
           configMap:
             name: kubernetes-proxy-bin
             defaultMode: 0555
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: FileOrCreate
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
 {{- end }}
