@@ -21,6 +21,17 @@ if [[ $(iptables-save {{- if .Values.livenessProbe.whitelist }} | grep -Ev "${WH
     FAILURE=1
 fi
 
+
+IPTABLES_IPS=$(iptables-save | grep -E 'KUBE-SEP.*to-destination' | sed 's/.*to-destination \(.*\):.*/\1/' | sort -u)
+KUBECTL_IPS=$(kubectl get --all-namespaces -o json endpoints | jq -r '.items | arrays | .[] | objects | .subsets | arrays | .[] | objects | .addresses | arrays | .[] | objects | .ip' | sort -u)
+
+if [[ $(comm -23 <(echo "${IPTABLES_IPS}") <(echo "${KUBECTL_IPS}")) ]]; then
+    FAILURE=1
+    echo "Found non-current Pod IPs in iptables rules:"
+    comm -23 <(echo "${IPTABLES_IPS}") <(echo "${KUBECTL_IPS}")
+fi
+
+
 if [[ "${FAILURE}" == "1" ]]; then
     exit 1
 fi
