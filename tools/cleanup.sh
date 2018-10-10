@@ -31,6 +31,8 @@ TO_RM=(
     "/var/log/armada"
     "/var/log/containers"
     "/var/log/pods"
+    "/opt/cni"
+    "/opt/kubernetes"
 )
 
 TO_LEAVE=(
