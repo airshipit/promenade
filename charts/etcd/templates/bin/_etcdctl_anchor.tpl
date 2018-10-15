@@ -44,6 +44,7 @@ function sync_configuration {
     ETCD_INITIAL_CLUSTER_STATE=existing
     create_manifest "$ETCD_INITIAL_CLUSTER" "$ETCD_INITIAL_CLUSTER_STATE" "$TEMP_MANIFEST"
     sync_file "${TEMP_MANIFEST}" "${MANIFEST_PATH}"
+    chmod go-rwx "${MANIFEST_PATH}"
 }
 firstrun=true
 while true; do

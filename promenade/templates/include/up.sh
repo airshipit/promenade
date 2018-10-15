@@ -23,7 +23,7 @@ echo "{{ encrypted_tarball | b64enc }}" | base64 -d | {{ decrypt_command }} | ta
 set -x
 
 for DIR in "${CURATED_DIRS[@]}"; do
-    chmod go-rwx "${DIR}"
+    chmod -R go-rwx "${DIR}"
 done
 
 # Adding apt repositories
