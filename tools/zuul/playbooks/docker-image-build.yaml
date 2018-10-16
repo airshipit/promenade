@@ -70,24 +70,14 @@
       debug:
         var: image_tags
 
-    - name: Docker login
-      docker_login:
-        password: "{{ airship_promenade_quay_creds.password }}"
-        username: "{{ airship_promenade_quay_creds.username }}"
-        registry_url: "https://quay.io/api/v1/"
-
-      become: True
-      when: publish
-
-    - name: Build (and push) images
+    - name: Make images
+      when: not publish
       block:
-        - docker_image:
-            name: "quay.io/airshipit/promenade"
-            dockerfile: "Dockerfile"
-            path: "{{ zuul.project.src_dir }}"
-            pull: false
-            push: "{{ publish }}"
-            tag: "{{ item }}"
+        - make:
+            chdir: "{{ zuul.project.src_dir }}"
+            target: images
+            params:
+              IMAGE_TAG: "{{ item }}"
           with_items: "{{ image_tags.stdout_lines }}"
 
         - shell: "docker images"
@@ -96,4 +86,31 @@
         - debug:
             var: docker_images
 
+      become: True
+
+    - name: Publish images
+      block:
+        - docker_login:
+            username: "{{ airship_promenade_quay_creds.username }}"
+            password: "{{ airship_promenade_quay_creds.password }}"
+            registry_url: "https://quay.io/api/v1/"
+
+        - make:
+            chdir: "{{ zuul.project.src_dir }}"
+            target: images
+            params:
+              DOCKER_REGISTRY: "quay.io"
+              IMAGE_PREFIX: "airshipit"
+              IMAGE_TAG: "{{ item }}"
+              COMMIT: "{{ zuul.newrev }}"
+              PUSH_IMAGE: "true"
+          with_items: "{{ image_tags.stdout_lines }}"
+
+        - shell: "docker images"
+          register: docker_images
+
+        - debug:
+            var: docker_images
+
+      when: publish
       become: True
