@@ -62,6 +62,7 @@ spec:
         - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
         - --allow-privileged=true
         - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+        - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
 
       ports:
         - containerPort: {{ .Values.network.kubernetes_apiserver.port }}

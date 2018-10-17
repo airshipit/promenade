@@ -122,8 +122,6 @@ spec:
       - "{{ argument }}"
       {%- endfor %}
       - --advertise-address={{ config['Genesis:ip'] }}
-      - --authorization-mode=Node,RBAC
-      - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
       - --anonymous-auth=false
       - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
       - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
@@ -132,15 +130,14 @@ spec:
       - --insecure-port=8080
       - --secure-port=6444
       - --bind-address=0.0.0.0
-      - --runtime-config=batch/v2alpha1=true
       - --allow-privileged=true
       - --etcd-servers=https://localhost:12379
       - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
       - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
       - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
-      - --service-cluster-ip-range={{ config['KubernetesNetwork:kubernetes.service_cidr'] }}
       - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
       - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+      - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
       - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
       - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
     env:
