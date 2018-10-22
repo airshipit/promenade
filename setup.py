@@ -17,20 +17,6 @@
 from setuptools import setup
 
 setup(
-    setup_requires=['setuptools>=17.1'],
-    name='promenade',
-    version='0.8.0',
-    packages=['promenade'],
-    description=('Promenade is a tool for bootstrapping a resilient '
-                 'Kubernetes cluster and managing its life-cycle via Helm charts.'),
-    url='https://github.com/openstack/airship-promenade',
-    author='The Airship Authors',
-    license='Apache 2.0',
-    package_data={
-        'schemas': 'schemas/*',
-        'templates': 'templates/*',
-    },
-    entry_points={
-        'console_scripts': 'promenade=promenade.cli:promenade',
-    },
+    setup_requires=['setuptools>=17.1', 'pbr>=2.0.0'],
+    pbr=True
 )
