@@ -124,7 +124,9 @@ cleanup() {
 while true; do
     if [ -e /tmp/stop ]; then
         echo Stopping
+        {%- if .Values.conf.anchor.enable_cleanup %}
         cleanup
+        {%- end %}
         break
     fi
 

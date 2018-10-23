@@ -41,6 +41,7 @@ conf:
               - mode tcp
               - option tcp-check
               - option redispatch
+    enable_cleanup: true
 
   haproxy:
     container_config_dir: /usr/local/etc/haproxy
