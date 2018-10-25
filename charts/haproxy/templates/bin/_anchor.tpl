@@ -24,6 +24,7 @@ compare_copy_files() {
     if [ ! -e /host{{ .dest }} ] || ! cmp -s {{ .source }} /host{{ .dest }}; then
         mkdir -p $(dirname /host{{ .dest }})
         cp {{ .source }} /host{{ .dest }}
+        chmod go-rwx /host{{ .dest }}
     fi
     {{- end }}
 }
@@ -104,6 +105,7 @@ install_config() {
         else
             echo HAProxy config file unchanged.
         fi
+        chmod -R go-rwx $(dirname "$HAPROXY_CONF")
     fi
 }
 
