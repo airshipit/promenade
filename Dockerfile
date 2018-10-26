@@ -31,6 +31,9 @@ WORKDIR /opt/promenade
 ENV PORT 9000
 EXPOSE $PORT
 
+# Setting promenade version for BPR
+ENV PBR_VERSION 0.8.0
+
 ENTRYPOINT ["/opt/promenade/entrypoint.sh"]
 
 RUN set -ex \

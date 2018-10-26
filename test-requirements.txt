@@ -1,5 +1,5 @@
 pytest
-flake8>=3.3.0
+flake8==2.6.2
 bandit>=1.5
 yapf==0.24.0
 sphinx>=1.6.2
