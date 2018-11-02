@@ -17,6 +17,7 @@ data:
       - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction
       - --service-cluster-ip-range=10.96.0.0/16
       - --endpoint-reconciler-type=lease
+      - --feature-gates=PodShareProcessNamespace=true
       # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
       - --repair-malformed-updates=false
   armada:

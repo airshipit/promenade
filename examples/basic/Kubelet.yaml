@@ -16,6 +16,7 @@ data:
     - --node-status-update-frequency=5s
     - --serialize-image-pulls=false
     - --anonymous-auth=false
+    - --feature-gates=PodShareProcessNamespace=true
     - --v=3
   images:
     pause: gcr.io/google_containers/pause-amd64:3.0

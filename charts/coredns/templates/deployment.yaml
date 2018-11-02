@@ -42,6 +42,7 @@ spec:
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       serviceAccountName: coredns
+      shareProcessNamespace: true
       tolerations:
         - key: "CriticalAddonsOnly"
           operator: "Exists"

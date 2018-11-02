@@ -32,6 +32,7 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       hostNetwork: true
+      shareProcessNamespace: true
       dnsPolicy: Default
       tolerations:
         - key: node-role.kubernetes.io/master
