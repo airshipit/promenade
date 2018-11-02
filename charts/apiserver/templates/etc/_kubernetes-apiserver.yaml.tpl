@@ -24,6 +24,7 @@ metadata:
 {{ tuple $envAll "kubernetes" "apiserver" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   hostNetwork: true
+  shareProcessNamespace: true
   containers:
     - name: apiserver
       image: {{ .Values.images.tags.apiserver }}

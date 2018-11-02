@@ -682,28 +682,6 @@ metadata:
     -
       src:
         schema: deckhand/CertificateAuthority/v1
-        name: kubelet
-        path: .
-      dest:
-        path: .values.secrets.kubelet.tls.ca
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: apiserver-kubelet-client
-        path: .
-      dest:
-        path: .values.secrets.kubelet.tls.cert
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: apiserver-kubelet-client
-        path: .
-      dest:
-        path: .values.secrets.kubelet.tls.key
-
-    -
-      src:
-        schema: deckhand/CertificateAuthority/v1
         name: kubernetes-etcd
         path: .
       dest:
@@ -746,6 +724,7 @@ data:
       - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction
       - --service-cluster-ip-range=10.96.0.0/16
       - --endpoint-reconciler-type=lease
+      - --feature-gates=PodShareProcessNamespace=true
       # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
       - --repair-malformed-updates=false
     apiserver:
