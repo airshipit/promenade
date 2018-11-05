@@ -55,19 +55,40 @@ anchor:
       dest: /etc/kubernetes/manifests/kubernetes-apiserver.yaml
     - source: /tmp/etc/kubeconfig.yaml
       dest: /etc/kubernetes/apiserver/kubeconfig.yaml
+    # Note: config files for admission controllers are added to this dynamically
 
 command_prefix:
   - /apiserver
   - --authorization-mode=Node,RBAC
-  - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
-  - --apiserver-count=3
+  - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit
   - --service-cluster-ip-range=10.96.0.0/16
-  - --v=5
+  - --endpoint-reconciler-type=lease
+  # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
+  - --repair-malformed-updates=false
 
 apiserver:
   host_etc_path: /etc/kubernetes/apiserver
   etcd:
     endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
+
+conf:
+  # Admission controllers config files are generated dynamically based on the
+  # config below, as they they are specific to particular ACs that may be
+  # configured by the operator (or added by k8s in the future).
+  admission_controllers:
+    eventconfig.yaml:
+      kind: Configuration
+      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+      limits:
+      - type: Server
+        qps: 100
+        burst: 1000
+    acconfig.yaml:
+      kind: AdmissionConfiguration
+      apiVersion: apiserver.k8s.io/v1alpha1
+      plugins:
+      - name: EventRateLimit
+        path: eventconfig.yaml
 
 network:
   kubernetes_apiserver:
