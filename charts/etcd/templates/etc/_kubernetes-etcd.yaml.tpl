@@ -28,6 +28,8 @@ metadata:
   labels:
     {{ .Values.service.name }}-service: enabled
 {{ tuple $envAll $applicationName "etcd" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+  annotations:
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
   hostNetwork: true
   containers:
