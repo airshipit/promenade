@@ -79,7 +79,7 @@ The ``kubernetes`` key contains:
     The port that the Kubernetes API server process will listen on hosts where it runs.
 
 ``haproxy_port``
-    The port that HAProxy will listen on on each host.  This port will be used
+    The port that HAProxy will listen on each host.  This port will be used
     by the ``kubelet`` and ``kube-proxy`` to find API servers in the cluster.
 
 ``pod_cidr``
