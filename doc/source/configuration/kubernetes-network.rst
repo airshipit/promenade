@@ -76,7 +76,7 @@ Kubernetes
 The ``kubernetes`` key contains:
 
 ``apiserver_port``
-    The port that the Kubernetes API server process will listen on on hosts where it runs.
+    The port that the Kubernetes API server process will listen on hosts where it runs.
 
 ``haproxy_port``
     The port that HAProxy will listen on on each host.  This port will be used
