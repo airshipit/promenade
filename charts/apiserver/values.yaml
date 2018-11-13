@@ -73,7 +73,7 @@ apiserver:
 
 conf:
   # Admission controllers config files are generated dynamically based on the
-  # config below, as they they are specific to particular ACs that may be
+  # config below, as they are specific to particular ACs that may be
   # configured by the operator (or added by k8s in the future).
   admission_controllers:
     eventconfig.yaml:
