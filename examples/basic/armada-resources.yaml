@@ -607,6 +607,7 @@ data:
   values:
     conf:
       anchor:
+        enable_cleanup: false
         kubernetes_url: https://10.96.0.1:443
         services:
           kube-system:
