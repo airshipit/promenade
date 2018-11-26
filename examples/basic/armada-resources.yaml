@@ -357,6 +357,8 @@ data:
   release: calico-etcd
   namespace: kube-system
   timeout: 600
+  test:
+    enabled: false
   wait:
     timeout: 600
   upgrade:
@@ -562,7 +564,6 @@ data:
   timeout: 600
   wait:
     timeout: 600
-  test: true
   upgrade:
     no_hooks: true
   values:
@@ -601,7 +602,6 @@ data:
   timeout: 600
   wait:
     timeout: 600
-  test: true
   upgrade:
     no_hooks: true
   values:
@@ -1043,7 +1043,6 @@ data:
   timeout: 600
   wait:
     timeout: 600
-  test: true
   upgrade:
     no_hooks: true
   values:
@@ -1170,7 +1169,6 @@ data:
   timeout: 600
   wait:
     timeout: 600
-  test: true
   values:
     pod:
       env:
