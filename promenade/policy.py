@@ -12,8 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Sample policy.yaml file
+'''
+policy:
+	ruleDefault:
+		- name: admin_required
+		  role: 'role:admin or is_admin:1'
+		  description: Actions requiring admin authority
+		- name: new_role
+		  role: 'role:xyz'
+		  description: View permissions for xyz users
+	documentedRuleDefault:
+		- name: 'kubernetes_provisioner:get_join_scripts'
+		  role: 'admin'
+		  description: Get join script for node
+		  paths:
+			  - name: '/api/v1.0/join-scripts'
+			    method: 'GET'
+		- name: 'kubernetes_provisioner:post_validatedesign'
+		  role: 'admin'
+		  description: Validate documents
+		  paths:
+			  - name: '/api/v1.0/validatedesign'
+			    method: 'POST'
+	    - name: 'kubernetes_provisioner:update_node_labels'
+	      role: 'admin'
+	      description: 'Update Node Labels'
+	      paths:
+		      - name: '/api/v1.0/node-labels/{node_name}'
+		        method: 'PUT'
+
+'''
+
+import os
 import falcon
 import functools
+import yaml
 import oslo_policy.policy as op
 from oslo_config import cfg
 
@@ -24,30 +58,52 @@ LOG = logging.getLogger(__name__)
 
 policy_engine = None
 
-POLICIES = [
-    op.RuleDefault(
-        'admin_required',
-        'role:admin or is_admin:1',
-        description='Actions requiring admin authority'),
-    op.DocumentedRuleDefault('kubernetes_provisioner:get_join_scripts',
-                             'role:admin', 'Get join script for node',
-                             [{
-                                 'path': '/api/v1.0/join-scripts',
-                                 'method': 'GET'
-                             }]),
-    op.DocumentedRuleDefault('kubernetes_provisioner:post_validatedesign',
-                             'role:admin', 'Validate documents',
-                             [{
-                                 'path': '/api/v1.0/validatedesign',
-                                 'method': 'POST'
-                             }]),
-    op.DocumentedRuleDefault('kubernetes_provisioner:update_node_labels',
-                             'role:admin', 'Update Node Labels',
-                             [{
-                                 'path': '/api/v1.0/node-labels/{node_name}',
-                                 'method': 'PUT'
-                             }]),
-]
+if os.path.isfile('/etc/promenade/policy.yaml'):
+    with open("/etc/promenade/policy.yaml", "r") as _policy:
+        stream_data = yaml.load(_policy)
+    POLICIES = []
+    for policy in stream_data['policy']:
+        if policy == 'ruleDefault':
+            POLICIES.append(
+                op.RuleDefault(
+                    policy['ruleDefault']['name'],
+                    policy['ruleDefault']['role'],
+                    policy['ruleDefault']['description']
+                ))
+        elif policy == 'documentedRuleDefault':
+            POLICIES.append(
+                op.DocumentedRuleDefault(
+                    policy['documentedRuleDefault']['name'],
+                    policy['documentedRuleDefault']['role'],
+                    policy['documentedRuleDefault']['description'],
+                    policy['documentedRuleDefault']['paths']
+                )
+            )
+else:
+    POLICIES = [
+        op.RuleDefault(
+            'admin_required',
+            'role:admin or is_admin:1',
+            description='Actions requiring admin authority'),
+        op.DocumentedRuleDefault('kubernetes_provisioner:get_join_scripts',
+                                'role:admin', 'Get join script for node',
+                                [{
+                                    'path': '/api/v1.0/join-scripts',
+                                    'method': 'GET'
+                                }]),
+        op.DocumentedRuleDefault('kubernetes_provisioner:post_validatedesign',
+                                'role:admin', 'Validate documents',
+                                [{
+                                    'path': '/api/v1.0/validatedesign',
+                                    'method': 'POST'
+                                }]),
+        op.DocumentedRuleDefault('kubernetes_provisioner:update_node_labels',
+                                'role:admin', 'Update Node Labels',
+                                [{
+                                    'path': '/api/v1.0/node-labels/{node_name}',
+                                    'method': 'PUT'
+                                }]),
+    ]
 
 
 class PromenadePolicy:
