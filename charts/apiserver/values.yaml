@@ -16,8 +16,8 @@ release_group: null
 
 images:
   tags:
-    anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.2
-    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.2
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.11
   pull_policy: "IfNotPresent"
 
 labels:
