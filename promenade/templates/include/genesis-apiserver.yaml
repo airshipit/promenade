@@ -1,0 +1,18 @@
+        - --advertise-address={{ config['Genesis:ip'] }}
+        - --allow-privileged=true
+        - --anonymous-auth=false
+        - --bind-address=0.0.0.0
+        - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
+        - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
+        - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
+        - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
+        - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/kubelet-client-ca.pem
+        - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/kubelet-client.pem
+        - --kubelet-client-key=/etc/kubernetes/apiserver/pki/kubelet-client-key.pem
+        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+        - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+        - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
+        - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+        {%- for argument in config.get_path('Genesis:apiserver.arguments', []) %}
+        - "{{ argument }}"
+        {%- endfor %}

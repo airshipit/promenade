@@ -14,6 +14,45 @@
 
 release_group: null
 
+# NOTE(mark-burnett): These values are not really configurable -- they live
+# here to keep the templates cleaner.
+const:
+  command_prefix:
+    - /apiserver
+    - --advertise-address=$(POD_IP)
+    - --allow-privileged=true
+    - --anonymous-auth=false
+    - --bind-address=0.0.0.0
+    - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
+    - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
+    - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
+    - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
+    - --etcd-servers=$(ETCD_ENDPOINTS)
+    - --insecure-port=0
+    - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
+    - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/kubelet-client.pem
+    - --kubelet-client-key=/etc/kubernetes/apiserver/pki/kubelet-client-key.pem
+    - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+    - --secure-port=$(APISERVER_PORT)
+    - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+    - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
+    - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+
+  files_to_copy:
+    # NOTE(mark-burnett): These are (host dest): (container source) pairs
+    /etc/kubernetes/apiserver/kubeconfig.yaml: /tmp/etc/kubeconfig.yaml
+    /etc/kubernetes/apiserver/pki/apiserver-key.pem: /keys/apiserver-key.pem
+    /etc/kubernetes/apiserver/pki/apiserver.pem: /certs/apiserver.pem
+    /etc/kubernetes/apiserver/pki/cluster-ca.pem: /certs/cluster-ca.pem
+    /etc/kubernetes/apiserver/pki/etcd-client-ca.pem: /certs/etcd-client-ca.pem
+    /etc/kubernetes/apiserver/pki/etcd-client-key.pem: /keys/etcd-client-key.pem
+    /etc/kubernetes/apiserver/pki/etcd-client.pem: /certs/etcd-client.pem
+    /etc/kubernetes/apiserver/pki/kubelet-client-ca.pem: /certs/kubelet-client-ca.pem
+    /etc/kubernetes/apiserver/pki/kubelet-client-key.pem: /keys/kubelet-client-key.pem
+    /etc/kubernetes/apiserver/pki/kubelet-client.pem: /certs/kubelet-client.pem
+    /etc/kubernetes/apiserver/pki/service-account.pub: /certs/service-account.pub
+    /etc/kubernetes/manifests/kubernetes-apiserver.yaml: /tmp/etc/kubernetes-apiserver.yaml
+
 images:
   tags:
     anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.11
@@ -30,65 +69,58 @@ anchor:
   kubelet:
     manifest_path: /etc/kubernetes/manifests
   period: 15
-  files_to_copy:
-    - source: /certs/apiserver.pem
-      dest: /etc/kubernetes/apiserver/pki/apiserver.pem
-    - source: /certs/kubelet-client.pem
-      dest: /etc/kubernetes/apiserver/pki/kubelet-client.pem
-    - source: /certs/kubelet-client-ca.pem
-      dest: /etc/kubernetes/apiserver/pki/kubelet-client-ca.pem
-    - source: /certs/cluster-ca.pem
-      dest: /etc/kubernetes/apiserver/pki/cluster-ca.pem
-    - source: /certs/etcd-client-ca.pem
-      dest: /etc/kubernetes/apiserver/pki/etcd-client-ca.pem
-    - source: /certs/etcd-client.pem
-      dest: /etc/kubernetes/apiserver/pki/etcd-client.pem
-    - source: /certs/service-account.pub
-      dest: /etc/kubernetes/apiserver/pki/service-account.pub
-    - source: /keys/apiserver-key.pem
-      dest: /etc/kubernetes/apiserver/pki/apiserver-key.pem
-    - source: /keys/kubelet-client-key.pem
-      dest: /etc/kubernetes/apiserver/pki/kubelet-client-key.pem
-    - source: /keys/etcd-client-key.pem
-      dest: /etc/kubernetes/apiserver/pki/etcd-client-key.pem
-    - source: /tmp/etc/kubernetes-apiserver.yaml
-      dest: /etc/kubernetes/manifests/kubernetes-apiserver.yaml
-    - source: /tmp/etc/kubeconfig.yaml
-      dest: /etc/kubernetes/apiserver/kubeconfig.yaml
-    # Note: config files for admission controllers are added to this dynamically
-
-command_prefix:
-  - /apiserver
-  - --authorization-mode=Node,RBAC
-  - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit
-  - --service-cluster-ip-range=10.96.0.0/16
-  - --endpoint-reconciler-type=lease
-  # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
-  - --repair-malformed-updates=false
-
-apiserver:
-  host_etc_path: /etc/kubernetes/apiserver
-  etcd:
-    endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
 
 conf:
-  # Admission controllers config files are generated dynamically based on the
-  # config below, as they are specific to particular ACs that may be
-  # configured by the operator (or added by k8s in the future).
-  admission_controllers:
-    eventconfig.yaml:
-      kind: Configuration
-      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
-      limits:
-      - type: Server
-        qps: 100
-        burst: 1000
-    acconfig.yaml:
-      kind: AdmissionConfiguration
-      apiVersion: apiserver.k8s.io/v1alpha1
-      plugins:
-      - name: EventRateLimit
-        path: eventconfig.yaml
+# Uncomment any of the below to enable the file placement and associated apiserver
+# command line options
+#
+#  acconfig:
+#    file: acconfig.yaml
+#    command_options:
+#      - '--admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml'
+#      - '--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit'
+#    content:
+#      kind: AdmissionConfiguration
+#      apiVersion: apiserver.k8s.io/v1alpha1
+#      plugins:
+#        - name: EventRateLimit
+#          path: eventconfig.yaml
+#  eventconfig:
+#    file: eventconfig.yaml
+#    command_options:
+#      - '--experimental-encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml'
+#    content:
+#      kind: Configuration
+#      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+#      limits:
+#        - type: Server
+#          qps: 1000
+#          burst: 10000
+#  encryption_provider:
+#    file: encryption_provider.yaml
+#    command_option: ''
+#    content:
+#      kind: EncryptionConfig
+#      apiVersion: v1
+#      resources:
+#        - resources:
+#            - 'secrets'
+#          providers:
+#            - identity: {}
+
+apiserver:
+  arguments:
+    - --authorization-mode=Node,RBAC
+    - --service-cluster-ip-range=10.96.0.0/16
+    - --endpoint-reconciler-type=lease
+    - --feature-gates=PodShareProcessNamespace=true
+    # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
+    - --repair-malformed-updates=false
+    - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction
+    - --v=3
+  etcd:
+    endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
+  host_etc_path: /etc/kubernetes/apiserver
 
 network:
   kubernetes_apiserver:
@@ -130,7 +162,6 @@ secrets:
       cert: null
       key: null
 
-
 # typically overriden by environmental
 # values, but should include all endpoints
 # required by this chart
@@ -170,7 +201,7 @@ pod:
     upgrades:
       daemonsets:
         pod_replacement_strategy: RollingUpdate
-        kubernetes_apiserver:
+        kubernetes-apiserver-anchor:
           enabled: false
           min_ready_seconds: 0
           max_unavailable: 1

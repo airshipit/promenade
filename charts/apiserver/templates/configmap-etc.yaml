@@ -17,34 +17,19 @@ limitations under the License.
 {{- if .Values.manifests.configmap_etc }}
 {{- $envAll := . }}
 
-{{/* This slightly involved merge of AC config files into the anchor
-     files uses HTK merge, as straighforward appends result in duplicates. */}}
-{{- $_ := set .Values "_ac_files_to_copy" list }}
-{{- range $key, $val := .Values.conf.admission_controllers }}
-  {{- $source := printf "/tmp/etc/%s" $key }}
-  {{- $dest := printf "/etc/kubernetes/apiserver/%s" $key }}
-  {{- $file_to_copy := dict "source" $source "dest" $dest }}
-  {{- $ac_files_to_copy := append $.Values._ac_files_to_copy $file_to_copy }}
-  {{- $_ := set $.Values "_ac_files_to_copy" $ac_files_to_copy }}
-{{- end }}
-{{ $all_files_to_copy := dict }}
-{{ $_ := set $all_files_to_copy "values" (tuple .Values.anchor.files_to_copy .Values._ac_files_to_copy) }}
-{{ $_ := $all_files_to_copy | include "helm-toolkit.utils.merge" }}
-{{ $_ := set .Values.anchor "files_to_copy" $all_files_to_copy.result }}
-
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.service.name }}-etc
 data:
-  kubernetes-apiserver.yaml: |+
+  kubernetes-apiserver.yaml: |
 {{ tuple "etc/_kubernetes-apiserver.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
-  kubeconfig.yaml: |+
+  kubeconfig.yaml: |
 {{ tuple "etc/_kubeconfig.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
-{{/* Dynamically add config files for admission controllers */}}
-{{ range $key, $val := .Values.conf.admission_controllers }}
-  {{ $key }}: |+
-{{ toYaml $val | indent 4 }}
-{{ end }}
+{{/* Dynamically added config files */}}
+{{- range $key, $val := .Values.conf }}
+  {{ $val.file }}: |
+{{ toYaml $val.content | indent 4 }}
+{{- end }}
 {{- end }}

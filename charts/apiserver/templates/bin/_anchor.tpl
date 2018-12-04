@@ -15,26 +15,54 @@
 
 set -x
 
-compare_copy_files() {
+snapshot_files() {
+    SNAPSHOT_DIR=${1}
+    {{ range $dest, $source := .Values.const.files_to_copy }}
+    mkdir -p $(dirname "${SNAPSHOT_DIR}{{ $dest }}")
+    cp "{{ $source }}" "${SNAPSHOT_DIR}{{ $dest }}"
+    {{- end }}
+    {{ range $key, $val := .Values.conf }}
+    cp "/tmp/etc/{{ $val.file }}" "${SNAPSHOT_DIR}/etc/kubernetes/apiserver/{{ $val.file }}"
+    {{- end }}
+}
 
-    {{range .Values.anchor.files_to_copy}}
-    if [ ! -e /host{{ .dest }} ] || ! cmp -s {{ .source }} /host{{ .dest }}; then
-        mkdir -p $(dirname /host{{ .dest }})
-        cp {{ .source }} /host{{ .dest }}
-        chmod go-rwx /host{{ .dest }}
+compare_copy_files() {
+    SNAPSHOT_DIR=${1}
+    {{ range $dest, $source := .Values.const.files_to_copy }}
+    SRC="${SNAPSHOT_DIR}{{ $dest }}"
+    DEST="/host{{ $dest }}"
+    if [ ! -e "${DEST}" ] || ! cmp -s "${SRC}" "${DEST}"; then
+        mkdir -p $(dirname "${DEST}")
+        cp "${SRC}" "${DEST}"
+        chmod go-rwx "${DEST}"
     fi
-    {{end}}
+    {{- end}}
+    {{ range $key, $val := .Values.conf }}
+    SRC="${SNAPSHOT_DIR}/etc/kubernetes/apiserver/{{ $val.file }}"
+    DEST="/host/etc/kubernetes/apiserver/{{ $val.file }}"
+    if [ ! -e "${DEST}" ] || ! cmp -s "${SRC}" "${DEST}"; then
+        mkdir -p $(dirname "${DEST}")
+        cp "${SRC}" "${DEST}"
+        chmod go-rwx "${DEST}"
+    fi
+    {{- end }}
 }
 
 cleanup() {
-
-    {{range .Values.anchor.files_to_copy}}
-    rm -f /host{{ .dest }}
-    {{end}}
+    {{- range $dest, $source := .Values.const.files_to_copy }}
+    rm -f "/host{{ $dest }}"
+    {{- end }}
+    {{  range $key, $val := .Values.conf }}
+    rm -f "/host/{{ $val.file }}"
+    {{- end }}
 }
 
-while true; do
 
+SNAPSHOT_DIR=$(mktemp -d)
+
+snapshot_files "${SNAPSHOT_DIR}"
+
+while true; do
     if [ -e /tmp/stop ]; then
         echo Stopping
         cleanup
@@ -43,7 +71,7 @@ while true; do
 
     # Compare and replace files on Genesis host if needed
     # Copy files to other master nodes
-    compare_copy_files
+    compare_copy_files "${SNAPSHOT_DIR}"
 
     sleep {{ .Values.anchor.period }}
 done

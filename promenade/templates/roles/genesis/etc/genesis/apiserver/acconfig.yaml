@@ -1,6 +1,0 @@
----
-kind: AdmissionConfiguration
-apiVersion: apiserver.k8s.io/v1alpha1
-plugins:
-- name: EventRateLimit
-  path: eventconfig.yaml

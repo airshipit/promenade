@@ -71,6 +71,10 @@ data:
           type: array
           items:
             type: string
+        arguments:
+          type: array
+          items:
+            type: string
       additionalProperties: false
 
     files:

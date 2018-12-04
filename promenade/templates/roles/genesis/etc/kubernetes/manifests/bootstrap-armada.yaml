@@ -11,146 +11,130 @@ spec:
   dnsPolicy: Default
   hostNetwork: true
   containers:
-  - env:
-    - name: TILLER_NAMESPACE
-      value: kube-system
-    image: {{ config['Genesis:images.helm.tiller'] }}
-    command:
-      - /tiller
-      - -logtostderr
-      - -v
-      - "99"
-    imagePullPolicy: IfNotPresent
-    livenessProbe:
-      failureThreshold: 3
-      httpGet:
-        path: /liveness
-        port: 44135
-        scheme: HTTP
-      initialDelaySeconds: 1
-      periodSeconds: 10
-      successThreshold: 1
-      timeoutSeconds: 1
-    name: tiller
-    ports:
-    - containerPort: 44134
+    - env:
+      - name: TILLER_NAMESPACE
+        value: kube-system
+      image: {{ config['Genesis:images.helm.tiller'] }}
+      command:
+        - /tiller
+        - -logtostderr
+        - -v
+        - "99"
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /liveness
+          port: 44135
+          scheme: HTTP
+        initialDelaySeconds: 1
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
       name: tiller
-      protocol: TCP
-    readinessProbe:
-      failureThreshold: 3
-      httpGet:
-        path: /readiness
-        port: 44135
-        scheme: HTTP
-      initialDelaySeconds: 1
-      periodSeconds: 10
-      successThreshold: 1
-      timeoutSeconds: 1
-    resources: {}
-    terminationMessagePath: /dev/termination-log
-    terminationMessagePolicy: File
-  - name: armada
-    image: {{ config['Genesis:images.armada'] }}
-    securityContext:
-      runAsUser: 0
-    command:
-      - /bin/bash
-      - -c
-      - |-
-        set -x
+      ports:
+      - containerPort: 44134
+        name: tiller
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /readiness
+          port: 44135
+          scheme: HTTP
+        initialDelaySeconds: 1
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    - name: armada
+      image: {{ config['Genesis:images.armada'] }}
+      securityContext:
+        runAsUser: 0
+      command:
+        - /bin/bash
+        - -c
+        - |-
+          set -x
 
-        while true; do
-            sleep 10
-            if armada \
-                    apply \
-                    --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
-                    --tiller-host 127.0.0.1 \
-                    /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
-                break
-            fi
-        done
+          while true; do
+              sleep 10
+              if armada \
+                      apply \
+                      --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
+                      --tiller-host 127.0.0.1 \
+                      /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
+                  break
+              fi
+          done
+          touch /ipc/armada-done
+          sleep 10000
+      env:
+        - name: ARMADA_LOGFILE
+          value: /tmp/log/bootstrap-armada.log
+  {%- if config['KubernetesNetwork:proxy.url'] is defined %}
+        - name: HTTP_PROXY
+          value: {{ config['KubernetesNetwork:proxy.url'] }}
+        - name: HTTPS_PROXY
+          value: {{ config['KubernetesNetwork:proxy.url'] }}
+        - name: NO_PROXY
+          value: {{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
+        - name: http_proxy
+          value: {{ config['KubernetesNetwork:proxy.url'] }}
+        - name: https_proxy
+          value: {{ config['KubernetesNetwork:proxy.url'] }}
+        - name: no_proxy
+          value: {{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
+  {%- endif %}
+      volumeMounts:
+        - name: assets
+          mountPath: /etc/genesis/armada/assets
+        - name: auth
+          mountPath: /root/.kube
+        - name: ipc
+          mountPath: /ipc
+        - name: log
+          mountPath: /tmp/log
+    - name: monitor
+      image: {{ config['HostSystem:images.kubernetes.kubectl'] }}
+      command:
+        - /bin/sh
+        - -c
+        - |-
+          set -x
 
-        touch /ipc/armada-done
-        sleep 10000
-    env:
-      - name: ARMADA_LOGFILE
-        value: /tmp/log/bootstrap-armada.log
-{%- if config['KubernetesNetwork:proxy.url'] is defined %}
-      - name: HTTP_PROXY
-        value: {{ config['KubernetesNetwork:proxy.url'] }}
-      - name: HTTPS_PROXY
-        value: {{ config['KubernetesNetwork:proxy.url'] }}
-      - name: NO_PROXY
-        value: {{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
-      - name: http_proxy
-        value: {{ config['KubernetesNetwork:proxy.url'] }}
-      - name: https_proxy
-        value: {{ config['KubernetesNetwork:proxy.url'] }}
-      - name: no_proxy
-        value: {{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
-{%- endif %}
-    volumeMounts:
-      - name: assets
-        mountPath: /etc/genesis/armada/assets
-      - name: auth
-        mountPath: /root/.kube
-      - name: ipc
-        mountPath: /ipc
-      - name: log
-        mountPath: /tmp/log
-  - name: monitor
-    image: {{ config['HostSystem:images.kubernetes.kubectl'] }}
-    command:
-      - /bin/sh
-      - -c
-      - |-
-        set -x
+          while ! [ -e /ipc/armada-done ]; do
+            sleep 5
+          done
 
-        while ! [ -e /ipc/armada-done ]; do
-          sleep 5
-        done
-
-        rm -f /etc/kubernetes/manifests/bootstrap-armada.yaml
-        sleep 10000
-    volumeMounts:
-      - name: ipc
-        mountPath: /ipc
-      - name: manifest
-        mountPath: /etc/kubernetes/manifests
-  - name: kubectl-apiserver
-    image: {{ config['Genesis:images.kubernetes.apiserver'] }}
-    command:
-      {%- for argument in config.bootstrap_apiserver_prefix() %}
-      - "{{ argument }}"
-      {%- endfor %}
-      - --advertise-address={{ config['Genesis:ip'] }}
-      - --anonymous-auth=false
-      - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
-      - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
-      - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/apiserver.pem
-      - --kubelet-client-key=/etc/kubernetes/apiserver/pki/apiserver-key.pem
-      - --insecure-port=8080
-      - --secure-port=6444
-      - --bind-address=0.0.0.0
-      - --allow-privileged=true
-      - --etcd-servers=https://localhost:12379
-      - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
-      - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
-      - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
-      - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-      - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
-      - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
-      - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
-      - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
-    env:
-      - name: KUBECONFIG
-        value: /etc/kubernetes/admin/config
-    volumeMounts:
-      - name: auth
-        mountPath: /etc/kubernetes/admin
-      - name: config
-        mountPath: /etc/kubernetes/apiserver
-        readOnly: true
+          rm -f /etc/kubernetes/manifests/bootstrap-armada.yaml
+          sleep 10000
+      volumeMounts:
+        - name: ipc
+          mountPath: /ipc
+        - name: manifest
+          mountPath: /etc/kubernetes/manifests
+    - name: kubectl-apiserver
+      image: {{ config['Genesis:images.kubernetes.apiserver'] }}
+      command:
+        {%- for argument in config.bootstrap_apiserver_prefix() %}
+        - "{{ argument }}"
+        {%- endfor %}
+{% include "genesis-apiserver.yaml" with context %}
+        - --etcd-servers=https://localhost:12379
+        - --insecure-port=8080
+        - --secure-port=6444
+      env:
+        - name: KUBECONFIG
+          value: /etc/kubernetes/admin/config
+      volumeMounts:
+        - name: auth
+          mountPath: /etc/kubernetes/admin
+        - name: config
+          mountPath: /etc/kubernetes/apiserver
+          readOnly: true
   volumes:
     - name: assets
       hostPath:

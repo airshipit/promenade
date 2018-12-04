@@ -42,30 +42,25 @@ spec:
               fieldPath: spec.nodeName
         - name: KUBECONFIG
           value: /etc/kubernetes/apiserver/kubeconfig.yaml
+        - name: APISERVER_PORT
+          value: {{ .Values.network.kubernetes_apiserver.port | quote }}
+        - name: ETCD_ENDPOINTS
+          value: {{ .Values.apiserver.etcd.endpoints | quote }}
 
       command:
-        {{- range .Values.command_prefix }}
+        {{- range .Values.const.command_prefix }}
         - {{ . }}
         {{- end }}
-        - --advertise-address=$(POD_IP)
-        - --anonymous-auth=false
-        - --bind-address=0.0.0.0
-        - --secure-port={{ .Values.network.kubernetes_apiserver.port }}
-        - --insecure-port=0
-        - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
-        - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
-        - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
-        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-        - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
-        - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/kubelet-client.pem
-        - --kubelet-client-key=/etc/kubernetes/apiserver/pki/kubelet-client-key.pem
-        - --etcd-servers={{ .Values.apiserver.etcd.endpoints }}
-        - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
-        - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
-        - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
-        - --allow-privileged=true
-        - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
-        - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
+        {{- range .Values.apiserver.arguments }}
+        - {{ . }}
+        {{- end }}
+        {{- range $key, $val := .Values.conf }}
+        {{- if hasKey $val "command_options" }}
+        {{- range $val.command_options }}
+        - {{ . }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
 
       ports:
         - containerPort: {{ .Values.network.kubernetes_apiserver.port }}

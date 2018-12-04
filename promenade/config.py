@@ -241,7 +241,7 @@ class Configuration:
 
     def bootstrap_apiserver_prefix(self):
         return self.get_path('Genesis:apiserver.command_prefix',
-                             ['/apiserver', '--apiserver-count=2', '--v=5'])
+                             ['/apiserver'])
 
 
 def _matches_filter(document, *, schema, labels, name):

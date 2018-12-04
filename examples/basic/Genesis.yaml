@@ -11,15 +11,16 @@ data:
   hostname: n0
   ip: 192.168.77.10
   apiserver:
-    command_prefix:
-      - /apiserver
+    arguments:
       - --authorization-mode=Node,RBAC
-      - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit
+      - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit
       - --service-cluster-ip-range=10.96.0.0/16
       - --endpoint-reconciler-type=lease
       - --feature-gates=PodShareProcessNamespace=true
       # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
       - --repair-malformed-updates=false
+      - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
+      - --v=3
   armada:
     target_manifest: cluster-bootstrap
   labels:
@@ -45,4 +46,22 @@ data:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: "# placeholder for triggering calico etcd bootstrapping"
       mode: 0644
+    # NOTE(mark-burnett): These are referenced by the apiserver arguments above.
+    - path: /etc/genesis/apiserver/acconfig.yaml
+      mode: 0444
+      content: |
+        kind: AdmissionConfiguration
+        apiVersion: apiserver.k8s.io/v1alpha1
+        plugins:
+          - name: EventRateLimit
+            path: eventconfig.yaml
+    - path: /etc/genesis/apiserver/eventconfig.yaml
+      mode: 0444
+      content: |
+        kind: Configuration
+        apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+        limits:
+          - type: Server
+            qps: 1000
+            burst: 10000
 ...
