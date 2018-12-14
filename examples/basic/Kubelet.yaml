@@ -18,6 +18,7 @@ data:
     - --anonymous-auth=false
     - --feature-gates=PodShareProcessNamespace=true
     - --v=3
+    - --cgroup-root=/kube_whitelist
   images:
     pause: gcr.io/google_containers/pause-amd64:3.0
 ...

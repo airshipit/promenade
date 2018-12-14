@@ -170,6 +170,51 @@ class Configuration:
                 return value
 
     @property
+    def enable_units(self):
+        """ Get systemd unit names where enable is ``true``."""
+        return self.get_units_by_action('enable')
+
+    @property
+    def start_units(self):
+        """ Get systemd unit names where start is ``true``."""
+        return self.get_units_by_action('start')
+
+    @property
+    def stop_units(self):
+        """ Get systemd unit names where stop is ``true``."""
+        return self.get_units_by_action('stop')
+
+    @property
+    def disable_units(self):
+        """ Get systemd unit names where disable is ``true``."""
+        return self.get_units_by_action('disable')
+
+    def get_units_by_action(self, action):
+        """ Select systemd unit names by ``action``
+
+        Get all units that are ``true`` for ``action``.
+        """
+        return [
+            k for k, v in self.systemd_units.items() if v.get(action, False)
+        ]
+
+    @property
+    def systemd_units(self):
+        """ Return a dictionary of systemd units to be managed during join.
+
+        The dictionary key is the systemd unit name, each will have a four
+        boolean keys: ``enable``, ``disable``, ``start``, ``stop`` on the
+        actions to be taken at the end of genesis/node join. The steps
+        are ordered: enable, start, stop, disable.
+        """
+        all_units = {}
+
+        for document in self.iterate(kind='HostSystem'):
+            all_units.update(document['data'].get('systemd_units', {}))
+
+        return all_units
+
+    @property
     def join_ips(self):
         maybe_ips = self.get_path('KubernetesNode:join_ips')
         if maybe_ips is not None:

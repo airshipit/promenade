@@ -8,11 +8,45 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
+  systemd_units:
+    kube-cgroup:
+      enable: true
   files:
     - path: /opt/kubernetes/bin/kubelet
       tar_url: https://dl.k8s.io/v1.10.2/kubernetes-node-linux-amd64.tar.gz
       tar_path: kubernetes/node/bin/kubelet
       mode: 0555
+    - path: /etc/systemd/system/kube-cgroup.service
+      content: |
+        [Unit]
+        Description=Create and tune cgroup for Kubernetes Pods
+        Requires=network-online.target
+        Before=kubelet.service
+
+        [Service]
+        Delegate=yes
+        ExecStart=/usr/local/sbin/kube-cgroup.sh
+
+        [Install]
+        RequiredBy=kubelet.service
+      mode: 0444
+    - path: /usr/local/sbin/kube-cgroup.sh
+      mode: 0744
+      content: |-
+        #!/bin/bash
+
+        set -x
+
+        KUBE_CGROUP=${KUBE_CGROUP:-"kube_whitelist"}
+        SYSTEMD_ABSPATH="/sys/fs/cgroup/systemd/$KUBE_CGROUP"
+        CPUSET_ABSPATH="/sys/fs/cgroup/cpuset/$KUBE_CGROUP"
+        CPU_ABSPATH="/sys/fs/cgroup/cpu/$KUBE_CGROUP"
+        MEM_ABSPATH="/sys/fs/cgroup/memory/$KUBE_CGROUP"
+
+        for cg in $SYSTEMD_ABSPATH $CPUSET_ABSPATH $CPU_ABSPATH $MEM_ABSPATH
+        do
+          mkdir -p "$cg"
+        done
     - path: /etc/logrotate.d/json-logrotate
       mode: 0444
       content: |-

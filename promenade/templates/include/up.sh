@@ -105,6 +105,13 @@ log
 log === Starting Docker and Kubelet ===
 set -x
 systemctl daemon-reload
+
+{% for a in ['enable','start','stop','disable'] %}
+{% for u in config.get_units_by_action(a) %}
+systemctl {{ a }} {{ u }}
+{% endfor %}
+{% endfor %}
+
 systemctl restart docker || true
 systemctl enable kubelet
 systemctl restart kubelet
