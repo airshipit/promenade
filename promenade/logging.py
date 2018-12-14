@@ -4,7 +4,7 @@ import logging.config
 
 __all__ = ['getLogger', 'setup']
 
-LOG_FORMAT = '%(asctime)s %(levelname)-8s %(request_id)s %(external_id)s %(user)s %(name)s:%(funcName)s [%(lineno)3d] %(message)s'  # noqa
+LOG_FORMAT = '%(asctime)s %(levelname)-8s %(request_id)s %(external_id)s %(user)s %(name)s:%(filename)s:%(lineno)3d:%(funcName)s %(message)s'  # noqa
 
 BLANK_CONTEXT_VALUES = [
     'external_id',
