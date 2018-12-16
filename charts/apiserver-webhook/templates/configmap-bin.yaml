@@ -16,13 +16,15 @@ limitations under the License.
 
 {{- if .Values.manifests.configmap_bin }}
 {{- $envAll := . }}
-
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.service.name }}-bin
+  name: {{ .Release.Name }}-bin
 data:
-  webhook_start.sh: |
+  ks-user.sh: |-
+{{- include "helm-toolkit.scripts.keystone_user" $envAll | indent 4 }}
+  webhook_start.sh: |-
 {{ tuple "bin/_webhook_start.sh.tpl" $envAll | include "helm-toolkit.utils.template" | indent 4 }}
+...
 {{- end }}

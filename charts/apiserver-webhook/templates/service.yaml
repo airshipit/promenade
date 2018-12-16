@@ -20,15 +20,15 @@ limitations under the License.
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.service.name }}
+  name: {{ tuple "webhook_apiserver" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
 spec:
   ports:
     - name: https
-      port: {{ .Values.network.kubernetes_apiserver.port }}
+      port: {{ tuple "webhook_apiserver" "default" "api" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
       protocol: TCP
-      targetPort: {{ .Values.network.kubernetes_apiserver.port }}
+      targetPort: {{ tuple "webhook_apiserver" "podport" "api" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
   selector:
 {{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 {{- end }}

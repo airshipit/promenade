@@ -2,7 +2,8 @@ apiVersion: v1
 clusters:
   - cluster:
       insecure-skip-tls-verify: false
-      server: https://127.0.0.1:8443/webhook
+      server: https://127.0.0.1:{{ tuple "webhook_apiserver" "podport" "webhook" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}/webhook
+      certificate-authority: {{ tuple "keystone_webhook" "server" .Values.conf.paths.pki "ca" . | include "local.cert_bundle_path" | quote }}
     name: webhook
 contexts:
   - context:

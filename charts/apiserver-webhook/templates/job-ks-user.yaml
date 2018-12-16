@@ -1,5 +1,5 @@
 {{/*
-Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+Copyright 2018 AT&T Intellectual Property.  All other rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if .Values.manifests.configmap_certs }}
-{{- $envAll := . }}
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Values.service.name }}-certs
-data:
-  cluster-ca.pem: {{ .Values.secrets.tls.ca | quote }}
-  apiserver.pem: {{ .Values.secrets.tls.cert | quote }}
-  etcd-client-ca.pem: {{ .Values.secrets.etcd.tls.ca | quote }}
-  etcd-client.pem: {{ .Values.secrets.etcd.tls.cert | quote }}
-  service-account.pub: {{ .Values.secrets.service_account.public_key | quote }}
+{{- if .Values.manifests.job_ks_user }}
+{{ $cm_name := printf "%s-bin" .Release.Name }}
+{{- $ksUserJob := dict "envAll" . "serviceName" "webhook_apiserver" "configMapBin" $cm_name "serviceUser" "webhook" -}}
+{{ $ksUserJob | include "helm-toolkit.manifests.job_ks_user" }}
 {{- end }}

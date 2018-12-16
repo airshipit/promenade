@@ -14,13 +14,94 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{/*
+These local.* templates may be moved out of this chart into helm-toolkit
+in the future if there is desire to generalize this pattern. Otherwise
+in the future they will be moved into a separate helpers file.
+*/}}
+
+{{- define "local.tls_volume_name" -}}
+{{- $group := index . 0 -}}
+{{- $type := index . 1 -}}
+tls-{{ $group | replace "_" "-" }}-{{ $type | replace "_" "-" }}
+{{- end -}}
+
+{{- define "local.attach_all_bundles" }}
+{{- $envAll := . }}
+{{- range $group, $certs := $envAll.Values.certificates }}
+{{- range $type, $bundle := . }}
+{{ tuple $group $type $envAll | include "local.attach_cert_bundle" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "local.attach_cert_bundle" }}
+{{- $group := index . 0 }}
+{{- $type := index . 1 }}
+{{- $envAll := index . 2 }}
+- name: {{ tuple $group  $type | include "local.tls_volume_name" }}
+  secret:
+    secretName: {{ tuple $group $type $envAll | include "local.tls_secret_name" }}
+    defaultMode: 0444
+{{ end }}
+
+{{- define "local.mount_all_bundles" }}
+{{- $basepath := index . 0 }}
+{{- $envAll := index . 1 }}
+{{- range $group, $certs := $envAll.Values.certificates }}
+{{- range $type, $bundle := . }}
+{{ tuple $group $type $basepath $envAll | include "local.mount_cert_bundle" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "local.mount_cert_bundle" }}
+{{- $group := index . 0 }}
+{{- $type := index . 1 }}
+{{- $basepath := index . 2 }}
+{{- $envAll := index . 3 }}
+{{- $bundle := index $envAll.Values "certificates" $group $type }}
+{{- range tuple "ca" "cert" "key" }}
+{{- if hasKey $bundle . }}
+{{ tuple $group $type . $basepath $envAll | include "local.mount_cert_file" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "local.mount_cert_file" }}
+{{- $group := index . 0 }}
+{{- $type := index . 1 }}
+{{- $member := index . 2 }}
+{{- $basepath := index . 3 }}
+{{- $envAll := index . 4 }}
+- name: {{ tuple $group  $type | include "local.tls_volume_name" }}
+  mountPath: {{ tuple $group $type $basepath $member $envAll | include "local.cert_bundle_path" }}
+{{- if eq $member "ca" }}
+  subPath: ca.crt
+{{- else if eq $member "cert" }}
+  subPath: tls.crt
+{{- else if eq $member "key" }}
+  subPath: tls.key
+{{- end }}
+  readOnly: true
+{{- end }}
+
+{{- define "local.cert_bundle_path" -}}
+{{- $group := index . 0 -}}
+{{- $type := index . 1 -}}
+{{- $basepath := index . 2 -}}
+{{- $member := index . 3 -}}
+{{- $envAll := index . 4 -}}
+{{ $basepath }}/{{ $group }}-{{ $type }}-{{ $member }}.pem
+{{- end -}}
+
 {{- if .Values.manifests.deployment }}
 {{- $envAll := . }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kubernetes-keystone-webhook
+  name: {{ .Release.Name }}-apiserver-webhook
   labels:
 {{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
@@ -36,7 +117,7 @@ spec:
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
-      dnsPolicy: ClusterFirstWithHostNet
+      dnsPolicy: ClusterFirst
       containers:
         - name: apiserver
           image: {{ .Values.images.tags.apiserver }}
@@ -50,93 +131,117 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-
           command:
             {{- range .Values.command_prefix }}
             - {{ . }}
             {{- end }}
+            - --service-cluster-ip-range={{ $envAll.Values.network.service_cidr }}
             - --authorization-mode=Webhook
             - --advertise-address=$(POD_IP)
             - --anonymous-auth=false
             - --endpoint-reconciler-type=none
-            - --bind-address=0.0.0.0
-            - --secure-port={{ .Values.network.kubernetes_apiserver.port }}
+            - --bind-address=$(POD_IP)
+            - --secure-port={{ tuple "webhook_apiserver" "podport" "api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
             - --insecure-port=0
-            - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
-            - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
-            - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+            - --tls-cert-file={{ tuple "apiserver_webhook_pod" "server" $envAll.Values.conf.paths.pki "cert" $envAll | include "local.cert_bundle_path" }}
+            - --tls-private-key-file={{ tuple "apiserver_webhook_pod" "server" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" }}
             - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-            - --kubelet-certificate-authority=/etc/kubernetes/apiserver/pki/cluster-ca.pem
-            - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/apiserver.pem
-            - --kubelet-client-key=/etc/kubernetes/apiserver/pki/apiserver-key.pem
+            - --kubelet-certificate-authority={{ tuple "kubelet" "server" $envAll.Values.conf.paths.pki "ca" $envAll | include "local.cert_bundle_path" }}
+            - --kubelet-client-certificate={{ tuple "kubelet" "client" $envAll.Values.conf.paths.pki "cert" $envAll | include "local.cert_bundle_path" }}
+            - --kubelet-client-key={{ tuple "kubelet" "client" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" }}
             - --etcd-servers={{ tuple "etcd" "internal" "client" . | include "helm-toolkit.endpoints.keystone_endpoint_uri_lookup" }}
-            - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem
-            - --etcd-certfile=/etc/kubernetes/apiserver/pki/etcd-client.pem
-            - --etcd-keyfile=/etc/kubernetes/apiserver/pki/etcd-client-key.pem
+            - --etcd-cafile={{ tuple "etcd" "server" $envAll.Values.conf.paths.pki "ca" $envAll | include "local.cert_bundle_path" }}
+            - --etcd-certfile={{ tuple "etcd" "client" $envAll.Values.conf.paths.pki "cert" $envAll | include "local.cert_bundle_path" }}
+            - --etcd-keyfile={{ tuple "etcd" "client" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" }}
             - --allow-privileged=true
-            - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
-            - --authentication-token-webhook-config-file=/etc/kubernetes/apiserver/webhook.kubeconfig
-            - --authorization-webhook-config-file=/etc/kubernetes/apiserver/webhook.kubeconfig
-          ports:
-            - containerPort: {{ .Values.network.kubernetes_apiserver.port }}
+            - --service-account-key-file={{ $envAll.Values.conf.paths.sapubkey }}
+            - --authentication-token-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
+            - --authorization-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
           readinessProbe:
             tcpSocket:
-              port: 6443
-            initialDelaySeconds: 5
-            periodSeconds: 10
+              port: {{ tuple "webhook_apiserver" "podport" "api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+{{ $envAll.Values.pod.probes.readinessProbe | toYaml | indent 12 }}
           livenessProbe:
             tcpSocket:
-              port: 6443
-            failureThreshold: 3
-            initialDelaySeconds: 15
-            periodSeconds: 20
+              port: {{ tuple "webhook_apiserver" "podport" "api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+{{ $envAll.Values.pod.probes.livenessProbe | toYaml | indent 12 }}
           volumeMounts:
-            - name: etc
-              mountPath: /etc/kubernetes/apiserver
-            - name: {{ .Values.service.name }}-etc
-              mountPath: /etc/kubernetes/apiserver/webhook.kubeconfig
+            - name: etc-apiserver
+              mountPath: {{ $envAll.Values.conf.paths.base }}
+            - name: etc-apiserver-pki
+              mountPath: {{ $envAll.Values.conf.paths.pki }}
+            - name: configmap-etc
+              mountPath: {{ $envAll.Values.conf.paths.sapubkey }}
+              subPath: service-account.pub
+              readOnly: true
+            - name: configmap-etc
+              mountPath: {{ $envAll.Values.conf.paths.conf }}
               subPath: webhook.kubeconfig
               readOnly: true
-        - name: kubernetes-keystone-webhook
+{{ tuple "keystone_webhook" "server" "ca" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_file" | indent 12 }}
+{{ tuple "apiserver_webhook_pod" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+{{ tuple "kubelet" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+{{ tuple "kubelet" "client" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+{{ tuple "etcd" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+{{ tuple "etcd" "client" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+        - name: webhook
 {{ tuple $envAll "kubernetes_keystone_webhook" | include "helm-toolkit.snippets.image" | indent 10 }}
 {{ tuple $envAll $envAll.Values.pod.resources.server | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
           command:
             - /tmp/webhook_start.sh
+          env:
+{{- with $env := dict "ksUserSecret" .Values.secrets.identity.webhook }}
+{{- include "helm-toolkit.snippets.keystone_openrc_env_vars" $env | indent 12 }}
+{{- end }}
+            - name: SERVER_CERT_FILE
+              value: {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki "cert" $envAll | include "local.cert_bundle_path" | quote }}
+            - name: SERVER_KEY_FILE
+              value: {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" | quote }}
+            - name: POLICY_FILE
+              value: {{ $envAll.Values.conf.paths.policy | quote }}
+            - name: SERVER_PORT
+              value: {{ tuple "webhook_apiserver" "podport" "webhook" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" | quote }}
+{{- if hasKey .Values.certificates "keystone" }}
+            - name: KEYSTONE_CA_FILE
+              value: {{ tuple "keystone" "server" $envAll.Values.conf.paths.pki "ca" $envAll | include "local.cert_bundle_path" | quote }}
+{{- end }}
           volumeMounts:
-            - name: etc-kubernetes-keystone-webhook
-              mountPath: /etc/kubernetes-keystone-webhook
-            - name: key-kubernetes-keystone-webhook
-              mountPath: /opt/kubernetes-keystone-webhook/pki/tls.crt
-              subPath: tls.crt
-              readOnly: true
-            - name: key-kubernetes-keystone-webhook
-              mountPath: /opt/kubernetes-keystone-webhook/pki/tls.key
-              subPath: tls.key
-              readOnly: true
-            - name: {{ .Values.service.name }}-etc
-              mountPath: /etc/kubernetes-keystone-webhook/policy.json
+            - name: etc-webhook
+              mountPath: {{ $envAll.Values.conf.paths.base }}
+            - name: etc-webhook-pki
+              mountPath: {{ $envAll.Values.conf.paths.pki }}
+            - name: configmap-etc
+              mountPath: {{ $envAll.Values.conf.paths.policy }}
               subPath: policy.json
               readOnly: true
-            - name: {{ .Values.service.name }}-bin
+            - name: configmap-bin
               mountPath: /tmp/webhook_start.sh
               subPath: webhook_start.sh
               readOnly: true
+{{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
       volumes:
-        - name: etc
-          hostPath:
-            path: {{ .Values.apiserver.host_etc_path }}
-        - name: etc-kubernetes-keystone-webhook
+{{- if hasKey .Values.certificates "keystone" }}
+{{ tuple "keystone" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+{{- end }}
+{{ include "local.attach_all_bundles" $envAll | indent 8 }}
+        - name: etc-apiserver
           emptyDir: {}
-        - name: key-kubernetes-keystone-webhook
-          secret:
-            secretName: {{ $envAll.Values.secrets.certificates.api }}
-            defaultMode: 0444
-        - name: {{ .Values.service.name }}-etc
+        - name: etc-apiserver-pki
+          emptyDir: {}
+        - name: etc-webhook
+          emptyDir: {}
+        - name: etc-webhook-pki
+          emptyDir: {}
+        - name: configmap-etc
           configMap:
-            name: {{ .Values.service.name }}-etc
+            name: {{ .Release.Name }}-etc
             defaultMode: 0444
-        - name: {{ .Values.service.name }}-bin
+        - name: configmap-bin
           configMap:
-            name: {{ .Values.service.name }}-bin
+            name: {{ .Release.Name }}-bin
             defaultMode: 0555
+        - name: tls-apiserver-webhook-public-server
+          secret:
+            defaultMode: 292
+            secretName: {{ .Values.secrets.tls.webhook_apiserver.api.public }}
 {{- end }}

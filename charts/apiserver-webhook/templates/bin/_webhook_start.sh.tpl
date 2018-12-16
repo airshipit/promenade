@@ -18,9 +18,20 @@ limitations under the License.
 
 set -xe
 
+SERVER_CERT_FILE=${SERVER_CERT_FILE:-"/etc/webhook_apiserver/pki/tls.crt"}
+SERVER_KEY_FILE=${SERVER_KEY_FILE:-"/etc/webhook_apiserver/pki/tls.key"}
+POLICY_FILE=${POLICY_FILE:-"/etc/webhook_apiserver/policy.json"}
+SERVER_PORT=${SERVER_PORT:-"8443"}
+KEYSTONE_CA_FILE=${KEYSTONE_CA_FILE:-"/etc/webhook_apiserver/pki/keystone.pem"}
+
 exec /bin/k8s-keystone-auth \
-  --tls-cert-file /opt/kubernetes-keystone-webhook/pki/tls.crt \
-  --tls-private-key-file /opt/kubernetes-keystone-webhook/pki/tls.key \
-  --keystone-policy-file /etc/kubernetes-keystone-webhook/policy.json \
-  --listen 127.0.0.1:8443 \
+  --v 5 \
+  --tls-cert-file "${SERVER_CERT_FILE}" \
+  --tls-private-key-file "${SERVER_KEY_FILE}" \
+  --keystone-policy-file "${POLICY_FILE}" \
+  --listen "127.0.0.1:${SERVER_PORT}" \
+{{- if hasKey .Values.certificates "keystone" }}
+  --keystone-ca-file "${KEYSTONE_CA_FILE}" \
+{{- end }}
   --keystone-url {{ tuple "identity" "internal" "api" . | include "helm-toolkit.endpoints.keystone_endpoint_uri_lookup" }}
+
