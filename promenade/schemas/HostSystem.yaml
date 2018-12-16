@@ -11,6 +11,18 @@ data:
     abs_path:
       type: string
       pattern: '^/.+$'
+    systemd_unit:
+      type: object
+      properties:
+        enable:
+          type: boolean
+        disable:
+          type: boolean
+        start:
+          type: boolean
+        stop:
+          type: boolean
+      additionalProperties: false
     apt_source_line:
       type: string
       # XXX add regex
@@ -27,7 +39,6 @@ data:
           $ref: '#/definitions/url'
         tar_path:
           $ref: '#/definitions/rel_path'
-
       requried:
         - mode
         - path
@@ -68,6 +79,10 @@ data:
         type: object
         items:
           $ref: '#/definitions/file'
+    systemd_units:
+      type: object
+      additionalProperties:
+        $ref: '#/definitions/systemd_unit'
     images:
       type: object
       properties:
