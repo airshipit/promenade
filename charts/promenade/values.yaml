@@ -18,6 +18,16 @@ conf:
       delay_auth_decision: true
       auth_type: password
       auth_section: keystone_authtoken
+    oslo_policy:
+      policy_file: policy.yaml
+      policy_default_rule: admin_required
+      policy_dirs: policy.d
+
+  policy:
+    admin_required: 'role:admin or is_admin:1'
+    'kubernetes_provisioner:get_join_scripts': 'rule:admin_required'
+    'kubernetes_provisioner:post_validatedesign': 'rule:admin_required'
+    'kubernetes_provisioner:update_node_labels': 'rule:admin_required'
 
   paste:
     pipeline:main:
