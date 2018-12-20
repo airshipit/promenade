@@ -87,7 +87,7 @@ spec:
             - name: cache
               mountPath: /tmp/cache
             - name: promenade-etc
-              mountpath: /etc/promenade/policy.yaml
+              mountPath: /etc/promenade/policy.yaml
               subPath: policy.yaml
       volumes:
         - name: promenade-etc
