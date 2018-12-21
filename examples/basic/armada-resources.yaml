@@ -103,7 +103,6 @@ data:
   chart_name: helm-toolkit
   release: helm-toolkit
   namespace: helm-toolkit
-  timeout: 600
   wait:
     timeout: 600
   upgrade:
@@ -128,7 +127,6 @@ data:
   chart_name: helm-toolkit
   release: helm-toolkit
   namespace: helm-toolkit
-  timeout: 600
   wait:
     timeout: 600
   upgrade:
@@ -153,7 +151,6 @@ data:
   chart_name: infra-helm-toolkit
   release: infra-helm-toolkit
   namespace: infra-helm-toolkit
-  timeout: 600
   wait:
     timeout: 600
   upgrade:
@@ -178,9 +175,10 @@ data:
   chart_name: proxy
   release: kubernetes-proxy
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-kubernetes-proxy
   upgrade:
     no_hooks: true
   values:
@@ -356,11 +354,12 @@ data:
   chart_name: etcd
   release: calico-etcd
   namespace: kube-system
-  timeout: 600
   test:
     enabled: false
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-calico-etcd
   upgrade:
     no_hooks: true
   values:
@@ -480,9 +479,10 @@ data:
   chart_name: calico
   release: calico
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-calico
   upgrade:
     no_hooks: true
   values:
@@ -561,9 +561,10 @@ data:
   chart_name: coredns
   release: coredns
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-coredns
   upgrade:
     no_hooks: true
   values:
@@ -599,9 +600,10 @@ data:
   chart_name: haproxy
   release: haproxy
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-haproxy
   upgrade:
     no_hooks: true
   values:
@@ -713,9 +715,10 @@ data:
   chart_name: apiserver
   release: kubernetes-apiserver
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-kubernetes-apiserver
   upgrade:
     no_hooks: true
   values:
@@ -781,9 +784,10 @@ data:
   chart_name: controller_manager
   release: kubernetes-controller-manager
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-kubernetes-controller-manager
   upgrade:
     no_hooks: true
   values:
@@ -845,9 +849,10 @@ data:
   chart_name: scheduler
   release: kubernetes-scheduler
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-kubernetes-scheduler
   upgrade:
     no_hooks: true
   values:
@@ -1031,9 +1036,10 @@ data:
   chart_name: etcd
   release: kubernetes-etcd
   namespace: kube-system
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-kubernetes-etcd
   upgrade:
     no_hooks: true
   values:
@@ -1127,7 +1133,6 @@ data:
     no_hooks: false
   upgrade:
     no_hooks: false
-  timeout: 600
   wait:
     timeout: 600
   values:
@@ -1157,9 +1162,10 @@ data:
   chart_name: promenade
   release: promenade
   namespace: ucp
-  timeout: 600
   wait:
     timeout: 600
+    labels:
+      release_group: ucp-promenade
   values:
     pod:
       env:
