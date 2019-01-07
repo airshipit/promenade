@@ -16,7 +16,7 @@ release_group: null
 
 images:
   tags:
-    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     kubernetes_keystone_webhook: docker.io/k8scloudprovider/k8s-keystone-auth:latest
     scripted_test: docker.io/openstackhelm/heat:newton
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1

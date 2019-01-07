@@ -1,11 +1,11 @@
 # source_name, tag, cache_name
 coredns/coredns,0.9.9,coredns
-gcr.io/google_containers/hyperkube-amd64,v1.10.11,hyperkube
+gcr.io/google_containers/hyperkube-amd64,v1.11.6,hyperkube
 gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64,1.14.4,k8s-dns-dnsmasq-nanny-amd64
 gcr.io/google_containers/k8s-dns-kube-dns-amd64,1.14.4,k8s-dns-kube-dns-amd64
 gcr.io/google_containers/k8s-dns-sidecar-amd64,1.14.4,k8s-dns-sidecar-amd64
-gcr.io/kubernetes-helm/tiller,v2.10.0,tiller
-lachlanevenson/k8s-helm,v2.10.0,helm
+gcr.io/kubernetes-helm/tiller,v2.12.1,tiller
+lachlanevenson/k8s-helm,v2.12.1,helm
 quay.io/airshipit/armada,master,armada
 quay.io/calico/cni,v1.11.0,calico-cni
 quay.io/calico/ctl,v1.6.1,calico-ctl

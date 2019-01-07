@@ -14,8 +14,8 @@
 
 images:
   tags:
-    etcd: quay.io/coreos/etcd:v3.2.14
-    etcdctl: quay.io/coreos/etcd:v3.2.14
+    etcd: quay.io/coreos/etcd:v3.2.18
+    etcdctl: quay.io/coreos/etcd:v3.2.18
   pull_policy: "IfNotPresent"
 
 labels:

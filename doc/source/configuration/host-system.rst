@@ -16,15 +16,15 @@ Sample Document
     data:
       files:
         - path: /opt/kubernetes/bin/kubelet
-          tar_url: https://dl.k8s.io/v1.10.11/kubernetes-node-linux-amd64.tar.gz
+          tar_url: https://dl.k8s.io/v1.11.6/kubernetes-node-linux-amd64.tar.gz
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
         haproxy: haproxy:1.8.3
         helm:
-          helm: lachlanevenson/k8s-helm:v2.10.0
+          helm: lachlanevenson/k8s-helm:v2.12.1
         kubernetes:
-          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.11.6
       packages:
         repositories:
           - deb http://apt.dockerproject.org/repo ubuntu-xenial main
