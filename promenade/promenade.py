@@ -21,7 +21,7 @@ def start_promenade(disable=False):
     options.setup(disable_keystone=disable)
 
     # Setup root logger
-    logging.setup(verbose=True)
+    logging.setup(verbose=False)
 
     # Setup policy
     policy.policy_engine = policy.PromenadePolicy()
