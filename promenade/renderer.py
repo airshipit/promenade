@@ -109,6 +109,7 @@ def _build_env():
     env.filters['b64enc'] = _base64_encode
     env.filters['fill_no_proxy'] = _fill_no_proxy
     env.filters['yaml_safe_dump_all'] = _yaml_safe_dump_all
+    env.filters['toyaml'] = _yaml_safe_dump_arg
     return env
 
 
@@ -154,4 +155,10 @@ def _source_file_is_excluded(source_filename):
 def _yaml_safe_dump_all(documents):
     f = io.StringIO()
     yaml.safe_dump_all(documents, f)
+    return f.getvalue()
+
+
+def _yaml_safe_dump_arg(data):
+    f = io.StringIO()
+    yaml.safe_dump(data, f, explicit_start=False, explicit_end=False)
     return f.getvalue()

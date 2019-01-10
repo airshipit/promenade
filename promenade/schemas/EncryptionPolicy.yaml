@@ -13,6 +13,21 @@ data:
       oneof:
         - { $ref: '#/definitions/encryption_method_gpg' }
 
+    etcd_encryption:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          resources:
+            type: array
+            items:
+              type: string
+          providers:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
     encryption_method_gpg:
       properties:
         gpg:
@@ -23,6 +38,8 @@ data:
       additionalProperties: false
 
   properties:
+    etcd:
+      $ref: '#/definitions/etcd_encryption'
     scripts:
       properties:
         genesis:

@@ -8,6 +8,14 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
+  etcd:
+    - resources:
+        - 'secrets'
+      providers:
+        - secretbox:
+            keys:
+              - name: key1
+                secret: Xw2UcbjILTJM6QiFZ0WPSbUvjtoT8OJC/Nl8qqYWjGk=
   scripts:
     genesis:
       gpg: {}

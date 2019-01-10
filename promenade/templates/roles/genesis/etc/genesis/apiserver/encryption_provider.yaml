@@ -1,0 +1,4 @@
+kind: EncryptionConfig
+apiVersion: v1
+resources:
+{{ config.get_path('Genesis:apiserver.encryption', {}) | toyaml | indent(2, true) }}

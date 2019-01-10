@@ -711,6 +711,12 @@ metadata:
       dest:
         path: .values.secrets.service_account.public_key
 
+    - src:
+        schema: promenade/EncryptionPolicy/v1
+        name: encryption-policy
+        path: .etcd
+      dest:
+        path: $.values.conf.encryption_provider.content.resources
 data:
   chart_name: apiserver
   release: kubernetes-apiserver
@@ -722,6 +728,14 @@ data:
   upgrade:
     no_hooks: true
   values:
+    conf:
+      encryption_provider:
+        file: encryption_provider.yaml
+        command_options:
+          - '--experimental-encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml'
+        content:
+          kind: EncryptionConfig
+          apiVersion: v1
     apiserver:
       etcd:
         endpoints: https://127.0.0.1:2378
