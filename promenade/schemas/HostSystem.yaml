@@ -39,7 +39,7 @@ data:
           $ref: '#/definitions/url'
         tar_path:
           $ref: '#/definitions/rel_path'
-      requried:
+      required:
         - mode
         - path
       oneOf:
