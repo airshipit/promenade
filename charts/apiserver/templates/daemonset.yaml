@@ -33,15 +33,17 @@ spec:
     matchLabels:
 {{ $labels | indent 6 }}
 {{ tuple $envAll "kubernetes-apiserver-anchor" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
+  selector:
+    matchLabels:
+{{ $labels | indent 6 }}
   template:
     metadata:
       labels:
 {{ $labels | indent 8 }}
       annotations:
+        {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
         scheduler.alpha.kubernetes.io/critical-pod: ''
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
-        configmap-certs-hash: {{ tuple "configmap-certs.yaml" . | include "helm-toolkit.utils.hash" }}
-        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       nodeSelector:
         {{ .Values.labels.kubernetes_apiserver.node_selector_key }}: {{ .Values.labels.kubernetes_apiserver.node_selector_value }}
@@ -63,8 +65,8 @@ spec:
             value: /host{{ .Values.anchor.kubelet.manifest_path }}/{{ .Values.service.name }}.yaml
           - name: PKI_PATH
             value: /host{{ .Values.apiserver.host_etc_path }}/pki
-          command:
-            - /tmp/bin/anchor
+          command: ["/bin/sh","-c"]
+          args: ["/tmp/bin/anchor"]
           lifecycle:
             preStop:
               exec:

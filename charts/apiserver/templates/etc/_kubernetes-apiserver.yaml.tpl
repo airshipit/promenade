@@ -12,6 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- define "kubernetes_apiserver.key_concat" -}}
+    {{- range $encProv := .Values.conf.encryption_provider.content.resources -}}
+      {{- if hasKey (index $encProv "providers" 0) "identity" -}}
+        {{- printf "%s" (index $encProv "providers" 0 "identity") -}}
+      {{- else if hasKey (index $encProv "providers" 0) "secretbox" -}}
+        {{- printf "%s" (index $encProv "providers" 0 "secretbox" "keys" 0 "secret") -}}
+      {{- else if hasKey (index $encProv "providers" 0) "aescbc" -}}
+        {{- printf "%s" (index $encProv "providers" 0 "aescbc" "keys" 0 "secret") -}}
+      {{- else if hasKey (index $encProv "providers" 0) "aesgcm" -}}
+        {{- printf "%s" (index $encProv "providers" 0 "aesgcm" "keys" 0 "secret") -}}
+      {{- end -}}
+    {{- end -}}
+{{- end -}}
+
+
+{{- define "kubernetes_apiserver.key_annotation" -}}
+  {{- if and (.Values.conf) (hasKey .Values.conf "encryption_provider") -}}
+    {{- $encKey := ( . | include "kubernetes_apiserver.key_concat") -}}
+{{ .Values.const.encryption_annotation | quote }}: {{ sha256sum $encKey | quote }}
+  {{- end -}}
+{{- end -}}
+
+
 {{- $envAll := . }}
 ---
 apiVersion: v1
@@ -23,6 +46,7 @@ metadata:
     {{ .Values.service.name }}-service: enabled
 {{ tuple $envAll "kubernetes" "apiserver" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
   annotations:
+    {{ $envAll | include "kubernetes_apiserver.key_annotation" }}
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
   hostNetwork: true

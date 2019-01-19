@@ -17,6 +17,7 @@ release_group: null
 # NOTE(mark-burnett): These values are not really configurable -- they live
 # here to keep the templates cleaner.
 const:
+  encryption_annotation: "airshipit.org/encryption_key"
   command_prefix:
     - /apiserver
     - --advertise-address=$(POD_IP)
@@ -55,12 +56,22 @@ const:
 
 images:
   tags:
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
     anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+    key_rotate: gcr.io/google_containers/hyperkube-amd64:v1.11.6
   pull_policy: "IfNotPresent"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
 
 labels:
   kubernetes_apiserver:
+    node_selector_key: kubernetes-apiserver
+    node_selector_value: enabled
+  job:
     node_selector_key: kubernetes-apiserver
     node_selector_value: enabled
 
@@ -85,7 +96,17 @@ conf:
 #      plugins:
 #        - name: EventRateLimit
 #          path: eventconfig.yaml
-#
+#  eventconfig:
+#    file: eventconfig.yaml
+#    command_options: []
+#    content:
+#      kind: Configuration
+#      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+#      limits:
+#        - type: Server
+#          qps: 1000
+#          burst: 10000
+
 # Uncomment any of the below to enable enhanced Audit Logging command line options.
 #
 #  auditpolicy:
@@ -98,28 +119,22 @@ conf:
 #       rules:
 #         - level: Metadata
 #
-#  eventconfig:
-#    file: eventconfig.yaml
-#    command_options:
-#      - '--experimental-encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml'
-#    content:
-#      kind: Configuration
-#      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
-#      limits:
-#        - type: Server
-#          qps: 1000
-#          burst: 10000
-#  encryption_provider:
-#    file: encryption_provider.yaml
-#    command_option: ''
-#    content:
-#      kind: EncryptionConfig
-#      apiVersion: v1
-#      resources:
-#        - resources:
-#            - 'secrets'
-#          providers:
-#            - identity: {}
+  encryption_provider:
+    file: encryption_provider.yaml
+    command_options:
+      - '--experimental-encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml'
+    content:
+      kind: EncryptionConfig
+      apiVersion: v1
+      resources:
+        - resources:
+            - 'secrets'
+          providers:
+            - secretbox:
+                keys:
+                  - name: key1
+                    secret: Xw2UcbjILTJM6QiFZ0WPSbUvjtoT8OJC/Nl8qqYWjGk=
+            - identity: {}
 
 apiserver:
   arguments:
@@ -181,6 +196,18 @@ secrets:
       cert: null
       key: null
 
+dependencies:
+  dynamic:
+    common:
+      local_image_registry:
+        jobs:
+          - apiserver-image-repo-sync
+        services:
+          - endpoint: node
+            service: local_image_registry
+  static:
+    key_rotate: {}
+
 # typically overriden by environmental
 # values, but should include all endpoints
 # required by this chart
@@ -236,6 +263,13 @@ pod:
       limits:
         memory: "1024Mi"
         cpu: "2000m"
+    key_rotate:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
     kubernetes_apiserver:
       requests:
         memory: "128Mi"
@@ -254,3 +288,4 @@ manifests:
   secret_ingress_tls: false
   service: true
   service_ingress: false
+  job_key_rotate: true

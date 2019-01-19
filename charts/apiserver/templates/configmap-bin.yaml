@@ -27,4 +27,6 @@ data:
 {{ tuple "bin/_anchor.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
   pre_stop: |+
 {{ tuple "bin/_pre_stop.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+  key-rotate.sh: |+
+{{ tuple "bin/_key_rotate.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
 {{- end }}
