@@ -23,7 +23,9 @@ if [ "$1" = 'server' ]; then
         --paste config:/etc/promenade/api-paste.ini \
         --enable-threads \
         --threads "${PROMENADE_THREADS}" \
-        --workers "${PROMENADE_WORKERS}"
+        --workers "${PROMENADE_WORKERS}" \
+        --logger "null file:/dev/null" \
+        --log-route "null health"
 fi
 
 exec ${@}

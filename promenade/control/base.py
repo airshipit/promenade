@@ -95,10 +95,10 @@ class PromenadeRequestContext(context.RequestContext):
     Context object for promenade resource requests
     """
 
-    def __init__(self, external_marker=None, policy_engine=None, **kwargs):
+    def __init__(self, context_marker=None, policy_engine=None, **kwargs):
         self.log_level = 'error'
         self.request_id = str(uuid.uuid4())
-        self.external_marker = external_marker
+        self.context_marker = context_marker
         self.policy_engine = policy_engine
         self.is_admin_project = False
         self.authenticated = False
@@ -123,8 +123,14 @@ class PromenadeRequestContext(context.RequestContext):
     def remove_role(self, role):
         self.roles = [x for x in self.roles if x != role]
 
-    def set_external_marker(self, marker):
-        self.external_marker = marker
+    def set_context_marker(self, context_marker):
+        self.context_marker = context_marker
+
+    def set_request_id(self, request_id):
+        self.request_id = request_id
+
+    def set_end_user(self, end_user):
+        self.end_user = end_user
 
     def set_policy_engine(self, engine):
         self.policy_engine = engine
@@ -144,9 +150,10 @@ class PromenadeRequestContext(context.RequestContext):
     def to_log_context(self):
         result = {}
 
-        result['request_id'] = self.request_id
-        result['external_id'] = self.external_marker
-        result['user'] = self.user
+        result['request_id'] = getattr(self, 'request_id', None)
+        result['context_marker'] = getattr(self, 'context_marker', None)
+        result['end_user'] = getattr(self, 'end_user', None)
+        result['user'] = getattr(self, 'user', None)
 
         return result
 

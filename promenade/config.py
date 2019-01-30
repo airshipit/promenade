@@ -60,8 +60,8 @@ class Configuration:
         return cls(documents=documents, **kwargs)
 
     @classmethod
-    def from_design_ref(cls, design_ref, **kwargs):
-        documents, use_dh_engine = dr.get_documents(design_ref)
+    def from_design_ref(cls, design_ref, ctx=None, **kwargs):
+        documents, use_dh_engine = dr.get_documents(design_ref, ctx)
 
         return cls(
             documents=documents,
