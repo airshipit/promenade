@@ -121,6 +121,12 @@ apiserver:
   etcd:
     endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
   host_etc_path: /etc/kubernetes/apiserver
+#XXX another possible configuration
+#  tls:
+#    tls-cipher-suites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
+#    # https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+#    #Possible values: VersionTLS10, VersionTLS11, VersionTLS12
+#    tls-min-version: 'VersionTLS12'
 
 network:
   kubernetes_apiserver:

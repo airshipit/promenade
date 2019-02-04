@@ -61,7 +61,12 @@ spec:
         {{- end }}
         {{- end }}
         {{- end }}
-
+        {{- $acceptable_keys := list "tls-min-version" "tls-cipher-suites" }}
+        {{- range $key, $val := .Values.apiserver.tls }}
+        {{- if has $key  $acceptable_keys }}
+        - --{{ $key }}={{ $val | quote }}
+        {{- end }}
+        {{- end }}
       ports:
         - containerPort: {{ .Values.network.kubernetes_apiserver.port }}
 
