@@ -85,6 +85,19 @@ conf:
 #      plugins:
 #        - name: EventRateLimit
 #          path: eventconfig.yaml
+#
+# Uncomment any of the below to enable enhanced Audit Logging command line options.
+#
+#  auditpolicy:
+#    file: audit_policy.yaml
+#    command_options:
+#       - '--audit-policy-file=/etc/kubernetes/apiserver/audit_policy.yaml'
+#    content:
+#       kind: Policy
+#       apiVersion: apiserver.k8s.io/v1
+#       rules:
+#         - level: Metadata
+#
 #  eventconfig:
 #    file: eventconfig.yaml
 #    command_options:
