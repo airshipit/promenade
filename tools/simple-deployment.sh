@@ -33,27 +33,31 @@ then
     sed -i "s/192.168.77.0\/24/${HOSTCIDR}/g" "${BUILD_DIR}"/*.yaml
 fi
 
+if [[ -z $1 ]] || [[ $1 = generate-certs ]]; then
 echo === Generating updated certificates ===
 docker run --rm -t \
     -w /target \
     -e PROMENADE_DEBUG=$PROMENADE_DEBUG \
     -v ${BUILD_DIR}:/target \
     ${IMAGE_PROMENADE} \
-        promenade \
-            generate-certs \
-                -o /target \
-                $(ls ${BUILD_DIR})
+    promenade \
+    generate-certs \
+    -o /target \
+    $(ls ${BUILD_DIR})
+fi
 
+if [[ -z $1 ]] || [[ $1 = build-all ]]; then
 echo === Building bootstrap scripts ===
 docker run --rm -t \
     -w /target \
     -e PROMENADE_DEBUG=$PROMENADE_DEBUG \
     -v ${BUILD_DIR}:/target \
     ${IMAGE_PROMENADE} \
-        promenade \
-            build-all \
-                -o /target \
-                --validators \
-                $(ls ${BUILD_DIR})
+    promenade \
+    build-all \
+    -o /target \
+    --validators \
+    $(ls ${BUILD_DIR})
+fi
 
 echo === Done ===
