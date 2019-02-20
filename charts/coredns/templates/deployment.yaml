@@ -15,12 +15,14 @@ limitations under the License.
 */}}
 
 {{- $envAll := . }}
+{{- $labels := tuple $envAll "kubernetes" "coredns" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: coredns
   labels:
+{{ $labels | indent 4 }}
     {{ .Values.service.name }}: enabled
     kubernetes.io/name: "CoreDNS"
   annotations:
@@ -33,11 +35,12 @@ spec:
       maxUnavailable: 1
   selector:
     matchLabels:
+{{ $labels | indent 6 }}
       {{ .Values.service.name }}: enabled
   template:
     metadata:
       labels:
-{{ tuple $envAll "kubernetes" "coredns" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+{{ $labels | indent 8 }}
         {{ .Values.service.name }}: enabled
       annotations:
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}

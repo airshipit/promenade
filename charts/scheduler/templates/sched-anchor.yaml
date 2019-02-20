@@ -15,14 +15,20 @@ limitations under the License.
 */}}
 
 {{- $envAll := . }}
+{{- $labels := tuple $envAll "kubernetes" "kubernetes-scheduler-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
 ---
-apiVersion: "extensions/v1beta1"
+apiVersion: "apps/v1"
 kind: DaemonSet
 metadata:
   name: kubernetes-scheduler-anchor
+  labels:
+{{ $labels | indent 4 }}
   annotations:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
+  selector:
+    matchLabels:
+{{ $labels | indent 6 }}
 {{ tuple $envAll "scheduler" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
@@ -31,7 +37,7 @@ spec:
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
       labels:
-{{ tuple $envAll "kubernetes" "kubernetes-scheduler-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+{{ $labels | indent 8 }}
     spec:
       hostNetwork: true
       dnsPolicy: {{ .Values.anchor.dns_policy }}
