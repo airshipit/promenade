@@ -3,11 +3,13 @@
 set -ux
 
 SUBDIR_NAME=debug-$(hostname)
+BASETEMP=${BASETEMP:-"/var/tmp"}
+NAMESPACE_PATTERN=${NAMESPACE_PATTERN:-'.*'}
 
 # NOTE(mark-burnett): This should add calicoctl to the path.
 export PATH=${PATH}:/opt/cni/bin
 
-TEMP_DIR=$(mktemp -d)
+TEMP_DIR=$(mktemp -d -p "$BASETEMP")
 export TEMP_DIR
 export BASE_DIR="${TEMP_DIR}/${SUBDIR_NAME}"
 export HELM_DIR="${BASE_DIR}/helm"
@@ -18,7 +20,7 @@ mkdir -p "${BASE_DIR}"
 PARALLELISM_FACTOR=2
 
 function get_namespaces () {
-    kubectl get namespaces -o name | awk -F '/' '{ print $NF }'
+    kubectl get namespaces -o name | awk -F '/' '{ print $NF }' | grep -E "$NAMESPACE_PATTERN"
 }
 
 function get_pods () {
@@ -125,3 +127,4 @@ fi
 wait
 
 tar zcf "${SUBDIR_NAME}.tgz" -C "${TEMP_DIR}" "${SUBDIR_NAME}"
+echo "Report collected in $TEMP_DIR/${SUBDIR_NAME}.tgz"
