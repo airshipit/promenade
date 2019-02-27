@@ -19,7 +19,7 @@ spec:
         - /tiller
         - -logtostderr
         - -v
-        - "99"
+        - "5"
       imagePullPolicy: IfNotPresent
       livenessProbe:
         failureThreshold: 3
