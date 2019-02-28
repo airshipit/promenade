@@ -30,12 +30,12 @@ data:
   images:
     armada: quay.io/airshipit/armada:master
     helm:
-      tiller: gcr.io/kubernetes-helm/tiller:v2.10.0
+      tiller: gcr.io/kubernetes-helm/tiller:v2.12.1
     kubernetes:
-      apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.11
-      controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.10.11
-      etcd: quay.io/coreos/etcd:v3.2.14
-      scheduler: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+      apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      etcd: quay.io/coreos/etcd:v3.2.18
+      scheduler: gcr.io/google_containers/hyperkube-amd64:v1.11.6
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: "# placeholder for triggering calico etcd bootstrapping"

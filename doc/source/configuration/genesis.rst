@@ -39,12 +39,12 @@ Here is a complete sample document:
       images:
         armada: quay.io/airshipit/armada:latest
         helm:
-          tiller: gcr.io/kubernetes-helm/tiller:v2.10.0
+          tiller: gcr.io/kubernetes-helm/tiller:v2.12.1
         kubernetes:
-          apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.11
-          controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+          apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+          controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.11.6
           etcd: quay.io/coreos/etcd:v3.0.17
-          scheduler: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+          scheduler: gcr.io/google_containers/hyperkube-amd64:v1.11.6
       files:
         - path: /var/lib/anchor/calico-etcd-bootstrap
           content: ""

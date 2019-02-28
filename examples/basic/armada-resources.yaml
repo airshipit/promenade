@@ -186,7 +186,7 @@ data:
   values:
     images:
       tags:
-        proxy: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+        proxy: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -389,8 +389,8 @@ data:
       filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.2.14
-        etcdctl: quay.io/coreos/etcd:v3.2.14
+        etcd: quay.io/coreos/etcd:v3.2.18
+        etcdctl: quay.io/coreos/etcd:v3.2.18
     nodes:
       - name: n0
         tls:
@@ -578,8 +578,8 @@ data:
 
     images:
       tags:
-        coredns: coredns/coredns:1.1.2
-        test: coredns/coredns:1.1.2
+        coredns: coredns/coredns:1.1.3
+        test: coredns/coredns:1.1.3
   source:
     type: local
     location: /etc/genesis/armada/assets/charts
@@ -638,7 +638,7 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -724,8 +724,8 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.11
-        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     network:
       kubernetes_service_ip: 10.96.0.1
       pod_cidr: 10.97.0.0/16
@@ -789,8 +789,8 @@ data:
   values:
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.11
-        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     secrets:
       service_account:
         private_key: placeholder
@@ -862,8 +862,8 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.10.11
-        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.10.11
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.11.6
 
   source:
     type: local
@@ -1058,8 +1058,8 @@ data:
       host_etc_path: /etc/etcd/kubernetes
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.2.14
-        etcdctl: quay.io/coreos/etcd:v3.2.14
+        etcd: quay.io/coreos/etcd:v3.2.18
+        etcdctl: quay.io/coreos/etcd:v3.2.18
     nodes:
       - name: n0
         tls:
@@ -1133,7 +1133,7 @@ data:
   values:
     images:
       tags:
-        tiller: gcr.io/kubernetes-helm/tiller:v2.10.0
+        tiller: gcr.io/kubernetes-helm/tiller:v2.12.1
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
