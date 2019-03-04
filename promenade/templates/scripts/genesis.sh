@@ -8,6 +8,8 @@ mkdir -p /var/log/armada
 touch /var/log/armada/bootstrap-armada.log
 chmod 777 /var/log/armada/bootstrap-armada.log
 
+chmod -R 600 /etc/genesis
+
 set +x
 log
 log === Waiting for Kubernetes API availablity ===
