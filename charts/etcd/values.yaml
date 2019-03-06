@@ -39,6 +39,12 @@ etcd:
   host_data_path: /var/lib/etcd/example
   cleanup_data: true
 
+backup:
+  host_backup_path: /var/lib/etcd/backup
+  backup_log_file: /var/log/etcd-backup.log
+  no_backup_keep: 10
+  etcdctl_dial_timeout: 15s
+
 network:
   service_client:
     name: service_client
@@ -83,6 +89,11 @@ nodes:
         cert: placeholder
         key: placeholder
 
+dependencies:
+   static:
+     etcd_backup:
+       jobs:
+         - etcd_backup_job
 pod:
   mounts:
     daemonset_anchor:
@@ -123,6 +134,21 @@ pod:
       requests:
         memory: "128Mi"
         cpu: "100m"
+    jobs:
+      etcdbackup:
+        limits:
+          memory: "128Mi"
+          cpu: "100m"
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+
+jobs:
+  etcd_backup:
+    cron: "0 */12 * * *"
+    history:
+      success: 3
+      failed: 1
 
 manifests:
   configmap_bin: true
@@ -132,3 +158,4 @@ manifests:
   secret: true
   service: true
   test_etcd_health: true
+  cron_etcd_backup: true
