@@ -27,4 +27,4 @@ __pycache__
 /ChangeLog
 
 # Additional gate artifacts
-/.fiotest
+.fiotest
