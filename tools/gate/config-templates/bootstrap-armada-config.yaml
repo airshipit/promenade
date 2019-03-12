@@ -107,29 +107,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: master
-  dependencies: []
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
-  name: infra-helm-toolkit
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-data:
-  chart_name: infra-helm-toolkit
-  release: infra-helm-toolkit
-  namespace: infra-helm-toolkit
-  upgrade:
-    no_hooks: true
-  values: {}
-  source:
-    type: git
-    location: https://git.openstack.org/openstack/openstack-helm-infra
-    subpath: helm-toolkit
-    reference: master
+    reference: d6996b8004db35acad7d51412b0b3216189e745f
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -505,7 +483,7 @@ data:
     reference: master
     subpath: calico
   dependencies:
-    - infra-helm-toolkit
+    - helm-toolkit
 ---
 schema: armada/Chart/v1
 metadata:
