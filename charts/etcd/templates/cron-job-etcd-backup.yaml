@@ -21,7 +21,7 @@ limitations under the License.
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
-  name: {{ $serviceAccountName }}
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
 rules:
   - apiGroups:
       - ""
@@ -36,26 +36,26 @@ kind: ServiceAccount
 metadata:
   labels:
     component: etcd-backup
-  name: {{ $serviceAccountName }}
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
   namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
-  name: {{ $serviceAccountName }}
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ $serviceAccountName }}
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
 subjects:
   - kind: ServiceAccount
-    name: {{ $serviceAccountName }}
+    name: {{ .Values.service.name }}-{{ $serviceAccountName }}
     namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: etcd-backup
+  name: {{ .Values.service.name }}-etcd-backup
 spec:
   schedule: {{ .Values.jobs.etcd_backup.cron | quote }}
   successfulJobsHistoryLimit: {{ .Values.jobs.etcd_backup.history.success }}
@@ -68,7 +68,7 @@ spec:
     spec:
       template:
         spec:
-          serviceAccountName: {{ $serviceAccountName }}
+          serviceAccountName: {{ .Values.service.name }}-{{ $serviceAccountName }}
           restartPolicy: OnFailure
           nodeSelector:
             {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
