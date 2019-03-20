@@ -56,7 +56,7 @@ def build_all(*, config_files, leave_kubectl, output_dir, validators):
     required=True,
     help='Location to write *-certificates.yaml')
 @click.argument('config_files', nargs=-1, type=click.File('rb'))
-def genereate_certs(*, config_files, output_dir):
+def generate_certs(*, config_files, output_dir):
     debug = _debug()
     try:
         c = config.Configuration.from_streams(
