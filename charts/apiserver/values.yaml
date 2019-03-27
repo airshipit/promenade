@@ -81,32 +81,40 @@ anchor:
     manifest_path: /etc/kubernetes/manifests
   period: 15
 
+# TODO(sh8121att): Add dynamic rendering of the admission controller list allowing a base list
+# and each conf entry to enable additional AC plugins
 conf:
 # Uncomment any of the below to enable the file placement and associated apiserver
 # command line options
 #
-#  acconfig:
-#    file: acconfig.yaml
+  acconfig:
+    file: acconfig.yaml
+    command_options:
+      - '--admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml'
+      - '--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit'
+    content:
+      kind: AdmissionConfiguration
+      apiVersion: apiserver.k8s.io/v1alpha1
+      plugins:
+        - name: EventRateLimit
+          path: eventconfig.yaml
+  eventconfig:
+    file: eventconfig.yaml
+    content:
+      kind: Configuration
+      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+      limits:
+        - type: Server
+          qps: 1000
+          burst: 10000
+#  aggapi:
+#    file: kube-agg-api-ca.pem
 #    command_options:
-#      - '--admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml'
-#      - '--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit'
-#    content:
-#      kind: AdmissionConfiguration
-#      apiVersion: apiserver.k8s.io/v1alpha1
-#      plugins:
-#        - name: EventRateLimit
-#          path: eventconfig.yaml
-#  eventconfig:
-#    file: eventconfig.yaml
-#    command_options: []
-#    content:
-#      kind: Configuration
-#      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
-#      limits:
-#        - type: Server
-#          qps: 1000
-#          burst: 10000
-
+#      - '--requestheader-client-ca-file=/etc/kubernetes/apiserver/kube-agg-api-ca.pem'
+#      - '--requestheader-allowed-names=agg-client'
+#    content: |
+#      -----SOME CA----
+#
 # Uncomment any of the below to enable enhanced Audit Logging command line options.
 #
 #  auditpolicy:
@@ -144,7 +152,6 @@ apiserver:
     - --feature-gates=PodShareProcessNamespace=true
     # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
     - --repair-malformed-updates=false
-    - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction
     - --v=3
   etcd:
     endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
