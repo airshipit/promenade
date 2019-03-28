@@ -17,7 +17,8 @@
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
         - airship-promenade-doc-build
-        - airship-promenade-lint-chart
+        - airship-promenade-chart-build-gate
+        - airship-promenade-chart-build-latest-htk
         - airship-promenade-unit-py35
 
     gate:
@@ -26,7 +27,7 @@
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
         - airship-promenade-doc-build
-        - airship-promenade-lint-chart
+        - airship-promenade-chart-build-gate
         - airship-promenade-unit-py35
 
     post:
@@ -48,14 +49,23 @@
     nodeset: airship-promenade-single-node
 
 - job:
-    name: airship-promenade-lint-chart
+    name: airship-promenade-chart-build-gate
     description: |
-      Lints Helm charts for validity
+      Lints charts using pinned HTK
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 300
     nodeset: airship-promenade-single-node
-    files:
-      - ^charts/.*$
+
+- job:
+    name: airship-promenade-chart-build-latest-htk
+    description: |
+      Lints charts using latest HTK
+    voting: false
+    run: tools/zuul/playbooks/helm-linter.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node
+    vars:
+      HTK_COMMIT: master
 
 - job:
     name: airship-promenade-unit-py35
