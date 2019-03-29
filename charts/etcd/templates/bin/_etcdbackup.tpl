@@ -18,10 +18,11 @@ set -ex
 BACKUP_DIR="/var/lib/etcd/backup"
 BACKUP_LOG={{ .Values.backup.backup_log_file | quote }}
 NUM_TO_KEEP={{ .Values.backup.no_backup_keep | quote }}
+BACKUP_FILE_NAME={{ .Values.service.name | quote }}
 SKIP_BACKUP=0
 
 etcdbackup() {
-  etcdctl snapshot save $BACKUP_DIR/etcd-backup-$(date +"%m-%d-%Y-%H-%M-%S").db >> $BACKUP_LOG
+  etcdctl snapshot save $BACKUP_DIR/$(BACKUP_FILE_NAME)-backup-$(date +"%m-%d-%Y-%H-%M-%S").db >> $BACKUP_LOG
   BACKUP_RETURN_CODE=$?
   if [[ $BACKUP_RETURN_CODE != 0 ]]; then
     echo "There was an error backing up the databases. Return code was $BACKUP_RETURN_CODE."

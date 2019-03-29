@@ -40,7 +40,7 @@ etcd:
   cleanup_data: true
 
 backup:
-  host_backup_path: /var/lib/etcd/backup
+  host_backup_path: /var/backups/etcd
   backup_log_file: /var/log/etcd-backup.log
   no_backup_keep: 10
   etcdctl_dial_timeout: 15s

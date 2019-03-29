@@ -55,7 +55,7 @@ subjects:
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: {{ .Values.service.name }}-etcd-backup
+  name: {{ .Values.service.name }}-backup
 spec:
   schedule: {{ .Values.jobs.etcd_backup.cron | quote }}
   successfulJobsHistoryLimit: {{ .Values.jobs.etcd_backup.history.success }}
