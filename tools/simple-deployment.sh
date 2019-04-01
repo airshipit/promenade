@@ -48,6 +48,9 @@ echo === Building bootstrap scripts ===
 docker run --rm -t \
     -w /target \
     -e PROMENADE_DEBUG=$PROMENADE_DEBUG \
+    -e http_proxy=${HTTP_PROXY} \
+    -e https_proxy=${HTTPS_PROXY} \
+    -e no_proxy=${NO_PROXY} \
     -v ${BUILD_DIR}:/target \
     ${IMAGE_PROMENADE} \
         promenade \
