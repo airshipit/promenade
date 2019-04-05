@@ -10,6 +10,7 @@ metadata:
 data:
   hostname: n0
   ip: 192.168.77.10
+  external_ip: 192.168.77.10
   apiserver:
     arguments:
       - --authorization-mode=Node,RBAC
