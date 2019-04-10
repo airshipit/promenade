@@ -78,6 +78,13 @@ dependencies:
   controller_manager:
 
 pod:
+  security_context:
+    kubernetes:
+      pod:
+        runAsUser: 0
+      container:
+        anchor:
+          readOnlyRootFilesystem: true
   mounts:
     controller_manager:
       init_container: null
