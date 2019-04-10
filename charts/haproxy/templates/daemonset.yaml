@@ -37,6 +37,7 @@ spec:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
+{{ dict "envAll" $envAll "application" "haproxy_anchor" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
@@ -48,6 +49,7 @@ spec:
         - name: anchor
           image: {{ .Values.images.tags.anchor }}
           imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ dict "envAll" $envAll "application" "haproxy_anchor" "container" "anchor" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           env:
             - name: HAPROXY_HEADER
               value: /tmp/etc/haproxy.cfg.header
