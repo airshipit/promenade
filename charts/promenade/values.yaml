@@ -157,6 +157,14 @@ endpoints:
       default: null
 
 pod:
+  security_context:
+    promenade:
+      pod:
+        runAsUser: 65534
+      container:
+        promenade_api:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
   affinity:
     anti:
       type:
