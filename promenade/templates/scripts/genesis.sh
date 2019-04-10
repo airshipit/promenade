@@ -55,7 +55,7 @@ set -x
 wait_for_node_ready {{ config['Genesis:hostname'] }} 3600
 
 {% include "cleanup.sh" with context %}
-rm -rf /etc/genesis
+
 set +x
 log
 log === Finished genesis process ===
