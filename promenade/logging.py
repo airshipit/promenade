@@ -4,12 +4,16 @@ import logging.config
 
 __all__ = ['getLogger', 'setup']
 
-LOG_FORMAT = '%(asctime)s %(levelname)-8s %(request_id)s %(external_id)s %(user)s %(name)s:%(filename)s:%(lineno)3d:%(funcName)s %(message)s'  # noqa
+LOG_FORMAT = '%(asctime)s %(levelname)-8s ' \
+             'req_id=%(request_id)s ctx=%(context_marker)s ' \
+             'end_user=%(end_user)s user=%(user)s ' \
+             '%(name)s:%(filename)s:%(lineno)3d:%(funcName)s %(message)s'
 
 BLANK_CONTEXT_VALUES = [
-    'external_id',
+    'context_marker',
     'request_id',
     'user',
+    'end_user',
 ]
 
 DEFAULT_CONFIG = {

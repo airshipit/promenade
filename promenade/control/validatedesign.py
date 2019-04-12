@@ -28,10 +28,11 @@ class ValidateDesignResource(base.BaseResource):
     def on_post(self, req, resp):
         result = ValidationMessage()
         try:
+            ctx = req.context
             json_data = self.req_json(req)
             href = json_data.get('href', None)
             config = Configuration.from_design_ref(
-                href, allow_missing_substitutions=False)
+                href, allow_missing_substitutions=False, ctx=ctx)
             result = validation.validate_all(config)
         except exceptions.InvalidFormatError as e:
             msg = "Invalid JSON Format: %s" % str(e)

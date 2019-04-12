@@ -26,8 +26,10 @@ class AuthMiddleware(object):
         ctx = req.context
         ctx.set_policy_engine(policy.policy_engine)
 
-        for k, v in req.headers.items():
-            LOG.debug("Request with header %s: %s" % (k, v))
+        # don't spam log with headers for health checks
+        if not req.url.endswith('/health'):
+            for k, v in req.headers.items():
+                LOG.debug("Request with header %s: %s" % (k, v))
 
         auth_status = req.get_header(
             'X-SERVICE-IDENTITY-STATUS')  # will be set to Confirmed or Invalid
@@ -100,21 +102,69 @@ class ContextMiddleware(object):
 
     def process_request(self, req, resp):
         ctx = req.context
-        ext_marker = req.get_header('X-Context-Marker')
-        if ext_marker is not None and self._is_uuid_like(ext_marker):
-            # external passed in an ok context marker
-            ctx.set_external_marker(ext_marker)
+        context_marker = req.get_header('X-CONTEXT-MARKER')
+        end_user = req.get_header('X-END-USER')
+        if context_marker is not None:
+            ctx.set_context_marker(context_marker)
         else:
-            # use the request id
-            ctx.set_external_marker(ctx.request_id)
+            ctx.set_context_marker(ctx.request_id)
+        if end_user is not None:
+            ctx.set_end_user(end_user)
+        else:
+            ctx.set_end_user(ctx.user)
 
 
 class LoggingMiddleware(object):
+    def process_request(self, req, resp):
+        # don't log health checks
+        if not req.url.endswith('/health'):
+            ctx = req.context
+            LOG.info(
+                "Request: %s %s %s",
+                req.method,
+                req.uri,
+                req.query_string,
+                ctx=ctx)
+
     def process_response(self, req, resp, resource, req_succeeded):
         ctx = req.context
+        # only log health check responses if the check failed
+        if req.url.endswith('/health'):
+            resp_code = self._get_resp_code(resp)
+            if not resp_code == 204:
+                LOG.error(
+                    'Health check has failed with response status %s',
+                    resp.status,
+                    ctx=ctx)
+        else:
+            context_marker = getattr(ctx, 'context_marker', None)
+            request_id = getattr(ctx, 'request_id', None)
+            user = getattr(ctx, 'user', None)
+            end_user = getattr(ctx, 'end_user', None)
+            if context_marker is not None:
+                resp.append_header('X-CONTEXT-MARKER', context_marker)
+            if request_id is not None:
+                resp.append_header('X-DECKHAND-REQ', request_id)
+            if end_user is not None:
+                resp.append_header('X-END-USER', end_user)
+            if user is not None:
+                resp.append_header('X-USER-NAME', user)
+            LOG.info(
+                "Response: %s %s %s",
+                req.method,
+                req.uri,
+                resp.status,
+                ctx=ctx)
 
-        resp.append_header('X-Promenade-Req', ctx.request_id)
-        LOG.info('%s %s - %s', req.method, req.uri, resp.status, ctx=ctx)
+    def _get_resp_code(self, resp):
+        # Falcon response object doesn't have a raw status code.
+        # Splits by the first space
+        try:
+            return int(resp.status.split(" ", 1)[0])
+        except ValueError:
+            # if for some reason this Falcon response doesn't have a valid
+            # status, return a high value sentinel
+            return 9999
 
 
 class NoAuthFilter(object):
