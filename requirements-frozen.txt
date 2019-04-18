@@ -14,7 +14,7 @@ cmd2==0.9.6
 colorama==0.4.0
 cryptography==2.3.1
 debtcollector==1.20.0
-git+https://git.openstack.org/openstack/airship-deckhand@2f596fd62713bfd4149757a77a4943dd60b64cca
+git+https://git.openstack.org/openstack/airship-deckhand@a76ffb66ae809c19281a6cf5c9414ed197d249b7
 decorator==4.3.0
 deepdiff==3.3.0
 dnspython==1.15.0
