@@ -18,7 +18,6 @@ conf:
 
   test:
     names_to_resolve:
-      - att.com
       - kubernetes.default.svc.cluster.local
 
 images:
