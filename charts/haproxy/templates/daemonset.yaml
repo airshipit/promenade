@@ -15,19 +15,25 @@ limitations under the License.
 */}}
 
 {{- $envAll := . }}
+{{- $labels := tuple $envAll "kubernetes" "haproxy-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: haproxy-anchor
+  labels:
+{{ $labels | indent 4 }}
   annotations:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
+  selector:
+    matchLabels:
+{{ $labels | indent 6 }}
 {{ tuple $envAll "haproxy_anchor" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
   template:
     metadata:
       labels:
-{{ tuple $envAll "kubernetes" "haproxy-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+{{ $labels | indent 8 }}
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
