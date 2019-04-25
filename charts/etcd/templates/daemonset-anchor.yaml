@@ -54,6 +54,9 @@ spec:
           effect: NoSchedule
         - key: CriticalAddonsOnly
           operator: Exists
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoSchedule
       terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.daemonset_anchor.timeout }}
       containers:
         - name: etcdctl
