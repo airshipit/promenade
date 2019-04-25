@@ -10,6 +10,7 @@ metadata:
 data:
   hostname: ${GENESIS_HOSTNAME}
   ip: ${GENESIS_IP}
+  external_ip: ${GENESIS_IP}
   join_ip: ${MASTER1_IP}
   labels:
     dynamic:
@@ -40,6 +41,7 @@ metadata:
 data:
   hostname: ${MASTER1_HOSTNAME}
   ip: ${MASTER1_IP}
+  external_ip: ${MASTER1_IP}
   join_ip: ${GENESIS_IP}
   labels:
     dynamic:
@@ -70,6 +72,7 @@ metadata:
 data:
   hostname: ${MASTER2_HOSTNAME}
   ip: ${MASTER2_IP}
+  external_ip: ${MASTER2_IP}
   join_ips:
     - ${GENESIS_IP}
     - ${MASTER1_IP}
@@ -102,6 +105,7 @@ metadata:
 data:
   hostname: ${WORKER_HOSTNAME}
   ip: ${WORKER_IP}
+  external_ip: ${WORKER_IP}
   join_ips:
     - ${GENESIS_IP}
     - ${MASTER1_IP}

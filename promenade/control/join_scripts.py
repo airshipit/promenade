@@ -36,7 +36,10 @@ class JoinScriptsResource(BaseResource):
     def on_get(self, req, resp):
         leave_kubectl = req.get_param_as_bool('leave_kubectl')
         design_ref = req.get_param('design_ref', required=True)
+        # The required IP address to be used by Kubernetes itself
         ip = req.get_param('ip', required=True)
+        # The optional IP address to configure as externally-routable
+        external_ip = req.get_param('external_ip', default='127.0.0.1')
         hostname = req.get_param('hostname', required=True)
         # NOTE(sh8121att): Set a default here for backward compatability
         dns_domain = req.get_param('domain', default='local')
@@ -73,6 +76,7 @@ class JoinScriptsResource(BaseResource):
                 'hostname': hostname,
                 'domain': dns_domain,
                 'ip': ip,
+                'external_ip': external_ip,
                 'join_ips': join_ips,
                 'labels': {
                     'dynamic': dynamic_labels,

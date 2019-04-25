@@ -105,6 +105,9 @@ data:
     ip:
       $ref: '#/definitions/ip_address'
 
+    external_ip:
+      $ref: '#/definitions/ip_address'
+
     labels:
       properties:
         static:

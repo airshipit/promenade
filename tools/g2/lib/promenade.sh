@@ -24,7 +24,7 @@ promenade_render_curl_url() {
     else
         DESIGN_REF="design_ref=${NGINX_URL}/promenade.yaml"
     fi
-    HOST_PARAMS="hostname=${NAME}&ip=$(config_vm_ip "${NAME}")"
+    HOST_PARAMS="hostname=${NAME}&ip=$(config_vm_ip "${NAME}")&external_ip=$(config_vm_ip "${NAME}")"
 
     echo "${BASE_URL}?${DESIGN_REF}&${HOST_PARAMS}&leave_kubectl=true${LABEL_PARAMS}"
 }
