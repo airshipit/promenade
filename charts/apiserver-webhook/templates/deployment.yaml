@@ -118,6 +118,7 @@ spec:
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       dnsPolicy: ClusterFirst
+{{ dict "envAll" $envAll "application" "apiserver_webhook" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       containers:
         - name: apiserver
           image: {{ .Values.images.tags.apiserver }}
