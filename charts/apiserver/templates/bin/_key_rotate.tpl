@@ -39,8 +39,8 @@ get_encryption_hash() {
 }
 
 apiserver_compare() {
-  echo "${apiservers[@]}" | sort | uniq > "${TEMP_DIR}/a.txt"
-  echo "${updated_apiservers[@]}" | sort | uniq > "${TEMP_DIR}/b.txt"
+  echo "${apiservers[@]}" | tr ' ' '\n' | sort | uniq > "${TEMP_DIR}/a.txt"
+  echo "${updated_apiservers[@]}" | tr ' ' '\n' | sort | uniq > "${TEMP_DIR}/b.txt"
   comm -3 "${TEMP_DIR}/a.txt" "${TEMP_DIR}/b.txt"
 }
 
