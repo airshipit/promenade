@@ -86,6 +86,12 @@ pod:
           runAsUser: 0
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+    haproxy:
+      pod:
+        runAsUser: 65534
+      container:
+        haproxy_perms:
+          runAsUser: 0
   lifecycle:
     upgrades:
       daemonsets:

@@ -46,6 +46,23 @@ spec:
           operator: Exists
       terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.haproxy_anchor.timeout }}
       serviceAccountName: haproxy-anchor
+      initContainers:
+        - name: haproxy-perms
+          image: {{ .Values.images.tags.anchor }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ dict "envAll" $envAll "application" "haproxy" "container" "haproxy_perms" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
+{{ tuple $envAll $envAll.Values.pod.resources.haproxy_anchor | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+          command:
+            - /tmp/perms_update.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: haproxy-bin
+              mountPath: /tmp/perms_update.sh
+              subPath: perms_update.sh
+              readOnly: false
+            - name: host
+              mountPath: /host
       containers:
         - name: anchor
           image: {{ .Values.images.tags.anchor }}
@@ -66,6 +83,8 @@ spec:
               value: /var/run/secrets/kubernetes.io/serviceaccount/token
             - name: KUBE_URL
               value: {{ .Values.conf.anchor.kubernetes_url | quote }}
+            - name: RUNASUSER
+              value: {{ .Values.pod.security_context.haproxy.pod.runAsUser | quote }}
           command:
             - /tmp/bin/anchor.sh
           lifecycle:
@@ -92,3 +111,5 @@ spec:
         - name: host
           hostPath:
             path: /
+        - name: pod-tmp
+          emptyDir: {}

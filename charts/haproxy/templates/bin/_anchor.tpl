@@ -114,6 +114,7 @@ install_config() {
             echo HAProxy config file unchanged.
         fi
         chmod -R go-rwx $(dirname "$HAPROXY_CONF")
+        chown -R $RUNASUSER:$RUNASUSER $(dirname "$HAPROXY_CONF")
     fi
 }
 

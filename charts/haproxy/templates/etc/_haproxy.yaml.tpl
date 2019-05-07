@@ -52,6 +52,7 @@ spec:
             cat "$HAPROXY_CONF"
             echo
             cp "$HAPROXY_CONF" "$LIVE_HAPROXY_CONF"
+            chmod 700 $LIVE_HAPROXY_CONF
 
             # NOTE(mark-burnett): sleep for clearer log output
             sleep 1
@@ -97,3 +98,4 @@ spec:
     - name: etc
       hostPath:
         path: {{ .Values.conf.haproxy.host_config_dir }}
+{{ dict "envAll" $envAll "application" "haproxy" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}

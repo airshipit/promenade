@@ -37,3 +37,5 @@ spec:
     - name: etc
       hostPath:
         path: /etc/promenade/haproxy
+  securityContext:
+    runAsUser: {{ config.get_path('Genesis:haproxy.run_as_user', '65534') }}

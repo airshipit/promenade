@@ -44,6 +44,8 @@ data:
       - kubernetes-scheduler=enabled
       - promenade-genesis=enabled
       - ucp-control-plane=enabled
+  haproxy:
+    run_as_user: 65534
   images:
     armada: quay.io/airshipit/armada:master-ubuntu_xenial
     helm:
