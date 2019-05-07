@@ -126,5 +126,7 @@ fi
 
 wait
 
-tar zcf "${SUBDIR_NAME}.tgz" -C "${TEMP_DIR}" "${SUBDIR_NAME}"
+if tar zcf "${SUBDIR_NAME}.tgz" -C "${TEMP_DIR}" "${SUBDIR_NAME}"; then
+  find "${BASETEMP}" -type d -name "${SUBDIR_NAME}" -prune -exec sh -c 'rm -rf $(dirname "$1")' _ {} \;
+fi
 echo "Report collected in $TEMP_DIR/${SUBDIR_NAME}.tgz"
