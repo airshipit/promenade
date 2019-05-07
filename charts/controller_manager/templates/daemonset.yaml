@@ -42,6 +42,7 @@ spec:
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
+{{ dict "envAll" $envAll "application" "kubernetes" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       nodeSelector:
         {{ .Values.labels.controller_manager.node_selector_key }}: {{ .Values.labels.controller_manager.node_selector_value }}
       dnsPolicy: {{ .Values.anchor.dns_policy }}
@@ -62,6 +63,7 @@ spec:
           - name: ETC_PATH
             value: /host{{ .Values.controller_manager.host_etc_path }}
 {{ tuple $envAll $envAll.Values.pod.resources.anchor_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "kubernetes" "container" "anchor" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:
