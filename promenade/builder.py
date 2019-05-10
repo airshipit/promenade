@@ -81,10 +81,11 @@ class Builder:
 
     def build_genesis_script(self):
         LOG.info('Building genesis script')
+        genesis_roles = ['common', 'genesis']
         sub_config = self.config.extract_genesis_config()
         tarball = renderer.build_tarball_from_roles(
             config=sub_config,
-            roles=['common', 'genesis'],
+            roles=genesis_roles,
             file_specs=self.file_cache.values())
 
         (encrypted_tarball, decrypt_setup_command, decrypt_command,
@@ -98,7 +99,8 @@ class Builder:
                 'decrypt_setup_command': decrypt_setup_command,
                 'decrypt_teardown_command': decrypt_teardown_command,
                 'encrypted_tarball': encrypted_tarball,
-            })
+            },
+            roles=genesis_roles)
 
     def _build_genesis_validate_script(self):
         sub_config = self.config.extract_genesis_config()
@@ -118,13 +120,14 @@ class Builder:
                           validate_script)
 
     def build_node_script(self, node_name):
+        build_roles = ['common', 'join']
         sub_config = self.config.extract_node_config(node_name)
         file_spec_paths = [
             f['path'] for f in self.config.get_path('HostSystem:files', [])
         ]
         file_specs = [self.file_cache[p] for p in file_spec_paths]
         tarball = renderer.build_tarball_from_roles(
-            config=sub_config, roles=['common', 'join'], file_specs=file_specs)
+            config=sub_config, roles=build_roles, file_specs=file_specs)
 
         (encrypted_tarball, decrypt_setup_command, decrypt_command,
          decrypt_teardown_command) = _encrypt_node(sub_config, tarball)
@@ -137,7 +140,8 @@ class Builder:
                 'decrypt_setup_command': decrypt_setup_command,
                 'decrypt_teardown_command': decrypt_teardown_command,
                 'encrypted_tarball': encrypted_tarball,
-            })
+            },
+            roles=build_roles)
 
     def _build_node_validate_script(self, node_name):
         sub_config = self.config.extract_node_config(node_name)

@@ -10,6 +10,8 @@ log ()  {
 TO_RM=(
     "/etc/apt/apt.conf.d/20-proxy.conf"
     "/etc/apt/sources.list.d/promenade-sources.list"
+    "/etc/apt/sources.list.d/promenade-genesis-sources.list"
+    "/etc/apt/sources.list.d/promenade-join-sources.list"
     "/etc/cni"
     "/etc/coredns"
     "/etc/docker/daemon.json"
