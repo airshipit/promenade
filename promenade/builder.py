@@ -18,10 +18,11 @@ LOG = logging.getLogger(__name__)
 #   B108:hardcoded_tmp_directory
 # This cache needs to be shared by all forks within the same container, and so
 # must be at a well-known location.
+TMP_CACHE = '/tmp/cache'  # nosec
 CACHE_OPTS = {
     'cache.type': 'file',
-    'cache.data_dir': '/tmp/cache/data',  # nosec
-    'cache.lock_dir': '/tmp/cache/lock',  # nosec
+    'cache.data_dir': TMP_CACHE + '/data',  # nosec
+    'cache.lock_dir': TMP_CACHE + '/lock',  # nosec
 }
 
 CACHE = CacheManager(**parse_cache_config_options(CACHE_OPTS))
@@ -43,8 +44,16 @@ class Builder:
         self._file_cache = {}
         for file_spec in self._file_specs:
             path = file_spec['path']
+            islink = False
             if 'content' in file_spec:
                 data = file_spec['content']
+            elif 'docker_image' in file_spec:
+                data = _fetch_image_content(self.config.container_info,
+                                            file_spec['docker_image'],
+                                            file_spec['file_path'])
+            elif 'symlink' in file_spec:
+                data = file_spec['symlink']
+                islink = True
             elif 'tar_url' in file_spec:
                 data = _fetch_tar_content(file_spec['tar_url'],
                                           file_spec['tar_path'])
@@ -52,6 +61,7 @@ class Builder:
                 'path': path,
                 'data': data,
                 'mode': file_spec['mode'],
+                'islink': islink,
             }
 
     @property
@@ -61,6 +71,7 @@ class Builder:
             self.config.get_path('Genesis:files', []))
 
     def build_all(self, *, output_dir):
+        self.config.get_container_info()
         self.build_genesis(output_dir=output_dir)
         for node_document in self.config.iterate(
                 schema='promenade/KubernetesNode/v1'):
@@ -161,6 +172,33 @@ def _encrypt(cfg_dict, data):
     decrypt_teardown_command = method.get_decrypt_teardown_command()
     return (encrypted_data, decrypt_setup_command, decrypt_command,
             decrypt_teardown_command)
+
+
+# The following environment variables should be used
+# export DOCKER_HOST="unix://var/run/docker.sock"
+# export PROMENADE_TMP="tmp_dir_on_host"
+# export PROMENADE_TMP_LOCAL="tmp_dir_inside_container"
+# PROMENADE_TMP is the full path to temp dir from host
+# inside promenade container it should be bind to PROMENADE_TMP_LOCAL
+@CACHE.cache('fetch_image', expire=72 * 3600)
+def _fetch_image_content(config, image_url, file_path):
+    file_name = os.path.basename(file_path)
+    if config is None:
+        result_path = os.path.join(TMP_CACHE, file_name)
+        if not os.path.isfile(result_path):
+            raise Exception(
+                'ERROR: there is no container info and no file in cache')
+    else:
+        result_path = os.path.join(config['dir_local'], file_name)
+        client = config['client']
+        vol = {config['dir']: {'bind': config['dir_local'], 'mode': 'rw'}}
+        cmd = 'cp -v {} {}'.format(file_path, config['dir_local'])
+        image = client.images.pull(image_url)
+        output = client.containers.run(
+            image, command=cmd, auto_remove=True, volumes=vol)
+        LOG.debug(output)
+    f = open(result_path, 'rb')
+    return f.read()
 
 
 @CACHE.cache('fetch_tarball_content', expire=72 * 3600)

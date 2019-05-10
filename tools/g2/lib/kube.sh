@@ -9,7 +9,7 @@ kubectl_cmd() {
 
     shift
 
-    ssh_cmd "${VIA}" kubectl "${@}"
+    ssh_cmd "${VIA}" kubectl --kubeconfig /etc/kubernetes/admin/kubeconfig.yaml "${@}"
 }
 
 kubectl_wait_for_pod() {

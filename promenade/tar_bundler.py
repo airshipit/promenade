@@ -15,7 +15,7 @@ class TarBundler:
         self._tar_blob = io.BytesIO()
         self._tf = tarfile.open(fileobj=self._tar_blob, mode='w|gz')
 
-    def add(self, *, path, data, mode):
+    def add(self, *, path, data, mode, islink=False):
         if path.startswith('/'):
             path = path[1:]
 
@@ -37,7 +37,12 @@ class TarBundler:
         else:
             LOG.warning('Zero length file added to path=%s', path)
 
-        self._tf.addfile(tar_info, io.BytesIO(data_bytes))
+        if islink:
+            tar_info.type = tarfile.SYMTYPE
+            tar_info.linkname = data
+            self._tf.addfile(tar_info)
+        else:
+            self._tf.addfile(tar_info, io.BytesIO(data_bytes))
 
     def as_blob(self):
         self._tf.close()

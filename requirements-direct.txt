@@ -1,5 +1,6 @@
 beaker==1.9.1
 click==6.7
+docker==3.7.2
 falcon==1.2.0
 jinja2==2.9.6
 jsonpath-ng==1.4.3

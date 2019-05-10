@@ -47,6 +47,17 @@ sudo apt-get remove -q -y docker docker-engine docker.io
 sudo apt-get install -q -y --no-install-recommends \
     docker-ce
 
+# Set up proxy when using docker_image in yamls
+sudo mkdir -p /etc/systemd/system/docker.service.d/
+cat << EOF | sudo tee /etc/systemd/system/docker.service.d/proxy.conf
+[Service]
+Environment="HTTP_PROXY=${HTTP_PROXY}"
+Environment="HTTPS_PROXY=${HTTPS_PROXY}"
+Environment="NO_PROXY=${NO_PROXY}"
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
 log_stage_header "Joining User Groups"
 for grp in docker libvirtd libvirt; do
     if ! groups | grep $grp > /dev/null; then

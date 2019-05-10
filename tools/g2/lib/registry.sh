@@ -60,6 +60,12 @@ registry_up() {
         docker rm -fv "${REGISTRY_ID}" &>> "${LOG_FILE}"
     fi
 
+    cur=$(grep registry /etc/hosts | cut -f1 -d:)
+    if [ -n "$cur" ]; then
+        sudo sed -i "s/.*registry/127.0.0.1 registry/g" /etc/hosts
+    else
+        echo "127.0.0.1 registry" | sudo tee -a /etc/hosts
+    fi
     if [[ -z ${RUNNING_REGISTRY_ID} ]]; then
         log Starting docker registry
         docker run -d \

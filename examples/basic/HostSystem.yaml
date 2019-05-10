@@ -12,9 +12,15 @@ data:
     kube-cgroup:
       enable: true
   files:
+    - path: /opt/kubernetes/bin/hyperkube
+      docker_image: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      file_path: /hyperkube
+      mode: 0555
     - path: /opt/kubernetes/bin/kubelet
-      tar_url: https://dl.k8s.io/v1.11.6/kubernetes-node-linux-amd64.tar.gz
-      tar_path: kubernetes/node/bin/kubelet
+      symlink: /opt/kubernetes/bin/hyperkube
+      mode: 0555
+    - path: /usr/local/bin/kubectl
+      symlink: /opt/kubernetes/bin/hyperkube
       mode: 0555
     - path: /etc/systemd/system/kube-cgroup.service
       content: |
@@ -64,12 +70,15 @@ data:
             su root root
             rotate 1
         }
+    - path: /etc/profile.d/kubeconfig.sh
+      mode: 0744
+      content: |-
+        export KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml
   images:
+    monitoring_image: &busybox busybox:1.28.3
     haproxy: haproxy:1.8.3
     helm:
       helm: lachlanevenson/k8s-helm:v2.14.0
-    kubernetes:
-      kubectl: gcr.io/google_containers/hyperkube-amd64:v1.11.6
   packages:
     repositories:
       - deb http://apt.dockerproject.org/repo ubuntu-xenial main
@@ -112,5 +121,5 @@ data:
       socat: socat
   validation:
     pod_logs:
-      image: busybox:1.28.3
+      image: *busybox
 ...

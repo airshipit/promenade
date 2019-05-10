@@ -17,6 +17,8 @@ limitations under the License.
 {{- if .Values.manifests.deployment_api }}
 {{- $envAll := . }}
 {{- $labels := tuple $envAll "promenade" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
+{{- $mounts_init_container := .Values.pod.mounts.promenade_api.init_container }}
+{{- $mounts_promenade_api := .Values.pod.mounts.promenade_api.promenade_api }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -47,6 +49,29 @@ spec:
         {{ .Values.labels.node_selector_key }}: {{ .Values.labels.node_selector_value }}
       serviceAccountName: promenade
       terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.api.timeout | default "30" }}
+      initContainers:
+      - name: promenade-util
+        command:
+{{- if and $mounts_init_container.volumeMounts $mounts_promenade_api.volumeMounts }}
+          - "cp"
+  {{- range $mounts_init_container.volumeMounts }}
+    {{- if eq "hyperkube" (index . "name") }}
+          - {{ index . "mountPath" | quote }}
+    {{- end }}
+  {{- end }}
+  {{- range $mounts_promenade_api.volumeMounts }}
+    {{- if eq "cache" (index . "name") }}
+          - {{ index . "mountPath" | quote }}
+    {{- end }}
+  {{- end }}
+{{- else }}
+          - "true"
+{{- end }}
+        image: {{ .Values.images.tags.monitoring_image }}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+{{ if $mounts_init_container.volumeMounts }}{{ toYaml $mounts_init_container.volumeMounts | indent 8 }}{{ end }}
+{{ if $mounts_promenade_api.volumeMounts }}{{ toYaml $mounts_promenade_api.volumeMounts | indent 8 }}{{ end }}
       containers:
         - name: promenade-api
           image: {{ .Values.images.tags.promenade }}
@@ -92,16 +117,15 @@ spec:
               mountPath: /etc/promenade/promenade.conf
               subPath: promenade.conf
               readOnly: true
-            - name: cache
-              mountPath: /tmp/cache
             - name: promenade-etc
               mountPath: /etc/promenade/policy.yaml
               subPath: policy.yaml
+{{ if $mounts_promenade_api.volumeMounts }}{{ toYaml $mounts_promenade_api.volumeMounts | indent 12 }}{{ end }}
       volumes:
         - name: promenade-etc
           configMap:
             name: promenade-etc
             defaultMode: 0444
-        - name: cache
-          emptyDir: {}
+{{ if $mounts_init_container.volumes }}{{ toYaml $mounts_init_container.volumes | indent 8 }}{{ end }}
+{{ if $mounts_promenade_api.volumes }}{{ toYaml $mounts_promenade_api.volumes | indent 8 }}{{ end }}
 {{- end }}
