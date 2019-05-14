@@ -30,6 +30,7 @@ metadata:
 {{ tuple $envAll $applicationName "etcd" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
   annotations:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+{{- dict "envAll" $envAll "podName" .Values.service.name "containerNames" (list "etcd") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
   hostNetwork: true
   containers:

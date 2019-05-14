@@ -58,6 +58,7 @@ network:
     enable_node_port: false
 
 service:
+  # requires override for a specific use case e.g. calico-etcd or kubernetes-etcd
   name: example-etcd
   ip: null
 
@@ -142,6 +143,11 @@ pod:
         requests:
           memory: "128Mi"
           cpu: "100m"
+  mandatory_access_control:
+    type: apparmor
+    # requires override for a specific use case e.g. calico-etcd or kubernetes-etcd
+    example-etcd:
+      etcd: localhost/docker-default
 
 jobs:
   etcd_backup:
