@@ -46,6 +46,9 @@ spec:
           effect: NoSchedule
         - key: CriticalAddonsOnly
           operator: Exists
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoSchedule
       containers:
       - name: proxy
         image: {{ .Values.images.tags.proxy }}
