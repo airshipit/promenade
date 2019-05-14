@@ -99,6 +99,14 @@ data:
         auxiliary_threshold:
           type: integer
       additionalProperties: false
+    tiller:
+      type: object
+      properties:
+        listen:
+          type: integer
+        probe_listen:
+          type: integer
+      additionalProperties: false
 
     files:
       type: array

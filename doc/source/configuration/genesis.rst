@@ -25,6 +25,9 @@ Here is a complete sample document:
       ip: 192.168.77.10
       armada:
         target_manifest: cluster-bootstrap
+      tiller:
+        listen: 24134
+        probe_listen: 24135
       labels:
         static:
           - calico-etcd=enabled
