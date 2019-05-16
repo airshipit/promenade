@@ -143,18 +143,6 @@ pod:
           memory: "128Mi"
           cpu: "100m"
 
-livenessProbe:
-  config:
-    failureThreshold: 10
-    initialDelaySeconds: 15
-    periodSeconds: 30
-
-readinessProbe:
-  config:
-    failureThreshold: 10
-    initialDelaySeconds: 15
-    periodSeconds: 30
-
 jobs:
   etcd_backup:
     cron: "0 */12 * * *"

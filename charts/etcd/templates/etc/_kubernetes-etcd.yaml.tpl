@@ -98,16 +98,6 @@ spec:
           value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
         - name: MANIFEST_PATH
           value: /manifests/{{ .Values.service.name }}.yaml
-      readinessProbe:
-        exec:
-          command:
-             - /tmp/bin/readiness
-{{ toYaml .Values.readinessProbe.config | indent 8 }}
-      livenessProbe:
-        exec:
-          command:
-             - /tmp/bin/readiness
-{{ toYaml .Values.livenessProbe.config | indent 8 }}
       volumeMounts:
         - name: data
           mountPath: /var/lib/etcd
