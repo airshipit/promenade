@@ -39,7 +39,7 @@ Here is a complete sample document:
       images:
         armada: quay.io/airshipit/armada:latest
         helm:
-          tiller: gcr.io/kubernetes-helm/tiller:v2.13.1
+          tiller: gcr.io/kubernetes-helm/tiller:v2.14.0
         kubernetes:
           apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
           controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.11.6

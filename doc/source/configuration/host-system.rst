@@ -22,7 +22,7 @@ Sample Document
       images:
         haproxy: haproxy:1.8.3
         helm:
-          helm: lachlanevenson/k8s-helm:v2.13.1
+          helm: lachlanevenson/k8s-helm:v2.14.0
         kubernetes:
           kubectl: gcr.io/google_containers/hyperkube-amd64:v1.11.6
       packages:

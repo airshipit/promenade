@@ -73,7 +73,6 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  namespace: {{ $envAll.Release.Namespace }}
   name: {{ $serviceAccountName }}-{{ $envAll.Release.Namespace }}
 subjects:
   - kind: ServiceAccount

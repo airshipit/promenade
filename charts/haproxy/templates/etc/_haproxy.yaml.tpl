@@ -93,5 +93,3 @@ spec:
     - name: etc
       hostPath:
         path: {{ .Values.conf.haproxy.host_config_dir }}
-  securityContext:
-    readOnlyRootFilesystem: true
