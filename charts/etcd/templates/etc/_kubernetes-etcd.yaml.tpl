@@ -15,6 +15,26 @@
 */}}
 
 {{- $envAll := . }}
+{{- define "etcdreadinessProbeTemplate" }}
+exec:
+  command:
+    - /bin/sh
+    - -c
+    - |-
+      export ETCDCTL_ENDPOINTS=https://$POD_IP:{{ .Values.network.service_client.target_port }}
+      etcdctl endpoint health
+      exit $?
+{{- end }}
+{{- define "etcdlivenessProbeTemplate" }}
+exec:
+  command:
+    - /bin/sh
+    - -c
+    - |-
+      export ETCDCTL_ENDPOINTS=https://$POD_IP:{{ .Values.network.service_client.target_port }}
+      etcdctl endpoint status
+      exit $?
+{{- end }}
 # Strip off "etcd" from service name to get the application name
 # Note that application can either be kubernetes or calico for now
 # and may expand in scope in the future
@@ -101,6 +121,8 @@ spec:
           value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
         - name: MANIFEST_PATH
           value: /manifests/{{ .Values.service.name }}.yaml
+{{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "readiness" "probeTemplate" (include "etcdreadinessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
+{{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "liveness" "probeTemplate" (include "etcdlivenessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
       volumeMounts:
         - name: data
           mountPath: /var/lib/etcd
