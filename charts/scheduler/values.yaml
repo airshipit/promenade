@@ -55,6 +55,11 @@ pod:
 
 scheduler:
   host_etc_path: /etc/kubernetes/scheduler
+  logging:
+    # Which messages to log.
+    # Valid values include any number from 0 to 9.
+    # Default 5(Trace level verbosity).
+    log_level: 5
 
 secrets:
   tls:
@@ -79,4 +84,3 @@ service:
 command_prefix:
   - /scheduler
   - --feature-gates=TaintNodesByCondition=true
-  - --v=5

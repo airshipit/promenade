@@ -138,6 +138,9 @@ spec:
             {{- range .Values.command_prefix }}
             - {{ . }}
             {{- end }}
+            {{- if $envAll.Values.apiserver_webhook.logging.log_level }}
+            - --v={{ $envAll.Values.apiserver_webhook.logging.log_level }}
+            {{- end }}
             - --service-cluster-ip-range={{ $envAll.Values.network.service_cidr }}
             - --authorization-mode=Webhook
             - --advertise-address=$(POD_IP)

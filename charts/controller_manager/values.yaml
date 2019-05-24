@@ -47,6 +47,11 @@ anchor:
 
 controller_manager:
   host_etc_path: /etc/kubernetes/controller-manager
+  logging:
+    # Which messages to log.
+    # Valid values include any number from 0 to 9.
+    # Default 5(Trace level verbosity).
+    log_level: 5
 
 command_prefix:
   - /controller-manager

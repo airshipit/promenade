@@ -157,6 +157,11 @@ apiserver:
   etcd:
     endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
   host_etc_path: /etc/kubernetes/apiserver
+  logging:
+    # Which messages to log.
+    # Valid values include any number from 0 to 9.
+    # Default 5(Trace level verbosity).
+    log_level: 5
 #XXX another possible configuration
 #  tls:
 #    tls-cipher-suites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"

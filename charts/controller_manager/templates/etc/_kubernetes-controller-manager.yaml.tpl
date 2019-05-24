@@ -49,7 +49,9 @@ spec:
         - --root-ca-file=/etc/kubernetes/controller-manager/cluster-ca.pem
         - --service-account-private-key-file=/etc/kubernetes/controller-manager/service-account.priv
         - --use-service-account-credentials=true
-        - --v=5
+        {{- if .Values.controller_manager.logging.log_level }}
+        - --v={{ .Values.controller_manager.logging.log_level }}
+        {{- end }}
 
       readinessProbe:
         httpGet:

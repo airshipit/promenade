@@ -45,6 +45,9 @@ spec:
         - --port={{ .Values.network.kubernetes_scheduler.port }}
         - --leader-elect=true
         - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
+        {{- if .Values.scheduler.logging.log_level }}
+        - --v={{ .Values.scheduler.logging.log_level }}
+        {{- end }}
 
       readinessProbe:
         httpGet:
