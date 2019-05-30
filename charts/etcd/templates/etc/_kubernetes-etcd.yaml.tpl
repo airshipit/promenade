@@ -32,12 +32,14 @@ metadata:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{- dict "envAll" $envAll "podName" .Values.service.name "containerNames" (list "etcd") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "etcd" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   hostNetwork: true
   containers:
     - name: etcd
       image: {{ .Values.images.tags.etcd }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.etcd_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "etcd" "container" "etcd" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       env:
         - name: ETCD_NAME
           valueFrom:
