@@ -571,12 +571,9 @@ data:
     conf:
       test:
         names_to_resolve:
-          - att.com
           - calico-etcd.kube-system.svc.cluster.local
-          - google.com
           - kubernetes-etcd.kube-system.svc.cluster.local
           - kubernetes.default.svc.cluster.local
-
     images:
       tags:
         coredns: coredns/coredns:1.1.3

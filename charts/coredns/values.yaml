@@ -36,6 +36,18 @@ service:
   ip: 10.96.0.10
 
 pod:
+  lifecycle:
+    upgrades:
+      # This is only meaningful when deploying as a DaemonSet
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        coredns:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 30%
+    termination_grace_period:
+      coredns:
+        timeout: 30
   resources:
     enabled: false
     coredns:
@@ -52,6 +64,7 @@ pod:
       limits:
         memory: "1024Mi"
         cpu: "2000m"
+  # This is only meaningful when deploying as a Deployment
   replicas:
     coredns: 3
 
@@ -63,4 +76,7 @@ monitoring:
       port: 9253
 
 manifests:
+  # This chart can deploy CoreDNS as a Deployment, as a DaemonSet, or both
+  daemonset: false
+  deployment: true
   pod_test: true
