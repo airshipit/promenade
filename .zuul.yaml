@@ -20,6 +20,7 @@
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-unit-py35
+        - airship-promenade-genesis-gate
 
     gate:
       jobs:
@@ -29,6 +30,7 @@
         - airship-promenade-doc-build
         - airship-promenade-chart-build-gate
         - airship-promenade-unit-py35
+        - airship-promenade-genesis-gate
 
     post:
       jobs:
@@ -40,6 +42,14 @@
     nodes:
       - name: primary
         label: ubuntu-xenial
+
+- job:
+    name: airship-promenade-genesis-gate
+    description: |
+      Deploy airship promenade genesis
+    run: tools/zuul/playbooks/deploy-promenade.yaml
+    timeout: 3600
+    nodeset: airship-promenade-single-node
 
 - job:
     name: airship-promenade-lint-ws

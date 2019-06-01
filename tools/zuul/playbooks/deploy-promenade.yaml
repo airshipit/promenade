@@ -1,0 +1,73 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- hosts: primary
+  vars:
+    env:
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      NO_PROXY: ""
+      PROMENADE_TMP_LOCAL: "tmp_bin"
+  become: true
+  tasks:
+    - name: Install docker
+      command: apt-get install docker.io resolvconf -y
+
+    - name: Generate configuration files
+      shell: |
+        set -xe;
+        ./tools/dev-build.sh examples/gate generate-certs replace {{ ansible_default_ipv4.interface }}
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+      environment: "{{env}}"
+
+    - name: Generate certificate files
+      shell: |
+        set -xe;
+        ./tools/dev-build.sh generate-certs
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+      environment: "{{env}}"
+
+    - name: Copy build files and generated certificates to build-all
+      command: "mv {{ zuul.project.src_dir }}/build {{ zuul.project.src_dir }}/build-all"
+
+    - name: Build genesis script
+      shell: |
+        set -xe;
+        ./tools/dev-build.sh build-all
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+      environment: "{{env}}"
+
+    - name: Deploying genesis
+      shell: |
+        set -xe;
+        ./build/genesis.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Validating genesis
+      shell: |
+        set -xe;
+        ./build/validate-genesis.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+      register: result
+      retries: 3
+      delay: 10
+      until: result.rc == 0

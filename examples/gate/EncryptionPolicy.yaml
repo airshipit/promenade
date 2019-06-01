@@ -1,0 +1,19 @@
+---
+schema: promenade/EncryptionPolicy/v1
+metadata:
+  schema: metadata/Document/v1
+  name: encryption-policy
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
+data:
+  etcd:
+    - resources:
+        - 'secrets'
+      providers:
+        - secretbox:
+            keys:
+              - name: key1
+                secret: Xw2UcbjILTJM6QiFZ0WPSbUvjtoT8OJC/Nl8qqYWjGk=
+...
