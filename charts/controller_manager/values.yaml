@@ -94,7 +94,7 @@ pod:
     upgrades:
       daemonsets:
         pod_replacement_strategy: RollingUpdate
-        controller_manager:
+        kubernetes-controller-manager-anchor:
           enabled: false
           min_ready_seconds: 0
           max_unavailable: 1
