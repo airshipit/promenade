@@ -124,36 +124,104 @@ data:
 
     packages:
       type: object
-      properties:
-        additional:
-          type: array
-          items:
-            $ref: '#/definitions/package'
-        keys:
-          type: array
-          items:
-            $ref: '#/definitions/public_key'
+      common:
+        type: object
+        properties:
+          additional:
+            type: array
+            items:
+              $ref: '#/definitions/package'
+          keys:
+            type: array
+            items:
+              $ref: '#/definitions/public_key'
+
+          required:
+            type: object
+            properties:
+              docker:
+                $ref: '#/definitions/package'
+              socat:
+                $ref: '#/definitions/package'
+            required:
+              - docker
+              - socat
+            additionalProperties: false
+
+          repositories:
+            type: array
+            items:
+              $ref: '#/definitions/apt_source_line'
 
         required:
-          type: object
-          properties:
-            docker:
+          - required
+        additionalProperties: false
+
+      genesis:
+        type: object
+        properties:
+          additional:
+            type: array
+            items:
               $ref: '#/definitions/package'
-            socat:
-              $ref: '#/definitions/package'
+          keys:
+            type: array
+            items:
+              $ref: '#/definitions/public_key'
+
           required:
-            - docker
-            - socat
-          additionalProperties: false
+            type: object
+            properties:
+              docker:
+                $ref: '#/definitions/package'
+              socat:
+                $ref: '#/definitions/package'
+            required:
+              - docker
+              - socat
+            additionalProperties: false
 
-        repositories:
-          type: array
-          items:
-            $ref: '#/definitions/apt_source_line'
+          repositories:
+            type: array
+            items:
+              $ref: '#/definitions/apt_source_line'
 
-      required:
-        - required
-      additionalProperties: false
+        required:
+          - required
+        additionalProperties: false
+
+      join:
+        type: object
+        properties:
+          additional:
+            type: array
+            items:
+              $ref: '#/definitions/package'
+          keys:
+            type: array
+            items:
+              $ref: '#/definitions/public_key'
+
+          required:
+            type: object
+            properties:
+              docker:
+                $ref: '#/definitions/package'
+              socat:
+                $ref: '#/definitions/package'
+            required:
+              - docker
+              - socat
+            additionalProperties: false
+
+          repositories:
+            type: array
+            items:
+              $ref: '#/definitions/apt_source_line'
+
+        required:
+          - required
+        additionalProperties: false
 
     validation:
       type: object

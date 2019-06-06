@@ -1,0 +1,3 @@
+{%- for repo in config.get_path('HostSystem:packages.join.repositories', []) %}
+{{ repo }}
+{%- endfor %}

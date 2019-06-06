@@ -32,10 +32,12 @@ set +x
 log
 log === Adding APT Keys===
 set -x
-{%- for key in config.get_path('HostSystem:packages.keys', []) %}
+{% for role in roles %}
+{%- for key in config.get_path('HostSystem:packages.' + role + '.keys', []) %}
 apt-key add - <<"ENDKEY"
 {{ key }}
 ENDKEY
+{%- endfor %}
 {%- endfor %}
 
 # Disable swap
@@ -79,24 +81,28 @@ while true; do
     fi
 done
 
-end=$(($(date +%s) + 600))
-while true; do
-    if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            {%- for package in config['HostSystem:packages.additional'] | default([]) %}
-            {{ package }} \
-            {%- endfor %}
-            {{ config['HostSystem:packages.required.docker'] }} \
-            {{ config['HostSystem:packages.required.socat'] }}; then
-        now=$(date +%s)
-        if [[ ${now} -gt ${end} ]]; then
-            log Failed to install apt packages.
-            exit 1
-        fi
-        sleep 10
-    else
-        break
-    fi
-done
+{% for role in roles %}
+    {%- if config['HostSystem:packages.' + role + '.repositories'] is defined %}
+        end=$(($(date +%s) + 600))
+        while true; do
+            if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+                    {%- for package in config['HostSystem:packages.' + role + '.additional'] | default([]) %}
+                    {{ package }} \
+                    {%- endfor %}
+                    {{ config['HostSystem:packages.' + role + '.required.docker'] }} \
+                    {{ config['HostSystem:packages.' + role + '.required.socat'] }}; then
+                now=$(date +%s)
+                if [[ ${now} -gt ${end} ]]; then
+                    log Failed to install apt packages.
+                    exit 1
+                fi
+                sleep 10
+            else
+                break
+            fi
+        done
+    {%- endif %}
+{% endfor %}
 
 # Start core processes
 #

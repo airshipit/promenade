@@ -82,9 +82,12 @@ def render_template_into_bundler(*, bundler, config, destination_path,
     bundler.add(path=destination_path, data=data, mode=mode)
 
 
-def render_template(config, *, template, context=None):
+def render_template(config, *, template, context=None, roles=None):
     if context is None:
         context = {}
+
+    if roles is None:
+        roles = {}
 
     template_contents = pkg_resources.resource_string(
         'promenade', os.path.join('templates', template))
@@ -93,7 +96,7 @@ def render_template(config, *, template, context=None):
 
     template_obj = env.from_string(template_contents.decode('utf-8'))
     try:
-        return template_obj.render(config=config, **context)
+        return template_obj.render(config=config, roles=roles, **context)
     except jinja2.exceptions.TemplateRuntimeError as e:
         LOG.exception('Error rendering template (%s)' % template)
         raise exceptions.TemplateRenderException(
