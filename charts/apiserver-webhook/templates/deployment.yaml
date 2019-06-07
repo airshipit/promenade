@@ -117,6 +117,8 @@ spec:
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
+      affinity:
+{{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_pod_anti_affinity" | indent 8 }}
       dnsPolicy: ClusterFirst
       containers:
         - name: apiserver
