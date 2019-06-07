@@ -63,24 +63,28 @@ spec:
             set +x
             while true; do
                 if ! cmp -s "$HAPROXY_CONF" "$LIVE_HAPROXY_CONF"; then
-                    echo vvv Replacing old config vvv
-                    cat "$LIVE_HAPROXY_CONF"
-                    echo
+                    if ! haproxy -c -f "$HAPROXY_CONF"; then
+                      echo New config file appears invalid, refusing to replace.
+                    else
+                      echo vvv Replacing old config vvv
+                      cat "$LIVE_HAPROXY_CONF"
+                      echo
 
-                    echo vvv With new config vvv
-                    cat "$HAPROXY_CONF"
-                    echo
+                      echo vvv With new config vvv
+                      cat "$HAPROXY_CONF"
+                      echo
 
-                    cat "$HAPROXY_CONF" > "$LIVE_HAPROXY_CONF"
+                      cat "$HAPROXY_CONF" > "$LIVE_HAPROXY_CONF"
 
-                    # NOTE(mark-burnett): sleep for clearer log output
-                    sleep 1
+                      # NOTE(mark-burnett): sleep for clearer log output
+                      sleep 1
 
-                    set -x
-                    haproxy -D -f "$LIVE_HAPROXY_CONF" -p /tmp/haproxy.pid \
-                        -x /tmp/haproxy.sock \
-                        -sf $(cat /tmp/haproxy.pid)
-                    set +x
+                      set -x
+                      haproxy -D -f "$LIVE_HAPROXY_CONF" -p /tmp/haproxy.pid \
+                          -x /tmp/haproxy.sock \
+                          -sf $(cat /tmp/haproxy.pid)
+                      set +x
+                    fi
                 fi
                 sleep {{ .Values.conf.haproxy.period }}
             done

@@ -29,6 +29,8 @@ compare_copy_files() {
     {{- end }}
 }
 
+{{ $fe_count := 0 }}
+
 install_config() {
     SUCCESS=1
     # Inject global and default config
@@ -37,6 +39,8 @@ install_config() {
 
     {{- range $namespace, $services := $envAll.Values.conf.anchor.services }}
     {{- range $service, $svc_data := $services }}
+    {{- $fe_count = add $fe_count 1 }}
+
     echo Constructing config for namespace=\"{{ $namespace }}\" service=\"{{ $service }}\"
 
     # NOTE(mark-burnett): Don't accidentally log service account token.
@@ -98,15 +102,33 @@ install_config() {
     if [ $SUCCESS = 1 ]; then
         mkdir -p $(dirname "$HAPROXY_CONF")
         if ! cmp -s "$HAPROXY_CONF" "$NEXT_HAPROXY_CONF"; then
-            echo Replacing HAProxy config file "$HAPROXY_CONF" with:
-            cat "$NEXT_HAPROXY_CONF"
-            echo
-            mv "$NEXT_HAPROXY_CONF" "$HAPROXY_CONF"
+            if validate_config "$NEXT_HAPROXY_CONF"; then
+              echo Replacing HAProxy config file "$HAPROXY_CONF" with:
+              cat "$NEXT_HAPROXY_CONF"
+              echo
+              mv "$NEXT_HAPROXY_CONF" "$HAPROXY_CONF"
+            else
+              echo "New config failed validation, refusing to replace."
+            fi
         else
             echo HAProxy config file unchanged.
         fi
         chmod -R go-rwx $(dirname "$HAPROXY_CONF")
     fi
+}
+
+validate_config() {
+  file="$1"
+  expected_fe="{{- $fe_count -}}"
+
+  count=$(grep -c -E "^frontend" "$file")
+
+  if [ $count -ne $expected_fe ]; then
+    echo "Found only $count frontends in config, expected $expected_fe."
+    return 1
+  else
+    return 0
+  fi
 }
 
 cleanup() {
