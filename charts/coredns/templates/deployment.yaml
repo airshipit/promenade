@@ -16,35 +16,46 @@ limitations under the License.
 
 {{- $envAll := . }}
 {{- $labels := tuple $envAll "kubernetes" "coredns" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
+{{- $kinds := list -}}
+{{- if .Values.manifests.deployment -}}{{ $kinds = append $kinds "Deployment" -}}{{- end -}}
+{{- if .Values.manifests.daemonset -}}{{ $kinds = append $kinds "DaemonSet" -}}{{- end -}}
+
+{{- range $kinds -}}
+{{- $kind := . -}}
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: {{ $kind }}
 metadata:
   name: coredns
   labels:
 {{ $labels | indent 4 }}
-    {{ .Values.service.name }}: enabled
+    {{ $envAll.Values.service.name }}: enabled
     kubernetes.io/name: "CoreDNS"
   annotations:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 spec:
-  replicas: {{ .Values.pod.replicas.coredns }}
+{{- if eq $kind "Deployment" }}
+  replicas: {{ $envAll.Values.pod.replicas.coredns }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 1
+{{- end }}
   selector:
     matchLabels:
 {{ $labels | indent 6 }}
-      {{ .Values.service.name }}: enabled
+      {{ $envAll.Values.service.name }}: enabled
+{{- if eq $kind "DaemonSet" }}
+{{ tuple $envAll "coredns" | include "helm-toolkit.snippets.kubernetes_upgrades_daemonset" | indent 2 }}
+{{- end }}
   template:
     metadata:
       labels:
 {{ $labels | indent 8 }}
-        {{ .Values.service.name }}: enabled
+        {{ $envAll.Values.service.name }}: enabled
       annotations:
-        configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
-        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
+        configmap-bin-hash: {{ tuple "configmap-bin.yaml" $envAll | include "helm-toolkit.utils.hash" }}
+        configmap-etc-hash: {{ tuple "configmap-etc.yaml" $envAll | include "helm-toolkit.utils.hash" }}
     spec:
       serviceAccountName: coredns
       shareProcessNamespace: true
@@ -52,7 +63,9 @@ spec:
         - key: "CriticalAddonsOnly"
           operator: "Exists"
       nodeSelector:
-        {{ .Values.labels.coredns.node_selector_key }}: {{ .Values.labels.coredns.node_selector_value }}
+        {{ $envAll.Values.labels.coredns.node_selector_key }}: {{ $envAll.Values.labels.coredns.node_selector_value }}
+      terminationGracePeriodSeconds: {{ $envAll.Values.pod.lifecycle.termination_grace_period.coredns.timeout | default "30" }}
+{{- if eq $kind "Deployment" }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -60,15 +73,16 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchExpressions:
-                - key: {{ .Values.service.name }}
+                - key: {{ $envAll.Values.service.name }}
                   operator: In
                   values:
                   - enabled
               topologyKey: kubernetes.io/hostname
+{{- end }}
       containers:
       - name: coredns
-        image: {{ .Values.images.tags.coredns | quote }}
-        imagePullPolicy: {{ .Values.images.pull_policy | quote }}
+        image: {{ $envAll.Values.images.tags.coredns | quote }}
+        imagePullPolicy: {{ $envAll.Values.images.pull_policy | quote }}
 {{ tuple $envAll $envAll.Values.pod.resources.coredns | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
         args: [ "-conf", "/etc/coredns/Corefile" ]
         volumeMounts:
@@ -102,11 +116,12 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: {{ .Values.service.name }}-etc
+            name: {{ $envAll.Values.service.name }}-etc
             items:
             - key: Corefile
               path: Corefile
         - name: scripts
           configMap:
-            name: {{ .Values.service.name }}-bin
+            name: {{ $envAll.Values.service.name }}-bin
             defaultMode: 0555
+{{ end }}
