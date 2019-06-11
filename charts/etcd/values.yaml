@@ -25,6 +25,7 @@ labels:
 
 anchor:
   dns_policy: ClusterFirstWithHostNet
+  enable_cleanup: true
   etcdctl_endpoint: example-etcd
   host_data_path: /var/lib/etcd/example
 

@@ -36,7 +36,9 @@ cleanup() {
 while true; do
     if [ -e /tmp/stop ]; then
         echo Stopping
+        {{- if .Values.anchor.enable_cleanup }}
         cleanup
+        {{- end }}
         break
     fi
 
