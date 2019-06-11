@@ -36,6 +36,14 @@ service:
   ip: 10.96.0.10
 
 pod:
+  security_context:
+    coredns:
+      pod:
+        runAsUser: 65534
+      container:
+        coredns:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
   lifecycle:
     upgrades:
       # This is only meaningful when deploying as a DaemonSet
