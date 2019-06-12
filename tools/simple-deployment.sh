@@ -10,16 +10,27 @@ CONFIG_SOURCE=$(realpath ${1:-${SCRIPT_DIR}/../examples/basic})
 BUILD_DIR=$(realpath ${2:-${SCRIPT_DIR}/../build})
 REPLACE=${3:-false}
 HOSTNAME=$(hostname)
+HOST_IFACE=$(ip route | grep "^default" | head -1 | awk '{ print $5 }')
+# If not provided, interface is set to HOST_IFACE by default
+INTERFACE=${4:-$HOST_IFACE}
 # If not provided, it takes a guess at the host IP Address
-HOSTIP=${4:-$(hostname -I | cut -d' ' -f 1)}
+HOSTIP=${5:-$(hostname -I | cut -d' ' -f 1)}
 # Ceph CIDR provide like 10.0.0.0\\\/24
-HOSTCIDR=${5:-"$(hostname -I | cut -d'.' -f 1,2,3).0\/24"}
+HOSTCIDR=${6:-"$(hostname -I | cut -d'.' -f 1,2,3).0\/24"}
 
 
 echo === Cleaning up old data ===
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 chmod 777 ${BUILD_DIR}
+
+PROMENADE_TMP_LOCAL="$(basename "$PROMENADE_TMP_LOCAL")"
+PROMENADE_TMP="${SCRIPT_DIR}/${PROMENADE_TMP_LOCAL}"
+mkdir -p "$PROMENADE_TMP"
+chmod 777 "$PROMENADE_TMP"
+
+DOCKER_SOCK="/var/run/docker.sock"
+sudo chmod o+rw $DOCKER_SOCK
 
 cp "${CONFIG_SOURCE}"/*.yaml ${BUILD_DIR}
 
@@ -31,6 +42,7 @@ then
     sed -i "s/:n0/:${HOSTNAME}/g" "${BUILD_DIR}"/*.yaml
     sed -i "s/192.168.77.10/${HOSTIP}/g" "${BUILD_DIR}"/*.yaml
     sed -i "s/192.168.77.0\/24/${HOSTCIDR}/g" "${BUILD_DIR}"/*.yaml
+    sed -i "s/=ens3/=${INTERFACE}/g" "${BUILD_DIR}"/*.yaml
 fi
 
 if [[ -z $1 ]] || [[ $1 = generate-certs ]]; then
@@ -54,6 +66,11 @@ docker run --rm -t \
     -e http_proxy=${HTTP_PROXY} \
     -e https_proxy=${HTTPS_PROXY} \
     -e no_proxy=${NO_PROXY} \
+    -v "${PROMENADE_TMP}:/${PROMENADE_TMP_LOCAL}" \
+    -v "${DOCKER_SOCK}:${DOCKER_SOCK}" \
+    -e "DOCKER_HOST=unix:/${DOCKER_SOCK}" \
+    -e "PROMENADE_TMP=${PROMENADE_TMP}" \
+    -e "PROMENADE_TMP_LOCAL=/${PROMENADE_TMP_LOCAL}" \
     -v ${BUILD_DIR}:/target \
     ${IMAGE_PROMENADE} \
     promenade \
@@ -62,5 +79,7 @@ docker run --rm -t \
     --validators \
     $(ls ${BUILD_DIR})
 fi
+
+sudo chmod o-rw $DOCKER_SOCK
 
 echo === Done ===
