@@ -2,6 +2,7 @@ release_group: null
 
 anchor:
   dns_policy: Default
+  enable_cleanup: true
   kubelet:
     manifest_path: /etc/kubernetes/manifests
   period: 15

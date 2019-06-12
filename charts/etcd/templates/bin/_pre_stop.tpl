@@ -26,6 +26,7 @@ function cleanup_host {
 # Let the anchor process know it should not try to start the server.
 touch /tmp/stopping
 
+{{- if .Values.anchor.enable_cleanup }}
 while true; do
     if etcdctl member list > /tmp/stop_members; then
         if grep $PEER_ENDPOINT /tmp/stop_members; then
@@ -43,3 +44,5 @@ while true; do
 
     sleep {{ .Values.anchor.period }}
 done
+{{- end }}
+touch /tmp/stopped
