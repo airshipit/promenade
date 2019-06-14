@@ -43,6 +43,7 @@ spec:
       labels:
 {{ $labels | indent 8 }}
     spec:
+{{ dict "envAll" $envAll "application" "anchor" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       hostNetwork: true
       {{- if .Values.anchor.dns_policy }}
       dnsPolicy: {{ .Values.anchor.dns_policy }}
@@ -63,6 +64,7 @@ spec:
           image: {{ .Values.images.tags.etcdctl }}
           imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.daemonset_anchor | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "anchor" "container" "etcdctl" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           command:
             - /tmp/bin/etcdctl_anchor
           env:

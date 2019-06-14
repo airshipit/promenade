@@ -97,6 +97,21 @@ dependencies:
        jobs:
          - etcd_backup_job
 pod:
+  security_context:
+    anchor:
+      pod:
+        runAsUser: 65534
+      container:
+        etcdctl:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
+    etcd:
+      pod:
+        runAsUser: 65534
+      container:
+        etcd:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
   mounts:
     daemonset_anchor:
       daemonset_anchor:
