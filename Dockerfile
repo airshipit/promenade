@@ -39,6 +39,7 @@ ENTRYPOINT ["/opt/promenade/entrypoint.sh"]
 RUN set -ex \
     && curl -Lo /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
     && chmod 555 /usr/local/bin/cfssl \
+    && apt-get clean \
     && apt-get update -q \
     && apt-get install --no-install-recommends -y \
         libyaml-dev \

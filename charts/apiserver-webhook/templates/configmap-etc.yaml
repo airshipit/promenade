@@ -28,4 +28,6 @@ data:
 {{ tuple "etc/_webhook.kubeconfig.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
   policy.json: |
 {{ toPrettyJson $envAll.Values.conf.policy | indent 4 }}
+  encryption_provider.json: |
+{{ toPrettyJson $envAll.Values.conf.encryption_provider.content | indent 4 }}
 {{- end }}

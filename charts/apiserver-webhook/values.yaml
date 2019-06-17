@@ -48,6 +48,9 @@ apiserver_webhook:
     # Default 5(Trace level verbosity).
     log_level: 5
 
+service:
+  name: clcp-ucp-apiserver-webhook
+
 network:
   pod_cidr: '10.97.0.0/16'
   service_cidr: '10.96.0.0/16'
@@ -62,6 +65,7 @@ network:
         nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
         nginx.ingress.kubernetes.io/ssl-redirect: "true"
         nginx.ingress.kubernetes.io/secure-backends: "true"
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     name: webhook_apiserver
 #
 # Insert TLS certificates, keys and CAs
@@ -270,6 +274,11 @@ conf:
     conf: '/etc/webhook_apiserver/webhook.kubeconfig'
     policy: '/etc/webhook_apiserver/conf/policy.json'
     sapubkey: '/etc/webhook_apiserver/pki/service-accounts.pub'
+    encryption_provider: '/etc/webhook_apiserver/encryption_provider.json'
+  encryption_provider:
+    content:
+      kind: EncryptionConfig
+      apiVersion: v1
   policy:
     - resource:
         verbs:

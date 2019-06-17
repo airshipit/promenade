@@ -163,6 +163,7 @@ spec:
             - --service-account-key-file={{ $envAll.Values.conf.paths.sapubkey }}
             - --authentication-token-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
             - --authorization-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
+            - --experimental-encryption-provider-config={{ $envAll.Values.conf.paths.encryption_provider }}
           readinessProbe:
             tcpSocket:
               port: {{ tuple "webhook_apiserver" "podport" "api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
@@ -183,6 +184,10 @@ spec:
             - name: configmap-etc
               mountPath: {{ $envAll.Values.conf.paths.conf }}
               subPath: webhook.kubeconfig
+              readOnly: true
+            - name: configmap-etc
+              mountPath: {{ $envAll.Values.conf.paths.encryption_provider }}
+              subPath: encryption_provider.json
               readOnly: true
 {{ tuple "keystone_webhook" "server" "ca" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_file" | indent 12 }}
 {{ tuple "apiserver_webhook_pod" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
