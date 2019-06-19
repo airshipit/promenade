@@ -39,6 +39,7 @@ spec:
   template:
     metadata:
       annotations:
+{{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
         scheduler.alpha.kubernetes.io/critical-pod: ''
       labels:
 {{ $labels | indent 8 }}
