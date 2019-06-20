@@ -28,6 +28,8 @@ metadata:
 {{ tuple $envAll "coredns" "test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   restartPolicy: Never
+  nodeSelector:
+    {{ .Values.labels.coredns.node_selector_key }}: {{ .Values.labels.coredns.node_selector_value }}
   containers:
     - name: {{ .Release.Name }}-test
       image: {{ .Values.images.tags.test }}

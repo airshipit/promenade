@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+labels:
+  test:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+
 conf:
   anchor:
     files_to_copy:
