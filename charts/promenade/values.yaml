@@ -44,6 +44,7 @@ conf:
 images:
   tags:
     monitoring_image: busybox:1.28.3
+    hyperkube: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     promenade: quay.io/airshipit/promenade:latest
     ks_user: docker.io/openstackhelm/heat:newton
     ks_service: docker.io/openstackhelm/heat:newton
@@ -177,15 +178,6 @@ pod:
   mounts:
     promenade_api:
       test_container: null
-      init_container:
-        volumeMounts:
-          - name: hyperkube
-            mountPath: /hyperkube
-        volumes:
-          - name: hyperkube
-            hostPath:
-              path: /opt/kubernetes/bin/hyperkube
-              type: File
       promenade_api:
         volumeMounts:
           - name: cache
