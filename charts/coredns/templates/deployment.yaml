@@ -57,6 +57,7 @@ spec:
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" $envAll | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" $envAll | include "helm-toolkit.utils.hash" }}
     spec:
+{{ dict "envAll" $envAll "application" "coredns" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       serviceAccountName: coredns
       shareProcessNamespace: true
       tolerations:
@@ -84,6 +85,7 @@ spec:
         image: {{ $envAll.Values.images.tags.coredns | quote }}
         imagePullPolicy: {{ $envAll.Values.images.pull_policy | quote }}
 {{ tuple $envAll $envAll.Values.pod.resources.coredns | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
+{{ dict "envAll" $envAll "application" "coredns" "container" "coredns" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 8 }}
         args: [ "-conf", "/etc/coredns/Corefile" ]
         volumeMounts:
         - name: config-volume
