@@ -13,6 +13,7 @@
 # limitations under the License.
 
 release_group: null
+release_uuid: null
 
 images:
   tags:
