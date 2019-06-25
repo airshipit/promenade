@@ -46,7 +46,16 @@ function sync_configuration {
     sync_file "${TEMP_MANIFEST}" "${MANIFEST_PATH}"
     chmod go-rwx "${MANIFEST_PATH}"
 }
+
+function cleanup_host {
+    rm -f $MANIFEST_PATH
+    rm -rf /etcd-etc/tls/
+    rm -rf /etcd-data/*
+    firstrun=true
+}
+
 firstrun=true
+saddness_duration=0
 while true; do
     # TODO(mark-burnett) Need to monitor a file(s) when shutting down/starting
     # up so I don't try to take two actions on the node at once.
@@ -91,9 +100,6 @@ while true; do
         continue
     fi
     etcdctl member list > /tmp/members
-    # if never started or (ever started and not currently started); then
-    #   resync
-    # fi
     if ! grep $PEER_ENDPOINT /tmp/members; then
         # If this member is not in the cluster, try to add it.
         if grep -v '\bstarted\b' /tmp/members; then
@@ -108,6 +114,22 @@ while true; do
         echo Successfully added $HOSTNAME to cluster members.
         # Refresh member list so we start with the right configuration.
         etcdctl member list > /tmp/members
+    elif grep $PEER_ENDPOINT /tmp/members | grep '\bunstarted\b'; then
+        # This member is in the cluster but not started
+        if [ $saddness_duration -ge {{ .Values.anchor.saddness_threshold }} ]
+        then
+          # We have surpassed the sadness duration, remove the member and try re-adding
+          memberid=$(grep $PEER_ENDPOINT /tmp/members | awk -F ',' '{print $1}')
+          echo "Removing $memberid from etcd cluster to recreate."
+          if etcdctl member remove "$memberid"; then
+            cleanup_host
+          else
+            echo "ERROR: Attempted recreate member and failed!!!"
+          fi
+          continue
+        else
+          saddness_duration=$(($saddness_duration+1))
+        fi
     fi
     if $firstrun; then
         sync_configuration /tmp/members
@@ -122,6 +144,10 @@ while true; do
             echo Member is not healthy, syncing configurations.
             sync_configuration /tmp/members
             continue
+        else
+          saddness_duration=0
         fi
+    else
+      saddness_duration=0
     fi
 done
