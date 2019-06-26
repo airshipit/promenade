@@ -28,7 +28,9 @@ anchor:
   enable_cleanup: true
   etcdctl_endpoint: example-etcd
   host_data_path: /var/lib/etcd/example
-
+  # How many monitoring loops the anchor goes through with an unhealthy member
+  # before removing the member from the cluster and recreating
+  saddness_threshold: 3
   kubelet:
     manifest_path: /etc/kubernetes/manifests
 
