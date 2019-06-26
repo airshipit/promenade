@@ -54,6 +54,7 @@ spec:
 {{ $labels | indent 8 }}
         {{ $envAll.Values.service.name }}: enabled
       annotations:
+{{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" $envAll | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" $envAll | include "helm-toolkit.utils.hash" }}
     spec:
