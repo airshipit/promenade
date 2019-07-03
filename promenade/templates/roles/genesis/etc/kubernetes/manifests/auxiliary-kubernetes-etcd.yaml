@@ -30,7 +30,7 @@ spec:
           function external_member_count() {
               etcdctl member list \
                   | grep '\bstarted\b' \
-                  | grep -Ev "\\b({{ config['Genesis:hostname'] }}|auxiliary-0|auxiliary-1)\\b" \
+                  | grep -Ev "\\b(auxiliary-0|auxiliary-1)\\b" \
                   | wc -l
           }
 
@@ -42,10 +42,11 @@ spec:
               fi
           }
 
-          # NOTE(mark-burnett): If there are any non-genesis members, then we are ready to
-          # remove the auxiliary members.  Otherwise, wait.
-          while [ ! "$(external_member_count)" -gt 0 ]; do
-              sleep 10
+          auxiliary_threshold="{{ config.get_first('Genesis:etcd.auxiliary_threshold', default=3) }}"
+          # NOTE(sh8121att): If there are enough (a fully resilient contigent) non-auxiliary members,
+          # then we are ready to remove the auxiliary members.  Otherwise, wait.
+          while [ ! "$(external_member_count)" -ge "$auxiliary_threshold" ]; do
+              sleep 30
           done
 
           # NOTE(mark-burnett): Failures beyond this point are unexpected, but

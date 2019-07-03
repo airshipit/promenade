@@ -32,6 +32,8 @@ data:
       - --v=3
   armada:
     target_manifest: cluster-bootstrap
+  etcd:
+    auxiliary_threshold: 3
   labels:
     dynamic:
       - calico-etcd=enabled
