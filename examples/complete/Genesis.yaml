@@ -13,6 +13,8 @@ data:
   external_ip: 192.168.77.10
   armada:
     target_manifest: cluster-bootstrap
+  etcd:
+    auxiliary_threshold: 3
   labels:
     dynamic:
       - calico-etcd=enabled

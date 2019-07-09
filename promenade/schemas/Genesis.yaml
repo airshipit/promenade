@@ -91,6 +91,15 @@ data:
                   additionalProperties: true
       additionalProperties: false
 
+    etcd:
+      type: object
+      properties:
+        # What number of non-auxiliary etcd members are needed
+        # before the auxiliary members will self-terminate
+        auxiliary_threshold:
+          type: integer
+      additionalProperties: false
+
     files:
       type: array
       items:
