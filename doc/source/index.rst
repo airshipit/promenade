@@ -32,6 +32,7 @@ Promenade Configuration Guide
 
    developer-onboarding
    design
+   distribution
    getting-started
    configuration/index
    troubleshooting/index
