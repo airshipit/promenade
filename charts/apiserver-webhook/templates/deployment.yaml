@@ -120,6 +120,7 @@ spec:
       affinity:
 {{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_pod_anti_affinity" | indent 8 }}
       dnsPolicy: ClusterFirst
+{{ dict "envAll" $envAll "application" "apiserver_webhook" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       containers:
         - name: apiserver
           image: {{ .Values.images.tags.apiserver }}
