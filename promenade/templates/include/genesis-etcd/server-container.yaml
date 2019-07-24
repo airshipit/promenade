@@ -17,6 +17,8 @@
           value: /etc/etcd/pki/client-ca.pem
         - name: ETCD_CERT_FILE
           value: /etc/etcd/pki/etcd-client.pem
+        - name: ETCD_STRICT_RECONFIG_CHECK
+          value: "true"
         - name: ETCD_KEY_FILE
           value: /etc/etcd/pki/etcd-client-key.pem
         - name: ETCD_PEER_TRUSTED_CA_FILE
