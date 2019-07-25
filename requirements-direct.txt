@@ -13,6 +13,6 @@ oslo.policy==1.22.1
 pastedeploy==1.5.2
 pbr==3.0.1
 pyyaml==3.12
-requests==2.18.4
+requests==2.20.0
 uwsgi==2.0.15
 git+https://opendev.org/airship/deckhand.git@48c774c64855dca0fc9a149d8dd182805fa9f48d
