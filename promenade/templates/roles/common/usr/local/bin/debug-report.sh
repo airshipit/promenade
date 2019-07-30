@@ -8,6 +8,7 @@ NAMESPACE_PATTERN=${NAMESPACE_PATTERN:-'.*'}
 
 # NOTE(mark-burnett): This should add calicoctl to the path.
 export PATH=${PATH}:/opt/cni/bin
+export KUBECONFIG=${KUBECONFIG:-"/etc/kubernetes/admin/kubeconfig.yaml"}
 
 TEMP_DIR=$(mktemp -d -p "$BASETEMP")
 export TEMP_DIR
