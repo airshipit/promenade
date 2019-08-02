@@ -28,19 +28,19 @@ etcdbackup() {
     echo "There was an error backing up the databases. Return code was $BACKUP_RETURN_CODE."
     exit $BACKUP_RETURN_CODE
   fi
-  LATEST_BACKUP=`ls -t $BACKUP_DIR | head -1`
+  LATEST_BACKUP=`ls -t1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | head -1`
   echo "Archiving $LATEST_BACKUP..."
   cd $BACKUP_DIR
   tar -czf $BACKUP_DIR/$LATEST_BACKUP.tar.gz $LATEST_BACKUP
   rm -rf $LATEST_BACKUP
   echo "Clearing earliest backups..."
-  NUM_LOCAL_BACKUPS=`ls -ld $BACKUP_DIR | wc -l`
+  NUM_LOCAL_BACKUPS=`ls -1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | wc -l`
   while [ $NUM_LOCAL_BACKUPS -gt $NUM_TO_KEEP ]
   do
-    EARLIEST_BACKUP=`ls -tr $BACKUP_DIR | head -1`
+    EARLIEST_BACKUP=`ls -tr1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | head -1`
     echo "Deleting $EARLIEST_BACKUP..."
     rm -rf "$BACKUP_DIR/$EARLIEST_BACKUP"
-    NUM_LOCAL_BACKUPS=`ls -ld $BACKUP_DIR | wc -l`
+    NUM_LOCAL_BACKUPS=`ls -1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | wc -l`
   done
 }
 
@@ -54,7 +54,7 @@ if [ ! -d "$BACKUP_DIR" ]; then
   SKIP_BACKUP=1
 fi
 
-if [ $SKIP_BACKUP == '0' ]; then
+if [ $SKIP_BACKUP -eq 0 ]; then
   etcdbackup
 else
   echo "Error: etcd backup failed."
