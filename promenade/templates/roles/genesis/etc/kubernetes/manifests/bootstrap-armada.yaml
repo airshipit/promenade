@@ -1,3 +1,9 @@
+{# By default, use tiller ports outside of `net.ipv4.ip_local_port_range` to
+   avoid conflicts with apiserver connections to etcd, see [0].
+   [0]: https://github.com/helm/helm/issues/4886
+#}
+{% set tiller_listen = config['Genesis:tiller.listen'] | default(24134) %}
+{% set tiller_probe_listen = config['Genesis:tiller.probe_listen'] | default(24135) %}
 ---
 apiVersion: v1
 kind: Pod
@@ -17,6 +23,10 @@ spec:
       image: {{ config['Genesis:images.helm.tiller'] }}
       command:
         - /tiller
+        - -listen
+        - ":{{ tiller_listen }}"
+        - -probe-listen
+        - ":{{ tiller_probe_listen }}"
         - -logtostderr
         - -v
         - "5"
@@ -25,7 +35,7 @@ spec:
         failureThreshold: 3
         httpGet:
           path: /liveness
-          port: 44135
+          port: {{ tiller_probe_listen }}
           scheme: HTTP
         initialDelaySeconds: 1
         periodSeconds: 10
@@ -33,14 +43,14 @@ spec:
         timeoutSeconds: 1
       name: tiller
       ports:
-      - containerPort: 44134
+      - containerPort: {{ tiller_listen }}
         name: tiller
         protocol: TCP
       readinessProbe:
         failureThreshold: 3
         httpGet:
           path: /readiness
-          port: 44135
+          port: {{ tiller_probe_listen }}
           scheme: HTTP
         initialDelaySeconds: 1
         periodSeconds: 10
@@ -65,6 +75,7 @@ spec:
                       apply \
                       --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
                       --tiller-host 127.0.0.1 \
+                      --tiller-port {{ tiller_listen }} \
                       /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
                   break
               fi
