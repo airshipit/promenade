@@ -22,6 +22,10 @@ echo "{{ encrypted_tarball | b64enc }}" | base64 -d | {{ decrypt_command }} | ta
 {{ decrypt_teardown_command }}
 set -x
 
+# Enabling kubectl bash autocompletion
+#
+kubectl completion bash > /etc/bash_completion.d/kubectl
+
 for DIR in "${CURATED_DIRS[@]}"; do
     chmod -R go-rwx "${DIR}"
 done
