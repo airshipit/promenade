@@ -1,6 +1,7 @@
 import copy
 import logging
 import logging.config
+from oslo_config import cfg
 
 __all__ = ['getLogger', 'setup']
 
@@ -45,7 +46,7 @@ DEFAULT_CONFIG = {
         },
         'promenade': {
             'handlers': ['default'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': False,
         },
     },
@@ -79,8 +80,12 @@ class Adapter(logging.LoggerAdapter):
 
 def setup(*, verbose):
     log_config = copy.deepcopy(DEFAULT_CONFIG)
+
     if verbose:
         log_config['loggers']['promenade']['level'] = 'DEBUG'
+    else:
+        log_level = cfg.CONF.logging.log_level
+        log_config['loggers']['promenade']['level'] = log_level
 
     logging.config.dictConfig(log_config)
 

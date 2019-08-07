@@ -83,7 +83,7 @@
     description: |
       Executes unit tests under Python 3.5
     run: tools/zuul/playbooks/make-tests.yaml
-    timeout: 300
+    timeout: 1500
     nodeset: airship-promenade-single-node
     files:
       - ^.*\.py$

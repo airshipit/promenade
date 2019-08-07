@@ -14,6 +14,11 @@
 
 conf:
   promenade:
+    logging:
+      # Which messages to log.
+      # Valid values include 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'.
+      # Default value is 'DEBUG'.
+      log_level: 'DEBUG'
     keystone_authtoken:
       delay_auth_decision: true
       auth_type: password
