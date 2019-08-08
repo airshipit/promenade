@@ -1,10 +1,11 @@
-from . import builder, config, exceptions, generator, logging
+from . import builder, config, exceptions, generator, logging, options
 import click
 import os
 import sys
 
 __all__ = []
 
+options.setup()
 LOG = logging.getLogger(__name__)
 
 
