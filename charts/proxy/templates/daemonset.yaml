@@ -59,6 +59,9 @@ spec:
           - {{ . }}
           {{- end }}
           - --hostname-override=$(NODE_NAME)
+          {{- if .Values.proxy.logging.log_level }}
+          - --v={{ .Values.proxy.logging.log_level }}
+          {{- end }}
 {{ tuple $envAll $envAll.Values.pod.resources.proxy | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
         securityContext:
           privileged: true

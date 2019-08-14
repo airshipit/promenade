@@ -40,7 +40,13 @@ labels:
 command_prefix:
   - /apiserver
   - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
-  - --v=5
+
+apiserver_webhook:
+  logging:
+    # Which messages to log.
+    # Valid values include any number from 0 to 9.
+    # Default 5(Trace level verbosity).
+    log_level: 5
 
 network:
   pod_cidr: '10.97.0.0/16'

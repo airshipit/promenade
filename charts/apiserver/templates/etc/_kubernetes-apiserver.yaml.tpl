@@ -91,6 +91,9 @@ spec:
         - --{{ $key }}={{ $val }}
         {{- end }}
         {{- end }}
+        {{- if .Values.apiserver.logging.log_level }}
+        - --v={{ .Values.apiserver.logging.log_level }}
+        {{- end }}
       ports:
         - containerPort: {{ .Values.network.kubernetes_apiserver.port }}
 
