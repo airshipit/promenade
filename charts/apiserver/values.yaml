@@ -108,14 +108,28 @@ conf:
         - type: Server
           qps: 1000
           burst: 10000
-#  aggapi:
-#    file: kube-agg-api-ca.pem
+#  agg_api_ca:
+#    file: agg-api-ca.pem
 #    command_options:
-#      - '--requestheader-client-ca-file=/etc/kubernetes/apiserver/kube-agg-api-ca.pem'
-#      - '--requestheader-allowed-names=agg-client'
+#      - '--requestheader-client-ca-file=/etc/kubernetes/apiserver/agg-api-ca.pem'
+#      - '--requestheader-extra-headers-prefix=X-Remote-Extra-'
+#      - '--requestheader-group-headers=X-Remote-Group'
+#      - '--requestheader-username-headers=X-Remote-User'
+#      - '--requestheader-allowed-names="aggregator"'
 #    content: |
-#      -----SOME CA----
-#
+#      -----SOME CA-----
+#  apiserver_proxy_cert:
+#    file: 'apiserver-proxy-cert.pem'
+#    command_options:
+#      - '--proxy-client-cert-file=/etc/kubernetes/apiserver/apiserver-proxy-cert.pem'
+#    content: |
+#      ------SOME CERT-----
+#  apiserver_proxy_key:
+#    file: 'apiserver-proxy-key.pem'
+#    command_options:
+#      - '--proxy-client-key-file=/etc/kubernetes/apiserver/apiserver-proxy-key.pem'
+#    content: |
+#      -----SOME KEY-----
 # Uncomment any of the below to enable enhanced Audit Logging command line options.
 #
 #  auditpolicy:

@@ -163,7 +163,13 @@ spec:
             - --service-account-key-file={{ $envAll.Values.conf.paths.sapubkey }}
             - --authentication-token-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
             - --authorization-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
-            - --experimental-encryption-provider-config={{ $envAll.Values.conf.paths.encryption_provider }}
+            {{- range $key, $val := .Values.conf.apiserver }}
+            {{- if hasKey $val "command_options" }}
+            {{- range $val.command_options }}
+            - {{ . }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
           readinessProbe:
             tcpSocket:
               port: {{ tuple "webhook_apiserver" "podport" "api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
@@ -175,6 +181,9 @@ spec:
           volumeMounts:
             - name: etc-apiserver
               mountPath: {{ $envAll.Values.conf.paths.base }}
+            - name: apiserver-dynamic-config
+              mountPath: {{ $envAll.Values.conf.paths.base }}dynamic
+              readOnly: true
             - name: etc-apiserver-pki
               mountPath: {{ $envAll.Values.conf.paths.pki }}
             - name: configmap-etc
@@ -239,6 +248,10 @@ spec:
           emptyDir: {}
         - name: etc-apiserver-pki
           emptyDir: {}
+        - name: apiserver-dynamic-config
+          configMap:
+            name: {{ .Release.Name }}-dynamic-config
+            defaultMode: 0444
         - name: etc-webhook
           emptyDir: {}
         - name: etc-webhook-pki
