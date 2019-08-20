@@ -1,2 +1,3 @@
 # Warning: This file should be empty.
 # Specify direct dependencies in requirements-direct.txt instead.
+-r requirements-direct.txt
