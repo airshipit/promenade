@@ -5,6 +5,10 @@ set -ux
 SUBDIR_NAME=debug-$(hostname)
 BASETEMP=${BASETEMP:-"/var/tmp"}
 NAMESPACE_PATTERN=${NAMESPACE_PATTERN:-'.*'}
+# NOTE: Duration of newer pods logs that need to be fetched. Defaults to all logs.
+# Passing value 0s will fetch all logs.
+LOG_DURATION=${LOG_DURATION:-"0s"}
+export LOG_DURATION
 
 # NOTE(mark-burnett): This should add calicoctl to the path.
 export PATH=${PATH}:/opt/cni/bin
@@ -36,9 +40,10 @@ function get_pod_logs () {
     INIT_CONTAINERS=$(kubectl get pod "${POD}" -n "${NAMESPACE}" -o json | jq -r '.spec.initContainers[]?.name')
     CONTAINERS=$(kubectl get pod "${POD}" -n "${NAMESPACE}" -o json | jq -r '.spec.containers[].name')
     POD_DIR="${BASE_DIR}/pod-logs/${NAMESPACE}/${POD}"
+    SINCE="${LOG_DURATION}"
     mkdir -p "${POD_DIR}"
     for CONTAINER in ${INIT_CONTAINERS} ${CONTAINERS}; do
-        kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" > "${POD_DIR}/${CONTAINER}.txt"
+        kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" --since="${SINCE}"  > "${POD_DIR}/${CONTAINER}.txt"
     done
 }
 export -f get_pod_logs
