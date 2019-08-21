@@ -275,10 +275,39 @@ conf:
     policy: '/etc/webhook_apiserver/conf/policy.json'
     sapubkey: '/etc/webhook_apiserver/pki/service-accounts.pub'
     encryption_provider: '/etc/webhook_apiserver/encryption_provider.json'
-  encryption_provider:
-    content:
-      kind: EncryptionConfig
-      apiVersion: v1
+  # Every key below 'apiserver' yields a dynamic configuration file
+  # and can mutate the apiserver command-line args.
+  # The files are available under /dynamic in conf.paths.base
+  apiserver:
+    agg_api_ca:
+      file: agg-api-ca.pem
+      command_options:
+        - '--requestheader-client-ca-file=/etc/webhook_apiserver/dynamic/agg-api-ca.pem'
+        - '--requestheader-extra-headers-prefix=X-Remote-Extra-'
+        - '--requestheader-group-headers=X-Remote-Group'
+        - '--requestheader-username-headers=X-Remote-User'
+        - '--requestheader-allowed-names="aggregator"'
+      content: |
+        -----SOME CA-----
+    apiserver_proxy_cert:
+      file: 'apiserver-proxy-cert.pem'
+      command_options:
+        - '--proxy-client-cert-file=/etc/webhook_apiserver/dynamic/apiserver-proxy-cert.pem'
+      content: |
+        ------SOME CERT-----
+    apiserver_proxy_key:
+      file: 'apiserver-proxy-key.pem'
+      command_options:
+        - '--proxy-client-key-file=/etc/webhook_apiserver/dynamic/apiserver-proxy-key.pem'
+      content: |
+        -----SOME KEY-----
+    encryption_provider:
+      file: 'encryption_provider.yaml'
+      command_options:
+        - '--experimental-encryption-provider-config=/etc/webhook_apiserver/dynamic/encryption_provider.yaml'
+      content:
+        kind: EncryptionConfig
+        apiVersion: v1
   policy:
     - resource:
         verbs:
@@ -345,6 +374,7 @@ manifests:
   configmap_bin: true
   configmap_certs: true
   configmap_etc: true
+  configmap_dynamic_config: true
   job_ks_user: true
   deployment: true
   ingress_api: true

@@ -1,6 +1,4 @@
 {{/*
-Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -14,18 +12,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if .Values.manifests.configmap_etc }}
+{{- if .Values.manifests.configmap_dynamic_config }}
 {{- $envAll := . }}
 
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-etc
+  name: {{ .Release.Name }}-dynamic-config
 data:
-  service-account.pub: {{ .Values.secrets.service_account.public_key | quote }}
-  webhook.kubeconfig: |
-{{ tuple "etc/_webhook.kubeconfig.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
-  policy.json: |
-{{ toPrettyJson $envAll.Values.conf.policy | indent 4 }}
+{{- range $key, $val := .Values.conf.apiserver }}
+  {{ $val.file }}: |
+{{- if kindIs "string" $val.content }}
+{{ indent 4 $val.content }}
+{{- else }}
+{{ toYaml $val.content | indent 4 }}
+{{- end }}
+{{- end -}}
 {{- end }}
