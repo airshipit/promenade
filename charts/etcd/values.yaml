@@ -114,6 +114,22 @@ pod:
         etcd:
           runAsUser: 0
           readOnlyRootFilesystem: false
+  probes:
+    etcd:
+      etcd:
+        liveness:
+          enabled: true
+          params:
+            failureThreshold: 10
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 3
+        readiness:
+          enabled: true
+          params:
+            failureThreshold: 10
+            initialDelaySeconds: 5
+            periodSeconds: 30
   mounts:
     daemonset_anchor:
       daemonset_anchor:
