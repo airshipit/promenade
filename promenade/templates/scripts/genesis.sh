@@ -8,6 +8,9 @@ mkdir -p /var/log/armada
 touch /var/log/armada/bootstrap-armada.log
 chmod 777 /var/log/armada/bootstrap-armada.log
 
+{% set metrics_output_dir = config.get_path('Genesis:armada.metrics.output_dir', '/var/log/node-exporter-textfiles') %}
+install -d -m 755 {{ metrics_output_dir }}
+
 chmod -R 600 /etc/genesis
 
 set +x

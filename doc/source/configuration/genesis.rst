@@ -25,6 +25,9 @@ Here is a complete sample document:
       ip: 192.168.77.10
       armada:
         target_manifest: cluster-bootstrap
+        metrics:
+          output_dir: /var/log/armada/metrics
+          max_attempts: 5
       tiller:
         listen: 24134
         probe_listen: 24135
@@ -57,10 +60,30 @@ Here is a complete sample document:
 Armada
 ------
 
-This section contains particular configuration options for bootstrapping with
-Armada.  It currently only supports a single option: ``target_manifest``, which
-specifies which ``armada/Manifest/v1`` to be used during Genesis.
+Configuration options for bootstrapping with Armada.
 
++-----------------+----------+---------------------------------------------------------------------------------------+
+| keyword         | type     | action                                                                                |
++=================+==========+=======================================================================================+
+| target_manifest | string   | Specifies the ``armada/Manifest/v1`` to use during Genesis.                           |
++-----------------+----------+---------------------------------------------------------------------------------------+
+| metrics         | object   | See `Metrics`_.                                                                       |
++-----------------+----------+---------------------------------------------------------------------------------------+
+
+Metrics
+^^^^^^^
+
+Configuration for Armada bootstrap metric collection.
+
++-----------------+----------+---------------------------------------------------------------------------------------+
+| keyword         | type     | action                                                                                |
++=================+==========+=======================================================================================+
+| output_dir      | string   | (optional, default `/var/log/node-exporter-textfiles`) The directory path in which to |
+|                 |          | output Armada metric data.                                                            |
++-----------------+----------+---------------------------------------------------------------------------------------+
+| max_attempts    | integer  | (optional, default 10) The maximum Armada attempts to collect metrics for.            |
+|                 |          | Can be set to 0 to disable metrics collection.                                        |
++-----------------+----------+---------------------------------------------------------------------------------------+
 
 Bootstrapping Images
 --------------------

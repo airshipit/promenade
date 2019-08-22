@@ -62,6 +62,14 @@ data:
       properties:
         target_manifest:
           type: string
+        metrics:
+          type: object
+          properties:
+            output_dir:
+              type: string
+            max_attempts:
+              type: integer
+          additionalProperties: false
       additionalProperties: false
 
     apiserver:
