@@ -7,6 +7,8 @@ CURATED_DIRS=(
     /var/lib/etcd
 )
 
+APT_INSTALL_TIMEOUT=${APT_INSTALL_TIMEOUT:-1800}
+
 for DIR in "${CURATED_DIRS[@]}"; do
     mkdir -p "${DIR}"
     chmod 700 "${DIR}"
@@ -71,7 +73,7 @@ log
 log === Installing system packages ===
 set -x
 
-end=$(($(date +%s) + 600))
+end=$(($(date +%s) + APT_INSTALL_TIMEOUT))
 while true; do
     if ! apt-get update; then
         now=$(date +%s)
@@ -87,7 +89,6 @@ done
 
 {% for role in roles %}
     {%- if config['HostSystem:packages.' + role + '.repositories'] is defined %}
-        end=$(($(date +%s) + 600))
         while true; do
             if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
                     {%- for package in config['HostSystem:packages.' + role + '.additional'] | default([]) %}
