@@ -45,7 +45,7 @@ data:
       - promenade-genesis=enabled
       - ucp-control-plane=enabled
   images:
-    armada: quay.io/airshipit/armada:master
+    armada: quay.io/airshipit/armada:master-ubuntu_xenial
     helm:
       tiller: gcr.io/kubernetes-helm/tiller:v2.14.0
     kubernetes:
