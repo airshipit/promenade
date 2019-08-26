@@ -18,32 +18,34 @@
 Promenade Exceptions
 ====================
 
-.. autoexception:: promenade.exceptions.ApiError
+.. currentmodule:: promenade.exceptions
+
+.. autoexception:: ApiError
    :members:
    :show-inheritance:
    :undoc-members:
 
-.. autoexception:: promenade.exceptions.InvalidFormatError
+.. autoexception:: InvalidFormatError
    :members:
    :show-inheritance:
    :undoc-members:
 
-.. autoexception:: promenade.exceptions.ValidationException
+.. autoexception:: ValidationException
    :members:
    :show-inheritance:
    :undoc-members:
 
-.. autoexception:: promenade.exceptions.KubernetesConfigException
+.. autoexception:: KubernetesConfigException
    :members:
    :show-inheritance:
    :undoc-members:
 
-.. autoexception:: promenade.exceptions.KubernetesApiError
+.. autoexception:: KubernetesApiError
    :members:
    :show-inheritance:
    :undoc-members:
 
-.. autoexception:: promenade.exceptions.NodeNotFoundException
+.. autoexception:: NodeNotFoundException
    :members:
    :show-inheritance:
    :undoc-members:

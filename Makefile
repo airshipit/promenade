@@ -34,90 +34,69 @@ HELM_PIDFILE ?= $(abspath ./.helm-pid)
 
 CHARTS := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
 
-.PHONY: all
 all: charts lint
 
-.PHONY: tests
 tests: external-deps gate-lint
 	tox
 
-.PHONY: tests-security
 tests-security:
 	tox -e bandit
 
-.PHONY: docs
-docs:
+docs: clean
 	tox -e docs
 
-.PHONY: tests-unit
 tests-unit: external-deps
 	tox -e py35
 
-.PHONY: external-deps
 external-deps:
 	./tools/install-external-deps.sh
 
-.PHONY: tests-pep8
 tests-pep8:
 	tox -e pep8
 
 chartbanner:
 	@echo Building charts: $(CHARTS)
 
-.PHONY: charts
 charts: $(CHARTS)
 	@echo Done building charts.
 
-.PHONY: helm-init
 helm-init: $(addprefix helm-init-,$(CHARTS))
 
-.PHONY: helm-init-%
 helm-init-%: helm-serve
 	@echo Initializing chart $*
 	cd charts;if [ -s $*/requirements.yaml ]; then echo "Initializing $*";$(HELM) dep up $*; fi
 
-.PHONY: lint
 lint: helm-lint gate-lint
 
-.PHONY: gate-lint
 gate-lint: gate-lint-deps
 	tox -e gate-lint
 
-.PHONY: gate-lint-deps
 gate-lint-deps:
 	sudo apt-get install -y --no-install-recommends shellcheck
 
-.PHONY: helm-lint
 helm-lint: $(addprefix helm-lint-,$(CHARTS))
 
-.PHONY: helm-lint-%
 helm-lint-%: helm-install helm-init-%
 	@echo Linting chart $*
 	cd charts;$(HELM) lint $*
 
-.PHONY: images
 images: check-docker build_promenade
 
-.PHONY: check-docker
 check-docker:
 	@if [ -z $$(which docker) ]; then \
 		echo "Missing \`docker\` client which is required for development"; \
 		exit 2; \
 	fi
 
-.PHONY: dry-run
 dry-run: $(addprefix dry-run-,$(CHARTS))
 
-.PHONY: dry-run-%
 dry-run-%: helm-lint-%
 	echo Running Dry-Run on chart $*
 	cd charts;$(HELM) template --set pod.resources.enabled=true $*
 
-.PHONY: $(CHARTS)
 $(CHARTS): $(addprefix dry-run-,$(CHARTS)) chartbanner
 	$(HELM) package -d charts charts/$@
 
-.PHONY: build_promenade
 build_promenade:
 ifeq ($(USE_PROXY), true)
 	docker build --network host -t $(IMAGE) --label $(LABEL) \
@@ -145,17 +124,20 @@ ifeq ($(PUSH_IMAGE), true)
 endif
 
 
-.PHONY: helm-serve
 helm-serve: helm-install
 	./tools/helm_tk.sh $(HELM) $(HELM_PIDFILE)
 
-.PHONY: clean
 clean:
+	rm -rf doc/build
 	rm -f charts/*.tgz
 	rm -f charts/*/requirements.lock
 	rm -rf charts/*/charts
 
 # Install helm binary
-.PHONY: helm-install
 helm-install:
 	tools/helm_install.sh $(HELM)
+
+.PHONY: $(CHARTS) all build_promenade charts check-docker clean docs \
+  dry-run dry-run-% external-deps gate-lint gate-lint-deps helm-init \
+  helm-init-% helm-install helm-lint helm-lint-% helm-serve images \
+  lint tests tests-pep8 tests-security tests-unit

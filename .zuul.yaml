@@ -11,12 +11,16 @@
 # limitations under the License.
 
 - project:
+    templates:
+      - docs-on-readthedocs
+    vars:
+      rtd_webhook_id: '38575'
+      rtd_project_name: 'airship-promenade'
     check:
       jobs:
         - openstack-tox-pep8
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
-        - airship-promenade-doc-build
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-unit-py35
@@ -27,7 +31,6 @@
         - openstack-tox-pep8
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
-        - airship-promenade-doc-build
         - airship-promenade-chart-build-gate
         - airship-promenade-unit-py35
         - airship-promenade-genesis-gate
@@ -87,19 +90,6 @@
     nodeset: airship-promenade-single-node
     files:
       - ^.*\.py$
-
-- job:
-    name: airship-promenade-doc-build
-    description: |
-      Locally build the documentation to check for errors
-    run: tools/zuul/playbooks/doc-build.yaml
-    timeout: 300
-    nodeset: airship-promenade-single-node
-    irrelevant-files:
-      - ^charts/.*$
-      - ^etc/.*$
-      - ^tests/.*$
-      - ^tools/.*$
 
 - job:
     name: airship-promenade-linter
