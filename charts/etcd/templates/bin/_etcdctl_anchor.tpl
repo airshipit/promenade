@@ -14,12 +14,14 @@
 # limitations under the License.
 set -x
 TEMP_MANIFEST=/tmp/etcd.yaml
-function sync_file {
+
+sync_file () {
     if ! cmp "$1" "$2"; then
         cp -f "$1" "$2"
     fi
 }
-function sync_certificates {
+
+sync_certificates () {
     mkdir -p /etcd-etc/tls
     sync_file /etc/etcd/tls/certs/client-ca.pem /etcd-etc/tls/client-ca.pem
     sync_file /etc/etcd/tls/certs/peer-ca.pem /etcd-etc/tls/peer-ca.pem
@@ -28,14 +30,16 @@ function sync_certificates {
     sync_file "/etc/etcd/tls/keys/${ETCD_NAME}-etcd-client-key.pem" /etcd-etc/tls/etcd-client-key.pem
     sync_file "/etc/etcd/tls/keys/${ETCD_NAME}-etcd-peer-key.pem" /etcd-etc/tls/etcd-peer-key.pem
 }
-function create_manifest {
+
+create_manifest () {
     WIP=/tmp/wip-manifest.yaml
     cp -f /anchor-etcd/{{ .Values.service.name }}.yaml $WIP
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_STATE_#'$2'#g' $WIP
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_#'$1'#g' $WIP
     mv -f "$WIP" "$3"
 }
-function sync_configuration {
+
+sync_configuration () {
     sync_certificates
     ETCD_INITIAL_CLUSTER=$(grep -v $PEER_ENDPOINT "$1" \
         | awk -F ', ' '{ print $3 "=" $4 }' \
@@ -47,7 +51,7 @@ function sync_configuration {
     chmod go-rwx "${MANIFEST_PATH}"
 }
 
-function cleanup_host {
+cleanup_host () {
     rm -f $MANIFEST_PATH
     rm -rf /etcd-etc/tls/
     rm -rf /etcd-data/*
