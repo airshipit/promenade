@@ -69,6 +69,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: ETCD_LOG_PACKAGE_LEVELS
+          value: {{ default "" .Values.etcd.logging.log_level | include "helm-toolkit.utils.joinListWithComma" }}
         - name: ETCD_CLIENT_CERT_AUTH
           value: "true"
         - name: ETCD_PEER_CLIENT_CERT_AUTH
