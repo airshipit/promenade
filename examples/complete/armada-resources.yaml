@@ -178,7 +178,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: master
+    reference: b7e2d6839ce600a7c1e2103f55d208ad3f5029ca
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -1547,7 +1547,7 @@ data:
         value: 3858a12230ac3c915f300c664f12063f
   source:
     type: git
-    location: https://github.com/openstack/airship-maas
+    location: https://opendev.org/airship/maas
     subpath: charts/maas
     reference: master
   dependencies:
@@ -1691,7 +1691,7 @@ data:
       node_selector_value: enabled
   source:
     type: git
-    location: https://github.com/openstack/airship-armada
+    location: https://opendev.org/airship/armada
     subpath: charts/tiller
     reference: master
   dependencies:
@@ -1738,7 +1738,7 @@ data:
           memcache_security_strategy: None
   source:
     type: git
-    location: https://github.com/openstack/airship-deckhand
+    location: https://opendev.org/airship/deckhand
     subpath: charts/deckhand
     reference: master
   dependencies:
@@ -1792,7 +1792,7 @@ data:
           ingester: drydock_provisioner.ingester.plugins.yaml.YamlIngester
   source:
     type: git
-    location: https://github.com/openstack/airship-drydock
+    location: https://opendev.org/airship/drydock
     subpath: charts/drydock
     reference: master
   dependencies:
@@ -1872,7 +1872,7 @@ data:
           port: 31903
   source:
     type: git
-    location: https://github.com/openstack/airship-armada
+    location: https://opendev.org/airship/armada
     subpath: charts/armada
     reference: master
   dependencies:
@@ -1932,7 +1932,7 @@ data:
           memcache_security_strategy: None
   source:
     type: git
-    location: https://github.com/openstack/airship-shipyard
+    location: https://opendev.org/airship/shipyard
     subpath: charts/shipyard
     reference: master
   dependencies:

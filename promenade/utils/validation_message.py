@@ -20,7 +20,7 @@ from promenade.utils.message import Message
 
 class ValidationMessage(Message):
     """ ValidationMessage per Airship convention:
-    https://github.com/openstack/airship-in-a-bottle/blob/master/doc/source/api-conventions.rst#output-structure  # noqa
+    https://opendev.org/airship/airship-in-a-bottle/src/branch/master/doc/source/api-conventions.rst#output-structure  # noqa
 
     Construction of ValidationMessage message:
 

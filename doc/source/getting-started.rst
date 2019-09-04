@@ -3,7 +3,7 @@ Getting Started
 
 Note: This document is meant to give a general understanding of how Promenade
 could be exercised in a development environment or for general learning and
-understanding. For holistic Airship deployment procedures, refer to `Treasuremap <https://github.com/openstack/airship-treasuremap>`_
+understanding. For holistic Airship deployment procedures, refer to `Treasuremap <https://opendev.org/airship/treasuremap>`_
 
 Basic Deployment
 ----------------

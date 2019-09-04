@@ -25,5 +25,5 @@ The provided Armada_ manifest and will be applied on the genesis node as soon
 as it is healthy.
 
 
-.. _Armada: https://github.com/openstack/airship-armada
-.. _Deckhand: https://github.com/openstack/airship-deckhand
+.. _Armada: https://opendev.org/airship/armada
+.. _Deckhand: https://opendev.org/airship/deckhand

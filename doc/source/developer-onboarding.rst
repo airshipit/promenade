@@ -239,4 +239,4 @@ For almost any other application, all of the above must be healthy before they
 will function properly.
 
 
-.. _`valid set of configuration`: https://github.com/openstack/airship-in-a-bottle
+.. _`valid set of configuration`: https://opendev.org/airship/airship-in-a-bottle

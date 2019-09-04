@@ -118,30 +118,6 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: helm-toolkit-tiller
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-data:
-  chart_name: helm-toolkit
-  release: helm-toolkit
-  namespace: helm-toolkit
-  wait:
-    timeout: 600
-  upgrade:
-    no_hooks: true
-  values: {}
-  source:
-    type: git
-    location: https://opendev.org/openstack/openstack-helm.git
-    subpath: helm-toolkit
-    reference: f902cd14fac7de4c4c9f7d019191268a6b4e9601
-  dependencies: []
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
   name: infra-helm-toolkit
   layeringDefinition:
     abstract: false
@@ -938,9 +914,9 @@ data:
     type: git
     location: https://opendev.org/airship/armada.git
     subpath: charts/tiller
-    reference: 8d1521e96c6b3163f7f6598ef15a11af0052cf04
+    reference: master
   dependencies:
-    - helm-toolkit-tiller
+    - helm-toolkit
 ---
 schema: armada/Chart/v1
 metadata:

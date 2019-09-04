@@ -112,31 +112,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: d6996b8004db35acad7d51412b0b3216189e745f
-  dependencies: []
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
-  name: helm-toolkit-tiller
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-data:
-  chart_name: helm-toolkit
-  release: helm-toolkit
-  namespace: helm-toolkit
-  wait:
-    timeout: 600
-  upgrade:
-    no_hooks: true
-  values: {}
-  source:
-    type: git
-    location: https://git.openstack.org/openstack/openstack-helm
-    subpath: helm-toolkit
-    reference: f902cd14fac7de4c4c9f7d019191268a6b4e9601
+    reference: b7e2d6839ce600a7c1e2103f55d208ad3f5029ca
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -160,7 +136,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: 681dee71b7befd199509b17852b3385d359a15a5
+    reference: b7e2d6839ce600a7c1e2103f55d208ad3f5029ca
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -1155,11 +1131,11 @@ data:
       node_selector_value: enabled
   source:
     type: git
-    location: https://github.com/openstack/airship-armada
+    location: https://opendev.org/airship/armada
     subpath: charts/tiller
-    reference: 8d1521e96c6b3163f7f6598ef15a11af0052cf04
+    reference: master
   dependencies:
-    - helm-toolkit-tiller
+    - helm-toolkit
 ---
 schema: armada/Chart/v1
 metadata:
