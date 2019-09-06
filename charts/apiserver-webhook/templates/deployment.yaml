@@ -103,6 +103,8 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-apiserver-webhook
   labels:
+  annotations:
+{{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 4 }}
 {{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   replicas: {{ $envAll.Values.pod.replicas.api }}
@@ -114,9 +116,12 @@ spec:
       labels:
 {{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
+{{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
+      nodeSelector:
+        {{ .Values.labels.kubernetes_apiserver.node_selector_key }}: {{ .Values.labels.kubernetes_apiserver.node_selector_value }}
       affinity:
 {{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_pod_anti_affinity" | indent 8 }}
       dnsPolicy: ClusterFirst
