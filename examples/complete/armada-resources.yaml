@@ -1718,7 +1718,7 @@ data:
             password: sergtsop
     images:
       tags:
-        deckhand: quay.io/airshipit/deckhand:master
+        deckhand: quay.io/airshipit/deckhand:master-ubuntu_xenial
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         db_init: docker.io/postgres:9.5
         db_sync: docker.io/postgres:9.5
@@ -1857,7 +1857,7 @@ data:
           tiller_namespace: kube-system
     images:
       tags:
-        api: quay.io/airshipit/armada:master
+        api: quay.io/airshipit/armada:master-ubuntu_xenial
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         ks_endpoints: docker.io/openstackhelm/heat:newton
         ks_service: docker.io/openstackhelm/heat:newton

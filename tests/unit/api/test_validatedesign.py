@@ -101,7 +101,7 @@ VALID_DOCS = [
             'hostname':
             'n0',
             'images': {
-                'armada': 'quay.io/airshipit/armada:master',
+                'armada': 'quay.io/airshipit/armada:master-ubuntu_xenial',
                 'helm': {
                     'tiller': 'gcr.io/kubernetes-helm/tiller:v2.14.0'
                 },
