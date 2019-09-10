@@ -41,7 +41,12 @@ etcd:
   host_etc_path: /etc/etcd-example
   host_data_path: /var/lib/etcd/example
   cleanup_data: true
-
+  logging:
+    # Set individual etcd subpackages to specific log levels.
+    # An example being etcdserver=WARNING,security=DEBUG
+    log_level:
+      - etcdserver=DEBUG
+      - security=DEBUG
 backup:
   host_backup_path: /var/backups/etcd
   backup_log_file: /var/log/etcd-backup.log
