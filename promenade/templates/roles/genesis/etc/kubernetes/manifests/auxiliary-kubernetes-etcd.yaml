@@ -27,14 +27,14 @@ spec:
         - |-
           set -x
 
-          function external_member_count() {
+          external_member_count () {
               etcdctl member list \
                   | grep '\bstarted\b' \
                   | grep -Ev "\\b(auxiliary-0|auxiliary-1)\\b" \
                   | wc -l
           }
 
-          function remove_if_possible() {
+          remove_if_possible () {
               MEMBER_NAME=$1
               MEMBER_ID=$(etcdctl member list | grep "${MEMBER_NAME}" | awk -F ', ' '{ print $1 }')
               if [ -n "${MEMBER_ID}" ]; then
