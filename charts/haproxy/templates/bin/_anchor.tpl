@@ -35,10 +35,11 @@ install_config() {
     SUCCESS=1
     # Inject global and default config
     mkdir -p $(dirname "$HAPROXY_CONF")
-    cp "$HAPROXY_HEADER" "$NEXT_HAPROXY_CONF"
+    cat "$HAPROXY_HEADER" > "$NEXT_HAPROXY_CONF"
 
     {{- range $namespace, $services := $envAll.Values.conf.anchor.services }}
     {{- range $service, $svc_data := $services }}
+    {{- if $svc_data }}
     {{- $fe_count = add $fe_count 1 }}
 
     echo Constructing config for namespace=\"{{ $namespace }}\" service=\"{{ $service }}\"
@@ -52,6 +53,12 @@ install_config() {
         --namespace {{ $namespace }} \
             get endpoints {{ $service }} \
                 -o 'jsonpath={.subsets[0].addresses[*].ip}')
+
+    if [ $? -ne 0]; then
+      echo "Unable to retrieve service IPs for {{ $service }}, will retry configuration render."
+      return 1
+    fi
+
     DEST_PORT=$(kubectl \
         --server "$KUBE_URL" \
         --certificate-authority "$KUBE_CA" \
@@ -59,11 +66,18 @@ install_config() {
         --namespace {{ $namespace }} \
             get endpoints {{ $service }} \
                 -o 'jsonpath={.subsets[0].ports[0].port}')
+
+    if [ $? -ne 0]; then
+      echo "Unable to retrieve service port for {{ $service }}, will retry configuration render."
+      return 1
+    fi
+
     set -x
 
     if [ "x$SERVICE_IPS" != "x" ]; then
         if [ "x$DEST_PORT" != "x" ]; then
             IDENTIFIER=$(echo "{{ $namespace }}-{{ $service }}")
+            echo "Adding $IDENTIFIER to haproxy config"
             # Add frontend config
             echo >> "$NEXT_HAPROXY_CONF"
             echo "frontend ${IDENTIFIER}-fe" >> "$NEXT_HAPROXY_CONF"
@@ -86,6 +100,7 @@ install_config() {
             {{- end }}
 
             for IP in $SERVICE_IPS; do
+                echo "Adding backend $IP:$DEST_PORT"
                 echo "  server s$IP $IP:$DEST_PORT" {{ $svc_data.server_opts | quote }} >> "$NEXT_HAPROXY_CONF"
             done
         else
@@ -96,6 +111,7 @@ install_config() {
         echo Failed to get endpoint IPs for service.
         SUCCESS=0
     fi
+    {{- end }}
     {{- end }}
     {{- end }}
 
@@ -115,7 +131,10 @@ install_config() {
         fi
         chmod -R go-rwx $(dirname "$HAPROXY_CONF")
         chown -R $RUNASUSER:$RUNASUSER $(dirname "$HAPROXY_CONF")
+        return 0
     fi
+
+    return 1
 }
 
 validate_config() {
@@ -155,9 +174,9 @@ while true; do
         break
     fi
 
-    install_config
-
-    compare_copy_files
+    if install_config; then
+      compare_copy_files
+    fi
 
     sleep {{ .Values.conf.anchor.period }}
 done

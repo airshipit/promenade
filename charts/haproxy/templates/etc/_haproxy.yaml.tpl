@@ -38,21 +38,40 @@ spec:
           value: {{ .Values.conf.haproxy.container_config_dir }}/haproxy.cfg
         - name: LIVE_HAPROXY_CONF
           value: /tmp/live_haproxy.cfg
+        - name: STAGE_HAPROXY_CONF
+          value: /tmp/stage_haproxy.cfg
       command:
         - /bin/sh
         - -c
         - |
             set -eux
 
-            while [ ! -s "$HAPROXY_CONF" ]; do
-                echo Waiting for "HAPROXY_CONF"
+            test_conf () {
+              if [ ! -s "$HAPROXY_CONF" ]; then
+                 echo "New proposed config not found at $HAPROXY_CONF"
+                 return 1
+              fi
+              # this is a safety gate to avoid a race of the anchor
+              # changing a possible new config between the validation
+              # and installation
+              echo "Staging proposed config for installation."
+              cp "$HAPROXY_CONF" "$STAGE_HAPROXY_CONF"
+              if [ ! haproxy -c -f "$STAGE_HAPROXY_CONF"]; then
+                echo "Proposed config not valid."
+                return 1
+              fi
+              return 0
+            }
+
+            while ! test_conf; do
                 sleep 1
             done
+
             echo vvv Starting with initial config vvv
-            cat "$HAPROXY_CONF"
+            cat "$STAGE_HAPROXY_CONF"
             echo
-            cp "$HAPROXY_CONF" "$LIVE_HAPROXY_CONF"
-            chmod 700 $LIVE_HAPROXY_CONF
+            mv "$STAGE_HAPROXY_CONF" "$LIVE_HAPROXY_CONF"
+            chmod 700 "$LIVE_HAPROXY_CONF"
 
             # NOTE(mark-burnett): sleep for clearer log output
             sleep 1
@@ -64,7 +83,7 @@ spec:
             set +x
             while true; do
                 if ! cmp -s "$HAPROXY_CONF" "$LIVE_HAPROXY_CONF"; then
-                    if ! haproxy -c -f "$HAPROXY_CONF"; then
+                    if ! test_conf; then
                       echo New config file appears invalid, refusing to replace.
                     else
                       echo vvv Replacing old config vvv
@@ -72,10 +91,10 @@ spec:
                       echo
 
                       echo vvv With new config vvv
-                      cat "$HAPROXY_CONF"
+                      cat "$STAGE_HAPROXY_CONF"
                       echo
 
-                      cat "$HAPROXY_CONF" > "$LIVE_HAPROXY_CONF"
+                      cp "$STAGE_HAPROXY_CONF" "$LIVE_HAPROXY_CONF"
 
                       # NOTE(mark-burnett): sleep for clearer log output
                       sleep 1
