@@ -69,6 +69,8 @@ spec:
         - |-
           set -x
 
+          declare -i attempt=1
+
           while true; do
               sleep 10
               if armada \
@@ -76,15 +78,21 @@ spec:
                       --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
                       --tiller-host 127.0.0.1 \
                       --tiller-port {{ tiller_listen }} \
+                      $([[ $attempt -le $ARMADA_METRICS_MAX_ATTEMPTS ]] && echo --metrics-output "${ARMADA_METRICS_OUTPUT_DIR}/armada-bootstrap-${attempt}.prom") \
                       /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
                   break
               fi
+              attempt+=1
           done
           touch /ipc/armada-done
           sleep 10000
       env:
         - name: ARMADA_LOGFILE
           value: /tmp/log/bootstrap-armada.log
+        - name: ARMADA_METRICS_OUTPUT_DIR
+          value: /tmp/metrics
+        - name: ARMADA_METRICS_MAX_ATTEMPTS
+          value: "{{ config.get_path('Genesis:armada.metrics.max_attempts', 10) }}"
   {%- if config['KubernetesNetwork:proxy.url'] is defined %}
         - name: HTTP_PROXY
           value: {{ config['KubernetesNetwork:proxy.url'] }}
@@ -108,6 +116,8 @@ spec:
           mountPath: /ipc
         - name: log
           mountPath: /tmp/log
+        - name: metrics
+          mountPath: /tmp/metrics
     - name: monitor
       image: {{ config['HostSystem:images.monitoring_image'] }}
       command:
@@ -161,6 +171,9 @@ spec:
     - name: log
       hostPath:
         path: /var/log/armada
+    - name: metrics
+      hostPath:
+        path: {{ config.get_path('Genesis:armada.metrics.output_dir', '/var/log/node-exporter-textfiles') }}
     - name: config
       hostPath:
         path: /etc/genesis/apiserver
