@@ -3,6 +3,7 @@
 set -eux
 
 IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
+IMAGE_HYPERKUBE=${IMAGE_HYPERKUBE:-gcr.io/google_containers/hyperkube-amd64:v1.11.6}
 PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
 
 SCRIPT_DIR=$(realpath $(dirname $0))
@@ -28,9 +29,6 @@ PROMENADE_TMP_LOCAL="$(basename "$PROMENADE_TMP_LOCAL")"
 PROMENADE_TMP="${SCRIPT_DIR}/${PROMENADE_TMP_LOCAL}"
 mkdir -p "$PROMENADE_TMP"
 chmod 777 "$PROMENADE_TMP"
-
-DOCKER_SOCK="/var/run/docker.sock"
-sudo chmod o+rw $DOCKER_SOCK
 
 cp "${CONFIG_SOURCE}"/*.yaml ${BUILD_DIR}
 
@@ -59,6 +57,12 @@ docker run --rm -t \
 fi
 
 if [[ -z $1 ]] || [[ $1 = build-all ]]; then
+echo === Prepare hyperkube ===
+docker run --rm -t \
+    -v "${PROMENADE_TMP}:/tmp/${PROMENADE_TMP_LOCAL}" \
+    "${IMAGE_HYPERKUBE}" \
+        cp /hyperkube "/tmp/${PROMENADE_TMP_LOCAL}"
+
 echo === Building bootstrap scripts ===
 docker run --rm -t \
     -w /target \
@@ -66,11 +70,7 @@ docker run --rm -t \
     -e http_proxy=${HTTP_PROXY} \
     -e https_proxy=${HTTPS_PROXY} \
     -e no_proxy=${NO_PROXY} \
-    -v "${PROMENADE_TMP}:/${PROMENADE_TMP_LOCAL}" \
-    -v "${DOCKER_SOCK}:${DOCKER_SOCK}" \
-    -e "DOCKER_HOST=unix:/${DOCKER_SOCK}" \
-    -e "PROMENADE_TMP=${PROMENADE_TMP}" \
-    -e "PROMENADE_TMP_LOCAL=/${PROMENADE_TMP_LOCAL}" \
+    -v "${PROMENADE_TMP}:/tmp/${PROMENADE_TMP_LOCAL}" \
     -v ${BUILD_DIR}:/target \
     ${IMAGE_PROMENADE} \
     promenade \
@@ -79,7 +79,5 @@ docker run --rm -t \
     --validators \
     $(ls ${BUILD_DIR})
 fi
-
-sudo chmod o-rw $DOCKER_SOCK
 
 echo === Done ===

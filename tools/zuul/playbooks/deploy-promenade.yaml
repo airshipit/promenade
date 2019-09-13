@@ -16,7 +16,7 @@
       HTTP_PROXY: ""
       HTTPS_PROXY: ""
       NO_PROXY: ""
-      PROMENADE_TMP_LOCAL: "tmp_bin"
+      PROMENADE_TMP_LOCAL: "cache"
   become: true
   tasks:
     - name: Install docker

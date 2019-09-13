@@ -49,10 +49,13 @@ class JoinScriptsResource(BaseResource):
 
         join_ips = _get_join_ips()
 
+        # extract_hyperkube is False for join script because hyperkube should
+        # be extracted in the init container before running promenade
         try:
             config = Configuration.from_design_ref(
                 design_ref,
                 allow_missing_substitutions=False,
+                extract_hyperkube=False,
                 leave_kubectl=leave_kubectl)
         except exceptions.DeckhandException:
             LOG.exception('Caught Deckhand render error for configuration')

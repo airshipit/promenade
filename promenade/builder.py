@@ -48,7 +48,7 @@ class Builder:
             if 'content' in file_spec:
                 data = file_spec['content']
             elif 'docker_image' in file_spec:
-                data = _fetch_image_content(self.config.container_info,
+                data = _fetch_image_content(self.config,
                                             file_spec['docker_image'],
                                             file_spec['file_path'])
             elif 'symlink' in file_spec:
@@ -71,7 +71,6 @@ class Builder:
             self.config.get_path('Genesis:files', []))
 
     def build_all(self, *, output_dir):
-        self.config.get_container_info()
         self.build_genesis(output_dir=output_dir)
         for node_document in self.config.iterate(
                 schema='promenade/KubernetesNode/v1'):
@@ -179,6 +178,7 @@ def _encrypt(cfg_dict, data):
 
 
 # The following environment variables should be used
+# to extract hyperkube from image:
 # export DOCKER_HOST="unix://var/run/docker.sock"
 # export PROMENADE_TMP="tmp_dir_on_host"
 # export PROMENADE_TMP_LOCAL="tmp_dir_inside_container"
@@ -187,20 +187,25 @@ def _encrypt(cfg_dict, data):
 @CACHE.cache('fetch_image', expire=72 * 3600)
 def _fetch_image_content(config, image_url, file_path):
     file_name = os.path.basename(file_path)
-    if config is None:
-        result_path = os.path.join(TMP_CACHE, file_name)
-        if not os.path.isfile(result_path):
-            raise Exception(
-                'ERROR: there is no container info and no file in cache')
-    else:
-        result_path = os.path.join(config['dir_local'], file_name)
-        client = config['client']
-        vol = {config['dir']: {'bind': config['dir_local'], 'mode': 'rw'}}
-        cmd = 'cp -v {} {}'.format(file_path, config['dir_local'])
+    if config.extract_hyperkube:
+        container_info = config.get_container_info()
+        result_path = os.path.join(container_info['dir_local'], file_name)
+        client = container_info['client']
+        vol = {
+            container_info['dir']: {
+                'bind': container_info['dir_local'],
+                'mode': 'rw'
+            }
+        }
+        cmd = 'cp -v {} {}'.format(file_path, container_info['dir_local'])
         image = client.images.pull(image_url)
         output = client.containers.run(
             image, command=cmd, auto_remove=True, volumes=vol)
         LOG.debug(output)
+    else:
+        result_path = os.path.join(TMP_CACHE, file_name)
+        if not os.path.isfile(result_path):
+            raise Exception('ERROR: there is no hyperkube in cache')
     f = open(result_path, 'rb')
     return f.read()
 
