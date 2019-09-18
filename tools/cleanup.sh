@@ -19,6 +19,7 @@ TO_RM=(
     "/etc/genesis"
     "/etc/kubernetes"
     "/etc/logrotate.d/json-logrotate"
+    "/etc/promenade"
     "/etc/systemd/system/kubelet.service"
     "/etc/systemd/system/docker.service.d/http-proxy.conf"
     "/home/ceph"
