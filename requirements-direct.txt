@@ -11,8 +11,7 @@ kubernetes==3.0.0
 oslo.context==2.19.2
 oslo.policy==1.22.1
 pastedeploy==1.5.2
-pbr==3.0.1
-pyyaml==3.12
-requests==2.20.0
+pyyaml~=5.1
+requests==2.22.0
 uwsgi==2.0.15
-git+https://opendev.org/airship/deckhand.git@48c774c64855dca0fc9a149d8dd182805fa9f48d#egg=deckhand
+git+https://opendev.org/airship/deckhand.git@7d2092b100bddcab77fca0acadd9fc99ba59797b#egg=deckhand

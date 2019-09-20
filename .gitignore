@@ -28,3 +28,11 @@ __pycache__
 
 # Additional gate artifacts
 .fiotest
+
+# virtualenv
+.venv
+venv/
+ENV/
+
+# pycharm-ide
+.idea/
