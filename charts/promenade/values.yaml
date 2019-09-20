@@ -73,6 +73,13 @@ labels:
   node_selector_key: ucp-control-plane
   node_selector_value: enabled
 
+network_policy:
+  promenade:
+    ingress:
+      - {}
+    egress:
+      - {}
+
 manifests:
   configmap_bin: true
   configmap_etc: true
@@ -84,6 +91,7 @@ manifests:
   job_ks_user: true
   secret_keystone: true
   test_promenade_api: true
+  network_policy: false
 
 network:
   api:
