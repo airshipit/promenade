@@ -31,6 +31,7 @@ Here is a complete sample document:
       tiller:
         listen: 24134
         probe_listen: 24135
+        storage: secret
       labels:
         static:
           - calico-etcd=enabled
@@ -85,6 +86,30 @@ Configuration for Armada bootstrap metric collection.
 |                 |          | Can be set to 0 to disable metrics collection.                                        |
 +-----------------+----------+---------------------------------------------------------------------------------------+
 
+Tiller
+------
+
+Configuration options for bootstrapping with Tiller.
+
++-----------------+----------+---------------------------------------------------------------------------------------+
+| keyword         | type     | action                                                                                |
++=================+==========+=======================================================================================+
+| storage         | string   | (optional, not passed by default) The tiller `storage`_ arg to use. `                 |
++-----------------+----------+---------------------------------------------------------------------------------------+
+| listen          | integer  | (optional, default `24134`) The tiller `listen` arg to use. See `Ports`_.             |
++-----------------+----------+---------------------------------------------------------------------------------------+
+| probe_listen    | integer  | (optional, default `24135`) The tiller `probe_listen` arg to use. See `Ports`_.       |
++-----------------+----------+---------------------------------------------------------------------------------------+
+
+Ports
+^^^^^
+
+By default, promenade uses tiller ports outside of `net.ipv4.ip_local_port_range` to
+avoid conflicts with apiserver connections to etcd, see `example`_.
+
+The `listen` and `probe_listen` parameters allow setting these back to the
+upstream tiller defaults (or any other value) if desired.
+
 Bootstrapping Images
 --------------------
 
@@ -100,3 +125,6 @@ Bootstrapping images are specified in the top level key ``images``:
       controller-manager: <Controller Manager image for bootstrapping>
       etcd: <etcd image for bootstrapping>
       scheduler: <Scheduler image for bootstrapping>
+
+.. _storage: https://helm.sh/docs/using_helm/#tiller-s-release-information
+.. _example: https://helm.sh/docs/developing_charts/#chart-dependencies

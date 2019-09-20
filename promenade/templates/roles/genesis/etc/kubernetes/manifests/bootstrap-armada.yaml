@@ -4,6 +4,7 @@
 #}
 {% set tiller_listen = config['Genesis:tiller.listen'] | default(24134) %}
 {% set tiller_probe_listen = config['Genesis:tiller.probe_listen'] | default(24135) %}
+{% set tiller_storage = config.get_path('Genesis:tiller.storage') %}
 ---
 apiVersion: v1
 kind: Pod
@@ -23,6 +24,9 @@ spec:
       image: {{ config['Genesis:images.helm.tiller'] }}
       command:
         - /tiller
+{%- if tiller_storage %}
+        - "--storage={{ tiller_storage }}"
+{%- endif %}
         - -listen
         - ":{{ tiller_listen }}"
         - -probe-listen
