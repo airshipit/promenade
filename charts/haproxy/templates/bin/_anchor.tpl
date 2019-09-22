@@ -57,6 +57,13 @@ install_config() {
     if [ $? -ne 0]; then
       echo "Unable to retrieve service IPs for {{ $service }}, will retry configuration render."
       return 1
+    else
+      for IP in $SERVICE_IPS; do
+        if echo -n "$IP" | grep -qvE '^([0-9]{1,3}\.?){4}$'; then
+          echo "Backend IP "$IP" doesn't appear to be a valid IP, short-circuiting update..."
+          return 1
+        fi
+      done
     fi
 
     DEST_PORT=$(kubectl \
@@ -70,6 +77,11 @@ install_config() {
     if [ $? -ne 0]; then
       echo "Unable to retrieve service port for {{ $service }}, will retry configuration render."
       return 1
+    else
+      if echo -n "$DEST_PORT" | grep -qvE '^[0-9]{1,5}$'; then
+        echo "Backend destination port $DEST_PORT doesn't appear to be valid, short-circuiting update..."
+        return 1
+      fi
     fi
 
     set -x
