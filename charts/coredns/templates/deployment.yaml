@@ -82,6 +82,44 @@ spec:
               topologyKey: kubernetes.io/hostname
 {{- end }}
       containers:
+      - name: coredns-health
+        image: {{ $envAll.Values.images.tags.test | quote }}
+        imagePullPolicy: {{ $envAll.Values.images.pull_policy | quote }}
+{{ tuple $envAll $envAll.Values.pod.resources.coredns | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
+{{ dict "envAll" $envAll "application" "coredns" "container" "coredns" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 8 }}
+        command: ["python"]
+        args:
+        - "-u"
+        - "/tmp/bin/probe.py"
+        - "--filename"
+        - "/tmp/etc/names_to_resolve"
+        - "--check-port"
+        - {{ $envAll.Values.conf.test.coredns_check_port | quote | default "8080" }}
+        - "--listen-port"
+        - {{ $envAll.Values.conf.test.ext_health_check_port | quote | default "8282" }}
+        volumeMounts:
+        - name: scripts
+          mountPath: /tmp/bin
+        - name: dns-names
+          mountPath: /tmp/etc
+        livenessProbe:
+          httpGet:
+            port: {{ $envAll.Values.conf.test.ext_health_check_port | default "8282" }}
+            path: /selfcheck
+            scheme: HTTP
+          initialDelaySeconds: 60
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            port: {{ $envAll.Values.conf.test.ext_health_check_port | default "8282" }}
+            path: /selfcheck
+            scheme: HTTP
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
       - name: coredns
         image: {{ $envAll.Values.images.tags.coredns | quote }}
         imagePullPolicy: {{ $envAll.Values.images.pull_policy | quote }}
@@ -91,8 +129,6 @@ spec:
         volumeMounts:
         - name: config-volume
           mountPath: /etc/coredns
-        - name: scripts
-          mountPath: /tmp/bin
         ports:
         - containerPort: 53
           name: dns
@@ -100,17 +136,20 @@ spec:
         - containerPort: 53
           name: dns-tcp
           protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-              - /tmp/bin/probe.sh
-          initialDelaySeconds: 2
+        livenessProbe:
+          httpGet:
+            port: {{ $envAll.Values.conf.test.ext_health_check_port | default "8282" }}
+            path: /externalhealth
+            scheme: HTTP
+          initialDelaySeconds: 60
           timeoutSeconds: 5
           successThreshold: 1
-        livenessProbe:
-          exec:
-            command:
-              - /tmp/bin/probe.sh
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            port: {{ $envAll.Values.conf.test.ext_health_check_port | default "8282" }}
+            path: /externalhealth
+            scheme: HTTP
           initialDelaySeconds: 10
           timeoutSeconds: 5
           successThreshold: 1
@@ -126,5 +165,9 @@ spec:
         - name: scripts
           configMap:
             name: {{ $envAll.Values.service.name }}-bin
+            defaultMode: 0555
+        - name: dns-names
+          configMap:
+            name: {{ $envAll.Values.service.name }}-list
             defaultMode: 0555
 {{ end }}

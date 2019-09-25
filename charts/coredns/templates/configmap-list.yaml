@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.service.name }}-list
+data:
+  names_to_resolve: |
+{{ tuple "etc/_list.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}

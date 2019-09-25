@@ -42,6 +42,7 @@ RUN set -ex \
     && apt-get clean \
     && apt-get update -q \
     && apt-get install --no-install-recommends -y \
+        dnsutils \
         libyaml-dev \
         rsync \
     && useradd -u 1000 -g users -d /opt/promenade promenade \

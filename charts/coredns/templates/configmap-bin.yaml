@@ -4,5 +4,5 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.service.name }}-bin
 data:
-  probe.sh: |
-{{ tuple "bin/_probe.sh.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+  probe.py: |
+{{ tuple "bin/_probe.py.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}

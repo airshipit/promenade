@@ -552,8 +552,8 @@ data:
           - kubernetes.default.svc.cluster.local
     images:
       tags:
-        coredns: coredns/coredns:1.1.3
-        test: coredns/coredns:1.1.3
+        coredns: coredns/coredns:1.6.2
+        test: quay.io/airshipit/promenade:master
   source:
     type: local
     location: /etc/genesis/armada/assets/charts
