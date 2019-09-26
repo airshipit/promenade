@@ -19,6 +19,8 @@ data:
       - --endpoint-reconciler-type=lease
   armada:
     target_manifest: cluster-bootstrap
+  tiller:
+    storage: secret
   labels:
     dynamic:
       - calico-etcd=enabled

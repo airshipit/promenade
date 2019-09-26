@@ -114,6 +114,8 @@ data:
           type: integer
         probe_listen:
           type: integer
+        storage:
+          type: string
       additionalProperties: false
 
     files:
