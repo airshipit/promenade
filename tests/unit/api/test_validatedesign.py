@@ -111,7 +111,7 @@ VALID_DOCS = [
                     'controller-manager':
                     'gcr.io/google_containers/hyperkube-amd64:v1.11.6',
                     'etcd':
-                    'quay.io/coreos/etcd:v3.2.18',
+                    'quay.io/coreos/etcd:v3.3.12',
                     'scheduler':
                     'gcr.io/google_containers/hyperkube-amd64:v1.11.6'
                 }
