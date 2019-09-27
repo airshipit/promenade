@@ -54,7 +54,8 @@ controller_manager:
     log_level: 5
 
 command_prefix:
-  - /controller-manager
+  - /hyperkube
+  - kube-controller-manager
   - --cluster-cidr=10.97.0.0/16
   - --node-monitor-period=5s
   - --node-monitor-grace-period=20s

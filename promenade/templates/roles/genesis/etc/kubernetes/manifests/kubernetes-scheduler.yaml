@@ -17,7 +17,7 @@ spec:
       image: {{ config['Genesis:images.kubernetes.scheduler'] }}
       command:
       - ./hyperkube
-      - scheduler
+      - kube-scheduler
       - --leader-elect=true
       - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
       - --feature-gates=TaintNodesByCondition=true

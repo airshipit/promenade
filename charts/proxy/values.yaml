@@ -52,7 +52,8 @@ proxy:
     log_level: 5
 
 command_prefix:
-  - /proxy
+  - /hyperkube
+  - kube-proxy
   - --proxy-mode=iptables
   - --cluster-cidr=10.97.0.0/16
 

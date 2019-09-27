@@ -5,7 +5,6 @@ After=network-online.target
 
 [Service]
 ExecStart=/opt/kubernetes/bin/kubelet \
-    --allow-privileged=true \
     --anonymous-auth=false \
     --client-ca-file=/etc/kubernetes/pki/kubelet-client-ca.pem \
     --cluster-dns={{ config['KubernetesNetwork:dns.service_ip'] }} \

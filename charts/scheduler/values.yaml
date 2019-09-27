@@ -82,5 +82,6 @@ service:
   name: kubernetes-scheduler
 
 command_prefix:
-  - /scheduler
+  - /hyperkube
+  - kube-scheduler
   - --feature-gates=TaintNodesByCondition=true
