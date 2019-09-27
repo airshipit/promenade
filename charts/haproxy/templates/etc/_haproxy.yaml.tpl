@@ -56,7 +56,7 @@ spec:
               # and installation
               echo "Staging proposed config for installation."
               cp "$HAPROXY_CONF" "$STAGE_HAPROXY_CONF"
-              if [ ! haproxy -c -f "$STAGE_HAPROXY_CONF"]; then
+              if ! haproxy -c -f "$STAGE_HAPROXY_CONF"; then
                 echo "Proposed config not valid."
                 return 1
               fi
