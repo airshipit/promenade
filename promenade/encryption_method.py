@@ -84,7 +84,7 @@ class GPGEncryptionMethod(EncryptionMethod):
         '''
 
     def get_decrypt_command(self):
-        return ('/usr/bin/gpg --verbose --decrypt '
+        return ('/usr/bin/gpg --verbose --decrypt --batch '
                 '--passphrase "${DECRYPTION_KEY}"')
 
     def get_decrypt_teardown_command(self):
