@@ -99,6 +99,8 @@ spec:
               mountPath: /tmp/etc
             - name: host
               mountPath: /host
+            - name: pod-tmp
+              mountPath: /tmp
       volumes:
         - name: haproxy-bin
           configMap:
