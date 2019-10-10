@@ -5,16 +5,10 @@ After=network-online.target
 
 [Service]
 ExecStart=/opt/kubernetes/bin/kubelet \
-    --anonymous-auth=false \
-    --client-ca-file=/etc/kubernetes/pki/kubelet-client-ca.pem \
-    --cluster-dns={{ config['KubernetesNetwork:dns.service_ip'] }} \
-    --cluster-domain={{ config['KubernetesNetwork:dns.cluster_domain'] }} \
+    --config=/etc/kubernetes/kubelet/config.yaml \
     --hostname-override={{ config.get_first('Genesis:hostname', 'KubernetesNode:hostname') }} \
     --kubeconfig=/etc/kubernetes/kubeconfig \
     --node-ip={{ config.get_first('Genesis:ip', 'KubernetesNode:ip') }} \
-    --pod-manifest-path=/etc/kubernetes/manifests \
-    --tls-cert-file=/etc/kubernetes/pki/kubelet.pem \
-    --tls-private-key-file=/etc/kubernetes/pki/kubelet-key.pem \
     {%- if config['Genesis:labels.static'] is defined %}
     --node-labels={{ config['Genesis:labels.static'] | join(',') }} \
     {%- elif config['KubernetesNode:labels.static'] is defined %}

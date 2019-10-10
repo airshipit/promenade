@@ -2,9 +2,12 @@ Kubelet
 =======
 
 Configuration for the Kubernetes worker daemon (the Kubelet).  This document
-contains two keys: ``arguments`` and ``images``.  The ``arguments`` are
-appended directly to the ``kubelet`` command line, along with arguments that
-are controlled by Promenade more directly.
+contains three keys: ``arguments``, ``images``, and ``config_file_overrides``.
+The ``arguments`` are appended directly to the ``kubelet`` command line,
+along with arguments that are controlled by Promenade more directly.
+The ``config_file_overrides`` are appended directly to the static kubelet
+configuration file and only consists of a subset of kubelet arguments.
+More information regarding the format for this key can be found here_.
 
 The only image that is configurable is for the ``pause`` container.
 
@@ -27,9 +30,12 @@ Here is a sample document:
       arguments:
         - --cni-bin-dir=/opt/cni/bin
         - --cni-conf-dir=/etc/cni/net.d
-        - --eviction-max-pod-grace-period=-1
         - --network-plugin=cni
-        - --node-status-update-frequency=5s
         - --v=5
       images:
         pause: gcr.io/google_containers/pause-amd64:3.0
+      config_file_overrides:
+        evictionMaxPodGracePeriod: -1
+        nodeStatusUpdateFrequency: "5s"
+
+.. _here: https://kubernetes.io/docs/tasks/administer-cluster/kubelet-config-file
