@@ -1,6 +1,9 @@
 # Disable overwriting our resolv.conf
 #
-resolvconf --disable-updates
+if [ -h /etc/resolv.conf ]; then
+  log "=== Removing resolv.conf symlink ==="
+  rm -f /etc/resolv.conf
+fi
 
 CURATED_DIRS=(
     /etc/kubernetes

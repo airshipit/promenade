@@ -45,6 +45,11 @@
     nodes:
       - name: primary
         label: ubuntu-xenial
+- nodeset:
+    name: airship-promenade-single-node-bionic
+    nodes:
+      - name: primary
+        label: ubuntu-bionic
 
 - job:
     name: airship-promenade-genesis-gate
@@ -52,7 +57,7 @@
       Deploy airship promenade genesis
     run: tools/zuul/playbooks/deploy-promenade.yaml
     timeout: 3600
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-bionic
 
 - job:
     name: airship-promenade-lint-ws
