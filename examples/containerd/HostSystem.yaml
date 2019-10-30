@@ -1,0 +1,118 @@
+---
+schema: promenade/HostSystem/v1
+metadata:
+  schema: metadata/Document/v1
+  name: host-system
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
+data:
+  systemd_units:
+    kube-cgroup:
+      enable: true
+  files:
+    - path: /opt/kubernetes/bin/hyperkube
+      docker_image: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      file_path: /hyperkube
+      mode: 0555
+    - path: /opt/kubernetes/bin/kubelet
+      symlink: /opt/kubernetes/bin/hyperkube
+      mode: 0555
+    - path: /usr/local/bin/kubectl
+      symlink: /opt/kubernetes/bin/hyperkube
+      mode: 0555
+    - path: /etc/systemd/system/kube-cgroup.service
+      content: |
+        [Unit]
+        Description=Create and tune cgroup for Kubernetes Pods
+        Requires=network-online.target
+        Before=kubelet.service
+
+        [Service]
+        Delegate=yes
+        ExecStart=/usr/local/sbin/kube-cgroup.sh
+
+        [Install]
+        RequiredBy=kubelet.service
+      mode: 0444
+    - path: /usr/local/sbin/kube-cgroup.sh
+      mode: 0744
+      content: |-
+        #!/bin/bash
+
+        set -x
+
+        KUBE_CGROUP=${KUBE_CGROUP:-"kube_whitelist"}
+        SYSTEMD_ABSPATH="/sys/fs/cgroup/systemd/$KUBE_CGROUP"
+        CPUSET_ABSPATH="/sys/fs/cgroup/cpuset/$KUBE_CGROUP"
+        CPU_ABSPATH="/sys/fs/cgroup/cpu/$KUBE_CGROUP"
+        MEM_ABSPATH="/sys/fs/cgroup/memory/$KUBE_CGROUP"
+
+        for cg in $SYSTEMD_ABSPATH $CPUSET_ABSPATH $CPU_ABSPATH $MEM_ABSPATH
+        do
+          mkdir -p "$cg"
+        done
+    - path: /etc/logrotate.d/json-logrotate
+      mode: 0444
+      content: |-
+        /var/lib/docker/containers/*/*-json.log
+        {
+            compress
+            copytruncate
+            create 0644 root root
+            daily
+            dateext
+            dateformat -%Y%m%d-%s
+            maxsize 10M
+            missingok
+            notifempty
+            su root root
+            rotate 1
+        }
+    - path: /etc/profile.d/kubeconfig.sh
+      mode: 0744
+      content: |-
+        export KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml
+    - path: /etc/containerd/config.toml
+      mode: 0400
+      content: |-
+        version = 2
+        [plugins.cri]
+        [plugins.cri.registry.mirrors]
+        [plugins.cri.registry.mirrors."registry:5000"]
+          endpoint = ["http://registry:5000"]
+  images:
+    monitoring_image: &busybox busybox:1.28.3
+    haproxy: haproxy:1.8.3
+    helm:
+      helm: lachlanevenson/k8s-helm:v2.14.0
+  packages:
+    common:
+      additional:
+        - ceph-common
+        - curl
+        - jq
+      required:
+        runtime: containerd
+        socat: socat
+    genesis:
+      additional:
+        - ceph-common
+        - curl
+        - jq
+      required:
+        runtime: containerd
+        socat: socat
+    join:
+      additional:
+        - ceph-common
+        - curl
+        - jq
+      required:
+        runtime: containerd
+        socat: socat
+  validation:
+    pod_logs:
+      image: *busybox
+...

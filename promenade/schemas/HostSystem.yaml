@@ -139,13 +139,13 @@ data:
           required:
             type: object
             properties:
-              docker:
-                $ref: '#/definitions/package'
+              oneOf:
+                - docker:
+                    $ref: '#/definitions/package'
+                - runtime:
+                    $ref: '#/definitions/package'
               socat:
                 $ref: '#/definitions/package'
-            required:
-              - docker
-              - socat
             additionalProperties: false
 
           repositories:
@@ -172,13 +172,13 @@ data:
           required:
             type: object
             properties:
-              docker:
-                $ref: '#/definitions/package'
+              oneOf:
+                - docker:
+                    $ref: '#/definitions/package'
+                - runtime:
+                    $ref: '#/definitions/package'
               socat:
                 $ref: '#/definitions/package'
-            required:
-              - docker
-              - socat
             additionalProperties: false
 
           repositories:
@@ -205,13 +205,13 @@ data:
           required:
             type: object
             properties:
-              docker:
-                $ref: '#/definitions/package'
+              oneOf:
+                - docker:
+                    $ref: '#/definitions/package'
+                - runtime:
+                    $ref: '#/definitions/package'
               socat:
                 $ref: '#/definitions/package'
-            required:
-              - docker
-              - socat
             additionalProperties: false
 
           repositories:

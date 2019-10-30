@@ -138,6 +138,8 @@ vm_create() {
 
     ssh_wait "${NAME}"
     ssh_cmd "${NAME}" sync
+    # docker enables forwarding, containerd - does not
+    ssh_cmd "${NAME}" sysctl net.ipv4.conf.all.forwarding=1
 }
 
 vm_create_all() {

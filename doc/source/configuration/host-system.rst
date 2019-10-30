@@ -1,8 +1,8 @@
 HostSystem
 ==========
 
-Sample Document
----------------
+Sample Document to run containers in Docker runtime
+---------------------------------------------------
 
 .. code-block:: yaml
 
@@ -63,7 +63,40 @@ Sample Document
           - curl
           - jq
         required:
-          docker: docker-engine=1.13.1-0~ubuntu-xenial
+          runtime: docker-engine=1.13.1-0~ubuntu-xenial
+          socat: socat=1.7.3.1-1
+
+
+Sample Document to run containers in Containerd runtime
+-------------------------------------------------------
+
+.. code-block:: yaml
+
+    schema: promenade/HostSystem/v1
+    metadata:
+      schema: metadata/Document/v1
+      name: host-system
+      layeringDefinition:
+        abstract: false
+        layer: site
+    data:
+      files:
+        - path: /opt/kubernetes/bin/kubelet
+          tar_url: https://dl.k8s.io/v1.11.6/kubernetes-node-linux-amd64.tar.gz
+          tar_path: kubernetes/node/bin/kubelet
+          mode: 0555
+      images:
+        haproxy: haproxy:1.8.3
+        helm:
+          helm: lachlanevenson/k8s-helm:v2.14.0
+        kubernetes:
+          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      packages:
+        additional:
+          - curl
+          - jq
+        required:
+          runtime: containerd
           socat: socat=1.7.3.1-1
 
 

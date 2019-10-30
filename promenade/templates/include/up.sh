@@ -91,25 +91,27 @@ while true; do
 done
 
 {% for role in roles %}
-    {%- if config['HostSystem:packages.' + role + '.repositories'] is defined %}
-        while true; do
-            if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-                    {%- for package in config['HostSystem:packages.' + role + '.additional'] | default([]) %}
-                    {{ package }} \
-                    {%- endfor %}
+    while true; do
+        if ! DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-confold" -y --no-install-recommends \
+                {%- for package in config['HostSystem:packages.' + role + '.additional'] | default([]) %}
+                {{ package }} \
+                {%- endfor %}
+                {%- if config['HostSystem:packages.' + role + '.required.docker']  is defined %}
                     {{ config['HostSystem:packages.' + role + '.required.docker'] }} \
-                    {{ config['HostSystem:packages.' + role + '.required.socat'] }}; then
-                now=$(date +%s)
-                if [[ ${now} -gt ${end} ]]; then
-                    log Failed to install apt packages.
-                    exit 1
-                fi
-                sleep 10
-            else
-                break
+                {%- elif config['HostSystem:packages.' + role + '.required.runtime']  is defined %}
+                    {{ config['HostSystem:packages.' + role + '.required.runtime'] }} \
+                {%- endif %}
+                {{ config['HostSystem:packages.' + role + '.required.socat'] }}; then
+            now=$(date +%s)
+            if [[ ${now} -gt ${end} ]]; then
+                log Failed to install apt packages.
+                exit 1
             fi
-        done
-    {%- endif %}
+            sleep 10
+        else
+            break
+        fi
+    done
 {% endfor %}
 
 # Start core processes
@@ -126,6 +128,11 @@ systemctl {{ a }} {{ u }}
 {% endfor %}
 {% endfor %}
 
-systemctl restart docker || true
+if systemctl -q is-enabled docker > /dev/null 2>&1; then
+  systemctl restart docker || true
+fi
+if systemctl -q is-enabled containerd > /dev/null 2>&1; then
+  systemctl restart containerd || true
+fi
 systemctl enable kubelet
 systemctl restart kubelet

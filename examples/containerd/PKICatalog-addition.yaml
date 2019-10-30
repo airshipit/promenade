@@ -1,0 +1,22 @@
+---
+schema: promenade/PKICatalog/v1
+metadata:
+  schema: metadata/Document/v1
+  name: cluster-certificates-addition
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
+data:
+  certificate_authorities:
+    kubernetes:
+      description: CA for Kubernetes components
+      certificates:
+        - document_name: kubelet-n3
+          common_name: system:node:n3
+          hosts:
+            - n3
+            - 192.168.77.13
+          groups:
+            - system:nodes
+...

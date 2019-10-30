@@ -85,7 +85,7 @@ data:
         - curl
         - jq
       required:
-        docker: docker-engine
+        runtime: docker-engine
         socat: socat
     genesis:
       repositories:
@@ -126,7 +126,7 @@ data:
         - curl
         - jq
       required:
-        docker: docker-engine
+        runtime: docker-engine
         socat: socat
     join:
       repositories:
@@ -167,6 +167,6 @@ data:
         - curl
         - jq
       required:
-        docker: docker-engine
+        runtime: docker-engine
         socat: socat
 ...

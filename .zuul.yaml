@@ -25,6 +25,7 @@
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-unit-py35
         - airship-promenade-genesis-gate
+        - airship-promenade-genesis-containerd-gate
 
     gate:
       jobs:
@@ -34,6 +35,7 @@
         - airship-promenade-chart-build-gate
         - airship-promenade-unit-py35
         - airship-promenade-genesis-gate
+        - airship-promenade-genesis-containerd-gate
 
     post:
       jobs:
@@ -57,6 +59,14 @@
       Deploy airship promenade genesis
     run: tools/zuul/playbooks/deploy-promenade.yaml
     post-run: tools/zuul/playbooks/debug-report.yaml
+    timeout: 3600
+    nodeset: airship-promenade-single-node-bionic
+
+- job:
+    name: airship-promenade-genesis-containerd-gate
+    description: |
+      Deploy airship promenade genesis with containerd
+    run: tools/zuul/playbooks/deploy-promenade-containerd.yaml
     timeout: 3600
     nodeset: airship-promenade-single-node-bionic
 

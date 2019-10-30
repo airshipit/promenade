@@ -1,0 +1,82 @@
+---
+schema: promenade/Genesis/v1
+metadata:
+  schema: metadata/Document/v1
+  name: genesis
+  layeringDefinition:
+    abstract: false
+    layer: site
+  storagePolicy: cleartext
+  substitutions:
+    - src:
+        schema: promenade/EncryptionPolicy/v1
+        name: encryption-policy
+        path: .etcd
+      dest:
+        path: .apiserver.encryption
+data:
+  hostname: n0
+  ip: 192.168.77.10
+  external_ip: 192.168.77.10
+  apiserver:
+    arguments:
+      - --authorization-mode=Node,RBAC
+      - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,EventRateLimit,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota
+      - --service-cluster-ip-range=10.96.0.0/16
+      - --endpoint-reconciler-type=lease
+      - --feature-gates=PodShareProcessNamespace=true
+      # NOTE(segorov): This flag is removed in Kubernetes 1.14
+      - --repair-malformed-updates=false
+      - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
+      - --experimental-encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml
+      - --v=3
+  armada:
+    target_manifest: cluster-bootstrap
+  tiller:
+    storage: secret
+  etcd:
+    auxiliary_threshold: 3
+  labels:
+    dynamic:
+      - calico-etcd=enabled
+      - coredns=enabled
+      - kubernetes-apiserver=enabled
+      - kubernetes-controller-manager=enabled
+      - kubernetes-etcd=enabled
+      - kubernetes-scheduler=enabled
+      - promenade-genesis=enabled
+      - ucp-control-plane=enabled
+  haproxy:
+    run_as_user: 65534
+  images:
+    armada: quay.io/airshipit/armada:master-ubuntu_xenial
+    helm:
+      tiller: gcr.io/kubernetes-helm/tiller:v2.14.0
+    kubernetes:
+      apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      etcd: quay.io/coreos/etcd:v3.3.12
+      scheduler: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+  files:
+    - path: /var/lib/anchor/calico-etcd-bootstrap
+      content: "# placeholder for triggering calico etcd bootstrapping"
+      mode: 0644
+    # NOTE(mark-burnett): These are referenced by the apiserver arguments above.
+    - path: /etc/genesis/apiserver/acconfig.yaml
+      mode: 0444
+      content: |
+        kind: AdmissionConfiguration
+        apiVersion: apiserver.k8s.io/v1alpha1
+        plugins:
+          - name: EventRateLimit
+            path: eventconfig.yaml
+    - path: /etc/genesis/apiserver/eventconfig.yaml
+      mode: 0444
+      content: |
+        kind: Configuration
+        apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+        limits:
+          - type: Server
+            qps: 1000
+            burst: 10000
+...
