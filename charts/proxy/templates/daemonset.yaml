@@ -39,6 +39,7 @@ spec:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
+{{ dict "envAll" $envAll "application" "proxy" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       hostNetwork: true
       shareProcessNamespace: true
       dnsPolicy: Default
@@ -63,8 +64,7 @@ spec:
           - --v={{ .Values.proxy.logging.log_level }}
           {{- end }}
 {{ tuple $envAll $envAll.Values.pod.resources.proxy | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
-        securityContext:
-          privileged: true
+{{ dict "envAll" $envAll "application" "proxy" "container" "proxy" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 8 }}
         env:
           - name: KUBERNETES_SERVICE_HOST
             value: {{ .Values.kube_service.host }}

@@ -18,6 +18,15 @@ manifests:
   rbac: true
 
 pod:
+  security_context:
+    proxy:
+      pod:
+        runAsUser: 65534
+      container:
+        proxy:
+          runAsUser: 0
+          privileged: true
+          readOnlyRootFilesystem: false
   lifecycle:
     upgrades:
       daemonsets:
