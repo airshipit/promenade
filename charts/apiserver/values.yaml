@@ -265,6 +265,14 @@ endpoints:
       #     key: null
 
 pod:
+  security_context:
+    kubernetes_apiserver_anchor:
+      pod:
+        runAsUser: 65534
+      container:
+        anchor:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
   mounts:
     kubernetes_apiserver:
       init_container: null
