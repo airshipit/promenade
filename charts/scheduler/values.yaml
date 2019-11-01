@@ -25,6 +25,14 @@ labels:
     node_selector_value: enabled
 
 pod:
+  security_context:
+    scheduler:
+      pod:
+        runAsUser: 65534
+      container:
+        anchor:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
   lifecycle:
     upgrades:
       daemonsets:

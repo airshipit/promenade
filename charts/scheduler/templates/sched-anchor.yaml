@@ -40,6 +40,7 @@ spec:
       labels:
 {{ $labels | indent 8 }}
     spec:
+{{ dict "envAll" $envAll "application" "scheduler" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       hostNetwork: true
       dnsPolicy: {{ .Values.anchor.dns_policy }}
       nodeSelector:
@@ -55,6 +56,7 @@ spec:
           image: {{ .Values.images.tags.anchor }}
           imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.anchor_daemonset | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "scheduler" "container" "anchor" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           command:
             - /tmp/bin/anchor
           lifecycle:
