@@ -91,6 +91,8 @@ spec:
               mountPath: /host
             - name: secret
               mountPath: /secret
+            - name: pod-tmp
+              mountPath: /tmp
 {{ if $mounts_controller_manager.volumeMounts }}{{ toYaml $mounts_controller_manager.volumeMounts | indent 12 }}{{ end }}
       volumes:
         - name: {{ .Values.service.name }}-bin
@@ -108,5 +110,7 @@ spec:
           secret:
             secretName: {{ .Values.service.name }}
             defaultMode: 0444
+        - name: pod-tmp
+          emptyDir: {}
 {{ if $mounts_controller_manager.volumes }}{{ toYaml $mounts_controller_manager.volumes | indent 8 }}{{ end }}
 {{- end }}

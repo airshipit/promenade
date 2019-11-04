@@ -81,6 +81,8 @@ spec:
               mountPath: /host
             - name: secret
               mountPath: /secret
+            - name: pod-tmp
+              mountPath: /tmp
       terminationGracePeriodSeconds: {{ .Values.anchor.termination_grace_period }}
       volumes:
         - name: bin
@@ -98,3 +100,5 @@ spec:
           secret:
             secretName: kubernetes-scheduler
             defaultMode: 0444
+        - name: pod-tmp
+          emptyDir: {}
