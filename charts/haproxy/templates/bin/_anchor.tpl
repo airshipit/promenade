@@ -54,7 +54,7 @@ install_config() {
             get endpoints {{ $service }} \
                 -o 'jsonpath={.subsets[0].addresses[*].ip}')
 
-    if [ $? -ne 0]; then
+    if [ $? -ne 0 ]; then
       echo "Unable to retrieve service IPs for {{ $service }}, will retry configuration render."
       return 1
     else
@@ -74,7 +74,7 @@ install_config() {
             get endpoints {{ $service }} \
                 -o 'jsonpath={.subsets[0].ports[0].port}')
 
-    if [ $? -ne 0]; then
+    if [ $? -ne 0 ]; then
       echo "Unable to retrieve service port for {{ $service }}, will retry configuration render."
       return 1
     else
