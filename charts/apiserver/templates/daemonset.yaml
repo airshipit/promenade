@@ -99,6 +99,8 @@ spec:
               mountPath: /tmp/bin
             - name: {{ .Values.service.name }}-etc
               mountPath: /tmp/etc
+            - name: pod-tmp
+              mountPath: /tmp
 {{ if $mounts_kubernetes_apiserver.volumeMounts }}{{ toYaml $mounts_kubernetes_apiserver.volumeMounts | indent 12 }}{{ end }}
       volumes:
         - name: {{ .Values.service.name }}-bin
@@ -120,5 +122,7 @@ spec:
           configMap:
             name: {{ .Values.service.name }}-etc
             defaultMode: 0444
+        - name: pod-tmp
+          emptyDir: {}
 {{ if $mounts_kubernetes_apiserver.volumes }}{{ toYaml $mounts_kubernetes_apiserver.volumes | indent 8 }}{{ end }}
 {{- end }}
