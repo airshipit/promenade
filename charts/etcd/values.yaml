@@ -14,8 +14,8 @@
 
 images:
   tags:
-    etcd: quay.io/coreos/etcd:v3.4.0
-    etcdctl: quay.io/coreos/etcd:v3.4.0
+    etcd: quay.io/coreos/etcd:v3.4.2
+    etcdctl: quay.io/coreos/etcd:v3.4.2
   pull_policy: "IfNotPresent"
 
 labels:
@@ -41,6 +41,7 @@ etcd:
   host_etc_path: /etc/etcd-example
   host_data_path: /var/lib/etcd/example
   cleanup_data: true
+  etcdctl_api: "3"
   logging:
     # Set individual etcd subpackages to specific log levels.
     # An example being etcdserver=WARNING,security=DEBUG

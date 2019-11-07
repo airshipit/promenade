@@ -59,7 +59,7 @@ spec:
     - name: "{{ .Release.Name }}-etcd-test"
       env:
         - name: ETCDCTL_API
-          value: '3'
+          value: "{{ .Values.etcd.etcdctl_api }}"
         - name: ETCDCTL_DIAL_TIMEOUT
           value: 3s
         - name: ETCDCTL_ENDPOINTS

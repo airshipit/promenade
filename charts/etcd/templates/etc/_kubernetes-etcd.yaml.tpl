@@ -106,7 +106,7 @@ spec:
         - name: ETCD_INITIAL_CLUSTER
           value: _ETCD_INITIAL_CLUSTER_
         - name: ETCDCTL_API
-          value: '3'
+          value: "{{ .Values.etcd.etcdctl_api }}"
         - name: ETCDCTL_DIAL_TIMEOUT
           value: 3s
         - name: ETCDCTL_ENDPOINTS

@@ -112,7 +112,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: b7e2d6839ce600a7c1e2103f55d208ad3f5029ca
+    reference: b50fae62a4ad0992ce877cd632800e1eed5f71a9
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -136,7 +136,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: b7e2d6839ce600a7c1e2103f55d208ad3f5029ca
+    reference: b50fae62a4ad0992ce877cd632800e1eed5f71a9
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -364,8 +364,8 @@ data:
       filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.3.12
-        etcdctl: quay.io/coreos/etcd:v3.3.12
+        etcd: quay.io/coreos/etcd:v3.4.2
+        etcdctl: quay.io/coreos/etcd:v3.4.2
     nodes:
       - name: n0
         tls:
@@ -429,28 +429,42 @@ metadata:
     layer: site
   storagePolicy: cleartext
   substitutions:
-    -
-      src:
+    - src:
         schema: deckhand/CertificateAuthority/v1
         name: calico-etcd
         path: .
       dest:
         path: '.values.endpoints.etcd.auth.client.tls.ca'
-    -
-      src:
+    - src:
         schema: deckhand/Certificate/v1
         name: calico-node
         path: .
       dest:
         path: '.values.endpoints.etcd.auth.client.tls.crt'
-    -
-      src:
+    - src:
         schema: deckhand/CertificateKey/v1
         name: calico-node
         path: .
       dest:
         path: '.values.endpoints.etcd.auth.client.tls.key'
-
+    - src:
+        schema: deckhand/CertificateAuthority/v1
+        name: calico-etcd
+        path: .
+      dest:
+        path: '.values.conf.etcd.credentials.ca'
+    - src:
+        schema: deckhand/Certificate/v1
+        name: calico-node
+        path: .
+      dest:
+        path: '.values.conf.etcd.credentials.certificate'
+    - src:
+        schema: deckhand/CertificateKey/v1
+        name: calico-node
+        path: .
+      dest:
+        path: '.values.conf.etcd.credentials.key'
 data:
   chart_name: calico
   release: calico
@@ -484,7 +498,7 @@ data:
         K8S_API: "https://10.96.0.1:443"
 
       node:
-        CALICO_STARTUP_LOGLEVEL: INFO
+        CALICO_STARTUP_LOGLEVEL: DEBUG
         CLUSTER_TYPE:
           - k8s
           - bgp
@@ -506,12 +520,13 @@ data:
 
     images:
       tags:
-        calico_node: quay.io/calico/node:v2.6.5
-        calico_cni: quay.io/calico/cni:v1.11.2
-        calico_ctl: quay.io/calico/ctl:v1.6.2
-        calico_settings: quay.io/calico/ctl:v1.6.2
-        calico_kube_policy_controller: quay.io/calico/kube-policy-controller:v0.7.0
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        calico_etcd: quay.io/coreos/etcd:v3.4.2
+        calico_node: quay.io/calico/node:v3.4.0
+        calico_cni: quay.io/calico/cni:v3.4.0
+        calico_ctl: quay.io/calico/ctl:v3.4.0
+        calico_settings: quay.io/calico/ctl:v3.4.0
+        calico_kube_controllers: quay.io/calico/kube-controllers:v3.4.0
+        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
 
     manifests:
       daemonset_calico_etcd: false
@@ -520,7 +535,7 @@ data:
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
-    reference: 681dee71b7befd199509b17852b3385d359a15a5
+    reference: b50fae62a4ad0992ce877cd632800e1eed5f71a9
     subpath: calico
   dependencies:
     - infra-helm-toolkit
@@ -1051,8 +1066,8 @@ data:
       host_etc_path: /etc/etcd/kubernetes
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.3.12
-        etcdctl: quay.io/coreos/etcd:v3.3.12
+        etcd: quay.io/coreos/etcd:v3.4.2
+        etcdctl: quay.io/coreos/etcd:v3.4.2
     nodes:
       - name: n0
         tls:

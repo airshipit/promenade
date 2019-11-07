@@ -50,7 +50,7 @@ Here is a complete sample document:
         kubernetes:
           apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
           controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.11.6
-          etcd: quay.io/coreos/etcd:v3.0.17
+          etcd: quay.io/coreos/etcd:v3.4.2
           scheduler: gcr.io/google_containers/hyperkube-amd64:v1.11.6
       files:
         - path: /var/lib/anchor/calico-etcd-bootstrap

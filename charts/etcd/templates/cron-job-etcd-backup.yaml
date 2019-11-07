@@ -79,7 +79,7 @@ spec:
 {{ tuple $envAll $envAll.Values.pod.resources.jobs.etcd_backup | include "helm-toolkit.snippets.kubernetes_resources" | indent 14 }}
               env:
                 - name: ETCDCTL_API
-                  value: '3'
+                  value: "{{ .Values.etcd.etcdctl_api }}"
                 - name: ETCDCTL_DIAL_TIMEOUT
                   value: {{ .Values.backup.etcdctl_dial_timeout }}
                 - name: ETCDCTL_ENDPOINTS
