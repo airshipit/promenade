@@ -45,6 +45,7 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ''
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
+{{ dict "envAll" $envAll "application" "kubernetes_apiserver_anchor" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       nodeSelector:
         {{ .Values.labels.kubernetes_apiserver.node_selector_key }}: {{ .Values.labels.kubernetes_apiserver.node_selector_value }}
       dnsPolicy: {{ .Values.anchor.dns_policy }}
@@ -60,6 +61,7 @@ spec:
           image: {{ .Values.images.tags.anchor }}
           imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.anchor_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "kubernetes_apiserver_anchor" "container" "anchor" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           env:
           - name: MANIFEST_PATH
             value: /host{{ .Values.anchor.kubelet.manifest_path }}/{{ .Values.service.name }}.yaml
