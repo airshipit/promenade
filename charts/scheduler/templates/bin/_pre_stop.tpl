@@ -15,7 +15,7 @@
 # limitations under the License.
 */}}
 
-set -x
+set -ex
 
 touch /tmp/stop
 sleep {{ .Values.anchor.period }}
