@@ -56,6 +56,7 @@
     description: |
       Deploy airship promenade genesis
     run: tools/zuul/playbooks/deploy-promenade.yaml
+    post-run: tools/zuul/playbooks/debug-report.yaml
     timeout: 3600
     nodeset: airship-promenade-single-node-bionic
 
