@@ -40,16 +40,26 @@ spec:
         - -c
         - |
           SUCCESS=1
-          {{- range .Values.conf.test.names_to_resolve }}
-          if dig {{ . }}; then
-            echo "Successfully resolved {{ . }}"
-          else
-            echo "Failed to resolve {{ . }}"
-            SUCCESS=0
-          fi
-          {{- end }}
+          while read host; do
+            if [ -n "$host" ]; then
+              if host "$host"; then
+                echo "Successfully resolved: \"$host\""
+              else
+                echo "Failed to resolve: \"$host\""
+                SUCCESS=0
+              fi
+            fi
+          done < /tmp/etc/names_to_resolve
           if [ "$SUCCESS" != "1" ]; then
             echo "Test failed to resolve all names."
             exit 1
           fi
+      volumeMounts:
+        - name: dns-names
+          mountPath: /tmp/etc
+  volumes:
+    - name: dns-names
+      configMap:
+        name: {{ $envAll.Values.service.name }}-list
+        defaultMode: 0555
 {{- end }}

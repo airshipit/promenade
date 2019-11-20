@@ -584,7 +584,6 @@ data:
       test:
         names_to_resolve:
           - calico-etcd.kube-system.svc.cluster.local
-          - kubernetes-etcd.kube-system.svc.cluster.local
           - kubernetes.default.svc.cluster.local
 
     images:
