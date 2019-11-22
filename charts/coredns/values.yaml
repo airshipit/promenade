@@ -24,7 +24,7 @@ conf:
 
 images:
   tags:
-    coredns: coredns/coredns:1.6.2
+    coredns: coredns/coredns:1.6.4
     test: quay.io/airshipit/promenade:latest
   pull_policy: "IfNotPresent"
 
