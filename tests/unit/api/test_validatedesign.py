@@ -204,7 +204,7 @@ VALID_DOCS = [
                 '--network-plugin=cni', '--v=5'
             ],
             'images': {
-                'pause': 'gcr.io/google_containers/pause-amd64:3.0'
+                'pause': 'gcr.io/google_containers/pause-amd64:3.1'
             },
             'config_file_overrides': {
                 'evictionMaxPodGracePeriod': -1,
