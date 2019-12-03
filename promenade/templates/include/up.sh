@@ -5,6 +5,10 @@ if [ -h /etc/resolv.conf ]; then
   rm -f /etc/resolv.conf
 fi
 
+systemctl disable systemd-resolved.service
+systemctl stop systemd-resolved.service
+systemctl mask systemd-resolved.service
+
 CURATED_DIRS=(
     /etc/kubernetes
     /var/lib/etcd
@@ -101,7 +105,10 @@ done
                 {%- elif config['HostSystem:packages.' + role + '.required.runtime']  is defined %}
                     {{ config['HostSystem:packages.' + role + '.required.runtime'] }} \
                 {%- endif %}
-                {{ config['HostSystem:packages.' + role + '.required.socat'] }}; then
+                {%- if config['HostSystem:packages.' + role + '.required.socat']  is defined %}
+                    {{ config['HostSystem:packages.' + role + '.required.socat'] }} \
+                {%- endif %}
+                ;then
             now=$(date +%s)
             if [[ ${now} -gt ${end} ]]; then
                 log Failed to install apt packages.
