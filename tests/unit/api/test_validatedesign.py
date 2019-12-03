@@ -103,7 +103,7 @@ VALID_DOCS = [
             'images': {
                 'armada': 'quay.io/airshipit/armada:master-ubuntu_xenial',
                 'helm': {
-                    'tiller': 'gcr.io/kubernetes-helm/tiller:v2.14.0'
+                    'tiller': 'gcr.io/kubernetes-helm/tiller:v2.16.1'
                 },
                 'kubernetes': {
                     'apiserver':

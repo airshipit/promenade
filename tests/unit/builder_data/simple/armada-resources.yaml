@@ -977,7 +977,7 @@ data:
   values:
     images:
       tags:
-        tiller: gcr.io/kubernetes-helm/tiller:v2.14.0
+        tiller: gcr.io/kubernetes-helm/tiller:v2.16.1
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
