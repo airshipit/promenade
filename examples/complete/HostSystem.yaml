@@ -10,7 +10,7 @@ metadata:
 data:
   files:
     - path: /opt/kubernetes/bin/hyperkube
-      docker_image: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      docker_image: gcr.io/google_containers/hyperkube-amd64:v1.16.2
       file_path: /hyperkube
       mode: 0555
     - path: /opt/kubernetes/bin/kubelet

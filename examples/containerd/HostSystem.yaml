@@ -13,7 +13,7 @@ data:
       enable: true
   files:
     - path: /opt/kubernetes/bin/hyperkube
-      docker_image: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+      docker_image: gcr.io/google_containers/hyperkube-amd64:v1.16.2
       file_path: /hyperkube
       mode: 0555
     - path: /opt/kubernetes/bin/kubelet
@@ -48,8 +48,9 @@ data:
         CPUSET_ABSPATH="/sys/fs/cgroup/cpuset/$KUBE_CGROUP"
         CPU_ABSPATH="/sys/fs/cgroup/cpu/$KUBE_CGROUP"
         MEM_ABSPATH="/sys/fs/cgroup/memory/$KUBE_CGROUP"
+        PIDS_ABSPATH="/sys/fs/cgroup/pids/$KUBE_CGROUP"
 
-        for cg in $SYSTEMD_ABSPATH $CPUSET_ABSPATH $CPU_ABSPATH $MEM_ABSPATH
+        for cg in $SYSTEMD_ABSPATH $CPUSET_ABSPATH $CPU_ABSPATH $MEM_ABSPATH $PIDS_ABSPATH
         do
           mkdir -p "$cg"
         done
