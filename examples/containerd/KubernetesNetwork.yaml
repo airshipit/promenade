@@ -36,6 +36,13 @@ data:
       names:
         - registry
 
+  ntp:
+    servers:
+      - 0.us.pool.ntp.org
+      - 1.us.pool.ntp.org
+      - 2.us.pool.ntp.org
+      - 3.us.pool.ntp.org
+
 #  proxy:
 #    url: http://proxy.example.com:8080
 #    additional_no_proxy:
