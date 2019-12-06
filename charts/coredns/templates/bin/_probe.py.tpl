@@ -17,12 +17,24 @@ class httpHandler(BaseHTTPRequestHandler):
         failed = False
         res = requests.get("http://127.0.0.1:{}/health".format(args.check_port))
         if res.status_code >= 400:
+          print('Failed /health check, status code = : {}'.format(res.status_code))
           failed = True
-        res = subprocess.run(
-                ["dig", "+time=2", "+tries=1", "@127.0.0.1", "-f", args.filename],
-                stdout=subprocess.DEVNULL)
-        if res.returncode != 0:
-          failed = True
+
+        with open(args.filename, 'r') as fh:
+          for host in fh.read().splitlines():
+            # ignore blank lines
+            if not host:
+              continue
+            res = subprocess.run(
+              ["host", "-W=2", "-R=1", host, "127.0.0.1"],
+              stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT)
+            if res.returncode != 0:
+              print('Failed to resolve host: "{}"'.format(host))
+              print(res.stdout)
+              failed = True
+              break
+
         if failed:
           print('Check failed')
           self.send_response(500)
