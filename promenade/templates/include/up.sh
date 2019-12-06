@@ -82,15 +82,16 @@ set -x
 
 end=$(($(date +%s) + APT_INSTALL_TIMEOUT))
 while true; do
-    if ! apt-get update; then
+    if ! apt-get update 2>&1 | grep -q '^W: Failed to fetch'; then
+        break
+    else
         now=$(date +%s)
         if [[ ${now} -gt ${end} ]]; then
-            log Failed to update apt-cache.
+            log "Failed to update apt-cache."
             exit 1
         fi
+        log "re-try apt-get update..."
         sleep 10
-    else
-        break
     fi
 done
 
