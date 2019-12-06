@@ -82,7 +82,7 @@ spec:
               - -c
               - |-
                 if [ ! -f /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem ]; then
-                  cat /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-key.pem /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver.pem > /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem
+                  cat /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-key.pem <(echo) /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver.pem > /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem
                 fi
                 echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem,cafile=/host{{ .Values.apiserver.host_etc_path }}/pki/cluster-ca.pem | grep '200 OK'
                 exit $?
