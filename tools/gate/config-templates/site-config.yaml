@@ -30,6 +30,13 @@ data:
   etcd:
     container_port: 2379
     haproxy_port: 2378
+
+  ntp:
+    servers:
+      - 0.us.pool.ntp.org
+      - 1.us.pool.ntp.org
+      - 2.us.pool.ntp.org
+      - 3.us.pool.ntp.org
 ---
 schema: promenade/Docker/v1
 metadata:
@@ -104,6 +111,7 @@ data:
         -----END PGP PUBLIC KEY BLOCK-----
     additional:
       - ceph-common
+      - chrony
     required:
       docker: docker-engine
       socat: socat

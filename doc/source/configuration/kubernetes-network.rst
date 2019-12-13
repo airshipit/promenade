@@ -45,6 +45,13 @@ Sample Document
           names:
             - registry
 
+      ntp:
+        servers:
+          - 0.us.pool.ntp.org
+          - 1.us.pool.ntp.org
+          - 2.us.pool.ntp.org
+          - 3.us.pool.ntp.org
+
       proxy:
         url: http://proxy.example.com:8080
         additional_no_proxy:
@@ -90,6 +97,14 @@ The ``kubernetes`` key contains:
 
 ``service_ip``
     The in-cluster Kubernetes service IP.
+
+NTP
+----------
+
+The ``ntp`` key contains:
+
+``servers``
+    The list of ntp server FQDN or ip addresses used for time synchronization.
 
 
 .. _coredns: https://github.com/coredns/coredns

@@ -62,6 +62,7 @@ Sample Document to run containers in Docker runtime
         additional:
           - curl
           - jq
+          - chrony
         required:
           runtime: docker-engine=1.13.1-0~ubuntu-xenial
           socat: socat=1.7.3.1-1
@@ -95,6 +96,7 @@ Sample Document to run containers in Containerd runtime
         additional:
           - curl
           - jq
+          - chrony
         required:
           runtime: containerd
           socat: socat=1.7.3.1-1

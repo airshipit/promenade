@@ -118,6 +118,7 @@ data:
         - ceph-common
         - curl
         - jq
+        - chrony
       required:
         runtime: docker-engine
         socat: socat
@@ -159,6 +160,7 @@ data:
         - ceph-common
         - curl
         - jq
+        - chrony
       required:
         runtime: docker-engine
         socat: socat
@@ -200,6 +202,7 @@ data:
         - ceph-common
         - curl
         - jq
+        - chrony
       required:
         runtime: docker-engine
         socat: socat
