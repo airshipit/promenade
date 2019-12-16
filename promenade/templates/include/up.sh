@@ -94,32 +94,27 @@ while true; do
     fi
 done
 
-{% for role in roles %}
-    while true; do
-        if ! DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-confold" -y --no-install-recommends \
-                {%- for package in config['HostSystem:packages.' + role + '.additional'] | default([]) %}
-                {{ package }} \
-                {%- endfor %}
-                {%- if config['HostSystem:packages.' + role + '.required.docker']  is defined %}
-                    {{ config['HostSystem:packages.' + role + '.required.docker'] }} \
-                {%- elif config['HostSystem:packages.' + role + '.required.runtime']  is defined %}
-                    {{ config['HostSystem:packages.' + role + '.required.runtime'] }} \
-                {%- endif %}
-                {%- if config['HostSystem:packages.' + role + '.required.socat']  is defined %}
-                    {{ config['HostSystem:packages.' + role + '.required.socat'] }} \
-                {%- endif %}
-                ;then
-            now=$(date +%s)
-            if [[ ${now} -gt ${end} ]]; then
-                log Failed to install apt packages.
-                exit 1
-            fi
-            sleep 10
-        else
-            break
+while true; do
+    if ! DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-confold" -y --no-install-recommends \
+      {%- for role in roles %}
+        {%- for package in config['HostSystem:packages.' + role + '.required'].values() | default([]) %}
+        {{ package }} \
+        {%- endfor %}
+        {%- for package in config['HostSystem:packages.' + role + '.additional'] | default([]) %}
+        {{ package }} \
+        {%- endfor %}
+      {%- endfor %}
+    ;then
+        now=$(date +%s)
+        if [[ ${now} -gt ${end} ]]; then
+            log Failed to install apt packages.
+            exit 1
         fi
-    done
-{% endfor %}
+        sleep 10
+    else
+        break
+    fi
+done
 
 # Start core processes
 #
