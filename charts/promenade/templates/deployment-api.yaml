@@ -118,8 +118,8 @@ spec:
 {{ if $mounts_promenade_api.volumeMounts }}{{ toYaml $mounts_promenade_api.volumeMounts | indent 12 }}{{ end }}
       volumes:
         - name: promenade-etc
-          configMap:
-            name: promenade-etc
+          secret:
+            secretName: promenade-etc
             defaultMode: 0444
 {{ if $mounts_promenade_api.volumes }}{{ toYaml $mounts_promenade_api.volumes | indent 8 }}{{ end }}
 {{- end }}
