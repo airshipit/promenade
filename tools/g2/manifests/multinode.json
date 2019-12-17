@@ -1,0 +1,67 @@
+{
+  "configuration": [
+    "examples/basic",
+    "promenade/schemas"
+  ],
+  "stages": [
+    {
+      "name": "Gate Setup",
+      "script": "gate-setup.sh"
+    },
+    {
+      "name": "Build Image",
+      "script": "build-image.sh"
+    },
+    {
+      "name": "Generate Certificates",
+      "script": "generate-certificates.sh"
+    },
+    {
+      "name": "Build Scripts",
+      "script": "build-scripts.sh"
+    },
+    {
+      "name": "Create VMs",
+      "script": "create-vms.sh"
+    },
+    {
+      "name": "Genesis",
+      "script": "genesis.sh",
+      "on_error": "collect_genesis_info.sh"
+    },
+    {
+      "name": "Join Masters",
+      "script": "join-nodes.sh",
+      "arguments": [
+        "-v", "n0",
+        "-n", "n1",
+        "-n", "n2",
+        "-l", "calico-etcd=enabled",
+        "-l", "kubernetes-apiserver=enabled",
+        "-l", "kubernetes-controller-manager=enabled",
+        "-l", "kubernetes-etcd=enabled",
+        "-l", "kubernetes-scheduler=enabled",
+        "-l", "ucp-control-plane=enabled"
+      ]
+    },
+    {
+      "name": "Check initial etcd cluster",
+      "script": "check-etcd-health.sh",
+      "arguments": [
+        "-w", "10",
+        "-e", "kubernetes n0 n0 n1 n2",
+        "-e", "calico n0 n0 n1 n2"
+      ]
+    }
+  ],
+  "vm": {
+    "memory": 3072,
+    "names": [
+      "n0",
+      "n1",
+      "n2"
+    ],
+    "vcpus": 2
+  }
+}
+
