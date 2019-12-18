@@ -97,10 +97,10 @@ done
 while true; do
     if ! DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-confold" -y --no-install-recommends \
       {%- for role in roles %}
-        {%- for package in config['HostSystem:packages.' + role + '.required'].values() | default([]) %}
+        {%- for package in config.get_path('HostSystem:packages.' + role + '.required',{}).values() %}
         {{ package }} \
         {%- endfor %}
-        {%- for package in config['HostSystem:packages.' + role + '.additional'] | default([]) %}
+        {%- for package in config.get_path('HostSystem:packages.' + role + '.additional',[]) %}
         {{ package }} \
         {%- endfor %}
       {%- endfor %}
