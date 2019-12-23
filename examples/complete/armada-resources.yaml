@@ -201,7 +201,7 @@ data:
   values:
     images:
       tags:
-        proxy: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        proxy: gcr.io/google_containers/hyperkube-amd64:v1.16.2
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -644,7 +644,7 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.16.2
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -730,8 +730,8 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
-        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.16.2
+        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.16.2
     secrets:
       service_account:
         public_key: placeholder
@@ -807,8 +807,8 @@ data:
   values:
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
-        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.16.2
+        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.16.2
     secrets:
       service_account:
         private_key: placeholder
@@ -880,8 +880,8 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
-        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.16.2
+        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.16.2
 
   source:
     type: local

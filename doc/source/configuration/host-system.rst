@@ -16,7 +16,7 @@ Sample Document to run containers in Docker runtime
     data:
       files:
         - path: /opt/kubernetes/bin/kubelet
-          tar_url: https://dl.k8s.io/v1.11.6/kubernetes-node-linux-amd64.tar.gz
+          tar_url: https://dl.k8s.io/v1.16.2/kubernetes-node-linux-amd64.tar.gz
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
@@ -24,7 +24,7 @@ Sample Document to run containers in Docker runtime
         helm:
           helm: lachlanevenson/k8s-helm:v2.14.0
         kubernetes:
-          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.16.2
       packages:
         repositories:
           - deb http://apt.dockerproject.org/repo ubuntu-xenial main
@@ -83,7 +83,7 @@ Sample Document to run containers in Containerd runtime
     data:
       files:
         - path: /opt/kubernetes/bin/kubelet
-          tar_url: https://dl.k8s.io/v1.11.6/kubernetes-node-linux-amd64.tar.gz
+          tar_url: https://dl.k8s.io/v1.16.2/kubernetes-node-linux-amd64.tar.gz
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
@@ -91,7 +91,7 @@ Sample Document to run containers in Containerd runtime
         helm:
           helm: lachlanevenson/k8s-helm:v2.14.0
         kubernetes:
-          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.16.2
       packages:
         additional:
           - curl

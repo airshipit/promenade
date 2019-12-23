@@ -49,7 +49,7 @@ conf:
 images:
   tags:
     monitoring_image: busybox:1.28.3
-    hyperkube: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+    hyperkube: gcr.io/google_containers/hyperkube-amd64:v1.16.2
     promenade: quay.io/airshipit/promenade:latest
     ks_user: docker.io/openstackhelm/heat:newton
     ks_service: docker.io/openstackhelm/heat:newton

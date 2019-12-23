@@ -58,9 +58,9 @@ const:
 images:
   tags:
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
-    anchor: gcr.io/google_containers/hyperkube-amd64:v1.11.6
-    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.11.6
-    key_rotate: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.16.2
+    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.16.2
+    key_rotate: gcr.io/google_containers/hyperkube-amd64:v1.16.2
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -166,8 +166,6 @@ apiserver:
     - --service-cluster-ip-range=10.96.0.0/16
     - --endpoint-reconciler-type=lease
     - --feature-gates=PodShareProcessNamespace=true
-    # NOTE(mark-burnett): This flag is removed in Kubernetes 1.11
-    - --repair-malformed-updates=false
     - --v=3
   etcd:
     endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
