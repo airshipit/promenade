@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eu
 
 IPTS_DIR=/tmp/liveness
 
@@ -20,7 +20,7 @@ fi
 mkdir -p "${IPTS_DIR}"
 iptables-save {{- if .Values.livenessProbe.whitelist }} | grep -Ev "${WHITELIST}" {{- end }} | grep -s 'has no endpoints' | sort > "${IPTS_DIR}/current"
 
-if [[ $(wc -l "${IPTS_DIR}/current") -gt 0 ]]; then
+if [[ $(wc -l < "${IPTS_DIR}/current") -gt 0 ]]; then
     if [[ "${IPTS_DIR}/previous" ]]; then
         if cmp "${IPTS_DIR}/current" "${IPTS_DIR}/previous"; then
             echo Some non-whitelisted services have no endpoints:
