@@ -33,8 +33,6 @@ register_labels {{ config['KubernetesNode:hostname'] }} 3600 {{ config['Kubernet
 
 sleep 60
 
-{% include "cleanup.sh" with context %}
-
 set +x
 log
 log === Finished join process ===
