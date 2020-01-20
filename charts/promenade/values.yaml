@@ -182,6 +182,10 @@ pod:
         promenade_api:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+  mandatory_access_control:
+    type: apparmor
+    promenade-api:
+      promenade-api: runtime/default
   affinity:
     anti:
       type:

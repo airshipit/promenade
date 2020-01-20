@@ -46,7 +46,7 @@
     name: airship-promenade-single-node
     nodes:
       - name: primary
-        label: ubuntu-xenial
+        label: ubuntu-bionic
 - nodeset:
     name: airship-promenade-single-node-bionic
     nodes:
@@ -130,7 +130,6 @@
       - ^etc/.*$
       - ^tests/.*$
       - ^tools/.*$
-
 - job:
     name: airship-docker-build-post
     run: tools/zuul/playbooks/docker-image-build.yaml
