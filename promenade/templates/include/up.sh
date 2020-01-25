@@ -1,13 +1,15 @@
 # Disable overwriting our resolv.conf
 #
-if [ -h /etc/resolv.conf ]; then
-  log "=== Removing resolv.conf symlink ==="
-  rm -f /etc/resolv.conf
-fi
 
 systemctl disable systemd-resolved.service
 systemctl stop systemd-resolved.service
 systemctl mask systemd-resolved.service
+
+if [ -h /etc/resolv.conf ]; then
+  log "=== Removing resolv.conf symlink ==="
+  rm -f /etc/resolv.conf
+  touch /etc/resolv.conf
+fi
 
 CURATED_DIRS=(
     /etc/kubernetes
