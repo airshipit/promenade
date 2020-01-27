@@ -59,6 +59,8 @@
       Deploy airship promenade genesis
     run: tools/zuul/playbooks/deploy-promenade.yaml
     post-run: tools/zuul/playbooks/debug-report.yaml
+    required-projects:
+      - openstack/openstack-helm-infra
     timeout: 3600
     nodeset: airship-promenade-single-node-bionic
 
@@ -67,6 +69,8 @@
     description: |
       Deploy airship promenade genesis with containerd
     run: tools/zuul/playbooks/deploy-promenade-containerd.yaml
+    required-projects:
+      - openstack/openstack-helm-infra
     timeout: 3600
     nodeset: airship-promenade-single-node-bionic
 
