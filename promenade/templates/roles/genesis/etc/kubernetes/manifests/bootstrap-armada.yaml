@@ -151,6 +151,7 @@ spec:
         - --etcd-servers=https://localhost:12379
         - --insecure-port=8080
         - --secure-port=6444
+        - --endpoint-reconciler-type=none
       env:
         - name: KUBECONFIG
           value: /etc/kubernetes/admin/config
