@@ -17,7 +17,7 @@ limitations under the License.
 
 {{- $envAll := . }}
 
-set -x
+set -xu
 
 compare_copy_files() {
     {{- range .Values.conf.anchor.files_to_copy }}

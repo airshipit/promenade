@@ -15,7 +15,7 @@
 # limitations under the License.
 */}}
 
-set -x
+set -xu
 
 compare_copy_files() {
     {{- range .Values.anchor.files_to_copy }}
