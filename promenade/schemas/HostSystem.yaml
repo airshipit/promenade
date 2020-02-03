@@ -22,6 +22,8 @@ data:
           type: boolean
         stop:
           type: boolean
+        mask:
+          type: boolean
       additionalProperties: false
     apt_source_line:
       type: string
