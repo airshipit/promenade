@@ -22,6 +22,14 @@
     - name: Install docker
       command: apt-get install docker.io resolvconf -y
 
+    - name: Setup Apparmor
+      shell: |
+        set -xe;
+        ./tools/deployment/apparmor/001-setup-apparmor-profiles.sh
+      args:
+        chdir: "{{ zuul.projects['opendev.org/openstack/openstack-helm-infra'].src_dir }}"
+        executable: /bin/bash
+
     - name: Generate configuration files
       shell: |
         set -xe;
