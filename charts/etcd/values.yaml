@@ -188,6 +188,8 @@ pod:
     # requires override for a specific use case e.g. calico-etcd or kubernetes-etcd
     example-etcd:
       etcd: localhost/docker-default
+    etcd-anchor:
+      etcdctl: runtime/default
   env:
     etcd:
       # can be used for tuning, e.g. https://etcd.io/docs/v3.4.0/tuning/
