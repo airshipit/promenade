@@ -25,6 +25,10 @@ labels:
     node_selector_value: enabled
 
 pod:
+  mandatory_access_control:
+    type: apparmor
+    scheduler:
+      anchor: runtime/default
   security_context:
     scheduler:
       pod:
