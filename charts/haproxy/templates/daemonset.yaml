@@ -37,6 +37,7 @@ spec:
       annotations:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
         scheduler.alpha.kubernetes.io/critical-pod: ''
+{{ dict "envAll" $envAll "podName" "haproxy-anchor" "containerNames" (list "anchor") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
     spec:
 {{ dict "envAll" $envAll "application" "haproxy_anchor" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       tolerations:
