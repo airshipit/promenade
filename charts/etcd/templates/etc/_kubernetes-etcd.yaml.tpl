@@ -123,6 +123,7 @@ spec:
           value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
         - name: MANIFEST_PATH
           value: /manifests/{{ .Values.service.name }}.yaml
+{{ include "helm-toolkit.utils.to_k8s_env_vars" .Values.pod.env.etcd | indent 8 }}
 {{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "readiness" "probeTemplate" (include "etcdreadinessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
 {{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "liveness" "probeTemplate" (include "etcdlivenessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
       volumeMounts:

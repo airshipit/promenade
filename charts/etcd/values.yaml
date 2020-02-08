@@ -188,6 +188,13 @@ pod:
     # requires override for a specific use case e.g. calico-etcd or kubernetes-etcd
     example-etcd:
       etcd: localhost/docker-default
+  env:
+    etcd:
+      # can be used for tuning, e.g. https://etcd.io/docs/v3.4.0/tuning/
+      # or other flags, e.g. https://etcd.io/docs/v3.4.0/op-guide/configuration/
+      # ETCD_HEARTBEAT_INTERVAL: 100
+      # ETCD_ELECTION_TIMEOUT: 1000
+      # ETCD_SNAPSHOT_COUNT: 10000
 
 jobs:
   etcd_backup:
