@@ -202,6 +202,14 @@ network_policy:
       - {}
 
 pod:
+  security_context:
+    apiserver_webhook:
+      pod:
+        runAsUser: 65534
+      container:
+        apiserver:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
   mounts:
     kubernetes_apiserver:
       init_container: null
@@ -272,10 +280,6 @@ pod:
     kubernetes_keystone_webhook_tests:
       init_container: null
       kubernetes_keystone_webhook_tests: null
-  security_context:
-    apiserver_webhook:
-      pod:
-        runAsUser: 65534
 conf:
   paths:
     base: '/etc/webhook_apiserver/'
