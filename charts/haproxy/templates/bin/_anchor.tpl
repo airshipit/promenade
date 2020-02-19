@@ -88,7 +88,7 @@ install_config() {
 
     if [ "x$SERVICE_IPS" != "x" ]; then
         if [ "x$DEST_PORT" != "x" ]; then
-            IDENTIFIER=$(echo "{{ $namespace }}-{{ $service }}")
+            IDENTIFIER="{{ $namespace }}-{{ $service }}"
             echo "Adding $IDENTIFIER to haproxy config"
             # Add frontend config
             echo >> "$NEXT_HAPROXY_CONF"
