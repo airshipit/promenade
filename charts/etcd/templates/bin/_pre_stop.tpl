@@ -15,7 +15,7 @@
 
 set -ex
 
-function cleanup_host {
+cleanup_host () {
     rm -f $MANIFEST_PATH
     rm -rf /etcd-etc/tls/
     {{- if .Values.etcd.cleanup_data }}
