@@ -13,13 +13,24 @@ validate_etcd_membership() {
     EXPECTED_MEMBERS="${*}"
 
     # NOTE(mark-burnett): Wait a moment for disks in test environment to settle.
-    sleep 10
+    sleep 60
     log Validating "${CLUSTER}" etcd membership via "${VM}" for members: "${EXPECTED_MEMBERS[@]}"
-    FOUND_MEMBERS=$(etcdctl_member_list "${CLUSTER}" "${VM}" | tr '\n' ' ' | sed 's/ $//')
 
-    if [[ "x${EXPECTED_MEMBERS}" != "x${FOUND_MEMBERS}" ]]; then
-        log Etcd membership check failed for cluster "${CLUSTER}"
+    local retries=25
+    for ((n=0;n<=$retries;n++)); do
+        FOUND_MEMBERS=$(etcdctl_member_list "${CLUSTER}" "${VM}" | tr '\n' ' ' | sed 's/ $//')
+
         log "Found \"${FOUND_MEMBERS}\", expected \"${EXPECTED_MEMBERS}\""
-        exit 1
-    fi
+        if [[ "x${EXPECTED_MEMBERS}" != "x${FOUND_MEMBERS}" ]]; then
+            log Etcd membership check failed for cluster "${CLUSTER}" on attempt "$n".
+            if [[ "$n" == "$retries" ]]; then
+                log Etcd membership check failed for cluster "${CLUSTER}" after "$n" retries. Exiting.
+                exit 1
+            fi
+            sleep 30
+        else
+            log Etcd membership check succeeded for cluster "${CLUSTER}" on attempt "${n}"
+            break
+        fi
+    done
 }

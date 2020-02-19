@@ -74,6 +74,14 @@ export http_proxy={{ config['KubernetesNetwork:proxy.url'] | default('', true) }
 export https_proxy={{ config['KubernetesNetwork:proxy.url'] | default('', true) }}
 export no_proxy={{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
 
+# Configure apt proxy
+if [[ -n "${http_proxy}" ]]; then
+  log "Configuring Apt Proxy"
+  cat << EOF | sudo tee /etc/apt/apt.conf.d/50proxyconf
+Acquire::https::proxy "${https_proxy}";
+Acquire::http::proxy "${http_proxy}";
+EOF
+fi
 
 # Install system packages
 #
@@ -139,5 +147,13 @@ fi
 if systemctl -q is-enabled containerd > /dev/null 2>&1; then
   systemctl restart containerd || true
 fi
+# Pull the hyperkube image prior to restarting kubelet, this is
+# needed for more reliable image pull in an environment with slow
+# network connectivity to avoid image pull timeouts and retries by
+# kubelet.
+# The || true is added to let the deployment continue, evenif the
+# $IMAGE_HYPERKUBE is not defined in the environment, and the image
+# pull doesn't happen.
+docker image pull "${IMAGE_HYPERKUBE}" || true
 systemctl enable kubelet
 systemctl restart kubelet

@@ -120,6 +120,8 @@
       "name": "Teardown Genesis",
       "script": "teardown-nodes.sh",
       "arguments": [
+        "-e", "kubernetes",
+        "-e", "calico",
         "-v", "n1",
         "-n", "n0",
         "-r"
@@ -160,7 +162,7 @@
     }
   ],
   "vm": {
-    "memory": 3072,
+    "memory": 4096,
     "names": [
       "n0",
       "n1",
