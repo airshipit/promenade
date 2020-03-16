@@ -19,7 +19,6 @@ if [ "$1" = 'server' ]; then
         --master \
         --thunder-lock \
         --die-on-term \
-        -z "${UWSGI_TIMEOUT}" \
         --paste config:/etc/promenade/api-paste.ini \
         --enable-threads \
         --threads "${PROMENADE_THREADS}" \
