@@ -46,7 +46,7 @@ docs: clean
 	tox -e docs
 
 tests-unit: external-deps
-	tox -e py35
+	tox -e py36
 
 external-deps:
 	./tools/install-external-deps.sh
