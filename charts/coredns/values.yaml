@@ -42,6 +42,7 @@ pod:
     type: apparmor
     coredns:
       coredns: runtime/default
+      coredns-health: runtime/default
   security_context:
     coredns:
       pod:
