@@ -58,9 +58,9 @@ const:
 images:
   tags:
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
-    anchor: gcr.io/google_containers/hyperkube-amd64:v1.16.2
-    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.16.2
-    key_rotate: gcr.io/google_containers/hyperkube-amd64:v1.16.2
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+    apiserver: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+    key_rotate: gcr.io/google_containers/hyperkube-amd64:v1.17.3
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
