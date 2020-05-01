@@ -80,6 +80,7 @@ pod:
   mandatory_access_control:
     type: apparmor
     haproxy-anchor:
+      haproxy-perms: runtime/default
       anchor: runtime/default
   security_context:
     haproxy_anchor:

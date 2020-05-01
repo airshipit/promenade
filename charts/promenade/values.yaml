@@ -185,6 +185,7 @@ pod:
   mandatory_access_control:
     type: apparmor
     promenade-api:
+      promenade-util: runtime/default
       promenade-api: runtime/default
   affinity:
     anti:
