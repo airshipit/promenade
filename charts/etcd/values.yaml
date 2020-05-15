@@ -190,6 +190,8 @@ pod:
       etcd: localhost/docker-default
     etcd-anchor:
       etcdctl: runtime/default
+    kubernetes-etcd:
+      kubernetes-etcd-etcd-test: runtime/default
   env:
     etcd:
       # can be used for tuning, e.g. https://etcd.io/docs/v3.4.0/tuning/

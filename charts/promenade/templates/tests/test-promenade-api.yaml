@@ -26,6 +26,7 @@ metadata:
   annotations:
     "helm.sh/hook": "test-success"
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+{{ dict "envAll" $envAll "podName" "promenade" "containerNames" (list "init" "promenade-api-test") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
   labels:
 {{ tuple $envAll "promenade" "api-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
@@ -35,7 +36,7 @@ spec:
   initContainers:
 {{ tuple $envAll "test" $mounts_promenade_api_test | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
   containers:
-    - name: "{{ .Release.Name }}-api-test"
+    - name: promenade-api-test
       env:
         - name: 'PROM_URL'
           value: {{ tuple "kubernetesprovisioner" "internal" "api" . | include "helm-toolkit.endpoints.host_and_port_endpoint_uri_lookup" | quote }}

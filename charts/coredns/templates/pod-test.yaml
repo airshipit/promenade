@@ -24,6 +24,7 @@ metadata:
   annotations:
     "helm.sh/hook": test-success
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+{{ dict "envAll" $envAll "podName" "coredns" "containerNames" (list "coredns-test") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
   labels:
 {{ tuple $envAll "coredns" "test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
@@ -31,7 +32,7 @@ spec:
   nodeSelector:
     {{ .Values.labels.coredns.node_selector_key }}: {{ .Values.labels.coredns.node_selector_value }}
   containers:
-    - name: {{ .Release.Name }}-test
+    - name: coredns-test
       image: {{ .Values.images.tags.test }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.pod_test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}

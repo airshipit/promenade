@@ -43,6 +43,7 @@ pod:
     coredns:
       coredns: runtime/default
       coredns-health: runtime/default
+      coredns-test: runtime/default
   security_context:
     coredns:
       pod:
