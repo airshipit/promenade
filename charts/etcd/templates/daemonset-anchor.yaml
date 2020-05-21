@@ -42,6 +42,12 @@ spec:
 {{ dict "envAll" $envAll "podName" "etcd-anchor" "containerNames" (list "etcdctl") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
         scheduler.alpha.kubernetes.io/critical-pod: ''
+{{- if .Values.manifests.configmap_bin }}
+        configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
+{{- end }}
+{{- if .Values.manifests.configmap_etc }}
+        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
+{{- end }}
       labels:
 {{ $labels | indent 8 }}
     spec:
