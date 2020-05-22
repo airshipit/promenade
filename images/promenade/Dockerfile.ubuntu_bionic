@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG FROM=python:3.6
+ARG FROM=ubuntu:18.04
 FROM ${FROM}
 
 LABEL org.opencontainers.image.authors='airship-discuss@lists.airshipit.org, irc://#airshipit@freenode' \
@@ -31,27 +31,43 @@ WORKDIR /opt/promenade
 ENV PORT 9000
 EXPOSE $PORT
 
-# Setting promenade version for BPR
-ENV PBR_VERSION 0.8.0
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 ENTRYPOINT ["/opt/promenade/entrypoint.sh"]
 
 RUN set -ex \
+    && apt-get update -qq \
+    && apt-get install --no-install-recommends -y \
+        ca-certificates \
+        curl \
+        dnsutils \
+        gcc \
+        git \
+        gpg \
+        gpg-agent \
+        libpcre3-dev \
+        libyaml-dev \
+        python3-dev \
+        python3-pip \
+        python3-setuptools \
+        rsync \
+    && ln -s /usr/bin/python3 /usr/bin/python \
     && curl -Lo /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
     && chmod 555 /usr/local/bin/cfssl \
+    && python3 -m pip install -U pip \
+    && apt-get autoremove -yqq --purge \
     && apt-get clean \
-    && apt-get update -q \
-    && apt-get install --no-install-recommends -y \
-        dnsutils \
-        libyaml-dev \
-        rsync \
     && useradd -u 1000 -g users -d /opt/promenade promenade \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements-frozen.txt /opt/promenade
-RUN pip install --no-cache-dir -r requirements-frozen.txt
+RUN pip3 install --no-cache-dir -r requirements-frozen.txt
+
+# Setting promenade version for BPR
+ENV PBR_VERSION 0.8.0
 
 COPY . /opt/promenade
-RUN pip install -e /opt/promenade
+RUN pip3 install -e /opt/promenade
 
 USER promenade

@@ -20,7 +20,8 @@
       jobs:
         - openstack-tox-pep8
         - airship-promenade-lint-ws
-        - airship-promenade-docker-build-gate
+        - airship-promenade-docker-build-gate-ubuntu_xenial
+        - airship-promenade-docker-build-gate-ubuntu_bionic
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-unit-py35
@@ -31,7 +32,8 @@
       jobs:
         - openstack-tox-pep8
         - airship-promenade-lint-ws
-        - airship-promenade-docker-build-gate
+        - airship-promenade-docker-build-gate-ubuntu_xenial
+        - airship-promenade-docker-build-gate-ubuntu_bionic
         - airship-promenade-chart-build-gate
         - airship-promenade-unit-py35
         - airship-promenade-genesis-gate
@@ -39,7 +41,8 @@
 
     post:
       jobs:
-        - airship-docker-build-post
+        - airship-promenade-docker-build-post-ubuntu_xenial
+        - airship-promenade-docker-build-post-ubuntu_bionic
         - promenade-upload-git-mirror
 
 - nodeset:
@@ -63,6 +66,8 @@
       - openstack/openstack-helm-infra
     timeout: 3600
     nodeset: airship-promenade-single-node-bionic
+    vars:
+      distro: ubuntu_bionic
 
 - job:
     name: airship-promenade-genesis-containerd-gate
@@ -73,6 +78,8 @@
       - openstack/openstack-helm-infra
     timeout: 3600
     nodeset: airship-promenade-single-node-bionic
+    vars:
+      distro: ubuntu_bionic
 
 - job:
     name: airship-promenade-lint-ws
@@ -117,11 +124,12 @@
     nodeset: airship-promenade-single-node
 
 - job:
-    name: airship-promenade-docker-build-gate
+    name: airship-promenade-docker-build-gate-ubuntu_xenial
     run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: airship-promenade-single-node
     vars:
       publish: false
+      distro: ubuntu_xenial
       tags:
         dynamic:
           patch_set: true
@@ -131,13 +139,49 @@
       - ^tests/.*$
       - ^tools/.*$
 - job:
-    name: airship-docker-build-post
+    name: airship-promenade-docker-build-gate-ubuntu_bionic
     run: tools/zuul/playbooks/docker-image-build.yaml
-    nodeset: ubuntu-xenial
+    nodeset: airship-promenade-single-node
+    vars:
+      publish: false
+      distro: ubuntu_bionic
+      tags:
+        dynamic:
+          patch_set: true
+    irrelevant-files:
+      - ^charts/.*$
+      - ^etc/.*$
+      - ^tests/.*$
+      - ^tools/.*$
+- job:
+    name: airship-promenade-docker-build-post-ubuntu_xenial
+    run: tools/zuul/playbooks/docker-image-build.yaml
+    nodeset: airship-promenade-single-node
     secrets:
       - airship_promenade_quay_creds
     vars:
       publish: true
+      distro: ubuntu_xenial
+      tags:
+        dynamic:
+          branch: true
+          commit: true
+        static:
+          - latest
+    irrelevant-files:
+      - ^charts/.*$
+      - ^etc/.*$
+      - ^tests/.*$
+      - ^tools/.*$
+- job:
+    name: airship-promenade-docker-build-post-ubuntu_bionic
+    run: tools/zuul/playbooks/docker-image-build.yaml
+    nodeset: airship-promenade-single-node
+    secrets:
+      - airship_promenade_quay_creds
+    vars:
+      publish: true
+      distro: ubuntu_bionic
       tags:
         dynamic:
           branch: true
