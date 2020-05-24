@@ -47,6 +47,23 @@ pod:
       limits:
         memory: "1024Mi"
         cpu: "2000m"
+  probes:
+    proxy:
+      proxy:
+        liveness:
+          enabled: true
+          params:
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+            successThreshold: 1
+            failureThreshold: 2
+        readiness:
+          enabled: true
+          params:
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+            successThreshold: 1
+            failureThreshold: 2
 
 images:
   tags:
@@ -72,17 +89,3 @@ network:
 kube_service:
   host: 127.0.0.1
   port: 6553
-
-livenessProbe:
-  config:
-    # NOTE(mark-burnett): To avoid cascading failure modes, it is
-    # important that these values are configured to avoid the possibility
-    # of CrashLoopBackoff for this pod.  Otherwise, a small non-impacting
-    # issue could disable kube-proxy for the entire site.
-    failureThreshold: 10
-    initialDelaySeconds: 15
-    periodSeconds: 35
-    successThreshold: 1
-    timeoutSeconds: 10
-  whitelist:
-    # - postgres

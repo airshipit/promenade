@@ -14,6 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- define "probeTemplate" }}
+httpGet:
+  path: /healthz
+  port: 10256
+  scheme: HTTP
+{{- end }}
+
 {{- if .Values.manifests.daemonset_proxy }}
 {{- $envAll := . }}
 {{- $labels := tuple $envAll "kubernetes" "proxy" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
@@ -75,20 +82,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-        livenessProbe:
-{{ toYaml .Values.livenessProbe.config | indent 10 }}
-          exec:
-            command:
-              - /tmp/bin/liveness-probe.sh
-        readinessProbe:
-          exec:
-            command:
-              - /tmp/bin/readiness-probe.sh
-          initialDelaySeconds: 15
-          periodSeconds: 15
+{{ dict "envAll" . "component" "proxy" "container" "proxy" "type" "liveness" "probeTemplate" (include "probeTemplate" . | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | trim | indent 8 }}
+{{ dict "envAll" . "component" "proxy" "container" "proxy" "type" "readiness" "probeTemplate" (include "probeTemplate" . | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | trim | indent 8 }}
         volumeMounts:
-          - name: bin
-            mountPath: /tmp/bin/
           - mountPath: /run/xtables.lock
             name: xtables-lock
             readOnly: false
@@ -97,10 +93,6 @@ spec:
             readOnly: true
       serviceAccountName: kube-proxy
       volumes:
-        - name: bin
-          configMap:
-            name: kubernetes-proxy-bin
-            defaultMode: 0555
         - name: xtables-lock
           hostPath:
             path: /run/xtables.lock
