@@ -27,7 +27,7 @@ metadata:
     "helm.sh/hook": "test-success"
     scheduler.alpha.kubernetes.io/critical-pod: ''
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
-{{ dict "envAll" $envAll "podName" "kubernetes-etcd" "containerNames" (list "kubernetes-etcd-etcd-test") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
+{{ dict "envAll" $envAll "podName" "etcd-test" "containerNames" (list "etcd-test") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
   labels:
 {{ tuple $envAll $applicationName "etcd-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
@@ -57,7 +57,7 @@ spec:
       operator: Exists
       effect: NoSchedule
   containers:
-    - name: kubernetes-etcd-etcd-test
+    - name: etcd-test
       env:
         - name: ETCDCTL_API
           value: "{{ .Values.etcd.etcdctl_api }}"

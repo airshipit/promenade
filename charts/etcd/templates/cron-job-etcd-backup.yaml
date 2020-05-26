@@ -65,6 +65,8 @@ spec:
     metadata:
       labels:
 {{ tuple $envAll $applicationName "etcd-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+      annotations:
+{{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
     spec:
       template:
         spec:

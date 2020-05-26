@@ -267,6 +267,9 @@ pod:
     type: apparmor
     kubernetes_apiserver_anchor:
       anchor: runtime/default
+    kube-apiserver:
+      init: runtime/default
+      apiserver-key-rotate: runtime/default
   security_context:
     kubernetes_apiserver_anchor:
       pod:
