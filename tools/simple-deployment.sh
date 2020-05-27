@@ -3,7 +3,7 @@
 set -eux
 
 IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
-IMAGE_HYPERKUBE=${IMAGE_HYPERKUBE:-gcr.io/google_containers/hyperkube-amd64:v1.16.2}
+IMAGE_HYPERKUBE=${IMAGE_HYPERKUBE:-gcr.io/google_containers/hyperkube-amd64:v1.17.3}
 PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
 
 SCRIPT_DIR=$(realpath $(dirname $0))
@@ -60,8 +60,9 @@ if [[ -z $1 ]] || [[ $1 = build-all ]]; then
 echo === Prepare hyperkube ===
 docker run --rm -t \
     -v "${PROMENADE_TMP}:/tmp/${PROMENADE_TMP_LOCAL}" \
+    --entrypoint 'cp' \
     "${IMAGE_HYPERKUBE}" \
-        cp /hyperkube "/tmp/${PROMENADE_TMP_LOCAL}"
+     /hyperkube "/tmp/${PROMENADE_TMP_LOCAL}"
 
 echo === Building bootstrap scripts ===
 docker run --rm -t \

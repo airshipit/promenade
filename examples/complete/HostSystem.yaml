@@ -9,15 +9,13 @@ metadata:
   storagePolicy: cleartext
 data:
   files:
-    - path: /opt/kubernetes/bin/hyperkube
-      docker_image: gcr.io/google_containers/hyperkube-amd64:v1.16.2
-      file_path: /hyperkube
-      mode: 0555
     - path: /opt/kubernetes/bin/kubelet
-      symlink: /opt/kubernetes/bin/hyperkube
+      tar_url: https://dl.k8s.io/v1.17.3/kubernetes-node-linux-amd64.tar.gz
+      tar_path: kubernetes/node/bin/kubelet
       mode: 0555
     - path: /usr/local/bin/kubectl
-      symlink: /opt/kubernetes/bin/hyperkube
+      tar_url: https://dl.k8s.io/v1.17.3/kubernetes-node-linux-amd64.tar.gz
+      tar_path: kubernetes/node/bin/kubectl
       mode: 0555
     - path: /etc/logrotate.d/json-logrotate
       mode: 0444
