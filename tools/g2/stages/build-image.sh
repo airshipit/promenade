@@ -13,11 +13,13 @@ then
   docker build -q \
     --network host \
     -t "${IMAGE_PROMENADE}" \
+    -f "${WORKSPACE}/images/promenade/Dockerfile.${IMAGE_PROMENADE_DISTRO}" \
     "${WORKSPACE}"
 else
     docker build -q \
       --network host \
       -t "${IMAGE_PROMENADE}" \
+      -f "${WORKSPACE}/images/promenade/Dockerfile.${IMAGE_PROMENADE_DISTRO}" \
       --build-arg "HTTP_PROXY=${HTTP_PROXY:-}" \
       --build-arg "HTTPS_PROXY=${HTTPS_PROXY:-}" \
       --build-arg "NO_PROXY=${NO_PROXY:-}" \

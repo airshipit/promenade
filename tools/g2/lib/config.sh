@@ -2,6 +2,7 @@ export TEMP_DIR=${TEMP_DIR:-$(mktemp -d)}
 export BASE_IMAGE_SIZE=${BASE_IMAGE_SIZE:-68719476736}
 export BASE_IMAGE_URL=${BASE_IMAGE_URL:-https://cloud-images.ubuntu.com/releases/16.04/release/ubuntu-16.04-server-cloudimg-amd64-disk1.img}
 export IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
+export IMAGE_PROMENADE_DISTRO=${IMAGE_PROMENADE_DISTRO:-ubuntu_bionic}
 export IMAGE_HYPERKUBE=${IMAGE_HYPERKUBE:-gcr.io/google_containers/hyperkube-amd64:v1.17.3}
 export NGINX_DIR="${TEMP_DIR}/nginx"
 export NGINX_URL="http://192.168.77.1:7777"

@@ -25,10 +25,11 @@ PUSH_IMAGE        ?= false
 # use this variable for image labels added in internal build process
 LABEL             ?= org.airshipit.build=community
 COMMIT            ?= $(shell git rev-parse HEAD)
+DISTRO            ?= ubuntu_bionic
 PYTHON            = python3
 CHARTS            := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
-IMAGE             := ${DOCKER_REGISTRY}/${IMAGE_PREFIX}/${IMAGE_NAME}:${IMAGE_TAG}
-PYTHON_BASE_IMAGE ?= python:3.6
+IMAGE             := ${DOCKER_REGISTRY}/${IMAGE_PREFIX}/${IMAGE_NAME}:${IMAGE_TAG}-${DISTRO}
+BASE_IMAGE        ?=
 
 HELM_PIDFILE ?= $(abspath ./.helm-pid)
 
@@ -97,14 +98,16 @@ dry-run-%: helm-lint-%
 $(CHARTS): $(addprefix dry-run-,$(CHARTS)) chartbanner
 	$(HELM) package -d charts charts/$@
 
+_BASE_IMAGE_ARG := $(if $(BASE_IMAGE),--build-arg FROM="${BASE_IMAGE}" ,)
+
 build_promenade:
 ifeq ($(USE_PROXY), true)
 	docker build --network host -t $(IMAGE) --label $(LABEL) \
 		--label "org.opencontainers.image.revision=$(COMMIT)" \
 		--label "org.opencontainers.image.created=$(shell date --rfc-3339=seconds --utc)" \
 		--label "org.opencontainers.image.title=$(IMAGE_NAME)" \
-		-f ./Dockerfile \
-		--build-arg FROM=$(PYTHON_BASE_IMAGE) \
+	        -f images/promenade/Dockerfile.${DISTRO} \
+                $(_BASE_IMAGE_ARG) \
 		--build-arg http_proxy=$(PROXY) \
 		--build-arg https_proxy=$(PROXY) \
 		--build-arg HTTP_PROXY=$(PROXY) \
@@ -116,8 +119,8 @@ else
 		--label "org.opencontainers.image.revision=$(COMMIT)" \
 		--label "org.opencontainers.image.created=$(shell date --rfc-3339=seconds --utc)" \
 		--label "org.opencontainers.image.title=$(IMAGE_NAME)" \
-		-f ./Dockerfile \
-		--build-arg FROM=$(PYTHON_BASE_IMAGE) .
+	        -f images/promenade/Dockerfile.${DISTRO} \
+		$(_BASE_IMAGE_ARG) .
 endif
 ifeq ($(PUSH_IMAGE), true)
 	docker push $(IMAGE)
