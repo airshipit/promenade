@@ -190,11 +190,11 @@ data:
     # ensure that required packages are defined for genesis node
     # (either in .packages.genesis or .packages.common)
     - anyOf:
-        - {properties:{packages:{properties:{common:{required:[required]}}}}}
-        - {properties:{packages:{properties:{genesis:{required:[required]}}}}}
+        - {properties: {packages: {properties: {common: {required: [required]}}}}}
+        - {properties: {packages: {properties: {genesis: {required: [required]}}}}}
     # ensure that required packages are defined for join nodes
     # (either in .packages.join or .packages.common)
     - anyOf:
-        - {properties:{packages:{properties:{common:{required:[required]}}}}}
-        - {properties:{packages:{properties:{join:{required:[required]}}}}}
+        - {properties: {packages: {properties: {common: {required: [required]}}}}}
+        - {properties: {packages: {properties: {join: {required: [required]}}}}}
   additionalProperties: false
