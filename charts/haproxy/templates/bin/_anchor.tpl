@@ -134,6 +134,8 @@ install_config() {
               echo Replacing HAProxy config file "$HAPROXY_CONF" with:
               cat "$NEXT_HAPROXY_CONF"
               echo
+              # ensure data blocks are flushed before rename
+              sync
               mv "$NEXT_HAPROXY_CONF" "$HAPROXY_CONF"
             else
               echo "New config failed validation, refusing to replace."
