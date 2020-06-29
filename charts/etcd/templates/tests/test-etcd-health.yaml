@@ -31,6 +31,7 @@ metadata:
   labels:
 {{ tuple $envAll $applicationName "etcd-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "etcd_test" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   nodeSelector:
     {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
   restartPolicy: Never
@@ -74,6 +75,7 @@ spec:
       image: {{ .Values.images.tags.etcdctl }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "etcd_test" "container" "etcd_test" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       command:
         - etcdctl
         - endpoint

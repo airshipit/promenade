@@ -52,6 +52,13 @@ pod:
         coredns:
           runAsUser: 0
           readOnlyRootFilesystem: true
+    test:
+      pod:
+        runAsUser: 65534
+      container:
+        coredns_test:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
   lifecycle:
     upgrades:
       # This is only meaningful when deploying as a DaemonSet

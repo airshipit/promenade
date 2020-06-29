@@ -29,6 +29,7 @@ metadata:
   labels:
 {{ tuple $envAll "kubernetes" "haproxy-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "haproxy_test" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   restartPolicy: Never
   nodeSelector:
     {{ .Values.labels.test.node_selector_key }}: {{ .Values.labels.test.node_selector_value }}
@@ -44,6 +45,7 @@ spec:
       image: {{ .Values.images.tags.test }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "haproxy_test" "container" "haproxy_haproxy_test" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       command:
         - /bin/bash
         - -c

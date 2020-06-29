@@ -120,6 +120,13 @@ pod:
         etcd:
           runAsUser: 0
           readOnlyRootFilesystem: false
+    etcd_test:
+      pod:
+        runAsUser: 65534
+      container:
+        etcd_test:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
   probes:
     etcd:
       etcd:

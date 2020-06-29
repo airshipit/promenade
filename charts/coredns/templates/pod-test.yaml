@@ -28,6 +28,7 @@ metadata:
   labels:
 {{ tuple $envAll "coredns" "test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "test" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   restartPolicy: Never
   nodeSelector:
     {{ .Values.labels.coredns.node_selector_key }}: {{ .Values.labels.coredns.node_selector_value }}
@@ -36,6 +37,7 @@ spec:
       image: {{ .Values.images.tags.test }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.pod_test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "test" "container" "coredns_test" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       command:
         - /bin/sh
         - -c

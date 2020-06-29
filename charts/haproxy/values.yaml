@@ -91,7 +91,6 @@ pod:
       container:
         anchor:
           runAsUser: 0
-          allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
     haproxy:
       pod:
@@ -99,7 +98,13 @@ pod:
       container:
         haproxy_perms:
           runAsUser: 0
-          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+    haproxy_test:
+      pod:
+        runAsUser: 65534
+      container:
+        haproxy_haproxy_test:
+          runAsUser: 0
           readOnlyRootFilesystem: true
   lifecycle:
     upgrades:
