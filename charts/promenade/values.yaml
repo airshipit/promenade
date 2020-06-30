@@ -180,8 +180,15 @@ pod:
         runAsUser: 65534
       container:
         promenade_api:
-          allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    api_test:
+      pod:
+        runAsUser: 65534
+      container:
+        promenade_api_test:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
   mandatory_access_control:
     type: apparmor
     promenade-api:
