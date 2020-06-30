@@ -30,6 +30,16 @@ rules:
     verbs:
       - get
       - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+    verbs:
+      - create
+      - delete
+      - get
+      - list
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -76,7 +86,7 @@ spec:
             {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
           containers:
             - name: etcd-backup
-              image: {{ .Values.images.tags.etcdctl }}
+              image: {{ .Values.images.tags.etcdctl_backup }}
               imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.jobs.etcd_backup | include "helm-toolkit.snippets.kubernetes_resources" | indent 14 }}
               env:
@@ -96,8 +106,23 @@ spec:
                   value: https://$(POD_IP):{{ .Values.network.service_client.target_port }}
                 - name: PEER_ENDPOINT
                   value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
+                - name: POD_NAMESPACE
+                  value: {{ $envAll.Release.Namespace }}
+                - name: REMOTE_BACKUP_ENABLED
+                  value: "{{ .Values.backup.remote_backup.enabled }}"
+{{- if .Values.backup.remote_backup.enabled }}
+                - name: REMOTE_BACKUP_DAYS_TO_KEEP
+                  value: "{{ .Values.backup.remote_backup.days_to_keep }}"
+                - name: CONTAINER_NAME
+                  value: "{{ .Values.backup.remote_backup.container_name }}"
+                - name: STORAGE_POLICY
+                  value: "{{ .Values.backup.remote_backup.storage_policy }}"
+{{- with $env := dict "ksUserSecret" $envAll.Values.secrets.identity.kubernetes }}
+{{- include "helm-toolkit.snippets.keystone_openrc_env_vars" $env | indent 16 }}
+{{- end }}
+{{- end }}
               command:
-                - /tmp/bin/etcdbackup
+                - /tmp/bin/backup_etcd.sh
               volumeMounts:
                 - name: {{ .Values.service.name }}-bin
                   mountPath: /tmp/bin
@@ -106,7 +131,7 @@ spec:
                 - name: {{ .Values.service.name }}-keys
                   mountPath: /etc/etcd/tls/keys
                 - name: etcd-backup
-                  mountPath: /var/lib/etcd/backup
+                  mountPath: {{ .Values.backup.host_backup_path }}
           volumes:
           - name: {{ .Values.service.name }}-bin
             configMap:

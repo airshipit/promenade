@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 {{/*
 Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
 
@@ -14,49 +14,51 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */}}
-set -ex
-BACKUP_DIR="/var/lib/etcd/backup"
+set -x
+BACKUP_DIR={{ .Values.backup.host_backup_path }}
 BACKUP_LOG={{ .Values.backup.backup_log_file | quote }}
 NUM_TO_KEEP={{ .Values.backup.no_backup_keep | quote }}
+REMOTE_BACKUP_DAYS_TO_KEEP={{ .Values.backup.remote_backup.days_to_keep | quote }}
 BACKUP_FILE_NAME={{ .Values.service.name | quote }}
 SKIP_BACKUP=0
 
-etcdbackup() {
-  etcdctl snapshot save $BACKUP_DIR/$BACKUP_FILE_NAME-backup-$(date +"%m-%d-%Y-%H-%M-%S").db >> $BACKUP_LOG
+source /tmp/bin/backup_main.sh
+
+# Export the variables required by the framework
+#  Note: REMOTE_BACKUP_ENABLED and CONTAINER_NAME are already exported
+export DB_NAMESPACE=${POD_NAMESPACE}
+export DB_NAME="etcd"
+export LOCAL_DAYS_TO_KEEP=$NUM_TO_KEEP
+export REMOTE_DAYS_TO_KEEP=$REMOTE_BACKUP_DAYS_TO_KEEP
+export ARCHIVE_DIR=${BACKUP_DIR}/db/${DB_NAMESPACE}/${DB_NAME}/archive
+
+dump_databases_to_directory() {
+  TMP_DIR=$1
+  LOG_FILE=${2:-BACKUP_LOG}
+
+  cd $TMP_DIR
+  etcdctl snapshot save --command-timeout=5m $TMP_DIR/$BACKUP_FILE_NAME.$DB_NAMESPACE.all.db >> $LOG_FILE
   BACKUP_RETURN_CODE=$?
   if [[ $BACKUP_RETURN_CODE != 0 ]]; then
-    echo "There was an error backing up the databases. Return code was $BACKUP_RETURN_CODE."
+    log ERROR $DB_NAME "There was an error backing up the databases." $LOG_FILE
     exit $BACKUP_RETURN_CODE
   fi
-  LATEST_BACKUP=`ls -t1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | head -1`
-  echo "Archiving $LATEST_BACKUP..."
-  cd $BACKUP_DIR
-  tar -czf $BACKUP_DIR/$LATEST_BACKUP.tar.gz $LATEST_BACKUP
-  rm -rf $LATEST_BACKUP
-  echo "Clearing earliest backups..."
-  NUM_LOCAL_BACKUPS=`ls -1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | wc -l`
-  while [ $NUM_LOCAL_BACKUPS -gt $NUM_TO_KEEP ]
-  do
-    EARLIEST_BACKUP=`ls -tr1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | head -1`
-    echo "Deleting $EARLIEST_BACKUP..."
-    rm -rf "$BACKUP_DIR/$EARLIEST_BACKUP"
-    NUM_LOCAL_BACKUPS=`ls -1 $BACKUP_DIR | grep $BACKUP_FILE_NAME | wc -l`
-  done
 }
 
 if ! [ -x "$(which etcdctl)" ]; then
-  echo "ERROR: etcdctl not available, Please use the correct image."
+  log ERROR $DB_NAME "etcdctl not available, Please use the correct image." $LOG_FILE
   SKIP_BACKUP=1
 fi
 
 if [ ! -d "$BACKUP_DIR" ]; then
-  echo "ERROR: $BACKUP_DIR doesn't exist, Backup will not continue"
+  log ERROR $DB_NAME "$BACKUP_DIR doesn't exist, Backup will not continue" $LOG_FILE
   SKIP_BACKUP=1
 fi
 
 if [ $SKIP_BACKUP -eq 0 ]; then
-  etcdbackup
+  # Call main program to start the database backup
+  backup_databases
 else
-  echo "Error: etcd backup failed."
+  log ERROR $DB_NAME "etcd backup failed." $LOG_FILE
   exit 1
 fi

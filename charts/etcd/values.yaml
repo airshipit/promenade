@@ -16,11 +16,22 @@ images:
   tags:
     etcd: quay.io/coreos/etcd:v3.4.2
     etcdctl: quay.io/coreos/etcd:v3.4.2
+    etcdctl_backup: "quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_bionic"
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+    ks_user: docker.io/openstackhelm/heat:stein-ubuntu_bionic
   pull_policy: "IfNotPresent"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
 
 labels:
   anchor:
     node_selector_key: etcd-example
+    node_selector_value: enabled
+  job:
+    node_selector_key: example-etcd
     node_selector_value: enabled
 
 anchor:
@@ -49,11 +60,56 @@ etcd:
       - etcdserver=DEBUG
       - security=DEBUG
 backup:
-  host_backup_path: /var/backups/etcd
+  enabled: true
+  host_backup_path: /var/backups
   backup_log_file: /var/log/etcd-backup.log
   no_backup_keep: 10
   etcdctl_dial_timeout: 15s
+  remote_backup:
+    enabled: false
+    container_name: etcd
+    days_to_keep: 14
+    storage_policy: default-placement
 
+endpoints:
+  identity:
+    name: backup-storage-auth
+    namespace: null
+    auth:
+      example-admin:
+        # Auth URL of null indicates local authentication
+        # HTK will form the URL unless specified here
+        auth_url: null
+        region_name: RegionOne
+        username: example-admin
+        password: password
+        project_name: admin
+        user_domain_name: default
+        project_domain_name: default
+      example-etcd:
+        # Auth URL of null indicates local authentication
+        # HTK will form the URL unless specified here
+        auth_url: null
+        role: admin
+        region_name: RegionOne
+        username: example-etcd-backup-user
+        password: password
+        project_name: service
+        user_domain_name: service
+        project_domain_name: service
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      default: null
+    path:
+      default: /v3
+    scheme:
+      default: 'http'
+    port:
+      api:
+        default: 80
+        internal: 5000
 network:
   service_client:
     name: service_client
@@ -88,6 +144,11 @@ secrets:
     tls:
       cert: placeholder
       key: placeholder
+  etcd:
+    backup_restore: etcd-backup-restore
+  identity:
+    example-admin: example-admin-user
+    example-etcd: example-backup-user
 
 nodes:
   - name: example-0
@@ -101,9 +162,9 @@ nodes:
 
 dependencies:
    static:
-     etcd_backup:
+     backup_etcd:
        jobs:
-         - etcd_backup_job
+         - etcd-ks-user
 pod:
   security_context:
     anchor:
@@ -113,6 +174,17 @@ pod:
         etcdctl:
           runAsUser: 0
           readOnlyRootFilesystem: false
+    etcd_backup:
+      pod:
+        runAsUser: 65534
+      container:
+        backup_perms:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
+        etcd_backup:
+          runAsUser: 65534
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
     etcd:
       pod:
         runAsUser: 65534
@@ -190,6 +262,13 @@ pod:
         requests:
           memory: "128Mi"
           cpu: "100m"
+      ks_user:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
   mandatory_access_control:
     type: apparmor
     # requires override for a specific use case e.g. calico-etcd or kubernetes-etcd
@@ -222,6 +301,8 @@ manifests:
   configmap_etc: true
   daemonset_anchor: true
   secret: true
+  secret_backup_restore: false
   service: true
   test_etcd_health: true
   cron_etcd_backup: true
+  job_ks_user: false
