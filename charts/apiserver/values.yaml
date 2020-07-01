@@ -278,6 +278,13 @@ pod:
         anchor:
           runAsUser: 0
           readOnlyRootFilesystem: false
+    key_rotate:
+      pod:
+        runAsUser: 65534
+      container:
+        apiserver_key_rotate:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
   mounts:
     kubernetes_apiserver:
       init_container: null

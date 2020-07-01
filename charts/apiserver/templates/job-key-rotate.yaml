@@ -95,6 +95,7 @@ spec:
       labels:
 {{ tuple $envAll "kube-apiserver" "key-rotate" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
     spec:
+{{ dict "envAll" $envAll "application" "key_rotate" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       serviceAccountName: {{ $serviceAccountName }}
       restartPolicy: OnFailure
       nodeSelector:
@@ -106,6 +107,7 @@ spec:
           image: {{ .Values.images.tags.key_rotate | quote }}
           imagePullPolicy: {{ .Values.images.pull_policy | quote }}
 {{ tuple $envAll $envAll.Values.pod.resources.key_rotate | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "key_rotate" "container" "apiserver_key_rotate" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           env:
             - name: "ANNOTATION_NAME"
               value: {{ .Values.const.encryption_annotation | quote }}

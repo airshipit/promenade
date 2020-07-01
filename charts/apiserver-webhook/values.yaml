@@ -215,6 +215,9 @@ pod:
         apiserver:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+        webhook:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
   mounts:
     kubernetes_apiserver:
       init_container: null
