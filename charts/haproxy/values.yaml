@@ -65,7 +65,7 @@ conf:
 images:
   tags:
     anchor: gcr.io/google_containers/hyperkube-amd64:v1.17.3
-    haproxy: haproxy:1.8.19
+    haproxy: haproxy:1.8.25
     test: python:3.6
   pull_policy: "IfNotPresent"
 
