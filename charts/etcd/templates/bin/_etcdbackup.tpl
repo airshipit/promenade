@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */}}
-set -x
+
 BACKUP_DIR={{ .Values.backup.host_backup_path }}
 BACKUP_LOG={{ .Values.backup.backup_log_file | quote }}
 NUM_TO_KEEP={{ .Values.backup.no_backup_keep | quote }}
@@ -33,6 +33,7 @@ export REMOTE_DAYS_TO_KEEP=$REMOTE_BACKUP_DAYS_TO_KEEP
 export ARCHIVE_DIR=${BACKUP_DIR}/db/${DB_NAMESPACE}/${DB_NAME}/archive
 
 dump_databases_to_directory() {
+  set -x
   TMP_DIR=$1
   LOG_FILE=${2:-BACKUP_LOG}
 
