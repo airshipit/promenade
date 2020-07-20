@@ -84,6 +84,8 @@ pod:
       anchor: runtime/default
     kubernetes:
       haproxy-haproxy-test: runtime/default
+    haproxy:
+      haproxy: runtime/default
   security_context:
     haproxy_anchor:
       pod:
