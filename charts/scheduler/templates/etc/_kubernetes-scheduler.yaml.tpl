@@ -28,11 +28,13 @@ metadata:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{ dict "envAll" $envAll "podName" "scheduler" "containerNames" (list "scheduler") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "scheduler" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   hostNetwork: true
   containers:
     - name: scheduler
       image: {{ .Values.images.tags.scheduler }}
 {{ tuple $envAll $envAll.Values.pod.resources.scheduler_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "scheduler" "container" "scheduler" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       env:
         - name: POD_IP
           valueFrom:

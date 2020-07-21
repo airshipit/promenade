@@ -38,6 +38,9 @@ pod:
         anchor:
           runAsUser: 0
           readOnlyRootFilesystem: true
+        scheduler:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
   lifecycle:
     upgrades:
       daemonsets:

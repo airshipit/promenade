@@ -108,6 +108,13 @@ pod:
         haproxy_haproxy_test:
           runAsUser: 0
           readOnlyRootFilesystem: true
+    server:
+      pod:
+        runAsUser: 65534
+      container:
+        haproxy:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
   lifecycle:
     upgrades:
       daemonsets:

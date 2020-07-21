@@ -27,12 +27,14 @@ metadata:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{ dict "envAll" $envAll "podName" "haproxy" "containerNames" (list "haproxy") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "server" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   hostNetwork: true
   containers:
     - name: haproxy
       image: {{ .Values.images.tags.haproxy }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple . .Values.pod.resources.haproxy_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "server" "container" "haproxy" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       hostNetwork: true
       env:
         - name: HAPROXY_CONF

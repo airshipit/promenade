@@ -50,12 +50,14 @@ metadata:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{- dict "envAll" $envAll "podName" "apiserver" "containerNames" (list "apiserver") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "apiserver" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   hostNetwork: true
   shareProcessNamespace: true
   containers:
     - name: apiserver
       image: {{ .Values.images.tags.apiserver }}
 {{ tuple $envAll $envAll.Values.pod.resources.kubernetes_apiserver | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "apiserver" "container" "apiserver" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       env:
         - name: POD_IP
           valueFrom:

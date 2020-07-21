@@ -26,11 +26,13 @@ metadata:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{ dict "envAll" $envAll "podName" "controller-manager" "containerNames" (list "controller-manager") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
+{{ dict "envAll" $envAll "application" "controller_manager" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   hostNetwork: true
   containers:
     - name: controller-manager
       image: {{ .Values.images.tags.controller_manager }}
 {{ tuple $envAll $envAll.Values.pod.resources.controller_manager | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "controller_manager" "container" "controller_manager" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       env:
         - name: POD_IP
           valueFrom:

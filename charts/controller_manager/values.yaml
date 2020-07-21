@@ -98,6 +98,12 @@ pod:
       container:
         anchor:
           readOnlyRootFilesystem: true
+    controller_manager:
+      pod:
+        runAsUser: 0
+      container:
+        controller_manager:
+          readOnlyRootFilesystem: true
   mounts:
     controller_manager:
       init_container: null
