@@ -36,6 +36,7 @@ spec:
     {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
   restartPolicy: Never
   hostNetwork: true
+  shareProcessNamespace: true
   tolerations:
     - key: node-role.kubernetes.io/master
       effect: NoSchedule

@@ -53,6 +53,7 @@ spec:
     spec:
 {{ dict "envAll" $envAll "application" "anchor" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       hostNetwork: true
+      shareProcessNamespace: true
       {{- if .Values.anchor.dns_policy }}
       dnsPolicy: {{ .Values.anchor.dns_policy }}
       {{- end }}
