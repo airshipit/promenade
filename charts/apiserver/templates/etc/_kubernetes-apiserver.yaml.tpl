@@ -48,6 +48,7 @@ metadata:
   annotations:
     {{ $envAll | include "kubernetes_apiserver.key_annotation" }}
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+{{- dict "envAll" $envAll "podName" "apiserver" "containerNames" (list "apiserver") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
   hostNetwork: true
   shareProcessNamespace: true

@@ -24,6 +24,7 @@ metadata:
 {{ tuple $envAll "kubernetes" "controller-manager" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
   annotations:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+{{ dict "envAll" $envAll "podName" "controller-manager" "containerNames" (list "controller-manager") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
   hostNetwork: true
   containers:
