@@ -178,13 +178,9 @@ pod:
       pod:
         runAsUser: 65534
       container:
-        backup_perms:
-          runAsUser: 0
-          readOnlyRootFilesystem: true
         etcd_backup:
-          runAsUser: 65534
-          readOnlyRootFilesystem: true
-          allowPrivilegeEscalation: false
+          runAsUser: 0
+          readOnlyRootFilesystem: false
     etcd:
       pod:
         runAsUser: 65534

@@ -78,6 +78,7 @@ spec:
       annotations:
 {{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
     spec:
+{{ dict "envAll" $envAll "application" "etcd_backup" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       template:
         spec:
           serviceAccountName: {{ .Values.service.name }}-{{ $serviceAccountName }}
@@ -89,6 +90,7 @@ spec:
               image: {{ .Values.images.tags.etcdctl_backup }}
               imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.jobs.etcd_backup | include "helm-toolkit.snippets.kubernetes_resources" | indent 14 }}
+{{ dict "envAll" $envAll "application" "etcd_backup" "container" "etcd_backup" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 14 }}
               env:
                 - name: ETCDCTL_API
                   value: "{{ .Values.etcd.etcdctl_api }}"
