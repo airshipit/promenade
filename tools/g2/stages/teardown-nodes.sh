@@ -8,8 +8,11 @@ declare -a NODES
 
 RECREATE=0
 
-while getopts "n:rv:" opt; do
+while getopts "e:n:rv:" opt; do
     case "${opt}" in
+        e)
+            ETCD_CLUSTERS+=("${OPTARG}")
+            ;;
         n)
             NODES+=("${OPTARG}")
             ;;
@@ -35,6 +38,9 @@ fi
 for NAME in "${NODES[@]}"; do
     log Tearing down node "${NAME}"
     promenade_teardown_node "${NAME}" "${VIA}"
+    for ETCD_CLUSTER in "${ETCD_CLUSTERS[@]}"; do
+        etcdctl_member_remove "${ETCD_CLUSTER}" "${VIA}" "${NAME}"
+    done
     vm_clean "${NAME}"
     if [[ ${RECREATE} == "1" ]]; then
         vm_create "${NAME}"

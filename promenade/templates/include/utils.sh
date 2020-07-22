@@ -222,7 +222,7 @@ function validate_kubectl_logs {
     NAMESPACE=default
     POD_NAME=log-test-${NODE}-$(date +%s)
 
-    cat <<EOPOD | kubectl --namespace $NAMESPACE apply -f -
+    cat <<EOPOD | kubectl --namespace $NAMESPACE --timeout 100s apply -f -
 ---
 apiVersion: v1
 kind: Pod
@@ -244,6 +244,7 @@ EOPOD
 
     wait_for_node_ready $NODE 300
     wait_for_pod_termination $NAMESPACE $POD_NAME
+    sleep 5
     ACTUAL_LOGS=$(kubectl --namespace $NAMESPACE logs $POD_NAME)
     if [ "x$ACTUAL_LOGS" != "xEXPECTED RESULT" ]; then
         log Got unexpected logs:

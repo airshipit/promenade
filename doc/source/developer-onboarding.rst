@@ -43,6 +43,25 @@ debug it, e.g.:
 
     ./tools/g2/bin/ssh.sh n0
 
+Running Resilency Tests Behind Corporate Proxy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your development environment is behind a corporate proxy, you will need to
+update following files to add your envrionment's proxy information, dns, or
+possibly your internal ntp servers, in order to deploy airship:
+
+    * `charts/coredns/values.yaml`: Update the upstream coredns nameserver IPs
+      to your internal DNS addresses.
+    * `examples/basic/KubernetesNetwork.yaml`: Since resilency manifest uses
+      the examples/basic environment configuration, you will need to Update
+      the kubernetes network configuration in this folder. Update the upstream
+      nameserver IPs to your internal DNS addresses. Add the http(s) proxy URL
+      and additional_no_proxy list. Also, if your enviornment requires that,
+      update the ntp server list to your internal ntp server addresses for
+      more reliable time sync.
+    * `tools/g2/templates/network-config.sub`: Update the upstream nameserver
+      IPs to your internal DNS addresses.
+
 Bootstrapping
 -------------
 

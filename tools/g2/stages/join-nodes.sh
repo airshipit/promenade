@@ -52,7 +52,7 @@ mkdir -p "${SCRIPT_DIR}"
 for NAME in "${NODES[@]}"; do
     log Building join script for node "${NAME}"
 
-    CURL_ARGS=("--fail" "--max-time" "300" "--retry" "16" "--retry-delay" "15")
+    CURL_ARGS=("-v" "--max-time" "600" "--retry" "20" "--retry-delay" "15" "--connect-timeout" "30" "--progress-bar")
     if [[ $GET_KEYSTONE_TOKEN == 1 ]]; then
         TOKEN="$(os_ks_get_token "${VIA}")"
         if [[ -z $TOKEN ]]; then
@@ -67,7 +67,7 @@ for NAME in "${NODES[@]}"; do
     promenade_health_check "${VIA}"
 
     log "Validating documents"
-    ssh_cmd "${VIA}" curl -v "${CURL_ARGS[@]}" -X POST -H "Content-Type: application/json" -d "$(promenade_render_validate_body "${USE_DECKHAND}" "${DECKHAND_REVISION}")" "$(promenade_render_validate_url)"
+    ssh_cmd "${VIA}" curl "${CURL_ARGS[@]}" -X POST -H "Content-Type: application/json" -d "$(promenade_render_validate_body "${USE_DECKHAND}" "${DECKHAND_REVISION}")" "$(promenade_render_validate_url)"
 
     JOIN_CURL_URL="$(promenade_render_curl_url "${NAME}" "${USE_DECKHAND}" "${DECKHAND_REVISION}" "${LABELS[@]}")"
     log "Fetching join script via: ${JOIN_CURL_URL}"
