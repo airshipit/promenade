@@ -54,6 +54,7 @@ metadata:
 spec:
 {{ dict "envAll" $envAll "application" "etcd" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
   hostNetwork: true
+  shareProcessNamespace: true
   containers:
     - name: etcd
       image: {{ .Values.images.tags.etcd }}
