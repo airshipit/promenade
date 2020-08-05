@@ -179,6 +179,9 @@ pod:
       pod:
         runAsUser: 65534
       container:
+        promenade_util:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
         promenade_api:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false

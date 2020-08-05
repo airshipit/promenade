@@ -52,6 +52,7 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.pod.lifecycle.termination_grace_period.api.timeout | default "30" }}
       initContainers:
       - name: promenade-util
+{{ dict "envAll" $envAll "application" "promenade" "container" "promenade_util" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 8 }}
         command:
 {{- if $mounts_promenade_api.volumeMounts }}
           - "cp"
