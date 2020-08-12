@@ -21,6 +21,7 @@ export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update -qq
 sudo apt-get install -q -y --no-install-recommends \
     apt-transport-https \
+    build-essential \
     ca-certificates \
     curl \
     fio \
@@ -28,6 +29,7 @@ sudo apt-get install -q -y --no-install-recommends \
     jq \
     libstring-shellquote-perl \
     libvirt-bin \
+    python3-dev \
     qemu-kvm \
     qemu-utils \
     software-properties-common \

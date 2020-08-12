@@ -73,7 +73,7 @@ gate-lint: gate-lint-deps
 	tox -e gate-lint
 
 gate-lint-deps:
-	sudo apt-get install -y --no-install-recommends shellcheck
+	sudo apt-get install -y --no-install-recommends shellcheck tox
 
 helm-lint: $(addprefix helm-lint-,$(CHARTS))
 

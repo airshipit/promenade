@@ -107,13 +107,13 @@ VALID_DOCS = [
                 },
                 'kubernetes': {
                     'apiserver':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.17.3',
+                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6',
                     'controller-manager':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.17.3',
+                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6',
                     'etcd':
                     'quay.io/coreos/etcd:v3.4.2',
                     'scheduler':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.17.3'
+                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6'
                 }
             },
             'ip':
@@ -149,7 +149,7 @@ VALID_DOCS = [
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
-                'https://dl.k8s.io/v1.17.3/kubernetes-node-linux-amd64.tar.gz'
+                'https://dl.k8s.io/v1.18.6/kubernetes-node-linux-amd64.tar.gz'
             },
              {
                  'content':
@@ -166,7 +166,7 @@ VALID_DOCS = [
                 },
                 'kubernetes': {
                     'kubectl':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.17.3'
+                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6'
                 }
             },
             'packages': {

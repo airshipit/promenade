@@ -160,7 +160,7 @@ data:
   values:
     images:
       tags:
-        proxy: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+        proxy: gcr.io/google_containers/hyperkube-amd64:v1.18.6
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -627,7 +627,7 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -719,17 +719,17 @@ data:
       encryption_provider:
         file: encryption_provider.yaml
         command_options:
-          - '--experimental-encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml'
+          - '--encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml'
         content:
-          kind: EncryptionConfig
-          apiVersion: v1
+          kind: EncryptionConfiguration
+          apiVersion: apiserver.config.k8s.io/v1
     apiserver:
       etcd:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.17.3
-        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.18.6
     network:
       kubernetes_service_ip: 10.96.0.1
       pod_cidr: 10.97.0.0/16
@@ -794,8 +794,8 @@ data:
   values:
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.17.3
-        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.18.6
     secrets:
       service_account:
         private_key: placeholder
@@ -868,8 +868,8 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.17.3
-        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.18.6
 
   source:
     type: local

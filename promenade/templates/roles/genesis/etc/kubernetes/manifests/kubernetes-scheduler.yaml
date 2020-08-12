@@ -20,7 +20,10 @@ spec:
       - kube-scheduler
       - --leader-elect=true
       - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
-      - --feature-gates=TaintNodesByCondition=true
+      # TaintNodesByCondition feature is unconditionally enabled and the
+      # corresponding --feature-gates flags have been removed in 1.18.x
+      # See: https://kubernetes.io/docs/setup/release/notes/#urgent-upgrade-notes
+      #- --feature-gates=TaintNodesByCondition=true
       - --v=5
       volumeMounts:
         - name: config

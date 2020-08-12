@@ -17,7 +17,7 @@ validate_etcd_membership() {
     log Validating "${CLUSTER}" etcd membership via "${VM}" for members: "${EXPECTED_MEMBERS[@]}"
 
     local retries=25
-    for ((n=0;n<=$retries;n++)); do
+    for ((n=0;n<=retries;n++)); do
         FOUND_MEMBERS=$(etcdctl_member_list "${CLUSTER}" "${VM}" | tr '\n' ' ' | sed 's/ $//')
 
         log "Found \"${FOUND_MEMBERS}\", expected \"${EXPECTED_MEMBERS}\""

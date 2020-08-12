@@ -21,7 +21,7 @@ etcdctl_member_remove() {
     NODE=${3}
     shift 3
 
-    MEMBER_ID=$(etcdctl_cmd $CLUSTER ${VM} member list | awk -F', ' "/${NODE}/ "'{ print $1}')
+    MEMBER_ID=$(etcdctl_cmd "$CLUSTER" "${VM}" member list | awk -F', ' "/${NODE}/ "'{ print $1}')
     if  [[ -n $MEMBER_ID ]] ; then
             etcdctl_cmd "${CLUSTER}" "${VM}" member remove "$MEMBER_ID"
     else

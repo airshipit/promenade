@@ -1,6 +1,6 @@
 # source_name, tag, cache_name
 coredns/coredns,0.9.9,coredns
-gcr.io/google_containers/hyperkube-amd64,v1.17.3,hyperkube
+gcr.io/google_containers/hyperkube-amd64,v1.18.6,hyperkube
 gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64,1.14.4,k8s-dns-dnsmasq-nanny-amd64
 gcr.io/google_containers/k8s-dns-kube-dns-amd64,1.14.4,k8s-dns-kube-dns-amd64
 gcr.io/google_containers/k8s-dns-sidecar-amd64,1.14.4,k8s-dns-sidecar-amd64

@@ -85,8 +85,8 @@ secrets:
 
 images:
   tags:
-    anchor: gcr.io/google_containers/hyperkube-amd64:v1.17.3
-    scheduler: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+    anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+    scheduler: gcr.io/google_containers/hyperkube-amd64:v1.18.6
   pull_policy: "IfNotPresent"
 
 network:
@@ -100,4 +100,7 @@ service:
 command_prefix:
   - /hyperkube
   - kube-scheduler
-  - --feature-gates=TaintNodesByCondition=true
+  # TaintNodesByCondition feature is unconditionally enabled and the
+  # corresponding --feature-gates flags have been removed in 1.18.x
+  # See: https://kubernetes.io/docs/setup/release/notes/#urgent-upgrade-notes
+  #- --feature-gates=TaintNodesByCondition=true

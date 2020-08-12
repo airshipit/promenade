@@ -26,7 +26,7 @@ data:
       - --endpoint-reconciler-type=lease
       - --feature-gates=PodShareProcessNamespace=true
       - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
-      - --experimental-encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml
+      - --encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml
       - --v=3
   armada:
     target_manifest: cluster-bootstrap
@@ -51,10 +51,10 @@ data:
     helm:
       tiller: gcr.io/kubernetes-helm/tiller:v2.16.1
     kubernetes:
-      apiserver: gcr.io/google_containers/hyperkube-amd64:v1.17.3
-      controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+      apiserver: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+      controller-manager: gcr.io/google_containers/hyperkube-amd64:v1.18.6
       etcd: quay.io/coreos/etcd:v3.4.2
-      scheduler: gcr.io/google_containers/hyperkube-amd64:v1.17.3
+      scheduler: gcr.io/google_containers/hyperkube-amd64:v1.18.6
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: "# placeholder for triggering calico etcd bootstrapping"

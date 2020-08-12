@@ -16,11 +16,10 @@ data:
   images:
     pause: gcr.io/google_containers/pause-amd64:3.1
   config_file_overrides:
-    cgroupRoot: "/kube_whitelist"
     evictionMaxPodGracePeriod: -1
     featureGates:
       PodShareProcessNamespace: true
-      TaintBasedEvictions: false
+      TaintBasedEvictions: true
     nodeStatusUpdateFrequency: "5s"
     serializeImagePulls: false
 ...

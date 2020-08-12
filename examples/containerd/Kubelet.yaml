@@ -22,7 +22,7 @@ data:
     evictionMaxPodGracePeriod: -1
     featureGates:
       PodShareProcessNamespace: true
-      TaintBasedEvictions: false
+      TaintBasedEvictions: true
     nodeStatusUpdateFrequency: "5s"
     serializeImagePulls: false
 ...
