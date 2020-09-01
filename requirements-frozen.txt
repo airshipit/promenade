@@ -10,9 +10,9 @@ chardet==3.0.4
 click==6.7
 cliff==3.1.0
 cmd2==0.8.9
-cryptography==2.3.1
+cryptography==3.1.1
 debtcollector==1.22.0
-Deckhand @ git+https://opendev.org/airship/deckhand.git@7d2092b100bddcab77fca0acadd9fc99ba59797b
+Deckhand @ git+https://opendev.org/airship/deckhand.git@1f0c011a1708c1235a2be65edada7d386cd55d2a#egg=deckhand
 decorator==4.4.2
 deepdiff==3.3.0
 dnspython==1.16.0
@@ -24,11 +24,11 @@ extras==1.0.0
 falcon==1.4.1
 fasteners==0.15
 fixtures==3.0.0
-flake8==2.6.2
+flake8===3.7.9
 futurist==1.10.0
 google-auth==1.16.1
 greenlet==0.4.16
-hacking==1.1.0
+hacking==3.0.1
 idna==2.8
 importlib-metadata==1.6.1
 ipaddress==1.0.23
@@ -36,15 +36,15 @@ iso8601==0.1.12
 Jinja2==2.10
 jsonpath-ng==1.4.3
 jsonpickle==1.4.1
-jsonschema==2.6.0
-keystoneauth1==3.11.1
+jsonschema>=3.0.1<4
+keystoneauth1==3.18.0
 keystonemiddleware==5.3.0
 kombu==4.6.10
-kubernetes==3.0.0
+kubernetes==11.0.0
 linecache2==1.0.0
 Mako==1.1.3
 MarkupSafe==1.1.1
-mccabe==0.5.3
+mccabe==0.6.1
 monotonic==1.5
 msgpack==1.0.0
 netaddr==0.7.19
@@ -73,9 +73,9 @@ psycopg2==2.7.5
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycadf==2.10.0
-pycodestyle==2.0.0
+pycodestyle==2.5.0
 pycparser==2.20
-pyflakes==1.2.3
+pyflakes==2.1.0
 pyinotify==0.9.6
 pylibyaml==0.1.0
 pyparsing==2.4.7
@@ -111,7 +111,7 @@ vine==1.3.0
 wcwidth==0.2.4
 WebOb==1.8.6
 websocket-client==0.57.0
-Werkzeug==0.14.1
+Werkzeug==0.16.1
 wrapt==1.12.1
 yappi==1.2.5
 zipp==1.2.0
