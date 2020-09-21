@@ -18,7 +18,7 @@
       rtd_project_name: 'airship-promenade'
     check:
       jobs:
-        - openstack-tox-pep8
+        - openstack-tox-pep8-bionic
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate-ubuntu_xenial
         - airship-promenade-docker-build-gate-ubuntu_bionic
@@ -30,7 +30,7 @@
 
     gate:
       jobs:
-        - openstack-tox-pep8
+        - openstack-tox-pep8-bionic
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate-ubuntu_xenial
         - airship-promenade-docker-build-gate-ubuntu_bionic
