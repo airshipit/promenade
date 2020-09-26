@@ -57,9 +57,9 @@ const:
 images:
   tags:
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
-    anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
-    apiserver: k8s.gcr.io/hyperkube-amd64:v1.18.6
-    key_rotate: k8s.gcr.io/hyperkube-amd64:v1.18.6
+    anchor: cwedgwood/kubectl:v1.18.6-4
+    apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.18.6
+    key_rotate: cwedgwood/kubectl:v1.18.6-4
   pull_policy: "IfNotPresent"
   local_registry:
     active: false

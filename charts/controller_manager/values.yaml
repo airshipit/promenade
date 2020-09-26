@@ -16,8 +16,8 @@ release_group: null
 
 images:
   tags:
-    anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
-    controller_manager: k8s.gcr.io/hyperkube-amd64:v1.18.6
+    anchor: cwedgwood/kubectl:v1.18.6-4
+    controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.18.6
   pull_policy: "IfNotPresent"
 
 labels:

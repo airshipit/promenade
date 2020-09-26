@@ -64,7 +64,7 @@ conf:
 
 images:
   tags:
-    anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
+    anchor: cwedgwood/kubectl:v1.18.6-4
     haproxy: haproxy:1.8.25
     test: python:3.6
   pull_policy: "IfNotPresent"
