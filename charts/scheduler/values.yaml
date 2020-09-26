@@ -98,7 +98,6 @@ service:
   name: kubernetes-scheduler
 
 command_prefix:
-  - /hyperkube
   - kube-scheduler
   # TaintNodesByCondition feature is unconditionally enabled and the
   # corresponding --feature-gates flags have been removed in 1.18.x

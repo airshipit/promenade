@@ -19,7 +19,6 @@ release_group: null
 const:
   encryption_annotation: "airshipit.org/encryption_key"
   command_prefix:
-    - /hyperkube
     - kube-apiserver
     - --advertise-address=$(POD_IP)
     - --allow-privileged=true
