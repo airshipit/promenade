@@ -22,7 +22,7 @@ const:
     - kube-apiserver
     - --advertise-address=$(POD_IP)
     - --allow-privileged=true
-    - --anonymous-auth=false
+    - --anonymous-auth=true
     - --bind-address=0.0.0.0
     - --client-ca-file=/etc/kubernetes/apiserver/pki/cluster-ca.pem
     - --etcd-cafile=/etc/kubernetes/apiserver/pki/etcd-client-ca.pem

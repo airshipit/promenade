@@ -36,27 +36,18 @@
 
 
 {{- define "livenessProbeTemplate" -}}
-exec:
-  command:
-  - /bin/bash
-  - -c
-  - |-
-    kubectl get nodes ${NODENAME} | grep ${NODENAME}
-    exit $?
+httpGet:
+  path: /livez
+  port: {{ .Values.network.kubernetes_apiserver.port }}
+  scheme: HTTPS
 {{- end -}}
 
 
 {{- define "readinessProbeTemplate" -}}
-exec:
-  command:
-  - /bin/bash
-  - -c
-  - |-
-    if [ ! -f /etc/kubernetes/apiserver/pki/apiserver-both.pem ]; then
-      cat /etc/kubernetes/apiserver/pki/apiserver-key.pem <(echo) /etc/kubernetes/apiserver/pki/apiserver.pem > /etc/kubernetes/apiserver/pki/apiserver-both.pem
-    fi
-    echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/etc/kubernetes/apiserver/pki/apiserver-both.pem,cafile=/etc/kubernetes/apiserver/pki/cluster-ca.pem | grep '200 OK'
-    exit $?
+httpGet:
+  path: /readyz
+  port: {{ .Values.network.kubernetes_apiserver.port }}
+  scheme: HTTPS
 {{- end -}}
 
 
