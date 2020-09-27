@@ -35,6 +35,31 @@
 {{- end -}}
 
 
+{{- define "livenessProbeTemplate" -}}
+exec:
+  command:
+  - /bin/bash
+  - -c
+  - |-
+    kubectl get nodes ${NODENAME} | grep ${NODENAME}
+    exit $?
+{{- end -}}
+
+
+{{- define "readinessProbeTemplate" -}}
+exec:
+  command:
+  - /bin/bash
+  - -c
+  - |-
+    if [ ! -f /etc/kubernetes/apiserver/pki/apiserver-both.pem ]; then
+      cat /etc/kubernetes/apiserver/pki/apiserver-key.pem <(echo) /etc/kubernetes/apiserver/pki/apiserver.pem > /etc/kubernetes/apiserver/pki/apiserver-both.pem
+    fi
+    echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/etc/kubernetes/apiserver/pki/apiserver-both.pem,cafile=/etc/kubernetes/apiserver/pki/cluster-ca.pem | grep '200 OK'
+    exit $?
+{{- end -}}
+
+
 {{- $envAll := . }}
 ---
 apiVersion: v1
@@ -100,34 +125,9 @@ spec:
       ports:
         - containerPort: {{ .Values.network.kubernetes_apiserver.port }}
 
-      readinessProbe:
-        exec:
-          command:
-          - /bin/bash
-          - -c
-          - |-
-            if [ ! -f /etc/kubernetes/apiserver/pki/apiserver-both.pem ]; then
-              cat /etc/kubernetes/apiserver/pki/apiserver-key.pem <(echo) /etc/kubernetes/apiserver/pki/apiserver.pem > /etc/kubernetes/apiserver/pki/apiserver-both.pem
-            fi
-            echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/etc/kubernetes/apiserver/pki/apiserver-both.pem,cafile=/etc/kubernetes/apiserver/pki/cluster-ca.pem | grep '200 OK'
-            exit $?
-        initialDelaySeconds: 10
-        periodSeconds: 5
-        timeoutSeconds: 5
+{{ dict "envAll" . "component" "apiserver" "container" "apiserver" "type" "liveness" "probeTemplate" (include "livenessProbeTemplate" . | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | trim | indent 6 }}
 
-      livenessProbe:
-        exec:
-          command:
-          - /bin/bash
-          - -c
-          - |-
-            kubectl get nodes ${NODENAME} | grep ${NODENAME}
-            exit $?
-        failureThreshold: 3
-        initialDelaySeconds: 60
-        periodSeconds: 10
-        successThreshold: 1
-        timeoutSeconds: 10
+{{ dict "envAll" . "component" "apiserver" "container" "apiserver" "type" "readiness" "probeTemplate" (include "readinessProbeTemplate" . | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | trim | indent 6 }}
 
       volumeMounts:
         - name: etc
