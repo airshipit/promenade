@@ -1,4 +1,4 @@
 pytest
-flake8==2.6.2
+flake8===3.7.9
 bandit>=1.5
 yapf==0.24.0

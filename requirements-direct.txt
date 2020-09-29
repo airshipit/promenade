@@ -4,10 +4,10 @@ docker==3.7.2
 falcon==1.4.1
 jinja2==2.10
 jsonpath-ng==1.4.3
-jsonschema==2.6.0
-keystoneauth1==3.11.1
+jsonschema>=3.0.1<4
+keystoneauth1==3.18.0
 keystonemiddleware==5.3.0
-kubernetes==3.0.0
+kubernetes==11.0.0
 oslo.context==2.21.0
 oslo.policy==1.40.1
 pastedeploy==1.5.2
@@ -15,4 +15,4 @@ pylibyaml~=0.1
 pyyaml~=5.1
 requests==2.22.0
 uwsgi==2.0.19.1
-git+https://opendev.org/airship/deckhand.git@7d2092b100bddcab77fca0acadd9fc99ba59797b#egg=deckhand
+git+https://opendev.org/airship/deckhand.git@1f0c011a1708c1235a2be65edada7d386cd55d2a#egg=deckhand

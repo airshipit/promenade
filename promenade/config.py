@@ -125,7 +125,7 @@ class Configuration:
         client = docker.from_env()
         try:
             client.ping()
-        except:
+        except Exception:
             raise Exception('Docker is not responding, check ENV vars')
         tmp_dir = os.getenv('PROMENADE_TMP')
         if tmp_dir is None:
