@@ -16,7 +16,6 @@ spec:
     - name: kube-scheduler
       image: {{ config['Genesis:images.kubernetes.scheduler'] }}
       command:
-      - ./hyperkube
       - kube-scheduler
       - --leader-elect=true
       - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
