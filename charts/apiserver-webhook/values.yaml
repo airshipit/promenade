@@ -238,6 +238,9 @@ pod:
       failureThreshold: 3
       initialDelaySeconds: 15
       periodSeconds: 20
+  env:
+    apiserver:
+      GODEBUG: http2server=0,http2client=0
   lifecycle:
     upgrades:
       daemonsets:

@@ -89,6 +89,7 @@ spec:
           value: {{ .Values.network.kubernetes_apiserver.port | quote }}
         - name: ETCD_ENDPOINTS
           value: {{ .Values.apiserver.etcd.endpoints | quote }}
+{{ include "helm-toolkit.utils.to_k8s_env_vars" .Values.pod.env.apiserver | indent 8 }}
 
       command:
         {{- range .Values.const.command_prefix }}

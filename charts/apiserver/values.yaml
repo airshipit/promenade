@@ -350,6 +350,9 @@ pod:
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 5
+  env:
+    apiserver:
+      GODEBUG: http2server=0,http2client=0
 
 manifests:
   configmap_bin: true

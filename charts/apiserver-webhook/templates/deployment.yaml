@@ -141,6 +141,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+{{ include "helm-toolkit.utils.to_k8s_env_vars" .Values.pod.env.apiserver | indent 12 }}
           command:
             {{- range .Values.command_prefix }}
             - {{ . }}
