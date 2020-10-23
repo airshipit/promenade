@@ -112,7 +112,7 @@ data:
     type: git
     location: https://opendev.org/openstack/openstack-helm-infra.git
     subpath: helm-toolkit
-    reference: fc8d855a439226878bc3bc07e4d117d72ae89993
+    reference: 2d1fe882bb751c03ee741a6166c9c8a5fad8f926
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -136,7 +136,7 @@ data:
     type: git
     location: https://opendev.org/openstack/openstack-helm-infra.git
     subpath: helm-toolkit
-    reference: fc8d855a439226878bc3bc07e4d117d72ae89993
+    reference: 2d1fe882bb751c03ee741a6166c9c8a5fad8f926
   dependencies: []
 ---
 schema: armada/Chart/v1
