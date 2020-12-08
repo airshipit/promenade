@@ -135,6 +135,7 @@ clean:
 	rm -f charts/*.tgz
 	rm -f charts/*/requirements.lock
 	rm -rf charts/*/charts
+	rm -rf .tox
 
 # Install helm binary
 helm-install:
