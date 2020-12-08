@@ -3,7 +3,7 @@
 set -eux
 
 IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
-IMAGE_HYPERKUBE=${IMAGE_HYPERKUBE:-gcr.io/google_containers/hyperkube-amd64:v1.18.6}
+IMAGE_HYPERKUBE=${IMAGE_HYPERKUBE:-k8s.gcr.io/hyperkube-amd64:v1.18.6}
 PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
 
 SCRIPT_DIR=$(realpath $(dirname $0))

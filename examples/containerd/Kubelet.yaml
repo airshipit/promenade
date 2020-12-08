@@ -16,7 +16,7 @@ data:
     - --network-plugin=cni
     - --v=3
   images:
-    pause: gcr.io/google_containers/pause-amd64:3.0
+    pause: k8s.gcr.io/pause-amd64:3.0
   config_file_overrides:
     runtimeRequestTimeout: 15m
     evictionMaxPodGracePeriod: -1

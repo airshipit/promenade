@@ -106,14 +106,10 @@ VALID_DOCS = [
                     'tiller': 'gcr.io/kubernetes-helm/tiller:v2.16.1'
                 },
                 'kubernetes': {
-                    'apiserver':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6',
-                    'controller-manager':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6',
-                    'etcd':
-                    'quay.io/coreos/etcd:v3.4.3',
-                    'scheduler':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6'
+                    'apiserver': 'k8s.gcr.io/hyperkube-amd64:v1.18.6',
+                    'controller-manager': 'k8s.gcr.io/hyperkube-amd64:v1.18.6',
+                    'etcd': 'quay.io/coreos/etcd:v3.4.3',
+                    'scheduler': 'k8s.gcr.io/hyperkube-amd64:v1.18.6'
                 }
             },
             'ip':
@@ -165,8 +161,7 @@ VALID_DOCS = [
                     'helm': 'lachlanevenson/k8s-helm:v2.14.0'
                 },
                 'kubernetes': {
-                    'kubectl':
-                    'gcr.io/google_containers/hyperkube-amd64:v1.18.6'
+                    'kubectl': 'k8s.gcr.io/hyperkube-amd64:v1.18.6'
                 }
             },
             'packages': {
@@ -205,7 +200,7 @@ VALID_DOCS = [
                 '--network-plugin=cni', '--v=5'
             ],
             'images': {
-                'pause': 'gcr.io/google_containers/pause-amd64:3.1'
+                'pause': 'k8s.gcr.io/pause-amd64:3.1'
             },
             'config_file_overrides': {
                 'evictionMaxPodGracePeriod': -1,

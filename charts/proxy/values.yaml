@@ -67,7 +67,7 @@ pod:
 
 images:
   tags:
-    proxy: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+    proxy: k8s.gcr.io/hyperkube-amd64:v1.18.6
   pull_policy: "IfNotPresent"
 
 proxy:

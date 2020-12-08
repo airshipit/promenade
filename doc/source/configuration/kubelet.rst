@@ -33,7 +33,7 @@ Here is a sample document:
         - --network-plugin=cni
         - --v=5
       images:
-        pause: gcr.io/google_containers/pause-amd64:3.1
+        pause: k8s.gcr.io/pause-amd64:3.1
       config_file_overrides:
         evictionMaxPodGracePeriod: -1
         nodeStatusUpdateFrequency: "5s"

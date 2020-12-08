@@ -24,7 +24,7 @@ Sample Document to run containers in Docker runtime
         helm:
           helm: lachlanevenson/k8s-helm:v2.14.0
         kubernetes:
-          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+          kubectl: k8s.gcr.io/hyperkube-amd64:v1.18.6
       packages:
         repositories:
           - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
@@ -124,7 +124,7 @@ Sample Document to run containers in Containerd runtime
         helm:
           helm: lachlanevenson/k8s-helm:v2.14.0
         kubernetes:
-          kubectl: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+          kubectl: k8s.gcr.io/hyperkube-amd64:v1.18.6
       packages:
         additional:
           - curl

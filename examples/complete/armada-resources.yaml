@@ -201,7 +201,7 @@ data:
   values:
     images:
       tags:
-        proxy: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        proxy: k8s.gcr.io/hyperkube-amd64:v1.18.6
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -644,7 +644,7 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -730,8 +730,8 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
-        apiserver: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
+        apiserver: k8s.gcr.io/hyperkube-amd64:v1.18.6
     secrets:
       service_account:
         public_key: placeholder
@@ -807,8 +807,8 @@ data:
   values:
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
-        controller_manager: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
+        controller_manager: k8s.gcr.io/hyperkube-amd64:v1.18.6
     secrets:
       service_account:
         private_key: placeholder
@@ -880,8 +880,8 @@ data:
 
     images:
       tags:
-        anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
-        scheduler: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+        anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
+        scheduler: k8s.gcr.io/hyperkube-amd64:v1.18.6
 
   source:
     type: local
@@ -1660,7 +1660,7 @@ data:
         entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         # https://github.com/kubernetes/ingress-nginx/blob/09524cd3363693463da5bf4a9bb3900da435ad05/Changelog.md#090
         ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0
-        error_pages: gcr.io/google_containers/defaultbackend:1.0
+        error_pages: k8s.gcr.io/defaultbackend:1.0
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
   source:
     type: git

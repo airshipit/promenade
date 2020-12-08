@@ -85,8 +85,8 @@ secrets:
 
 images:
   tags:
-    anchor: gcr.io/google_containers/hyperkube-amd64:v1.18.6
-    scheduler: gcr.io/google_containers/hyperkube-amd64:v1.18.6
+    anchor: k8s.gcr.io/hyperkube-amd64:v1.18.6
+    scheduler: k8s.gcr.io/hyperkube-amd64:v1.18.6
   pull_policy: "IfNotPresent"
 
 network:
