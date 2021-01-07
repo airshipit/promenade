@@ -90,6 +90,7 @@ spec:
               mountPath: /configmap
             - name: host
               mountPath: /host
+              mountPropagation: HostToContainer
             - name: secret
               mountPath: /secret
             - name: pod-tmp

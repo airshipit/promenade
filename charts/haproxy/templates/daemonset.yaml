@@ -64,6 +64,7 @@ spec:
               readOnly: false
             - name: host
               mountPath: /host
+              mountPropagation: HostToContainer
       containers:
         - name: anchor
           image: {{ .Values.images.tags.anchor }}
@@ -101,6 +102,7 @@ spec:
               mountPath: /tmp/etc
             - name: host
               mountPath: /host
+              mountPropagation: HostToContainer
             - name: pod-tmp
               mountPath: /tmp
       volumes:

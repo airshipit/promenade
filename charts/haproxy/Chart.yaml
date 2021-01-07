@@ -1,4 +1,4 @@
 apiVersion: v1
 description: A chart for using HAProxy for Kubernetes API server discovery
 name: haproxy
-version: 0.1.0
+version: 0.1.1

@@ -96,6 +96,7 @@ spec:
               mountPath: /certs
             - name: host
               mountPath: /host
+              mountPropagation: HostToContainer
             - name: {{ .Values.service.name }}-keys
               mountPath: /keys
             - name: {{ .Values.service.name }}-bin
