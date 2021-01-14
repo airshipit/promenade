@@ -49,7 +49,6 @@ conf:
 images:
   tags:
     monitoring_image: busybox:1.28.3
-    hyperkube: k8s.gcr.io/hyperkube-amd64:v1.18.6
     promenade: quay.io/airshipit/promenade:latest
     ks_user: docker.io/openstackhelm/heat:newton
     ks_service: docker.io/openstackhelm/heat:newton

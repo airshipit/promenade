@@ -16,7 +16,6 @@
       HTTP_PROXY: ""
       HTTPS_PROXY: ""
       NO_PROXY: ""
-      PROMENADE_TMP_LOCAL: "cache"
       DISTRO: "{{ distro }}"
   become: true
   tasks:

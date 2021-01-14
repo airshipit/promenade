@@ -28,24 +28,17 @@ def promenade(*, verbose):
     help='Location to write complete cluster configuration.')
 @click.option('--validators', is_flag=True, help='Generate validation scripts')
 @click.option(
-    '--extract-hyperkube',
-    is_flag=True,
-    default=False,
-    help='Extract hyperkube binary from image')
-@click.option(
     '--leave-kubectl',
     is_flag=True,
     help='Leave behind kubectl on joined nodes')
 @click.argument('config_files', nargs=-1, type=click.File('rb'))
-def build_all(*, config_files, extract_hyperkube, leave_kubectl, output_dir,
-              validators):
+def build_all(*, config_files, leave_kubectl, output_dir, validators):
     debug = _debug()
     try:
         c = config.Configuration.from_streams(
             debug=debug,
             substitute=True,
             allow_missing_substitutions=False,
-            extract_hyperkube=extract_hyperkube,
             leave_kubectl=leave_kubectl,
             streams=config_files)
         b = builder.Builder(c, validators=validators)

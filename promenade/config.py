@@ -1,9 +1,7 @@
 from . import exceptions, logging, validation
 from . import design_ref as dr
-import docker
 import jinja2
 import jsonpath_ng
-import os
 import yaml
 
 from deckhand.engine import layering
@@ -21,7 +19,6 @@ class Configuration:
                  debug=False,
                  substitute=True,
                  allow_missing_substitutions=True,
-                 extract_hyperkube=True,
                  leave_kubectl=False,
                  validate=True):
         LOG.info("Parsing document schemas.")
@@ -42,7 +39,6 @@ class Configuration:
             LOG.info("Deckhand engine returned %d documents." % len(documents))
         self.debug = debug
         self.documents = documents
-        self.extract_hyperkube = extract_hyperkube
         self.leave_kubectl = leave_kubectl
 
         if validate:
@@ -117,30 +113,6 @@ class Configuration:
         for doc in self.iterate(*args, **kwargs):
             return doc
 
-    # try to use docker socket from ENV
-    # supported the same way like for docker client
-    def get_container_info(self):
-        LOG.debug(
-            'Getting access to Docker via socket and getting mount points')
-        client = docker.from_env()
-        try:
-            client.ping()
-        except Exception:
-            raise Exception('Docker is not responding, check ENV vars')
-        tmp_dir = os.getenv('PROMENADE_TMP')
-        if tmp_dir is None:
-            raise Exception('ERROR: undefined PROMENADE_TMP')
-        tmp_dir_local = os.getenv('PROMENADE_TMP_LOCAL')
-        if tmp_dir_local is None:
-            raise Exception('ERROR: undefined PROMENADE_TMP_LOCAL')
-        if not os.path.exists(tmp_dir_local):
-            raise Exception('ERROR: {} not found'.format(tmp_dir_local))
-        return {
-            'client': client,
-            'dir': tmp_dir,
-            'dir_local': tmp_dir_local,
-        }
-
     def extract_genesis_config(self):
         LOG.debug('Extracting genesis config.')
         documents = []
@@ -153,7 +125,6 @@ class Configuration:
         return Configuration(
             debug=self.debug,
             documents=documents,
-            extract_hyperkube=self.extract_hyperkube,
             leave_kubectl=self.leave_kubectl,
             substitute=False,
             validate=False)
@@ -177,7 +148,6 @@ class Configuration:
         return Configuration(
             debug=self.debug,
             documents=documents,
-            extract_hyperkube=self.extract_hyperkube,
             leave_kubectl=self.leave_kubectl,
             substitute=False,
             validate=False)

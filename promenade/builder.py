@@ -47,10 +47,6 @@ class Builder:
             islink = False
             if 'content' in file_spec:
                 data = file_spec['content']
-            elif 'docker_image' in file_spec:
-                data = _fetch_image_content(self.config,
-                                            file_spec['docker_image'],
-                                            file_spec['file_path'])
             elif 'symlink' in file_spec:
                 data = file_spec['symlink']
                 islink = True
@@ -177,39 +173,6 @@ def _encrypt(cfg_dict, data):
     decrypt_teardown_command = method.get_decrypt_teardown_command()
     return (encrypted_data, decrypt_setup_command, decrypt_command,
             decrypt_teardown_command)
-
-
-# The following environment variables should be used
-# to extract hyperkube from image:
-# export DOCKER_HOST="unix://var/run/docker.sock"
-# export PROMENADE_TMP="tmp_dir_on_host"
-# export PROMENADE_TMP_LOCAL="tmp_dir_inside_container"
-# PROMENADE_TMP is the full path to temp dir from host
-# inside promenade container it should be bind to PROMENADE_TMP_LOCAL
-@CACHE.cache('fetch_image', expire=72 * 3600)
-def _fetch_image_content(config, image_url, file_path):
-    file_name = os.path.basename(file_path)
-    if config.extract_hyperkube:
-        container_info = config.get_container_info()
-        result_path = os.path.join(container_info['dir_local'], file_name)
-        client = container_info['client']
-        vol = {
-            container_info['dir']: {
-                'bind': container_info['dir_local'],
-                'mode': 'rw'
-            }
-        }
-        cmd = 'cp -v {} {}'.format(file_path, container_info['dir_local'])
-        image = client.images.pull(image_url)
-        output = client.containers.run(
-            image, command=cmd, auto_remove=True, volumes=vol)
-        LOG.debug(output)
-    else:
-        result_path = os.path.join(TMP_CACHE, file_name)
-        if not os.path.isfile(result_path):
-            raise Exception('ERROR: there is no hyperkube in cache')
-    f = open(result_path, 'rb')
-    return f.read()
 
 
 @CACHE.cache('fetch_tarball_content', expire=72 * 3600)

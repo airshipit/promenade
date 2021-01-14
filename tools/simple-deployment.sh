@@ -3,7 +3,6 @@
 set -eux
 
 IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
-IMAGE_HYPERKUBE=${IMAGE_HYPERKUBE:-k8s.gcr.io/hyperkube-amd64:v1.18.6}
 PROMENADE_DEBUG=${PROMENADE_DEBUG:-0}
 
 SCRIPT_DIR=$(realpath $(dirname $0))
@@ -24,11 +23,6 @@ echo === Cleaning up old data ===
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 chmod 777 ${BUILD_DIR}
-
-PROMENADE_TMP_LOCAL="$(basename "$PROMENADE_TMP_LOCAL")"
-PROMENADE_TMP="${SCRIPT_DIR}/${PROMENADE_TMP_LOCAL}"
-mkdir -p "$PROMENADE_TMP"
-chmod 777 "$PROMENADE_TMP"
 
 cp "${CONFIG_SOURCE}"/*.yaml ${BUILD_DIR}
 
@@ -57,13 +51,6 @@ docker run --rm -t \
 fi
 
 if [[ -z $1 ]] || [[ $1 = build-all ]]; then
-echo === Prepare hyperkube ===
-docker run --rm -t \
-    -v "${PROMENADE_TMP}:/tmp/${PROMENADE_TMP_LOCAL}" \
-    --entrypoint 'cp' \
-    "${IMAGE_HYPERKUBE}" \
-     /hyperkube "/tmp/${PROMENADE_TMP_LOCAL}"
-
 echo === Building bootstrap scripts ===
 docker run --rm -t \
     -w /target \
@@ -71,7 +58,6 @@ docker run --rm -t \
     -e http_proxy=${HTTP_PROXY} \
     -e https_proxy=${HTTPS_PROXY} \
     -e no_proxy=${NO_PROXY} \
-    -v "${PROMENADE_TMP}:/tmp/${PROMENADE_TMP_LOCAL}" \
     -v ${BUILD_DIR}:/target \
     ${IMAGE_PROMENADE} \
     promenade \
