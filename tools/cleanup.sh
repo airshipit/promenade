@@ -86,12 +86,7 @@ stop_kubelet() {
 
     # Issue with orhan PODS
     # https://github.com/kubernetes/kubernetes/issues/38498
-    find /var/lib/kubelet/pods 2> /dev/null | while read orphan_pod; do
-        if [[ ${orphan_pod} == *io~secret/* ]] || [[ ${orphan_pod} == *empty-dir/* ]]; then
-            umount "${orphan_pod}" || true
-            rm -rf "${orphan_pod}"
-        fi
-    done
+    find /var/lib/kubelet/pods -exec umount {} \; 2> /dev/null
 }
 
 
