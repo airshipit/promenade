@@ -111,7 +111,7 @@ VALID_DOCS = [
                     'controller-manager':
                     'k8s.gcr.io/kube-controller-manager-amd64:v1.18.6',
                     'etcd':
-                    'quay.io/coreos/etcd:v3.4.3',
+                    'quay.io/coreos/etcd:v3.4.13',
                     'scheduler':
                     'k8s.gcr.io/kube-scheduler-amd64:v1.18.6'
                 }

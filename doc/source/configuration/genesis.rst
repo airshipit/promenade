@@ -50,7 +50,7 @@ Here is a complete sample document:
         kubernetes:
           apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.18.6
           controller-manager: k8s.gcr.io/kube-controller-manager-amd64:v1.18.6
-          etcd: quay.io/coreos/etcd:v3.4.3
+          etcd: quay.io/coreos/etcd:v3.4.13
           scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.18.6
       files:
         - path: /var/lib/anchor/calico-etcd-bootstrap

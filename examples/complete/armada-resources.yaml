@@ -401,8 +401,8 @@ data:
       filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.4.3
-        etcdctl: quay.io/coreos/etcd:v3.4.3
+        etcd: quay.io/coreos/etcd:v3.4.13
+        etcdctl: quay.io/coreos/etcd:v3.4.13
     nodes:
       - name: n0
         tls:
@@ -541,7 +541,7 @@ data:
 
     images:
       tags:
-        calico_etcd: quay.io/coreos/etcd:v3.4.3
+        calico_etcd: quay.io/coreos/etcd:v3.4.13
         calico_node: quay.io/calico/node:v2.6.5
         calico_cni: quay.io/calico/cni:v1.11.2
         calico_ctl: quay.io/calico/ctl:v1.6.2
@@ -1077,8 +1077,8 @@ data:
       host_etc_path: /etc/etcd/kubernetes
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.4.3
-        etcdctl: quay.io/coreos/etcd:v3.4.3
+        etcd: quay.io/coreos/etcd:v3.4.13
+        etcdctl: quay.io/coreos/etcd:v3.4.13
     nodes:
       - name: n0
         tls:
