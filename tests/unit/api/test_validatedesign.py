@@ -107,13 +107,13 @@ VALID_DOCS = [
                 },
                 'kubernetes': {
                     'apiserver':
-                    'k8s.gcr.io/kube-apiserver-amd64:v1.18.6',
+                    'k8s.gcr.io/kube-apiserver-amd64:v1.19.7',
                     'controller-manager':
-                    'k8s.gcr.io/kube-controller-manager-amd64:v1.18.6',
+                    'k8s.gcr.io/kube-controller-manager-amd64:v1.19.7',
                     'etcd':
                     'quay.io/coreos/etcd:v3.4.13',
                     'scheduler':
-                    'k8s.gcr.io/kube-scheduler-amd64:v1.18.6'
+                    'k8s.gcr.io/kube-scheduler-amd64:v1.19.7'
                 }
             },
             'ip':
@@ -149,7 +149,7 @@ VALID_DOCS = [
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
-                'https://dl.k8s.io/v1.18.6/kubernetes-node-linux-amd64.tar.gz'
+                'https://dl.k8s.io/v1.19.7/kubernetes-node-linux-amd64.tar.gz'
             },
              {
                  'content':

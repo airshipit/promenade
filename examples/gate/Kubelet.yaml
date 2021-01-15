@@ -18,7 +18,6 @@ data:
   config_file_overrides:
     evictionMaxPodGracePeriod: -1
     featureGates:
-      PodShareProcessNamespace: true
       TaintBasedEvictions: true
     nodeStatusUpdateFrequency: "5s"
     serializeImagePulls: false

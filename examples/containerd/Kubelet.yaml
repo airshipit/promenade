@@ -21,7 +21,6 @@ data:
     runtimeRequestTimeout: 15m
     evictionMaxPodGracePeriod: -1
     featureGates:
-      PodShareProcessNamespace: true
       TaintBasedEvictions: true
     nodeStatusUpdateFrequency: "5s"
     serializeImagePulls: false
