@@ -23,8 +23,7 @@ Sample Document to run containers in Docker runtime
         haproxy: haproxy:1.8.3
         helm:
           helm: lachlanevenson/k8s-helm:v2.14.0
-        kubernetes:
-          kubectl: k8s.gcr.io/hyperkube-amd64:v1.18.6
+        monitoring_image: busybox:1.28.3
       packages:
         repositories:
           - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
@@ -123,8 +122,7 @@ Sample Document to run containers in Containerd runtime
         haproxy: haproxy:1.8.3
         helm:
           helm: lachlanevenson/k8s-helm:v2.14.0
-        kubernetes:
-          kubectl: k8s.gcr.io/hyperkube-amd64:v1.18.6
+        monitoring_image: busybox:1.28.3
       packages:
         additional:
           - curl

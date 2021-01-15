@@ -34,10 +34,10 @@ data:
     helm:
       tiller: ${IMAGE_TILLER}
     kubernetes:
-      apiserver: ${IMAGE_HYPERKUBE}
-      controller-manager: ${IMAGE_HYPERKUBE}
+      apiserver: ${IMAGE_APISERVER}
+      controller-manager: ${IMAGE_CONTROLLER_MANAGER}
       etcd: ${IMAGE_ETCD}
-      scheduler: ${IMAGE_HYPERKUBE}
+      scheduler: ${IMAGE_SCHEDULER}
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: ""

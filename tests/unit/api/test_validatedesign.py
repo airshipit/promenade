@@ -106,10 +106,14 @@ VALID_DOCS = [
                     'tiller': 'gcr.io/kubernetes-helm/tiller:v2.16.1'
                 },
                 'kubernetes': {
-                    'apiserver': 'k8s.gcr.io/hyperkube-amd64:v1.18.6',
-                    'controller-manager': 'k8s.gcr.io/hyperkube-amd64:v1.18.6',
-                    'etcd': 'quay.io/coreos/etcd:v3.4.3',
-                    'scheduler': 'k8s.gcr.io/hyperkube-amd64:v1.18.6'
+                    'apiserver':
+                    'k8s.gcr.io/kube-apiserver-amd64:v1.18.6',
+                    'controller-manager':
+                    'k8s.gcr.io/kube-controller-manager-amd64:v1.18.6',
+                    'etcd':
+                    'quay.io/coreos/etcd:v3.4.3',
+                    'scheduler':
+                    'k8s.gcr.io/kube-scheduler-amd64:v1.18.6'
                 }
             },
             'ip':
@@ -159,9 +163,6 @@ VALID_DOCS = [
                 'haproxy': 'haproxy:1.8.3',
                 'helm': {
                     'helm': 'lachlanevenson/k8s-helm:v2.14.0'
-                },
-                'kubernetes': {
-                    'kubectl': 'k8s.gcr.io/hyperkube-amd64:v1.18.6'
                 }
             },
             'packages': {

@@ -48,10 +48,10 @@ Here is a complete sample document:
         helm:
           tiller: gcr.io/kubernetes-helm/tiller:v2.16.1
         kubernetes:
-          apiserver: k8s.gcr.io/hyperkube-amd64:v1.18.6
-          controller-manager: k8s.gcr.io/hyperkube-amd64:v1.18.6
+          apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.18.6
+          controller-manager: k8s.gcr.io/kube-controller-manager-amd64:v1.18.6
           etcd: quay.io/coreos/etcd:v3.4.3
-          scheduler: k8s.gcr.io/hyperkube-amd64:v1.18.6
+          scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.18.6
       files:
         - path: /var/lib/anchor/calico-etcd-bootstrap
           content: ""

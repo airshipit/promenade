@@ -73,10 +73,7 @@ data:
     haproxy: ${IMAGE_HAPROXY}
     helm:
       helm: ${IMAGE_HELM}
-    kubernetes:
-      kubectl: ${IMAGE_HYPERKUBE}
   packages:
-    repositories:
     repositories:
         - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
     keys:

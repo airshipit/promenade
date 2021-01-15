@@ -129,7 +129,7 @@ data:
   values:
     images:
       tags:
-        proxy: ${IMAGE_HYPERKUBE}
+        proxy: ${IMAGE_PROXY}
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -558,7 +558,7 @@ data:
 
     images:
       tags:
-        anchor: ${IMAGE_HYPERKUBE}
+        anchor: ${IMAGE_ANCHOR}
         haproxy: ${IMAGE_HAPROXY}
 
   source:
@@ -642,8 +642,8 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: ${IMAGE_HYPERKUBE}
-        apiserver: ${IMAGE_HYPERKUBE}
+        anchor: ${IMAGE_ANCHOR}
+        apiserver: ${IMAGE_APISERVER}
     secrets:
       service_account:
         public_key: placeholder
@@ -718,8 +718,8 @@ data:
   values:
     images:
       tags:
-        anchor: ${IMAGE_HYPERKUBE}
-        controller_manager: ${IMAGE_HYPERKUBE}
+        anchor: ${IMAGE_ANCHOR}
+        controller_manager: ${IMAGE_CONTROLLER_MANAGER}
     secrets:
       service_account:
         private_key: placeholder
@@ -790,8 +790,8 @@ data:
 
     images:
       tags:
-        anchor: ${IMAGE_HYPERKUBE}
-        scheduler: ${IMAGE_HYPERKUBE}
+        anchor: ${IMAGE_ANCHOR}
+        scheduler: ${IMAGE_SCHEDULER}
 
   source:
     type: local
