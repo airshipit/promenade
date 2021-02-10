@@ -23,6 +23,8 @@ data:
         mode:
           type: integer
           minimum: 0
+        url:
+          $ref: '#/definitions/url'
         tar_url:
           $ref: '#/definitions/url'
         tar_path:
@@ -35,6 +37,9 @@ data:
         - type: object
           required:
             - content
+        - type: object
+          required:
+            - url
         - type: object
           allOf:
             - type: object

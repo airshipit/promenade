@@ -138,7 +138,8 @@ Sample Document to run containers in Containerd runtime
 Files
 -----
 
-A list of files to be written to the host.  Files can be given as precise content or extracted from a tarball specified by url:
+A list of files to be written to the host.  Files can be given as precise
+content, extracted from a tarball specified by url, or downloaded from a url:
 
 .. code-block:: yaml
 
@@ -148,8 +149,10 @@ A list of files to be written to the host.  Files can be given as precise conten
         exact
         text
     - path: /etc/from-tar
-      tar_url: http://example.com/file
+      tar_url: http://example.com/file.tgz
       tar_source: dir/file.txt
+    - path: /etc/from-url
+      url: http://example.com/file
 
 Images
 ------

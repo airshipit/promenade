@@ -54,6 +54,8 @@ class Builder:
             elif 'symlink' in file_spec:
                 data = file_spec['symlink']
                 islink = True
+            elif 'url' in file_spec:
+                data = _fetch_tar_url(file_spec['url'])
             elif 'tar_url' in file_spec:
                 data = _fetch_tar_content(file_spec['tar_url'],
                                           file_spec['tar_path'])
