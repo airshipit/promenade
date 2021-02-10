@@ -36,7 +36,7 @@ create_manifest () {
     cp -f /anchor-etcd/{{ .Values.service.name }}.yaml $WIP
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_STATE_#'$2'#g' $WIP
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_#'$1'#g' $WIP
-    mv -f "$WIP" "$3"
+    sync_file "$WIP" "$3"
 }
 
 sync_configuration () {
