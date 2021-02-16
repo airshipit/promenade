@@ -863,6 +863,7 @@ data:
   values:
     anchor:
       etcdctl_endpoint: kubernetes-etcd.kube-system.svc.cluster.local
+      enable_cleanup: false
     labels:
       anchor:
         node_selector_key: kubernetes-etcd
