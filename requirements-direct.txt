@@ -12,7 +12,7 @@ oslo.context==2.21.0
 oslo.policy==1.40.1
 pastedeploy==1.5.2
 pylibyaml~=0.1
-pyyaml~=5.1
+pyyaml~=5.4
 requests==2.22.0
 uwsgi==2.0.19.1
 git+https://opendev.org/airship/deckhand.git@1f0c011a1708c1235a2be65edada7d386cd55d2a#egg=deckhand
