@@ -21,6 +21,8 @@ spec:
     - env:
       - name: TILLER_NAMESPACE
         value: kube-system
+      - name: KUBECONFIG
+        value: /etc/kubernetes/admin/config
       image: {{ config['Genesis:images.helm.tiller'] }}
       command:
         - /tiller
@@ -61,8 +63,13 @@ spec:
         successThreshold: 1
         timeoutSeconds: 1
       resources: {}
+      securityContext:
+        runAsUser: 0
       terminationMessagePath: /dev/termination-log
       terminationMessagePolicy: File
+      volumeMounts:
+        - name: auth
+          mountPath: /etc/kubernetes/admin
     - name: armada
       image: {{ config['Genesis:images.armada'] }}
       securityContext:
@@ -149,7 +156,7 @@ spec:
         {%- endfor %}
 {% include "genesis-apiserver.yaml" with context %}
         - --etcd-servers=https://localhost:12379
-        - --insecure-port=8080
+        - --insecure-port=0
         - --secure-port=6444
         - --endpoint-reconciler-type=none
       env:
