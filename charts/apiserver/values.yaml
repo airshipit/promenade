@@ -36,6 +36,7 @@ const:
     - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
     - --secure-port=$(APISERVER_PORT)
     - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+    - --service-account-signing-key-file=/etc/kubernetes/apiserver/pki/service-account.key
     - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
     - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
 
@@ -52,6 +53,7 @@ const:
     /etc/kubernetes/apiserver/pki/kubelet-client-key.pem: /keys/kubelet-client-key.pem
     /etc/kubernetes/apiserver/pki/kubelet-client.pem: /certs/kubelet-client.pem
     /etc/kubernetes/apiserver/pki/service-account.pub: /certs/service-account.pub
+    /etc/kubernetes/apiserver/pki/service-account.key: /keys/service-account.key
     /etc/kubernetes/manifests/kubernetes-apiserver.yaml: /tmp/etc/kubernetes-apiserver.yaml
 
 images:
@@ -163,6 +165,9 @@ conf:
                   - name: key1
                     secret: Xw2UcbjILTJM6QiFZ0WPSbUvjtoT8OJC/Nl8qqYWjGk=
             - identity: {}
+  service_account_issuer:
+    command_options:
+    - --service-account-issuer=https://kubernetes.default.svc.cluster.local
 
 apiserver:
   arguments:
@@ -214,6 +219,7 @@ secrets:
     key: placeholder
   service_account:
     public_key: placeholder
+    private_key: placeholder
   etcd:
     tls:
       ca: placeholder

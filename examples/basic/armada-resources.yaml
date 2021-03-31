@@ -697,6 +697,13 @@ metadata:
         path: .
       dest:
         path: .values.secrets.service_account.public_key
+    -
+      src:
+        schema: deckhand/PrivateKey/v1
+        name: service-account
+        path: .
+      dest:
+        path: .values.secrets.service_account.private_key
 
     - src:
         schema: promenade/EncryptionPolicy/v1

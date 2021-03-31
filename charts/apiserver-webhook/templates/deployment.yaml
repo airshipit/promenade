@@ -171,6 +171,7 @@ spec:
             - --etcd-keyfile={{ tuple "etcd" "client" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" }}
             - --allow-privileged=true
             - --service-account-key-file={{ $envAll.Values.conf.paths.sapubkey }}
+            - --service-account-signing-key-file={{ $envAll.Values.conf.paths.saprivkey }}
             - --authentication-token-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
             - --authorization-webhook-config-file={{ $envAll.Values.conf.paths.conf }}
             {{- range $key, $val := .Values.conf.apiserver }}
@@ -199,6 +200,10 @@ spec:
             - name: configmap-etc
               mountPath: {{ $envAll.Values.conf.paths.sapubkey }}
               subPath: service-account.pub
+              readOnly: true
+            - name: secrets-etc
+              mountPath: {{ $envAll.Values.conf.paths.saprivkey }}
+              subPath: service-account.key
               readOnly: true
             - name: configmap-etc
               mountPath: {{ $envAll.Values.conf.paths.conf }}
@@ -272,6 +277,10 @@ spec:
         - name: configmap-etc
           configMap:
             name: {{ .Release.Name }}-etc
+            defaultMode: 0444
+        - name: secrets-etc
+          secret:
+            secretName: {{ .Release.Name }}-keys
             defaultMode: 0444
         - name: configmap-bin
           configMap:

@@ -10,7 +10,9 @@
         - --kubelet-client-certificate=/etc/kubernetes/apiserver/pki/kubelet-client.pem
         - --kubelet-client-key=/etc/kubernetes/apiserver/pki/kubelet-client-key.pem
         - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+        - --service-account-issuer=https://kubernetes.default.svc.cluster.local
         - --service-account-key-file=/etc/kubernetes/apiserver/pki/service-account.pub
+        - --service-account-signing-key-file=/etc/kubernetes/apiserver/pki/service-account.key
         - --tls-cert-file=/etc/kubernetes/apiserver/pki/apiserver.pem
         - --tls-private-key-file=/etc/kubernetes/apiserver/pki/apiserver-key.pem
         {%- for argument in config.get_path('Genesis:apiserver.arguments', []) %}

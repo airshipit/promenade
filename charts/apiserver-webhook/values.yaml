@@ -103,6 +103,7 @@ certificates:
 secrets:
   service_account:
     public_key: placeholder
+    private_key: placeholder
   identity:
     admin: apiserver-webhook-keystone-creds-admin
     webhook: apiserver-webhook-keystone-creds-webhook
@@ -302,6 +303,7 @@ conf:
     conf: '/etc/webhook_apiserver/webhook.kubeconfig'
     policy: '/etc/webhook_apiserver/conf/policy.json'
     sapubkey: '/etc/webhook_apiserver/pki/service-accounts.pub'
+    saprivkey: '/etc/webhook_apiserver/pki/service-accounts.key'
     encryption_provider: '/etc/webhook_apiserver/encryption_provider.json'
   # Every key below 'apiserver' yields a dynamic configuration file
   # and can mutate the apiserver command-line args.
@@ -354,6 +356,9 @@ conf:
 #         rules:
 #           - level: Metadata
 #
+    service_account_issuer:
+      command_options:
+      - --service-account-issuer=https://kubernetes.default.svc.cluster.local
   policy:
     - resource:
         verbs:
@@ -427,5 +432,6 @@ manifests:
   pod_test: false
   secret_keystone: true
   secret_tls: true
+  secret_keys: true
   service: true
   network_policy: false
