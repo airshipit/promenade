@@ -67,7 +67,7 @@ pod:
 
 images:
   tags:
-    proxy: k8s.gcr.io/kube-proxy-amd64:v1.19.7
+    proxy: k8s.gcr.io/kube-proxy-amd64:v1.20.5
   pull_policy: "IfNotPresent"
 
 proxy:

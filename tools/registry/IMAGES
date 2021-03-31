@@ -1,10 +1,10 @@
 # source_name, tag, cache_name
 coredns/coredns,1.6.4,coredns
-cwedgwood/kubectl,v1.19.7-1,kubectl
-k8s.gcr.io/kube-apiserver-amd64,v1.19.7,apiserver
-k8s.gcr.io/kube-controller-manager-amd64,v1.19.7,controller-manager
-k8s.gcr.io/kube-scheduler-amd64,v1.19.7,scheduler
-k8s.gcr.io/kube-proxy-amd64,v1.19.7,proxy
+cwedgwood/kubectl,v1.20.5-1,kubectl
+k8s.gcr.io/kube-apiserver-amd64,v1.20.5,apiserver
+k8s.gcr.io/kube-controller-manager-amd64,v1.20.5,controller-manager
+k8s.gcr.io/kube-scheduler-amd64,v1.20.5,scheduler
+k8s.gcr.io/kube-proxy-amd64,v1.20.5,proxy
 k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64,1.14.4,k8s-dns-dnsmasq-nanny-amd64
 k8s.gcr.io/k8s-dns-kube-dns-amd64,1.14.4,k8s-dns-kube-dns-amd64
 k8s.gcr.io/k8s-dns-sidecar-amd64,1.14.4,k8s-dns-sidecar-amd64

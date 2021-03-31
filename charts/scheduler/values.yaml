@@ -85,8 +85,8 @@ secrets:
 
 images:
   tags:
-    anchor: cwedgwood/kubectl:v1.19.7-1
-    scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.19.7
+    anchor: cwedgwood/kubectl:v1.20.5-1
+    scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.20.5
   pull_policy: "IfNotPresent"
 
 network:

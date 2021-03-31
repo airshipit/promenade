@@ -201,7 +201,7 @@ data:
   values:
     images:
       tags:
-        proxy: k8s.gcr.io/kube-proxy-amd64:v1.19.7
+        proxy: k8s.gcr.io/kube-proxy-amd64:v1.20.5
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -644,7 +644,7 @@ data:
 
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.19.7-1
+        anchor: cwedgwood/kubectl:v1.20.5-1
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -737,8 +737,8 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.19.7-1
-        apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.19.7
+        anchor: cwedgwood/kubectl:v1.20.5-1
+        apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.20.5
     secrets:
       service_account:
         public_key: placeholder
@@ -814,8 +814,8 @@ data:
   values:
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.19.7-1
-        controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.19.7
+        anchor: cwedgwood/kubectl:v1.20.5-1
+        controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.20.5
     secrets:
       service_account:
         private_key: placeholder
@@ -887,8 +887,8 @@ data:
 
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.19.7-1
-        scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.19.7
+        anchor: cwedgwood/kubectl:v1.20.5-1
+        scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.20.5
 
   source:
     type: local
