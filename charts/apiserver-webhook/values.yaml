@@ -214,13 +214,26 @@ pod:
         apiserver:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+          # explicitly setting the runAsUser may be required to write audit logs to the host
+          # runAsUser: 0
         webhook:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
   mounts:
-    kubernetes_apiserver:
-      init_container: null
-      kubernetes_apiserver:
+    apiserver_webhook:
+      apiserver:
+# Example mounts for audit logging, refer to .conf.apiserver.auditpolicy below.
+#        volumeMounts:
+#          - name: audit-logs
+#            mountPath: /var/log/audit
+#            mountPropagation: HostToContainer
+#            readOnly: false
+#        volumes:
+#          - name: audit-logs
+#            hostPath:
+#              path: /var/log/audit
+#              type: DirectoryOrCreate
+      webhook: null
   affinity:
     anti:
       type:
@@ -282,13 +295,6 @@ pod:
         limits:
           memory: "256Mi"
           cpu: "200m"
-  mounts:
-    kubernetes_keystone_webhook_api:
-      init_container: null
-      kubernetes_keystone_webhook_api: null
-    kubernetes_keystone_webhook_tests:
-      init_container: null
-      kubernetes_keystone_webhook_tests: null
 conf:
   paths:
     base: '/etc/webhook_apiserver/'
@@ -330,6 +336,24 @@ conf:
       content:
         kind: EncryptionConfiguration
         apiVersion: apiserver.config.k8s.io/v1
+# Uncomment any of the below to enable enhanced Audit Logging command line options.
+# Note: To use the Log backend, ensure that the hostPath of the log file is mounted,
+# and that the runAsUser for the apiserver container can write to it.
+# (Refer to .pod.mounts.apiserver.apiserver)
+#
+#    auditpolicy:
+#      file: audit_policy.yaml
+#      command_options:
+#         - '--audit-policy-file=/etc/kubernetes/apiserver/audit_policy.yaml'
+#         - '--audit-log-maxsize=10'
+#         - '--audit-log-maxbackup=3'
+#         - '--audit-log-path=/var/log/audit/webhook-audit.log'
+#      content:
+#         kind: Policy
+#         apiVersion: apiserver.k8s.io/v1
+#         rules:
+#           - level: Metadata
+#
   policy:
     - resource:
         verbs:

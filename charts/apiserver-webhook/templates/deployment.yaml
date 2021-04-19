@@ -96,6 +96,8 @@ tls-{{ $group | replace "_" "-" }}-{{ $type | replace "_" "-" }}
 {{- end -}}
 
 {{- if .Values.manifests.deployment }}
+{{- $mounts_apiserver := .Values.pod.mounts.apiserver_webhook.apiserver }}
+{{- $mounts_webhook := .Values.pod.mounts.apiserver_webhook.webhook }}
 {{- $envAll := . }}
 ---
 apiVersion: apps/v1
@@ -212,6 +214,7 @@ spec:
 {{ tuple "kubelet" "client" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
 {{ tuple "etcd" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
 {{ tuple "etcd" "client" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+{{ if $mounts_apiserver.volumeMounts }}{{ toYaml $mounts_apiserver.volumeMounts | indent 12 }}{{ end }}
         - name: webhook
 {{ tuple $envAll "kubernetes_keystone_webhook" | include "helm-toolkit.snippets.image" | indent 10 }}
 {{ tuple $envAll $envAll.Values.pod.resources.server | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
@@ -248,6 +251,7 @@ spec:
               subPath: webhook_start.sh
               readOnly: true
 {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
+{{ if $mounts_webhook.volumeMounts }}{{ toYaml $mounts_webhook.volumeMounts | indent 12 }}{{ end }}
       volumes:
 {{- if hasKey .Values.certificates "keystone" }}
 {{ tuple "keystone" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
@@ -277,4 +281,6 @@ spec:
           secret:
             defaultMode: 292
             secretName: {{ .Values.secrets.tls.webhook_apiserver.api.public }}
+{{ if $mounts_apiserver.volumes }}{{ toYaml $mounts_apiserver.volumes | indent 8 }}{{ end }}
+{{ if $mounts_webhook.volumes }}{{ toYaml $mounts_webhook.volumes | indent 8 }}{{ end }}
 {{- end }}

@@ -131,11 +131,16 @@ conf:
 #    content: |
 #      -----SOME KEY-----
 # Uncomment any of the below to enable enhanced Audit Logging command line options.
+# Note: To use the Log backend, ensure that the hostPath of the log file is mounted.
+# (Refer to .pod.mounts.apiserver.apiserver)
 #
 #  auditpolicy:
 #    file: audit_policy.yaml
 #    command_options:
 #       - '--audit-policy-file=/etc/kubernetes/apiserver/audit_policy.yaml'
+#       - '--audit-log-maxsize=10'
+#       - '--audit-log-maxbackup=3'
+#       - '--audit-log-path=/var/log/audit/audit.log'
 #    content:
 #       kind: Policy
 #       apiVersion: apiserver.k8s.io/v1
@@ -293,9 +298,24 @@ pod:
           runAsUser: 0
           readOnlyRootFilesystem: false
   mounts:
+    # .pod.mounts.kubernetes_apiserver is for the anchor daemonset
     kubernetes_apiserver:
       init_container: null
       kubernetes_apiserver:
+    # .pod.mounts.apiserver is for the apiserver static pod
+    apiserver:
+      apiserver:
+# Example mounts for audit logging, refer to .conf.auditpolicy above.
+#        volumeMounts:
+#          - name: audit-logs
+#            mountPath: /var/log/audit
+#            mountPropagation: HostToContainer
+#            readOnly: false
+#        volumes:
+#          - name: audit-logs
+#            hostPath:
+#              path: /var/log/audit
+#              type: DirectoryOrCreate
   replicas:
     apiserver: 3
   lifecycle:

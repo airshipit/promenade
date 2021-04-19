@@ -51,6 +51,9 @@ httpGet:
 {{- end -}}
 
 
+{{- $mounts_apiserver := .Values.pod.mounts.apiserver.apiserver }}
+
+
 {{- $envAll := . }}
 ---
 apiVersion: v1
@@ -124,7 +127,9 @@ spec:
       volumeMounts:
         - name: etc
           mountPath: /etc/kubernetes/apiserver
+{{ if $mounts_apiserver.volumeMounts }}{{ toYaml $mounts_apiserver.volumeMounts | indent 8 }}{{ end }}
   volumes:
     - name: etc
       hostPath:
         path: {{ .Values.apiserver.host_etc_path }}
+{{ if $mounts_apiserver.volumes }}{{ toYaml $mounts_apiserver.volumes | indent 4 }}{{ end }}
