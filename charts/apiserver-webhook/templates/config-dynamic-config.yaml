@@ -22,6 +22,7 @@ metadata:
   name: {{ .Release.Name }}-dynamic-config
 data:
 {{- range $key, $val := .Values.conf.apiserver }}
+{{- if and (hasKey $val "file") (hasKey $val "content") }}
   {{ $val.file }}: |
 {{- if kindIs "string" $val.content }}
 {{ indent 4 $val.content }}
@@ -29,4 +30,5 @@ data:
 {{ toYaml $val.content | indent 4 }}
 {{- end }}
 {{- end -}}
+{{- end }}
 {{- end }}

@@ -29,11 +29,13 @@ data:
 {{ tuple "etc/_kubeconfig.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
 {{/* Dynamically added config files */}}
 {{- range $key, $val := .Values.conf }}
+{{- if and (hasKey $val "file") (hasKey $val "content") }}
   {{ $val.file }}: |
 {{- if kindIs "string" $val.content }}
 {{ indent 4 $val.content }}
 {{- else }}
 {{ toYaml $val.content | indent 4 }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
