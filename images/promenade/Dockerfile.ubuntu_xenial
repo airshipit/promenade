@@ -78,7 +78,7 @@ RUN set -ex \
     && rm -fr libyaml
 
 COPY requirements-frozen.txt /opt/promenade
-RUN pip3 install --no-cache-dir -r requirements-frozen.txt
+RUN cat requirements-frozen.txt | xargs -d '\n' -l1 pip3 install --no-cache-dir
 
 # Setting promenade version for BPR
 ENV PBR_VERSION 0.8.0

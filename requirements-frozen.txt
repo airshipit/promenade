@@ -12,6 +12,7 @@ cliff==3.1.0
 cmd2==0.8.9
 cryptography==3.1.1
 debtcollector==1.22.0
+pbr==5.4.5
 Deckhand @ git+https://opendev.org/airship/deckhand.git@1f0c011a1708c1235a2be65edada7d386cd55d2a#egg=deckhand
 decorator==4.4.2
 deepdiff==3.3.0
@@ -64,7 +65,6 @@ oslo.service==1.41.1
 oslo.utils==3.42.1
 Paste==3.0.1
 PasteDeploy==1.5.2
-pbr==5.4.5
 ply==3.11
 prettytable==0.7.2
 psycopg2==2.7.5
