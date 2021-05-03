@@ -566,7 +566,7 @@ data:
           - kubernetes.default.svc.cluster.local
     images:
       tags:
-        coredns: coredns/coredns:1.6.4
+        coredns: coredns/coredns:1.7.0
         test: quay.io/airshipit/promenade:master
   source:
     type: local

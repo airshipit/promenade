@@ -3,14 +3,18 @@ conf:
     corefile: |
       .:53 {
           errors
-          health
+          health {
+              lameduck 5s
+          }
           autopath @kubernetes
           kubernetes cluster.local 10.96.0.0/16 10.97.0.0/16 {
               pods disabled
               fallthrough in-addr.arpa ip6.arpa
           }
           prometheus :9253
-          forward . 8.8.8.8 8.8.4.4
+          forward . 8.8.8.8 8.8.4.4 {
+              max_concurrent 1000
+          }
           cache 30
           loop
           ready
@@ -24,7 +28,7 @@ conf:
 
 images:
   tags:
-    coredns: coredns/coredns:1.6.4
+    coredns: coredns/coredns:1.7.0
     test: quay.io/airshipit/promenade:latest
   pull_policy: "IfNotPresent"
 
