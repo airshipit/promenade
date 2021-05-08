@@ -18,7 +18,7 @@ decorator==4.4.2
 deepdiff==3.3.0
 dnspython==1.16.0
 dogpile.cache==0.9.2
-eventlet==0.25.2
+eventlet==0.31.0
 extras==1.0.0
 falcon==1.4.1
 fasteners==0.15
