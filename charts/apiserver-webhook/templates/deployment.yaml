@@ -99,24 +99,25 @@ tls-{{ $group | replace "_" "-" }}-{{ $type | replace "_" "-" }}
 {{- $mounts_apiserver := .Values.pod.mounts.apiserver_webhook.apiserver }}
 {{- $mounts_webhook := .Values.pod.mounts.apiserver_webhook.webhook }}
 {{- $envAll := . }}
+{{- $labels := tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-apiserver-webhook
   labels:
+{{ $labels | indent 4 }}
   annotations:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 4 }}
-{{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
   replicas: {{ $envAll.Values.pod.replicas.api }}
   selector:
     matchLabels:
-{{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 6 }}
+{{ $labels | indent 6 }}
   template:
     metadata:
       labels:
-{{ tuple $envAll "kubernetes-keystone-webhook" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+{{ $labels | indent 8 }}
       annotations:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
 {{ dict "envAll" $envAll "podName" "apiserver-webhook" "containerNames" (list "apiserver" "webhook") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
