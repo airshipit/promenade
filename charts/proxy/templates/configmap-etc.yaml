@@ -1,0 +1,12 @@
+{{- if .Values.manifests.configmap_proxy }}
+{{- $envAll := . }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.service.name }}-etc
+data:
+  config.conf: |-
+{{ tuple "etc/_proxy-config.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
+{{- end }}

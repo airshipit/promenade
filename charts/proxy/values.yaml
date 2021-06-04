@@ -14,6 +14,7 @@
 # limitations under the License.
 
 manifests:
+  configmap_proxy: true
   daemonset_proxy: true
   rbac: true
 
@@ -79,8 +80,9 @@ proxy:
 
 command_prefix:
   - kube-proxy
-  - --proxy-mode=iptables
-  - --cluster-cidr=10.97.0.0/16
+
+service:
+  name: kube-proxy
 
 network:
   kubernetes_netloc: 10.96.0.1
@@ -88,3 +90,35 @@ network:
 kube_service:
   host: 127.0.0.1
   port: 6553
+
+config_conf:
+  clusterCIDR: 10.97.0.0/16
+  clientConnection:
+    acceptContentTypes: ""
+    burst: 10
+    contentType: application/vnd.kubernetes.protobuf
+    kubeconfig: ""
+    qps: 5
+  conntrack:
+    maxPerCore: 32768
+    min: 131072
+    tcpCloseWaitTimeout: 1h0m0s
+    tcpEstablishedTimeout: 24h0m0s
+  iptables:
+    masqueradeAll: false
+    masqueradeBit: 14
+    minSyncPeriod: 1s
+    syncPeriod: 30s
+  ipvs:
+    excludeCIDRs: "null"
+    minSyncPeriod: 0s
+    scheduler: ""
+    strictARP: false
+    syncPeriod: 30s
+    tcpFinTimeout: 0s
+    tcpTimeout: 0s
+    udpTimeout: 0s
+  winkernel:
+    enableDSR: false
+    networkName: ""
+    sourceVip: ""
