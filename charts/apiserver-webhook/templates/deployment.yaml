@@ -123,6 +123,7 @@ spec:
 {{ dict "envAll" $envAll "podName" "apiserver-webhook" "containerNames" (list "apiserver" "webhook") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
+        dynamic-config-hash: {{ tuple "config-dynamic-config.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
       nodeSelector:
         {{ .Values.labels.kubernetes_apiserver.node_selector_key }}: {{ .Values.labels.kubernetes_apiserver.node_selector_value }}
