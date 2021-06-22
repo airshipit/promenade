@@ -16,7 +16,6 @@ conntrack:
 detectLocalMode: {{ .Values.config_conf.detectLocalMode | default "" |quote }}
 enableProfiling: {{ .Values.config_conf.enableProfiling | default "false" }}
 healthzBindAddress: {{ .Values.config_conf.healthzBindAddress | default "0.0.0.0:10256" }}
-hostnameOverride: {{ .Values.config_conf.hostnameOverride | default ""|quote }}
 iptables:
   {{- range $key, $val := .Values.config_conf.iptables }}
   {{ $key }}: {{ $val }}

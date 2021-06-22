@@ -46,6 +46,9 @@ spec:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
 {{ dict "envAll" $envAll "podName" "kubernetes-proxy" "containerNames" (list "proxy") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
         scheduler.alpha.kubernetes.io/critical-pod: ''
+{{- if .Values.manifests.configmap_proxy }}
+        configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
+{{- end }}
     spec:
 {{ dict "envAll" $envAll "application" "proxy" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       hostNetwork: true
@@ -67,8 +70,9 @@ spec:
           {{- range .Values.command_prefix }}
           - {{ . }}
           {{- end }}
+          {{- if .Values.manifests.configmap_proxy }}
           - --config=/var/lib/kube-proxy/config.conf
-          - --hostname-override=$(NODE_NAME)
+          {{- end}}
           {{- if .Values.proxy.logging.log_level }}
           - --v={{ .Values.proxy.logging.log_level }}
           {{- end }}
@@ -86,8 +90,10 @@ spec:
 {{ dict "envAll" . "component" "proxy" "container" "proxy" "type" "liveness" "probeTemplate" (include "probeTemplate" . | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | trim | indent 8 }}
 {{ dict "envAll" . "component" "proxy" "container" "proxy" "type" "readiness" "probeTemplate" (include "probeTemplate" . | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | trim | indent 8 }}
         volumeMounts:
+          {{- if .Values.manifests.configmap_proxy }}
           - mountPath: /var/lib/kube-proxy
             name: kube-proxy
+          {{- end}}
           - mountPath: /run/xtables.lock
             name: xtables-lock
             readOnly: false
@@ -96,10 +102,12 @@ spec:
             readOnly: true
       serviceAccountName: kube-proxy
       volumes:
+        {{- if .Values.manifests.configmap_proxy }}
         - configMap:
-            defaultMode: 420
+            defaultMode: 0644
             name: {{ .Values.service.name }}-etc
           name: kube-proxy
+        {{- end}}
         - name: xtables-lock
           hostPath:
             path: /run/xtables.lock
