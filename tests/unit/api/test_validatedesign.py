@@ -82,7 +82,7 @@ VALID_DOCS = [
             'apiserver': {
                 'command_prefix': [
                     '/apiserver', '--authorization-mode=Node,RBAC',
-                    '--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds',
+                    '--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds',
                     '--service-cluster-ip-range=10.96.0.0/16',
                     '--endpoint-reconciler-type=lease'
                 ]

@@ -21,7 +21,6 @@ spec:
         {%- endfor %}
 {% include "genesis-apiserver.yaml" with context %}
         - --etcd-servers=https://localhost:2379
-        - --insecure-port=0
         - --secure-port=6443
       volumeMounts:
         - name: config

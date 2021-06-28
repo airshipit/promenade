@@ -160,7 +160,6 @@ spec:
             - --endpoint-reconciler-type=none
             - --bind-address=$(POD_IP)
             - --secure-port={{ tuple "webhook_apiserver" "podport" "api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
-            - --insecure-port=0
             - --tls-cert-file={{ tuple "apiserver_webhook_pod" "server" $envAll.Values.conf.paths.pki "cert" $envAll | include "local.cert_bundle_path" }}
             - --tls-private-key-file={{ tuple "apiserver_webhook_pod" "server" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" }}
             - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname

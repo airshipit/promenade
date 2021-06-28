@@ -156,7 +156,6 @@ spec:
         {%- endfor %}
 {% include "genesis-apiserver.yaml" with context %}
         - --etcd-servers=https://localhost:12379
-        - --insecure-port=0
         - --secure-port=6444
         - --endpoint-reconciler-type=none
       env:

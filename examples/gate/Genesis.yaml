@@ -21,7 +21,7 @@ data:
   apiserver:
     arguments:
       - --authorization-mode=Node,RBAC
-      - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,EventRateLimit,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota
+      - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,EventRateLimit,DefaultStorageClass,ResourceQuota
       - --service-cluster-ip-range=10.96.0.0/16
       - --endpoint-reconciler-type=lease
       - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
