@@ -20,6 +20,7 @@ spec:
       - --allocate-node-cidrs=true
       - --cluster-cidr={{ config['KubernetesNetwork:kubernetes.pod_cidr'] }}
       - --configure-cloud-routes=false
+      - --bind-address=127.0.0.1
       - --leader-elect=true
       - --kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
       - --root-ca-file=/etc/kubernetes/controller-manager/pki/cluster-ca.pem

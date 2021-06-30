@@ -44,8 +44,7 @@ spec:
         {{- range .Values.command_prefix }}
         - {{ . }}
         {{- end }}
-        - --address=127.0.0.1
-        - --port={{ .Values.network.kubernetes_controller_manager.port }}
+        - --bind-address=127.0.0.1
         - --configure-cloud-routes=false
         - --leader-elect=true
         - --kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
