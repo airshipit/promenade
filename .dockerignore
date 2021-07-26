@@ -10,7 +10,6 @@ charts/*/requirements.lock
 .eggs
 .fiotest
 .git
-.helm-pid
 .tox
 AUTHORS
 ChangeLog

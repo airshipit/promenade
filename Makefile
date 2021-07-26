@@ -27,13 +27,9 @@ LABEL             ?= org.airshipit.build=community
 COMMIT            ?= $(shell git rev-parse HEAD)
 DISTRO            ?= ubuntu_bionic
 PYTHON            = python3
-CHARTS            := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
+CHARTS            := $(filter-out deps, $(patsubst charts/%/.,%,$(wildcard charts/*/.)))
 IMAGE             := ${DOCKER_REGISTRY}/${IMAGE_PREFIX}/${IMAGE_NAME}:${IMAGE_TAG}-${DISTRO}
 BASE_IMAGE        ?=
-
-HELM_PIDFILE ?= $(abspath ./.helm-pid)
-
-CHARTS := $(patsubst charts/%/.,%,$(wildcard charts/*/.))
 
 all: charts lint
 
@@ -63,9 +59,9 @@ charts: $(CHARTS)
 
 helm-init: $(addprefix helm-init-,$(CHARTS))
 
-helm-init-%: helm-serve
+helm-init-%: helm-toolkit
 	@echo Initializing chart $*
-	cd charts;if [ -s $*/requirements.yaml ]; then echo "Initializing $*";$(HELM) dep up $*; fi
+	cd charts;if [ -s $*/requirements.yaml ]; then echo "Initializing $*";$(HELM) dep up --skip-refresh $*; fi
 
 lint: helm-lint gate-lint
 
@@ -127,8 +123,8 @@ ifeq ($(PUSH_IMAGE), true)
 endif
 
 
-helm-serve: helm-install
-	./tools/helm_tk.sh $(HELM) $(HELM_PIDFILE)
+helm-toolkit: helm-install
+	./tools/helm_tk.sh $(HELM)
 
 clean:
 	rm -rf doc/build
@@ -143,5 +139,5 @@ helm-install:
 
 .PHONY: $(CHARTS) all build_promenade charts check-docker clean docs \
   dry-run dry-run-% external-deps gate-lint gate-lint-deps helm-init \
-  helm-init-% helm-install helm-lint helm-lint-% helm-serve images \
+  helm-init-% helm-install helm-lint helm-lint-% helm-toolkit images \
   lint tests tests-pep8 tests-security tests-unit

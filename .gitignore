@@ -5,11 +5,11 @@
 /charts/*.tgz
 /charts/*/charts
 /charts/*/requirements.lock
+/charts/deps/*/
 
 # Build & test artifacts
 /.cache
 /.eggs
-/.helm-pid
 /.pytest_cache
 /.tox
 /build
