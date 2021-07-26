@@ -162,7 +162,7 @@ VALID_DOCS = [
             'images': {
                 'haproxy': 'haproxy:1.8.3',
                 'helm': {
-                    'helm': 'lachlanevenson/k8s-helm:v2.14.0'
+                    'helm': 'lachlanevenson/k8s-helm:v3.6.2'
                 }
             },
             'packages': {

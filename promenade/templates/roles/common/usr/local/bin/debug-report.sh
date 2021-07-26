@@ -92,20 +92,22 @@ function get_objects () {
 export -f get_objects
 
 function get_releases () {
-    helm list --all --short
+    helm list --all-namespaces --all | awk 'NR>1 { print $1, $2 }'
 }
 
 function get_release () {
     input=($1)
     RELEASE=${input[0]}
-    helm status "${RELEASE}" > "${HELM_DIR}/${RELEASE}.txt"
-
+    NAMESPACE=${input[1]}
+    NAMESPACE_DIR="${HELM_DIR}/${NAMESPACE}"
+    mkdir -p "${NAMESPACE_DIR}"
+    helm status -n "${NAMESPACE}" "${RELEASE}" > "${NAMESPACE_DIR}/${RELEASE}.txt"
 }
 export -f get_release
 
 if which helm; then
     mkdir -p "${HELM_DIR}"
-    helm list --all > "${HELM_DIR}/list" &
+    helm list --all-namespaces --all > "${HELM_DIR}/list" &
     get_releases | \
         xargs -r -n 1 -P "${PARALLELISM_FACTOR}" -I {} bash -c 'get_release "$@"' _ {}
 fi
