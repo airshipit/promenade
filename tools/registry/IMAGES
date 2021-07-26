@@ -8,7 +8,6 @@ k8s.gcr.io/kube-proxy-amd64,v1.20.5,proxy
 k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64,1.14.4,k8s-dns-dnsmasq-nanny-amd64
 k8s.gcr.io/k8s-dns-kube-dns-amd64,1.14.4,k8s-dns-kube-dns-amd64
 k8s.gcr.io/k8s-dns-sidecar-amd64,1.14.4,k8s-dns-sidecar-amd64
-gcr.io/kubernetes-helm/tiller,v2.14.0,tiller
 lachlanevenson/k8s-helm,v3.6.3,helm
 quay.io/airshipit/armada,master,armada
 quay.io/calico/cni,v1.11.0,calico-cni

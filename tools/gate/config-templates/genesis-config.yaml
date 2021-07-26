@@ -31,8 +31,6 @@ data:
       - ucp-control-plane=enabled
   images:
     armada: ${IMAGE_ARMADA}
-    helm:
-      tiller: ${IMAGE_TILLER}
     kubernetes:
       apiserver: ${IMAGE_APISERVER}
       controller-manager: ${IMAGE_CONTROLLER_MANAGER}

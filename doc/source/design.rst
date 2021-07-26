@@ -31,7 +31,6 @@ documents:
     * ``scheduler``
 
 * Etcd_ for use by the Kubernetes_ ``apiserver``
-* Helm_'s server process ``tiller``
 * CoreDNS_ to be used for Kubernetes_ ``apiserver`` discovery
 
 With these components up, it is possible to leverage Armada_ to deploy Helm_

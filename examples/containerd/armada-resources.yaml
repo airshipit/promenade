@@ -75,7 +75,6 @@ data:
     - kubernetes-apiserver
     - kubernetes-controller-manager
     - kubernetes-scheduler
-    - tiller
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -910,39 +909,6 @@ data:
     type: local
     location: /etc/genesis/armada/assets/charts
     subpath: etcd
-  dependencies:
-    - helm-toolkit
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
-  name: tiller
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-data:
-  chart_name: tiller
-  release: tiller
-  namespace: kube-system
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  wait:
-    timeout: 600
-  values:
-    images:
-      tags:
-        tiller: ghcr.io/helm/tiller:v2.17.0
-    labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
-  source:
-    type: git
-    location: https://opendev.org/airship/armada.git
-    subpath: charts/tiller
-    reference: master
   dependencies:
     - helm-toolkit
 ---

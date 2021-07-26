@@ -35,7 +35,7 @@ provisioning of other containers. For example:
 
 .. code-block:: console
 
-    CRITICAL armada [-] Unhandled error: armada.exceptions.tiller_exceptions.ReleaseException: Failed to Install release: barbican
+    CRITICAL armada [-] Unhandled error: armada.exceptions.helm_exceptions.HelmCommandException: Failed to Install release: barbican
 
 Use ``kubectl logs`` on the failed pod to determine the reason for the failure.
 E.g.:

@@ -1,10 +1,3 @@
-{# By default, use tiller ports outside of `net.ipv4.ip_local_port_range` to
-   avoid conflicts with apiserver connections to etcd, see [0].
-   [0]: https://github.com/helm/helm/issues/4886
-#}
-{% set tiller_listen = config['Genesis:tiller.listen'] | default(24134) %}
-{% set tiller_probe_listen = config['Genesis:tiller.probe_listen'] | default(24135) %}
-{% set tiller_storage = config.get_path('Genesis:tiller.storage') %}
 ---
 apiVersion: v1
 kind: Pod
@@ -13,63 +6,11 @@ metadata:
   namespace: kube-system
   labels:
     application: promenade
-    component: genesis-tiller
+    component: genesis
 spec:
   dnsPolicy: Default
   hostNetwork: true
   containers:
-    - env:
-      - name: TILLER_NAMESPACE
-        value: kube-system
-      - name: KUBECONFIG
-        value: /etc/kubernetes/admin/config
-      image: {{ config['Genesis:images.helm.tiller'] }}
-      command:
-        - /tiller
-{%- if tiller_storage %}
-        - "--storage={{ tiller_storage }}"
-{%- endif %}
-        - -listen
-        - ":{{ tiller_listen }}"
-        - -probe-listen
-        - ":{{ tiller_probe_listen }}"
-        - -logtostderr
-        - -v
-        - "5"
-      imagePullPolicy: IfNotPresent
-      livenessProbe:
-        failureThreshold: 3
-        httpGet:
-          path: /liveness
-          port: {{ tiller_probe_listen }}
-          scheme: HTTP
-        initialDelaySeconds: 1
-        periodSeconds: 10
-        successThreshold: 1
-        timeoutSeconds: 1
-      name: tiller
-      ports:
-      - containerPort: {{ tiller_listen }}
-        name: tiller
-        protocol: TCP
-      readinessProbe:
-        failureThreshold: 3
-        httpGet:
-          path: /readiness
-          port: {{ tiller_probe_listen }}
-          scheme: HTTP
-        initialDelaySeconds: 1
-        periodSeconds: 10
-        successThreshold: 1
-        timeoutSeconds: 1
-      resources: {}
-      securityContext:
-        runAsUser: 0
-      terminationMessagePath: /dev/termination-log
-      terminationMessagePolicy: File
-      volumeMounts:
-        - name: auth
-          mountPath: /etc/kubernetes/admin
     - name: armada
       image: {{ config['Genesis:images.armada'] }}
       securityContext:
@@ -87,8 +28,6 @@ spec:
               if armada \
                       apply \
                       --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
-                      --tiller-host 127.0.0.1 \
-                      --tiller-port {{ tiller_listen }} \
                       $([[ $attempt -le $ARMADA_METRICS_MAX_ATTEMPTS ]] && echo --metrics-output "${ARMADA_METRICS_OUTPUT_DIR}/armada-bootstrap-${attempt}.prom") \
                       /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
                   break

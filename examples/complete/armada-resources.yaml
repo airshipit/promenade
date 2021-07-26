@@ -112,7 +112,6 @@ data:
     - ucp-rabbitmq
     - ucp-barbican
     - ingress
-    - tiller
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -1680,33 +1679,6 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: tiller
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-data:
-  chart_name: tiller
-  release: tiller
-  namespace: kube-system
-  values:
-    images:
-      tags:
-        tiller: ghcr.io/helm/tiller:v2.17.0
-    labels:
-      node_selector_key: ucp-control-plane
-      node_selector_value: enabled
-  source:
-    type: git
-    location: https://opendev.org/airship/armada
-    subpath: charts/tiller
-    reference: master
-  dependencies:
-    - helm-toolkit
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
   name: deckhand
   layeringDefinition:
     abstract: false
@@ -1855,13 +1827,6 @@ data:
   release: armada
   namespace: ucp
   values:
-    manifests:
-      deployment_tiller: false
-      service_tiller_deploy: false
-    conf:
-      armada:
-        DEFAULT:
-          tiller_namespace: kube-system
     images:
       tags:
         api: quay.io/airshipit/armada:master-ubuntu_bionic

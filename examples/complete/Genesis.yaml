@@ -13,8 +13,6 @@ data:
   external_ip: 192.168.77.10
   armada:
     target_manifest: cluster-bootstrap
-  tiller:
-    storage: secret
   etcd:
     auxiliary_threshold: 3
   labels:
@@ -36,8 +34,6 @@ data:
     run_as_user: 65534
   images:
     armada: quay.io/airshipit/armada:master-ubuntu_bionic
-    helm:
-      tiller: ghcr.io/helm/tiller:v2.17.0
     kubernetes:
       apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.20.5
       controller-manager: k8s.gcr.io/kube-controller-manager-amd64:v1.20.5

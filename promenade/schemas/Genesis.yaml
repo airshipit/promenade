@@ -112,16 +112,6 @@ data:
         auxiliary_threshold:
           type: integer
       additionalProperties: false
-    tiller:
-      type: object
-      properties:
-        listen:
-          type: integer
-        probe_listen:
-          type: integer
-        storage:
-          type: string
-      additionalProperties: false
 
     files:
       type: array
@@ -164,14 +154,6 @@ data:
       properties:
         armada:
           $ref: '#/definitions/image'
-        helm:
-          type: object
-          properties:
-            tiller:
-              $ref: '#/definitions/image'
-          required:
-            - tiller
-          additionalProperties: false
         kubernetes:
           type: object
           properties:
@@ -191,7 +173,6 @@ data:
           additionalProperties: false
       required:
         - armada
-        - helm
         - kubernetes
       additionalProperties: false
 

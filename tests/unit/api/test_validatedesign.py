@@ -102,9 +102,6 @@ VALID_DOCS = [
             'n0',
             'images': {
                 'armada': 'quay.io/airshipit/armada:master-ubuntu_bionic',
-                'helm': {
-                    'tiller': 'ghcr.io/helm/tiller:v2.17.0'
-                },
                 'kubernetes': {
                     'apiserver':
                     'k8s.gcr.io/kube-apiserver-amd64:v1.20.5',
