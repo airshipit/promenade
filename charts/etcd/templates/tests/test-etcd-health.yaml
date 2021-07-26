@@ -24,7 +24,7 @@ kind: Pod
 metadata:
   name: "{{ .Release.Name }}-etcd-test"
   annotations:
-    "helm.sh/hook": "test-success"
+    "helm.sh/hook": "test"
     scheduler.alpha.kubernetes.io/critical-pod: ''
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{ dict "envAll" $envAll "podName" "etcd-test" "containerNames" (list "etcd-test") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
