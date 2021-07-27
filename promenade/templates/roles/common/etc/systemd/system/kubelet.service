@@ -20,7 +20,6 @@ ExecStart=/opt/kubernetes/bin/kubelet \
     {{ argument }} \
     {%- endfor %}
     {%- endif %}
-    --pod-infra-container-image={{ config['Kubelet:images.pause'] }}
 
 Restart=always
 StartLimitInterval=0
