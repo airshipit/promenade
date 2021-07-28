@@ -20,7 +20,7 @@ HELM=${1}
 HELM_PIDFILE=${2}
 SERVE_DIR=$(mktemp -d)
 
-HTK_STABLE_COMMIT=${HTK_COMMIT:-"2d1fe882bb751c03ee741a6166c9c8a5fad8f926"}
+HTK_STABLE_COMMIT=${HTK_COMMIT:-"5e200979989d199e60620b6376bc0b320eff6e4d"}
 
 ${HELM} init --client-only --skip-refresh
 
