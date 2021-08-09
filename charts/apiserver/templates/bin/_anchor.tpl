@@ -22,7 +22,9 @@ snapshot_files() {
     cp "{{ $source }}" "${SNAPSHOT_DIR}{{ $dest }}"
     {{- end }}
     {{ range $key, $val := .Values.conf }}
+    {{- if $val.file }}
     cp "/tmp/etc/{{ $val.file }}" "${SNAPSHOT_DIR}/etc/kubernetes/apiserver/{{ $val.file }}"
+    {{- end }}
     {{- end }}
 }
 
@@ -38,6 +40,7 @@ compare_copy_files() {
     fi
     {{- end}}
     {{ range $key, $val := .Values.conf }}
+    {{- if $val.file }}
     SRC="${SNAPSHOT_DIR}/etc/kubernetes/apiserver/{{ $val.file }}"
     DEST="/host/etc/kubernetes/apiserver/{{ $val.file }}"
     if [ ! -e "${DEST}" ] || ! cmp -s "${SRC}" "${DEST}"; then
@@ -46,6 +49,7 @@ compare_copy_files() {
         chmod go-rwx "${DEST}"
     fi
     {{- end }}
+    {{- end }}
 }
 
 cleanup() {
@@ -53,7 +57,9 @@ cleanup() {
     rm -f "/host{{ $dest }}"
     {{- end }}
     {{  range $key, $val := .Values.conf }}
-    rm -f "/host/{{ $val.file }}"
+    {{- if $val.file }}
+    rm -f "/host/etc/kubernetes/apiserver/{{ $val.file }}"
+    {{- end }}
     {{- end }}
 }
 
