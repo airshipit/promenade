@@ -69,6 +69,10 @@ spec:
             value: /host{{ .Values.anchor.kubelet.manifest_path }}/{{ .Values.service.name }}.yaml
           - name: PKI_PATH
             value: /host{{ .Values.apiserver.host_etc_path }}/pki
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
           command: ["/bin/sh","-c"]
           args: ["/tmp/bin/anchor"]
           lifecycle:
@@ -83,6 +87,7 @@ spec:
               - /bin/bash
               - -c
               - |-
+                grep -q "created-by: ${POD_NAME}" "${MANIFEST_PATH}" || exit 1
                 if [ ! -f /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem ]; then
                   cat /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-key.pem <(echo) /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver.pem > /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem
                 fi

@@ -66,6 +66,7 @@ metadata:
 {{ tuple $envAll "kubernetes" "apiserver" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
   annotations:
     {{ $envAll | include "kubernetes_apiserver.key_annotation" }}
+    created-by: ANCHOR_POD
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{- dict "envAll" $envAll "podName" "apiserver" "containerNames" (list "apiserver") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
