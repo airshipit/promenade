@@ -13,5 +13,5 @@ IMAGE_CONTROLLER_MANAGER=k8s.gcr.io/kube-controller-manager-amd64:v1.20.5
 IMAGE_SCHEDULER=k8s.gcr.io/kube-scheduler-amd64:v1.20.5
 IMAGE_PROXY=k8s.gcr.io/kube-proxy-amd64:v1.20.5
 IMAGE_ANCHOR=cwedgwood/kubectl:v1.20.5-1
-IMAGE_TILLER=gcr.io/kubernetes-helm/tiller:v2.16.1
+IMAGE_TILLER=ghcr.io/helm/tiller:v2.17.0
 KUBELET_URL=https://dl.k8s.io/v1.20.5/kubernetes-node-linux-amd64.tar.gz

@@ -46,7 +46,7 @@ Here is a complete sample document:
       images:
         armada: quay.io/airshipit/armada:latest
         helm:
-          tiller: gcr.io/kubernetes-helm/tiller:v2.16.1
+          tiller: ghcr.io/helm/tiller:v2.17.0
         kubernetes:
           apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.20.5
           controller-manager: k8s.gcr.io/kube-controller-manager-amd64:v1.20.5
