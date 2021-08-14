@@ -12,8 +12,10 @@ if [ -h /etc/resolv.conf ]; then
 fi
 
 CURATED_DIRS=(
+    /etc/etcd
     /etc/kubernetes
     /var/lib/etcd
+    /var/log/kubernetes
 )
 
 APT_INSTALL_TIMEOUT=${APT_INSTALL_TIMEOUT:-1800}
