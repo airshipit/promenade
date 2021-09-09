@@ -35,7 +35,7 @@ iso8601==0.1.12
 Jinja2==2.10
 jsonpath-ng==1.4.3
 jsonpickle==1.4.1
-jsonschema>=3.0.1<4
+jsonschema==3.2.0
 keystoneauth1==3.18.0
 keystonemiddleware==5.3.0
 kombu==4.6.10

@@ -3,7 +3,7 @@ click==6.7
 falcon==1.4.1
 jinja2==2.10
 jsonpath-ng==1.4.3
-jsonschema>=3.0.1<4
+jsonschema==3.2.0
 keystoneauth1==3.18.0
 keystonemiddleware==5.3.0
 setuptools==40.4.3
