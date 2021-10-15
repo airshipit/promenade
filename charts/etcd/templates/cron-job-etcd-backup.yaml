@@ -18,7 +18,7 @@ limitations under the License.
 {{- $serviceAccountName := "etcd-backup" }}
 {{- $applicationName := "etcd-backup" }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ .Values.service.name }}-{{ $serviceAccountName }}
@@ -49,7 +49,7 @@ metadata:
   name: {{ .Values.service.name }}-{{ $serviceAccountName }}
   namespace: {{ $envAll.Release.Namespace }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ .Values.service.name }}-{{ $serviceAccountName }}

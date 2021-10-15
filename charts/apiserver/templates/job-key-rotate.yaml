@@ -23,7 +23,7 @@ kind: ServiceAccount
 metadata:
   name: {{ $serviceAccountName }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ $serviceAccountName }}-cluster
@@ -40,7 +40,7 @@ rules:
       - update
       - patch
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ $serviceAccountName }}-cluster
@@ -53,7 +53,7 @@ subjects:
     name: {{ $serviceAccountName }}
     namespace: {{ $envAll.Release.Namespace }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ $serviceAccountName }}-{{ $envAll.Release.Namespace }}
@@ -66,7 +66,7 @@ rules:
     verbs:
       - get
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ $serviceAccountName }}-{{ $envAll.Release.Namespace }}
