@@ -8,10 +8,9 @@ metadata:
     application: kubernetes
     component: apiserver
     kubernetes-apiserver-service: enabled
-  annotations:
-    scheduler.alpha.kubernetes.io/critical-pod: ''
 spec:
   hostNetwork: true
+  priorityClassName: system-node-critical
   containers:
     - name: kube-apiserver
       image: {{ config['Genesis:images.kubernetes.apiserver'] }}

@@ -4,10 +4,9 @@ kind: Pod
 metadata:
   name: haproxy
   namespace: kube-system
-  annotations:
-    scheduler.alpha.kubernetes.io/critical-pod: ''
 spec:
   hostNetwork: true
+  priorityClassName: system-node-critical
   containers:
     - name: haproxy
       image: {{ config['HostSystem:images.haproxy'] }}

@@ -45,7 +45,6 @@ spec:
       annotations:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
 {{ dict "envAll" $envAll "podName" "kubernetes-proxy" "containerNames" (list "proxy") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
-        scheduler.alpha.kubernetes.io/critical-pod: ''
 {{- if .Values.manifests.configmap_proxy }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
 {{- end }}
@@ -54,14 +53,9 @@ spec:
       hostNetwork: true
       shareProcessNamespace: true
       dnsPolicy: Default
+      priorityClassName: system-node-critical
       tolerations:
-        - key: node-role.kubernetes.io/master
-          effect: NoSchedule
-        - key: CriticalAddonsOnly
-          operator: Exists
-        - key: node.kubernetes.io/not-ready
-          operator: Exists
-          effect: NoSchedule
+        - operator: Exists
       containers:
       - name: proxy
         image: {{ .Values.images.tags.proxy }}

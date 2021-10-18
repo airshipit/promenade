@@ -34,7 +34,6 @@ spec:
     metadata:
       annotations:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
-        scheduler.alpha.kubernetes.io/critical-pod: ''
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
 {{ dict "envAll" $envAll "podName" "scheduler" "containerNames" (list "anchor") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
@@ -46,6 +45,7 @@ spec:
       dnsPolicy: {{ .Values.anchor.dns_policy }}
       nodeSelector:
         {{ .Values.labels.scheduler.node_selector_key }}: {{ .Values.labels.scheduler.node_selector_value }}
+      priorityClassName: system-node-critical
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule

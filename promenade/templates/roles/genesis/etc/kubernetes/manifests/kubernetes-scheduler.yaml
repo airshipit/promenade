@@ -8,10 +8,9 @@ metadata:
     tier: control-plane
     application: kubernetes
     component: kube-scheduler
-  annotations:
-    scheduler.alpha.kubernetes.io/critical-pod: ''
 spec:
   hostNetwork: true
+  priorityClassName: system-node-critical
   containers:
     - name: kube-scheduler
       image: {{ config['Genesis:images.kubernetes.scheduler'] }}

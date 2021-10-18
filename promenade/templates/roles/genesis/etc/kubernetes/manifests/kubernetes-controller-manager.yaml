@@ -8,10 +8,9 @@ metadata:
     tier: control-plane
     application: kubernetes
     component: kube-controller-manager
-  annotations:
-    scheduler.alpha.kubernetes.io/critical-pod: ''
 spec:
   hostNetwork: true
+  priorityClassName: system-node-critical
   containers:
     - name: kube-controller-manager
       image: {{ config['Genesis:images.kubernetes.controller-manager'] }}
