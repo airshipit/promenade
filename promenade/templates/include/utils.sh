@@ -250,5 +250,7 @@ EOPOD
         log Got unexpected logs:
         kubectl --namespace $NAMESPACE logs $POD_NAME 1>&2
         fail
+    else
+        kubectl delete pods -n "$NAMESPACE" "$POD_NAME"
     fi
 }
