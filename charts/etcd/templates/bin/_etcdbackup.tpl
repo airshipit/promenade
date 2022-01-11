@@ -42,17 +42,17 @@ dump_databases_to_directory() {
   BACKUP_RETURN_CODE=$?
   if [[ $BACKUP_RETURN_CODE != 0 ]]; then
     log ERROR $DB_NAME "There was an error backing up the databases." $LOG_FILE
-    exit $BACKUP_RETURN_CODE
+    return $BACKUP_RETURN_CODE
   fi
 }
 
 if ! [ -x "$(which etcdctl)" ]; then
-  log ERROR $DB_NAME "etcdctl not available, Please use the correct image." $LOG_FILE
+  log ERROR $DB_NAME "etcdctl not available, Please use the correct image."
   SKIP_BACKUP=1
 fi
 
 if [ ! -d "$BACKUP_DIR" ]; then
-  log ERROR $DB_NAME "$BACKUP_DIR doesn't exist, Backup will not continue" $LOG_FILE
+  log ERROR $DB_NAME "$BACKUP_DIR doesn't exist, Backup will not continue"
   SKIP_BACKUP=1
 fi
 
@@ -60,6 +60,6 @@ if [ $SKIP_BACKUP -eq 0 ]; then
   # Call main program to start the database backup
   backup_databases
 else
-  log ERROR $DB_NAME "etcd backup failed." $LOG_FILE
+  log ERROR $DB_NAME "Backup of the ${DB_NAME} database failed. etcd backup failed."
   exit 1
 fi
