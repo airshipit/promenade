@@ -36,7 +36,6 @@ export MAX_DELAY_SEND_REMOTE=${MAX_DELAY_SEND_BACKUP_TO_REMOTE}
 export ARCHIVE_DIR=${BACKUP_DIR}/db/${DB_NAMESPACE}/${DB_NAME}/archive
 
 dump_databases_to_directory() {
-  set -x
   TMP_DIR=$1
   LOG_FILE=${2:-BACKUP_LOG}
 
