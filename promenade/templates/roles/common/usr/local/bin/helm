@@ -1,20 +1,22 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -e
+
+IMAGE_HELM:="{{ config['HostSystem:images.helm.helm'] }}"
 
 if [ "x$(pwd)" = "x/" ]; then
     UPDIR=/
     WORKDIR=/up
 else
     UPDIR=$(pwd)/..
-    WORKDIR=/up/$(basename $(pwd))
+    WORKDIR=/up/$(basename "$(pwd)")
 fi
 
 exec docker run --rm \
     --net host \
-    -v $UPDIR:/up \
+    -v "$UPDIR":/up \
     -v /etc/kubernetes/admin:/etc/kubernetes/admin \
-    -w $WORKDIR \
+    -w "$WORKDIR" \
     -e KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml \
-    {{ config['HostSystem:images.helm.helm'] }} \
-        $*
+    "$IMAGE_HELM" \
+        "$@"
