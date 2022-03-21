@@ -125,6 +125,7 @@
 
 - job:
     name: airship-promenade-docker-build-gate-ubuntu_xenial
+    voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: airship-promenade-single-node
     vars:
@@ -155,6 +156,7 @@
       - ^tools/.*$
 - job:
     name: airship-promenade-docker-build-post-ubuntu_xenial
+    voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: airship-promenade-single-node
     secrets:
