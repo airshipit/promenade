@@ -2,7 +2,7 @@
 
 set -e
 
-IMAGE_HELM:="{{ config['HostSystem:images.helm.helm'] }}"
+IMAGE_HELM="{{ config['HostSystem:images.helm.helm'] }}"
 
 if [ "x$(pwd)" = "x/" ]; then
     UPDIR=/
