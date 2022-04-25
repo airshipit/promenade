@@ -88,10 +88,12 @@ spec:
               - -c
               - |-
                 grep -q "created-by: ${POD_NAME}" "${MANIFEST_PATH}" || exit 1
-                if [ ! -f /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem ]; then
-                  cat /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-key.pem <(echo) /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver.pem > /host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem
-                fi
-                echo -e 'GET /healthz HTTP/1.0\r\n' | socat - openssl:localhost:{{ .Values.network.kubernetes_apiserver.port }},cert=/host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-both.pem,cafile=/host{{ .Values.apiserver.host_etc_path }}/pki/cluster-ca.pem | grep '200 OK'
+                [ "$(curl -s -S -o /dev/null \
+                    --cert "/host{{ .Values.apiserver.host_etc_path }}/pki/apiserver.pem" \
+                    --key "/host{{ .Values.apiserver.host_etc_path }}/pki/apiserver-key.pem" \
+                    --cacert "/host{{ .Values.apiserver.host_etc_path }}/pki/cluster-ca.pem" \
+                    "https://localhost:{{ .Values.network.kubernetes_apiserver.port }}/healthz" \
+                    -w "%{http_code}")" = "200" ]
                 exit $?
             initialDelaySeconds: 10
             periodSeconds: 5
