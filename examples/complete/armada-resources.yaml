@@ -643,7 +643,7 @@ data:
 
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.21.7-1
+        anchor: bitnami/kubectl:1.21.7
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -736,7 +736,7 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.21.7-1
+        anchor: bitnami/kubectl:1.21.7
         apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.21.7
     secrets:
       service_account:
@@ -813,7 +813,7 @@ data:
   values:
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.21.7-1
+        anchor: bitnami/kubectl:1.21.7
         controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.21.7
     secrets:
       service_account:
@@ -886,7 +886,7 @@ data:
 
     images:
       tags:
-        anchor: cwedgwood/kubectl:v1.21.7-1
+        anchor: bitnami/kubectl:1.21.7
         scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.21.7
 
   source:

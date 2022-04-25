@@ -12,5 +12,5 @@ IMAGE_APISERVER=k8s.gcr.io/kube-apiserver-amd64:v1.21.7
 IMAGE_CONTROLLER_MANAGER=k8s.gcr.io/kube-controller-manager-amd64:v1.21.7
 IMAGE_SCHEDULER=k8s.gcr.io/kube-scheduler-amd64:v1.21.7
 IMAGE_PROXY=k8s.gcr.io/kube-proxy-amd64:v1.21.7
-IMAGE_ANCHOR=cwedgwood/kubectl:v1.21.7-1
+IMAGE_ANCHOR=bitnami/kubectl:1.21.7
 KUBELET_URL=https://dl.k8s.io/v1.21.7/kubernetes-node-linux-amd64.tar.gz
