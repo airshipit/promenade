@@ -152,7 +152,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: 2fc1ce4a142e605a9fc6c90dceabbf7c4bfb81e3
+    reference: ee331fd0d38e3584fecbefbf6218ba0c8e112338
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -177,7 +177,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra
     subpath: helm-toolkit
-    reference: 2fc1ce4a142e605a9fc6c90dceabbf7c4bfb81e3
+    reference: ee331fd0d38e3584fecbefbf6218ba0c8e112338
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -200,7 +200,7 @@ data:
   values:
     images:
       tags:
-        proxy: k8s.gcr.io/kube-proxy-amd64:v1.21.7
+        proxy: k8s.gcr.io/kube-proxy-amd64:v1.23.7
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -400,8 +400,8 @@ data:
       filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.4.13
-        etcdctl: quay.io/coreos/etcd:v3.4.13
+        etcd: quay.io/coreos/etcd:v3.5.4
+        etcdctl: quay.io/coreos/etcd:v3.5.4
     nodes:
       - name: n0
         tls:
@@ -540,7 +540,7 @@ data:
 
     images:
       tags:
-        calico_etcd: quay.io/coreos/etcd:v3.4.13
+        calico_etcd: quay.io/coreos/etcd:v3.5.4
         calico_node: quay.io/calico/node:v2.6.5
         calico_cni: quay.io/calico/cni:v1.11.2
         calico_ctl: quay.io/calico/ctl:v1.6.2
@@ -643,7 +643,7 @@ data:
 
     images:
       tags:
-        anchor: bitnami/kubectl:1.21.7
+        anchor: bitnami/kubectl:1.23.7
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -736,8 +736,8 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: bitnami/kubectl:1.21.7
-        apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.21.7
+        anchor: bitnami/kubectl:1.23.7
+        apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.23.7
     secrets:
       service_account:
         public_key: placeholder
@@ -813,8 +813,8 @@ data:
   values:
     images:
       tags:
-        anchor: bitnami/kubectl:1.21.7
-        controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.21.7
+        anchor: bitnami/kubectl:1.23.7
+        controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.23.7
     secrets:
       service_account:
         private_key: placeholder
@@ -886,8 +886,8 @@ data:
 
     images:
       tags:
-        anchor: bitnami/kubectl:1.21.7
-        scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.21.7
+        anchor: bitnami/kubectl:1.23.7
+        scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.23.7
 
   source:
     type: local
@@ -1083,8 +1083,8 @@ data:
       host_etc_path: /etc/etcd/kubernetes
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.4.13
-        etcdctl: quay.io/coreos/etcd:v3.4.13
+        etcd: quay.io/coreos/etcd:v3.5.4
+        etcdctl: quay.io/coreos/etcd:v3.5.4
     nodes:
       - name: n0
         tls:

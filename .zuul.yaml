@@ -124,13 +124,13 @@
     nodeset: airship-promenade-single-node
 
 - job:
-    name: airship-promenade-docker-build-gate-ubuntu_xenial
+    name: airship-promenade-docker-build-gate-ubuntu_bionic
     voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: airship-promenade-single-node
     vars:
       publish: false
-      distro: ubuntu_xenial
+      distro: ubuntu_bionic
       tags:
         dynamic:
           patch_set: true

@@ -16,8 +16,8 @@ release_group: null
 
 images:
   tags:
-    anchor: bitnami/kubectl:1.21.7
-    controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.21.7
+    anchor: bitnami/kubectl:1.23.7
+    controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.23.7
   pull_policy: "IfNotPresent"
 
 labels:
@@ -75,7 +75,7 @@ network:
   pod_cidr: 10.97.0.0/16
   service_cidr: 10.96.0.0/16
   kubernetes_controller_manager:
-    port: 10252
+    port: 10257
 
 service:
   name: kubernetes-controller-manager

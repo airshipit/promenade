@@ -6,7 +6,6 @@ After=network-online.target
 [Service]
 ExecStart=/opt/kubernetes/bin/kubelet \
     --config=/etc/kubernetes/kubelet/config.yaml \
-    --dynamic-config-dir=/etc/kubernetes/kubelet/dynamic-config \
     --hostname-override={{ config.get_first('Genesis:hostname', 'KubernetesNode:hostname') }} \
     --kubeconfig=/etc/kubernetes/kubeconfig \
     --node-ip={{ config.get_first('Genesis:ip', 'KubernetesNode:ip') }} \

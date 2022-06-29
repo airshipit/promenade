@@ -85,14 +85,14 @@ secrets:
 
 images:
   tags:
-    anchor: bitnami/kubectl:1.21.7
-    scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.21.7
+    anchor: bitnami/kubectl:1.23.7
+    scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.23.7
   pull_policy: "IfNotPresent"
 
 network:
   kubernetes_netloc: 10.96.0.1
   kubernetes_scheduler:
-    port: 10251
+    port: 10259
 
 service:
   name: kubernetes-scheduler

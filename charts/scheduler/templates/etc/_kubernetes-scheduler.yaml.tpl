@@ -44,8 +44,10 @@ spec:
         {{- range .Values.command_prefix }}
         - {{ . }}
         {{- end }}
-        - --address=127.0.0.1
-        - --port={{ .Values.network.kubernetes_scheduler.port }}
+        - --authentication-kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
+        - --authorization-kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
+        - --bind-address=127.0.0.1
+        - --secure-port={{ .Values.network.kubernetes_scheduler.port }}
         - --leader-elect=true
         - --kubeconfig=/etc/kubernetes/scheduler/kubeconfig.yaml
         {{- if .Values.scheduler.logging.log_level }}
@@ -57,6 +59,7 @@ spec:
           host: 127.0.0.1
           path: /healthz
           port: {{ .Values.network.kubernetes_scheduler.port }}
+          scheme: HTTPS
         initialDelaySeconds: 10
         periodSeconds: 5
         timeoutSeconds: 5
@@ -67,6 +70,7 @@ spec:
           host: 127.0.0.1
           path: /healthz
           port: {{ .Values.network.kubernetes_scheduler.port }}
+          scheme: HTTPS
         initialDelaySeconds: 15
         periodSeconds: 10
         successThreshold: 1

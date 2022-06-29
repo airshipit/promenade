@@ -79,6 +79,7 @@ spec:
               host: 127.0.0.1
               path: /healthz
               port: {{ .Values.network.kubernetes_controller_manager.port }}
+              scheme: HTTPS
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 5

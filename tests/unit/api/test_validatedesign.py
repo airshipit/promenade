@@ -104,13 +104,13 @@ VALID_DOCS = [
                 'armada': 'quay.io/airshipit/armada:master-ubuntu_bionic',
                 'kubernetes': {
                     'apiserver':
-                    'k8s.gcr.io/kube-apiserver-amd64:v1.21.7',
+                    'k8s.gcr.io/kube-apiserver-amd64:v1.23.7',
                     'controller-manager':
-                    'k8s.gcr.io/kube-controller-manager-amd64:v1.21.7',
+                    'k8s.gcr.io/kube-controller-manager-amd64:v1.23.7',
                     'etcd':
-                    'quay.io/coreos/etcd:v3.4.13',
+                    'quay.io/coreos/etcd:v3.5.4',
                     'scheduler':
-                    'k8s.gcr.io/kube-scheduler-amd64:v1.21.7'
+                    'k8s.gcr.io/kube-scheduler-amd64:v1.23.7'
                 }
             },
             'ip':
@@ -146,7 +146,7 @@ VALID_DOCS = [
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
-                'https://dl.k8s.io/v1.21.7/kubernetes-node-linux-amd64.tar.gz'
+                'https://dl.k8s.io/v1.23.7/kubernetes-node-linux-amd64.tar.gz'
             },
              {
                  'content':
@@ -159,7 +159,7 @@ VALID_DOCS = [
             'images': {
                 'haproxy': 'haproxy:1.8.3',
                 'helm': {
-                    'helm': 'lachlanevenson/k8s-helm:v3.6.2'
+                    'helm': 'lachlanevenson/k8s-helm:v3.8.2'
                 }
             },
             'packages': {
@@ -193,10 +193,7 @@ VALID_DOCS = [
     },
     {
         'data': {
-            'arguments': [
-                '--cni-bin-dir=/opt/cni/bin', '--cni-conf-dir=/etc/cni/net.d',
-                '--network-plugin=cni', '--v=5'
-            ],
+            'arguments': ['--v=5'],
             'images': {
                 'pause': 'k8s.gcr.io/pause-amd64:3.1'
             },

@@ -17,6 +17,8 @@ spec:
       command:
       - kube-controller-manager
       - --allocate-node-cidrs=true
+      - --authentication-kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
+      - --authorization-kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
       - --cluster-cidr={{ config['KubernetesNetwork:kubernetes.pod_cidr'] }}
       - --configure-cloud-routes=false
       - --bind-address=127.0.0.1

@@ -1,3 +1,0 @@
-# This .gitignore exists to force git to track the containing empty directory.
-*
-!.gitignore

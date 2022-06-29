@@ -46,10 +46,10 @@ data:
   images:
     armada: quay.io/airshipit/armada:master-ubuntu_bionic
     kubernetes:
-      apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.21.7
-      controller-manager: k8s.gcr.io/kube-controller-manager-amd64:v1.21.7
-      etcd: quay.io/coreos/etcd:v3.4.13
-      scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.21.7
+      apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.23.7
+      controller-manager: k8s.gcr.io/kube-controller-manager-amd64:v1.23.7
+      etcd: quay.io/coreos/etcd:v3.5.4
+      scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.23.7
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: "# placeholder for triggering calico etcd bootstrapping"

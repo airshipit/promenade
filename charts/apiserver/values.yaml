@@ -58,9 +58,9 @@ const:
 images:
   tags:
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
-    anchor: bitnami/kubectl:1.21.7
-    apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.21.7
-    key_rotate: bitnami/kubectl:1.21.7
+    anchor: bitnami/kubectl:1.23.7
+    apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.23.7
+    key_rotate: bitnami/kubectl:1.23.7
   pull_policy: "IfNotPresent"
   local_registry:
     active: false

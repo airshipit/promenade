@@ -1,14 +1,14 @@
 # source_name, tag, cache_name
 coredns/coredns,1.7.0,coredns
-bitnami/kubectl,1.21.7,kubectl
-k8s.gcr.io/kube-apiserver-amd64,v1.21.7,apiserver
-k8s.gcr.io/kube-controller-manager-amd64,v1.21.7,controller-manager
-k8s.gcr.io/kube-scheduler-amd64,v1.21.7,scheduler
-k8s.gcr.io/kube-proxy-amd64,v1.21.7,proxy
+bitnami/kubectl,1.23.7,kubectl
+k8s.gcr.io/kube-apiserver-amd64,v1.23.7,apiserver
+k8s.gcr.io/kube-controller-manager-amd64,v1.23.7,controller-manager
+k8s.gcr.io/kube-scheduler-amd64,v1.23.7,scheduler
+k8s.gcr.io/kube-proxy-amd64,v1.23.7,proxy
 k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64,1.14.4,k8s-dns-dnsmasq-nanny-amd64
 k8s.gcr.io/k8s-dns-kube-dns-amd64,1.14.4,k8s-dns-kube-dns-amd64
 k8s.gcr.io/k8s-dns-sidecar-amd64,1.14.4,k8s-dns-sidecar-amd64
-lachlanevenson/k8s-helm,v3.6.3,helm
+lachlanevenson/k8s-helm,v3.8.2,helm
 quay.io/airshipit/armada,master,armada
 quay.io/calico/cni,v1.11.0,calico-cni
 quay.io/calico/ctl,v1.6.1,calico-ctl

@@ -44,6 +44,8 @@ spec:
         {{- range .Values.command_prefix }}
         - {{ . }}
         {{- end }}
+        - --authentication-kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
+        - --authorization-kubeconfig=/etc/kubernetes/controller-manager/kubeconfig.yaml
         - --bind-address=127.0.0.1
         - --configure-cloud-routes=false
         - --leader-elect=true
@@ -60,6 +62,7 @@ spec:
           host: 127.0.0.1
           path: /healthz
           port: {{ .Values.network.kubernetes_controller_manager.port }}
+          scheme: HTTPS
         initialDelaySeconds: 10
         periodSeconds: 5
         timeoutSeconds: 5
@@ -70,6 +73,7 @@ spec:
           host: 127.0.0.1
           path: /healthz
           port: {{ .Values.network.kubernetes_controller_manager.port }}
+          scheme: HTTPS
         initialDelaySeconds: 15
         periodSeconds: 10
         successThreshold: 1
