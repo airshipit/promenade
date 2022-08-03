@@ -16,8 +16,8 @@ release_group: null
 
 images:
   tags:
-    anchor: bitnami/kubectl:1.23.7
-    controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.23.7
+    anchor: bitnami/kubectl:1.24.4
+    controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.24.4
   pull_policy: "IfNotPresent"
 
 labels:

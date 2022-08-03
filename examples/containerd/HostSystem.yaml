@@ -13,11 +13,11 @@ data:
       enable: true
   files:
     - path: /opt/kubernetes/bin/kubelet
-      tar_url: https://dl.k8s.io/v1.23.7/kubernetes-node-linux-amd64.tar.gz
+      tar_url: https://dl.k8s.io/v1.24.4/kubernetes-node-linux-amd64.tar.gz
       tar_path: kubernetes/node/bin/kubelet
       mode: 0555
     - path: /usr/local/bin/kubectl
-      tar_url: https://dl.k8s.io/v1.23.7/kubernetes-node-linux-amd64.tar.gz
+      tar_url: https://dl.k8s.io/v1.24.4/kubernetes-node-linux-amd64.tar.gz
       tar_path: kubernetes/node/bin/kubectl
       mode: 0555
     - path: /etc/systemd/system/kube-cgroup.service
@@ -85,7 +85,7 @@ data:
     monitoring_image: &busybox busybox:1.28.3
     haproxy: haproxy:1.8.3
     helm:
-      helm: lachlanevenson/k8s-helm:v3.8.2
+      helm: lachlanevenson/k8s-helm:v3.9.4
   packages:
     common:
       additional:

@@ -25,7 +25,6 @@
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-unit-py35
-        - airship-promenade-genesis-gate
         - airship-promenade-genesis-containerd-gate
 
     gate:
@@ -36,7 +35,6 @@
         - airship-promenade-docker-build-gate-ubuntu_bionic
         - airship-promenade-chart-build-gate
         - airship-promenade-unit-py35
-        - airship-promenade-genesis-gate
         - airship-promenade-genesis-containerd-gate
 
     post:
@@ -55,19 +53,6 @@
     nodes:
       - name: primary
         label: ubuntu-bionic
-
-- job:
-    name: airship-promenade-genesis-gate
-    description: |
-      Deploy airship promenade genesis
-    run: tools/zuul/playbooks/deploy-promenade.yaml
-    post-run: tools/zuul/playbooks/debug-report.yaml
-    required-projects:
-      - openstack/openstack-helm-infra
-    timeout: 3600
-    nodeset: airship-promenade-single-node-bionic
-    vars:
-      distro: ubuntu_bionic
 
 - job:
     name: airship-promenade-genesis-containerd-gate

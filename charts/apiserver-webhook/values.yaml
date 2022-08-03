@@ -17,7 +17,7 @@ release_uuid: null
 
 images:
   tags:
-    apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.23.7
+    apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.24.4
     kubernetes_keystone_webhook: docker.io/k8scloudprovider/k8s-keystone-auth:latest
     scripted_test: docker.io/openstackhelm/heat:newton
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
@@ -40,7 +40,7 @@ labels:
 
 command_prefix:
   - kube-apiserver
-  - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+  - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
 
 apiserver_webhook:
   logging:
