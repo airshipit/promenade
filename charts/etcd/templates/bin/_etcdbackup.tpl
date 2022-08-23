@@ -48,6 +48,15 @@ dump_databases_to_directory() {
   fi
 }
 
+# Verify all the databases backup archives
+verify_databases_backup_archives() {
+  ####################################
+  # TODO: add implementation of local backup verification
+  ####################################
+  return 0
+}
+
+
 if ! [ -x "$(which etcdctl)" ]; then
   log ERROR $DB_NAME "etcdctl not available, Please use the correct image."
   SKIP_BACKUP=1

@@ -62,7 +62,7 @@ subjects:
     name: {{ .Values.service.name }}-{{ $serviceAccountName }}
     namespace: {{ $envAll.Release.Namespace }}
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ .Values.service.name }}-backup
@@ -76,11 +76,11 @@ spec:
       labels:
 {{ tuple $envAll $applicationName "etcd-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
-{{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
+{{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
     spec:
-{{ dict "envAll" $envAll "application" "etcd_backup" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
       template:
         spec:
+{{ dict "envAll" $envAll "application" "etcd-backup" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 10 }}
           serviceAccountName: {{ .Values.service.name }}-{{ $serviceAccountName }}
           restartPolicy: OnFailure
           nodeSelector:
