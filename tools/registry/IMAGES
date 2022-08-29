@@ -1,5 +1,5 @@
 # source_name, tag, cache_name
-coredns/coredns,1.7.0,coredns
+coredns/coredns,1.8.6,coredns
 bitnami/kubectl,1.23.7,kubectl
 k8s.gcr.io/kube-apiserver-amd64,v1.23.7,apiserver
 k8s.gcr.io/kube-controller-manager-amd64,v1.23.7,controller-manager
