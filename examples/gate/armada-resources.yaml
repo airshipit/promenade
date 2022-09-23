@@ -468,7 +468,7 @@ data:
 
     images:
       tags:
-        coredns: coredns/coredns:1.8.6
+        coredns: coredns/coredns:1.9.4
         test: quay.io/airshipit/promenade:master
   source:
     type: local
