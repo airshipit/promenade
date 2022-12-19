@@ -1,13 +1,13 @@
 registry_down() {
     REGISTRY_ID=$(docker ps -qa -f name=registry)
-    if [[ ! -z ${REGISTRY_ID} ]]; then
+    if [[ -n ${REGISTRY_ID} ]]; then
         log Removing docker registry
         docker rm -fv "${REGISTRY_ID}" &>> "${LOG_FILE}"
     fi
 }
 
 registry_list_images() {
-    FILES=($(config_configuration | xargs -n 1 -I DIRNAME find DIRNAME -type f -name '*.yaml' | grep -v PKICatalog))
+    FILES=("$(config_configuration | xargs -I dirname find dirname -type f -name '*.yaml' | grep -v PKICatalog)")
 
     HOSTNAME_REGEX='[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}'
     DOMAIN_NAME_REGEX="${HOSTNAME_REGEX}(\.${HOSTNAME_REGEX})*"
@@ -45,7 +45,7 @@ registry_populate() {
 }
 
 registry_replace_references() {
-    FILES=(${@})
+    FILES=("${@}")
     for image in $(registry_list_images); do
         sed -i "s;${image}\$;registry:5000/${image};g" "${FILES[@]}"
     done
@@ -55,7 +55,7 @@ registry_up() {
     log Validating local registry is up
     REGISTRY_ID=$(docker ps -qa -f name=registry)
     RUNNING_REGISTRY_ID=$(docker ps -q -f name=registry)
-    if [[ -z ${RUNNING_REGISTRY_ID} && ! -z ${REGISTRY_ID} ]]; then
+    if [[ -z ${RUNNING_REGISTRY_ID} && -n ${REGISTRY_ID} ]]; then
         log Removing stopped docker registry
         docker rm -fv "${REGISTRY_ID}" &>> "${LOG_FILE}"
     fi

@@ -5,7 +5,7 @@ set -ex
 
 CFSSL_URL=${CFSSL_URL:-https://pkg.cfssl.org/R1.2/cfssl_linux-amd64}
 
-if [[ ! $(which cfssl) ]]; then
+if [[ ! $(command -v cfssl) ]]; then
     TMP_DIR=$(mktemp -d)
     pushd "${TMP_DIR}"
     curl -Lo cfssl "${CFSSL_URL}"
@@ -13,4 +13,5 @@ if [[ ! $(which cfssl) ]]; then
     sudo mv cfssl /usr/local/bin/
     popd
     rm -rf "${TMP_DIR}"
+    cfssl version
 fi

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG FROM=ubuntu:18.04
+ARG FROM=ubuntu:20.04
 FROM ${FROM}
 
 LABEL org.opencontainers.image.authors='airship-discuss@lists.airshipit.org, irc://#airshipit@freenode' \
@@ -33,6 +33,9 @@ EXPOSE $PORT
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 
 ENTRYPOINT ["/opt/promenade/entrypoint.sh"]
 
@@ -85,6 +88,8 @@ RUN pip3 install --no-cache-dir -r requirements-frozen.txt
 ENV PBR_VERSION 0.9.0
 
 COPY . /opt/promenade
-RUN pip3 install -e /opt/promenade
+RUN pip3 install --verbose --editable /opt/promenade \
+    && echo "/opt/promenade" \
+        > /usr/local/lib/python3.8/dist-packages/promenade.pth
 
 USER promenade

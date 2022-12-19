@@ -50,7 +50,7 @@ rm -f "${OUTPUT_FILE}"
 
 for source_dir in $(config_configuration); do
     log Copying configuration from "${source_dir}"
-    for filename in ${WORKSPACE}/${source_dir}/*.yaml; do
+    for filename in "${WORKSPACE}"/"${source_dir}"/*.yaml; do
         if should_include_filename "${filename}"; then
             log Including config from "$filename"
             cat "${filename}" >> "${OUTPUT_FILE}"
@@ -68,7 +68,7 @@ log "Setting up local caches.."
 nginx_cache_and_replace_tar_urls "${OUTPUT_DIR}"/*.yaml
 registry_replace_references "${OUTPUT_DIR}"/*.yaml
 
-FILES=($(ls "${OUTPUT_DIR}"))
+FILES=("$(ls "${OUTPUT_DIR}")")
 
 log Generating certificates
 docker run --rm -t \

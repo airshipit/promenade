@@ -19,7 +19,7 @@ REQUIRE_RELOG=0
 log_stage_header "Installing Packages"
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update -qq
-sudo apt-get install -q -y --no-install-recommends \
+sudo apt-get install -q -y --no-install-recommends --allow-downgrades \
     apt-transport-https \
     build-essential \
     ca-certificates \
@@ -28,12 +28,15 @@ sudo apt-get install -q -y --no-install-recommends \
     genisoimage \
     jq \
     libstring-shellquote-perl \
-    libvirt-bin \
     python3-dev \
+    software-properties-common \
     qemu-kvm \
     qemu-utils \
-    software-properties-common \
-    virtinst
+    virt-manager \
+    libvirt-daemon-system \
+    virtinst \
+    libvirt-clients \
+    bridge-utils
 
 # Install the docker gpg key & Add the repository
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
@@ -44,10 +47,13 @@ sudo add-apt-repository \
 sudo apt-get update -qq
 
 # Remove old versions of docker, if installed
-sudo apt-get remove -q -y docker docker-engine docker.io
+sudo apt-get remove -q -y docker docker-engine docker.io --allow-downgrades \
 # Install docker
 sudo apt-get install -q -y --no-install-recommends \
-    docker-ce
+    docker-ce \
+    docker-ce-cli \
+    docker-buildx-plugin \
+    containerd.io
 
 # Set up proxy when using docker_image in yamls
 sudo mkdir -p /etc/systemd/system/docker.service.d/

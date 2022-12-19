@@ -73,6 +73,14 @@ data:
       mode: 0744
       content: |-
         export KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml
+    - path: /etc/containerd/config.toml
+      mode: 0400
+      content: |-
+        version = 2
+        [plugins."io.containerd.grpc.v1.cri"]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry:5000"]
+          endpoint = ["http://registry:5000"]
   images:
     monitoring_image: &busybox busybox:1.28.3
     haproxy: haproxy:1.8.3
@@ -81,8 +89,8 @@ data:
   packages:
     common:
       repositories:
-        - deb https://download.ceph.com/debian-nautilus/ bionic main
-        - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        - deb https://download.ceph.com/debian-nautilus/ focal main
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       keys:
         - |-
           -----BEGIN PGP PUBLIC KEY BLOCK-----

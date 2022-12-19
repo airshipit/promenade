@@ -42,7 +42,7 @@ data:
   packages:
     common:
       repositories:
-        - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       keys:
         - |-
           -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -116,7 +116,7 @@ data:
         socat: socat=1.7.3.1-1
     genesis:
       repositories:
-        - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       keys:
         - |-
           -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -190,7 +190,7 @@ data:
         socat: socat=1.7.3.1-1
     join:
       repositories:
-        - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       keys:
         - |-
           -----BEGIN PGP PUBLIC KEY BLOCK-----

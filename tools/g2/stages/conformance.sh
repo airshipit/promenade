@@ -20,7 +20,7 @@ else
 fi
 
 FILENAME=$(ssh_cmd "${GENESIS_NAME}" ls /mnt/sonobuoy || echo "")
-if [[ ! -z ${FILENAME} ]]; then
+if [[ -n ${FILENAME} ]]; then
     if rsync_cmd "${GENESIS_NAME}:/mnt/sonobuoy/${FILENAME}" "${WORKSPACE}/conformance/sonobuoy.tgz"; then
         tar xf "${WORKSPACE}/conformance/sonobuoy.tgz" -C "${WORKSPACE}/conformance"
     fi

@@ -19,9 +19,33 @@
       PROMENADE_TMP_LOCAL: "cache"
       DISTRO: "{{ distro }}"
   become: true
+
   tasks:
-    - name: Install docker
-      command: apt-get install docker.io resolvconf -y
+
+    - name: Generate configuration files
+      shell: |
+        set -xe;
+        sysctl net.ipv4.conf.all.forwarding=1
+        sysctl net.ipv4.conf.all.rp_filter=1
+      args:
+        chdir: /root
+        executable: /bin/bash
+      environment: "{{env}}"
+
+    - name: Ensure pip
+      include_role:
+        name: ensure-pip
+
+    - name: Clear firewall
+      include_role:
+        name: clear-firewall
+
+    - name: Ensure docker
+      include_role:
+        name: ensure-docker
+
+    - name: Install resolvconf
+      command: apt-get install  resolvconf -y
 
     - name: Setup Apparmor
       shell: |
@@ -30,6 +54,9 @@
       args:
         chdir: "{{ zuul.projects['opendev.org/openstack/openstack-helm-infra'].src_dir }}"
         executable: /bin/bash
+
+    - name: List interfaces
+      command: ip addr show
 
     - name: Generate configuration files
       shell: |

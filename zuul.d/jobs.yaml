@@ -1,3 +1,6 @@
+---
+# Copyright 2018 SUSE LINUX GmbH.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -10,61 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- project:
-    templates:
-      - docs-on-readthedocs
-    vars:
-      rtd_webhook_id: '38575'
-      rtd_project_name: 'airship-promenade'
-    check:
-      jobs:
-        - openstack-tox-pep8-bionic
-        - airship-promenade-lint-ws
-        - airship-promenade-docker-build-gate-ubuntu_xenial
-        - airship-promenade-docker-build-gate-ubuntu_bionic
-        - airship-promenade-chart-build-gate
-        - airship-promenade-chart-build-latest-htk
-        - airship-promenade-unit-py35
-        - airship-promenade-genesis-containerd-gate
-
-    gate:
-      jobs:
-        - openstack-tox-pep8-bionic
-        - airship-promenade-lint-ws
-        - airship-promenade-docker-build-gate-ubuntu_xenial
-        - airship-promenade-docker-build-gate-ubuntu_bionic
-        - airship-promenade-chart-build-gate
-        - airship-promenade-unit-py35
-        - airship-promenade-genesis-containerd-gate
-
-    post:
-      jobs:
-        - airship-promenade-docker-build-post-ubuntu_xenial
-        - airship-promenade-docker-build-post-ubuntu_bionic
-        - promenade-upload-git-mirror
-
-- nodeset:
-    name: airship-promenade-single-node
-    nodes:
-      - name: primary
-        label: ubuntu-bionic
-- nodeset:
-    name: airship-promenade-single-node-bionic
-    nodes:
-      - name: primary
-        label: ubuntu-bionic
-
 - job:
     name: airship-promenade-genesis-containerd-gate
     description: |
       Deploy airship promenade genesis with containerd
-    run: tools/zuul/playbooks/deploy-promenade-containerd.yaml
+    run:
+      - tools/zuul/playbooks/deploy-promenade-containerd.yaml
     required-projects:
       - openstack/openstack-helm-infra
     timeout: 3600
-    nodeset: airship-promenade-single-node-bionic
+    nodeset: airship-promenade-single-node-focal
     vars:
-      distro: ubuntu_bionic
+      distro: ubuntu_focal
 
 - job:
     name: airship-promenade-lint-ws
@@ -72,7 +32,7 @@
       Lints all files for trailing whitespace
     run: tools/zuul/playbooks/zuul-linter.yaml
     timeout: 300
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-focal
 
 - job:
     name: airship-promenade-chart-build-gate
@@ -80,7 +40,7 @@
       Lints charts using pinned HTK
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 300
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-focal
 
 - job:
     name: airship-promenade-chart-build-latest-htk
@@ -89,33 +49,33 @@
     voting: false
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 300
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-focal
     vars:
       HTK_COMMIT: master
 
 - job:
-    name: airship-promenade-unit-py35
+    name: airship-promenade-unit-py38
     description: |
-      Executes unit tests under Python 3.5
+      Executes unit tests under Python 3.8
     run: tools/zuul/playbooks/make-tests.yaml
     timeout: 1500
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-focal
     files:
       - ^.*\.py$
 
 - job:
     name: airship-promenade-linter
     run: tools/zuul/playbooks/zuul-linter.yaml
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-focal
 
 - job:
-    name: airship-promenade-docker-build-gate-ubuntu_bionic
-    voting: false
+    name: airship-promenade-docker-build-gate
+    voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-focal
     vars:
       publish: false
-      distro: ubuntu_bionic
+      distro: ubuntu_focal
       tags:
         dynamic:
           patch_set: true
@@ -125,50 +85,15 @@
       - ^tests/.*$
       - ^tools/.*$
 - job:
-    name: airship-promenade-docker-build-gate-ubuntu_bionic
-    run: tools/zuul/playbooks/docker-image-build.yaml
-    nodeset: airship-promenade-single-node
-    vars:
-      publish: false
-      distro: ubuntu_bionic
-      tags:
-        dynamic:
-          patch_set: true
-    irrelevant-files:
-      - ^charts/.*$
-      - ^etc/.*$
-      - ^tests/.*$
-      - ^tools/.*$
-- job:
-    name: airship-promenade-docker-build-post-ubuntu_xenial
+    name: airship-promenade-docker-build-post
     voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
-    nodeset: airship-promenade-single-node
+    nodeset: airship-promenade-single-node-focal
     secrets:
       - airship_promenade_quay_creds
     vars:
       publish: true
-      distro: ubuntu_xenial
-      tags:
-        dynamic:
-          branch: true
-          commit: true
-        static:
-          - latest
-    irrelevant-files:
-      - ^charts/.*$
-      - ^etc/.*$
-      - ^tests/.*$
-      - ^tools/.*$
-- job:
-    name: airship-promenade-docker-build-post-ubuntu_bionic
-    run: tools/zuul/playbooks/docker-image-build.yaml
-    nodeset: airship-promenade-single-node
-    secrets:
-      - airship_promenade_quay_creds
-    vars:
-      publish: true
-      distro: ubuntu_bionic
+      distro: ubuntu_focal
       tags:
         dynamic:
           branch: true

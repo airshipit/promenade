@@ -18,9 +18,21 @@
       NO_PROXY: ""
       DISTRO: "{{ distro }}"
   become: true
+
+  roles:
+    - deploy-apparmor
+    - ensure-docker
+
   tasks:
     - name: Install docker
-      command: apt-get install docker.io resolvconf -y
+      command: |
+        apt-get install \
+          docker-ce \
+          docker-ce-cli \
+          docker-buildx-plugin \
+          containerd.io \
+          resolvconf \
+          -y
 
     - name: Setup Apparmor
       shell: |

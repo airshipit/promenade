@@ -22,6 +22,7 @@ img_base_declare() {
 }
 
 iso_gen() {
+    set -x
     NAME=${1}
 
     if virsh vol-key --pool "${VIRSH_POOL}" --vol "cloud-init-${NAME}.iso" &> /dev/null; then
@@ -67,6 +68,7 @@ iso_gen() {
             --vol "cloud-init-${NAME}.iso" \
             --file "${ISO_DIR}/cidata.iso"
     } &>> "${LOG_FILE}"
+    set +x
 }
 
 iso_path() {
@@ -125,11 +127,12 @@ vm_create() {
     DISK_OPTS="bus=virtio,cache=directsync,discard=unmap,format=qcow2"
     virt-install \
         --name "${NAME}" \
+        --osinfo ubuntu20.04 \
         --virt-type kvm \
         --cpu host,+x2apic,-avx2 \
         --graphics vnc,listen=0.0.0.0 \
         --noautoconsole \
-        --network "network=promenade,model=virtio" \
+        --network "network=promenade,model=e1000" \
         --vcpus "$(config_vm_vcpus)" \
         --memory "$(config_vm_memory)" \
         --import \
@@ -140,6 +143,7 @@ vm_create() {
     ssh_cmd "${NAME}" sync
     # docker enables forwarding, containerd - does not
     ssh_cmd "${NAME}" sysctl net.ipv4.conf.all.forwarding=1
+    ssh_cmd "${NAME}" sysctl net.ipv4.conf.all.rp_filter=1
 }
 
 vm_create_all() {

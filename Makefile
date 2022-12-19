@@ -25,7 +25,7 @@ PUSH_IMAGE        ?= false
 # use this variable for image labels added in internal build process
 LABEL             ?= org.airshipit.build=community
 COMMIT            ?= $(shell git rev-parse HEAD)
-DISTRO            ?= ubuntu_bionic
+DISTRO            ?= ubuntu_focal
 PYTHON            = python3
 CHARTS            := $(filter-out deps, $(patsubst charts/%/.,%,$(wildcard charts/*/.)))
 IMAGE             := ${DOCKER_REGISTRY}/${IMAGE_PREFIX}/${IMAGE_NAME}:${IMAGE_TAG}-${DISTRO}
@@ -43,13 +43,16 @@ docs: clean
 	tox -e docs
 
 tests-unit: external-deps
-	tox -e py36
+	tox -e py38
 
 external-deps:
 	./tools/install-external-deps.sh
 
 tests-pep8:
 	tox -e pep8
+
+tests-freeze:
+	tox -e freeze
 
 chartbanner:
 	@echo Building charts: $(CHARTS)

@@ -8,6 +8,9 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
+  systemd_units:
+    kube-cgroup:
+      enable: true
   files:
     - path: /opt/kubernetes/bin/kubelet
       tar_url: https://dl.k8s.io/v1.24.4/kubernetes-node-linux-amd64.tar.gz
@@ -17,6 +20,38 @@ data:
       tar_url: https://dl.k8s.io/v1.24.4/kubernetes-node-linux-amd64.tar.gz
       tar_path: kubernetes/node/bin/kubectl
       mode: 0555
+    - path: /etc/systemd/system/kube-cgroup.service
+      content: |
+        [Unit]
+        Description=Create and tune cgroup for Kubernetes Pods
+        Requires=network-online.target
+        Before=kubelet.service
+
+        [Service]
+        Delegate=yes
+        ExecStart=/usr/local/sbin/kube-cgroup.sh
+
+        [Install]
+        RequiredBy=kubelet.service
+      mode: 0444
+    - path: /usr/local/sbin/kube-cgroup.sh
+      mode: 0744
+      content: |-
+        #!/bin/bash
+
+        set -x
+
+        KUBE_CGROUP=${KUBE_CGROUP:-"kube_whitelist"}
+        SYSTEMD_ABSPATH="/sys/fs/cgroup/systemd/$KUBE_CGROUP"
+        CPUSET_ABSPATH="/sys/fs/cgroup/cpuset/$KUBE_CGROUP"
+        CPU_ABSPATH="/sys/fs/cgroup/cpu/$KUBE_CGROUP"
+        MEM_ABSPATH="/sys/fs/cgroup/memory/$KUBE_CGROUP"
+        PIDS_ABSPATH="/sys/fs/cgroup/pids/$KUBE_CGROUP"
+
+        for cg in $SYSTEMD_ABSPATH $CPUSET_ABSPATH $CPU_ABSPATH $MEM_ABSPATH $PIDS_ABSPATH
+        do
+          mkdir -p "$cg"
+        done
     - path: /etc/logrotate.d/json-logrotate
       mode: 0444
       content: |-
@@ -38,6 +73,14 @@ data:
       mode: 0744
       content: |-
         export KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml
+    - path: /etc/containerd/config.toml
+      mode: 0400
+      content: |-
+        version = 2
+        [plugins."io.containerd.grpc.v1.cri"]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry:5000"]
+          endpoint = ["http://registry:5000"]
   images:
     monitoring_image: busybox:1.28.3
     haproxy: haproxy:1.8.3
@@ -46,7 +89,7 @@ data:
   packages:
     common:
       repositories:
-        - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       keys:
         - |-
           -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -121,7 +164,7 @@ data:
         socat: socat
     genesis:
       repositories:
-        - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       keys:
         - |-
           -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -196,7 +239,7 @@ data:
         socat: socat
     join:
       repositories:
-        - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       keys:
         - |-
           -----BEGIN PGP PUBLIC KEY BLOCK-----

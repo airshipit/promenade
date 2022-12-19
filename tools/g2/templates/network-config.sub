@@ -2,7 +2,7 @@
 version: 1
 config:
   - type: physical
-    name: ens3
+    name: ens1
     subnets:
       - type: static
         address: ${BR_IP_NODE}/24

@@ -26,7 +26,7 @@ Sample Document to run containers in Docker runtime
         monitoring_image: busybox:1.28.3
       packages:
         repositories:
-          - deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+          - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
         keys:
           - |-
             -----BEGIN PGP PUBLIC KEY BLOCK-----

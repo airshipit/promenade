@@ -1,8 +1,8 @@
 export TEMP_DIR=${TEMP_DIR:-$(mktemp -d)}
-export BASE_IMAGE_SIZE=${BASE_IMAGE_SIZE:-344784896}
-export BASE_IMAGE_URL=${BASE_IMAGE_URL:-https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64.img}
+export BASE_IMAGE_SIZE=${BASE_IMAGE_SIZE:-644612096}
+export BASE_IMAGE_URL=${BASE_IMAGE_URL:-https://cloud-images.ubuntu.com/releases/focal/release/ubuntu-20.04-server-cloudimg-amd64.img}
 export IMAGE_PROMENADE=${IMAGE_PROMENADE:-quay.io/airshipit/promenade:master}
-export IMAGE_PROMENADE_DISTRO=${IMAGE_PROMENADE_DISTRO:-ubuntu_bionic}
+export IMAGE_PROMENADE_DISTRO=${IMAGE_PROMENADE_DISTRO:-ubuntu_focal}
 export NGINX_DIR="${TEMP_DIR}/nginx"
 export NGINX_URL="http://192.168.77.1:7777"
 export PROMENADE_BASE_URL="http://promenade-api.ucp.svc.cluster.local"

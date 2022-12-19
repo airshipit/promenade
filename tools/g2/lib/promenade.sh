@@ -11,7 +11,7 @@ promenade_render_curl_url() {
     USE_DECKHAND=${2}
     DECKHAND_REVISION=${3}
     shift 3
-    LABELS=(${@})
+    LABELS=("${@}")
 
     LABEL_PARAMS=
     for label in "${LABELS[@]}"; do

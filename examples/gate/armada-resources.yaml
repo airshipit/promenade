@@ -111,7 +111,7 @@ data:
     type: git
     location: https://opendev.org/openstack/openstack-helm-infra.git
     subpath: helm-toolkit
-    reference: ee331fd0d38e3584fecbefbf6218ba0c8e112338
+    reference: fa8916f5bcc8cbf064a387569e2630b7bbf0b49b
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -135,7 +135,7 @@ data:
     type: git
     location: https://opendev.org/openstack/openstack-helm-infra.git
     subpath: helm-toolkit
-    reference: ee331fd0d38e3584fecbefbf6218ba0c8e112338
+    reference: fa8916f5bcc8cbf064a387569e2630b7bbf0b49b
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -401,7 +401,7 @@ data:
         CLUSTER_TYPE:
           - k8s
           - bgp
-        IP_AUTODETECTION_METHOD: interface=ens3
+        IP_AUTODETECTION_METHOD: interface=ens1
         WAIT_FOR_STORAGE: "true"
 
     endpoints:
@@ -434,7 +434,7 @@ data:
   source:
     type: git
     location: https://opendev.org/openstack/openstack-helm-infra.git
-    reference: ee331fd0d38e3584fecbefbf6218ba0c8e112338
+    reference: fa8916f5bcc8cbf064a387569e2630b7bbf0b49b
     subpath: calico
   dependencies:
     - infra-helm-toolkit

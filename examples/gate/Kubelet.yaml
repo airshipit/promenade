@@ -9,9 +9,8 @@ metadata:
   storagePolicy: cleartext
 data:
   arguments:
-    - --cni-bin-dir=/opt/cni/bin
-    - --cni-conf-dir=/etc/cni/net.d
-    - --network-plugin=cni
+    - --container-runtime=remote
+    - --container-runtime-endpoint=unix:///run/containerd/containerd.sock
     - --v=3
   images:
     pause: k8s.gcr.io/pause-amd64:3.1
