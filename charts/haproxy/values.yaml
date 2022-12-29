@@ -64,7 +64,7 @@ conf:
 
 images:
   tags:
-    anchor: bitnami/kubectl:1.24.4
+    anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
     haproxy: haproxy:1.8.25
     test: python:3.6
   pull_policy: "IfNotPresent"

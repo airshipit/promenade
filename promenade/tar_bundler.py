@@ -31,9 +31,11 @@ class TarBundler:
         if tar_info.size > 0:
             # Ignore bandit false positive: B303:blacklist
             # This is a basic checksum for debugging not a secure hash.
+            checksum = hashlib.new('md5', usedforsecurity=False)
+            checksum.update(data_bytes)
             LOG.debug(  # nosec
                 'Adding file path=%s size=%s md5=%s', path, tar_info.size,
-                hashlib.md5(data_bytes).hexdigest())
+                checksum.hexdigest())
         else:
             LOG.warning('Zero length file added to path=%s', path)
 

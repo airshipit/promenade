@@ -23,6 +23,7 @@ sudo apt-get install -q -y --no-install-recommends --allow-downgrades \
     apt-transport-https \
     build-essential \
     ca-certificates \
+    apt-utils \
     curl \
     fio \
     genisoimage \

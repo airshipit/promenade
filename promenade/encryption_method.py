@@ -167,16 +167,17 @@ def _detect_gpg_version():
 
 
 def _generate_key():
-    # Ignore bandit false positive:
-    #   B603:subprocess_without_shell_equals_true
-    # This method takes no input and generates random output.
-    result = subprocess.run(  # nosec
-        ['/usr/bin/openssl', 'rand', '-hex', '48'],
-        check=True,
-        env={
-            'RANDFILE': '/tmp/rnd',
-        },
-        stdout=subprocess.PIPE,
-    )
+    with tempfile.TemporaryDirectory() as tmp:
+        # Ignore bandit false positive:
+        #   B603:subprocess_without_shell_equals_true
+        # This method takes no input and generates random output.
+        result = subprocess.run(  # nosec
+            ['/usr/bin/openssl', 'rand', '-hex', '48'],
+            check=True,
+            env={
+                'RANDFILE': tmp,
+            },
+            stdout=subprocess.PIPE,
+        )
 
     return result.stdout.decode().strip()

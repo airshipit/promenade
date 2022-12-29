@@ -45,7 +45,7 @@ jsonschema==3.2.0
 keystoneauth1==5.1.1
 keystonemiddleware==10.2.0
 kombu==5.1.0
-kubernetes==24.2.0
+kubernetes==26.1.0
 Mako==1.2.4
 MarkupSafe==2.1.2
 mccabe==0.6.1

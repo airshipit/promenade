@@ -7,7 +7,7 @@ jsonschema==3.2.0
 keystoneauth1==5.1.1
 keystonemiddleware==10.2.0
 setuptools==67.0.0
-kubernetes==24.2.0
+kubernetes==26.1.0
 oslo.context==5.0.0
 oslo.policy==4.0.0
 PasteDeploy==3.0.1
