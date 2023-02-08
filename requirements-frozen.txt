@@ -10,7 +10,7 @@ chardet==3.0.4
 click==6.7
 cliff==3.1.0
 cmd2==0.8.9
-cryptography==3.1.1
+cryptography==39.0.1
 debtcollector==1.22.0
 pbr==5.4.5
 Deckhand @ git+https://opendev.org/airship/deckhand.git@5cd799cc5d04527ac782270008ff647b3779ff05#egg=deckhand
