@@ -1,5 +1,5 @@
 sphinx>=1.6.2
-sphinx_rtd_theme==0.2.4
+sphinx-rtd-theme==1.1.1
 falcon>=1.4.1
-oslo.config==7.0.0
+oslo.config==8.7.1
 markupsafe==2.0.1
