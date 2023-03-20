@@ -104,13 +104,13 @@ VALID_DOCS = [
                 'armada': 'quay.io/airshipit/armada:master-ubuntu_bionic',
                 'kubernetes': {
                     'apiserver':
-                    'k8s.gcr.io/kube-apiserver-amd64:v1.24.4',
+                    'k8s.gcr.io/kube-apiserver-amd64:v1.26.0',
                     'controller-manager':
-                    'k8s.gcr.io/kube-controller-manager-amd64:v1.24.4',
+                    'k8s.gcr.io/kube-controller-manager-amd64:v1.26.0',
                     'etcd':
                     'quay.io/coreos/etcd:v3.5.4',
                     'scheduler':
-                    'k8s.gcr.io/kube-scheduler-amd64:v1.24.4'
+                    'k8s.gcr.io/kube-scheduler-amd64:v1.26.0'
                 }
             },
             'ip':
@@ -146,7 +146,7 @@ VALID_DOCS = [
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
-                'https://dl.k8s.io/v1.24.4/kubernetes-node-linux-amd64.tar.gz'
+                'https://dl.k8s.io/v1.26.0/kubernetes-node-linux-amd64.tar.gz'
             },
              {
                  'content':

@@ -1,10 +1,10 @@
 # source_name, tag, cache_name
 coredns/coredns,1.9.4,coredns
-bitnami/kubectl,1.24.4,kubectl
-k8s.gcr.io/kube-apiserver-amd64,v1.24.4,apiserver
-k8s.gcr.io/kube-controller-manager-amd64,v1.24.4,controller-manager
-k8s.gcr.io/kube-scheduler-amd64,v1.24.4,scheduler
-k8s.gcr.io/kube-proxy-amd64,v1.24.4,proxy
+quay.io/airshipit/porthole-compute-utility,master-ubuntu_focal,kubectl
+k8s.gcr.io/kube-apiserver-amd64,v1.26.0,apiserver
+k8s.gcr.io/kube-controller-manager-amd64,v1.26.0,controller-manager
+k8s.gcr.io/kube-scheduler-amd64,v1.26.0,scheduler
+k8s.gcr.io/kube-proxy-amd64,v1.26.0,proxy
 lachlanevenson/k8s-helm,v3.9.4,helm
 quay.io/airshipit/armada,master,armada
 quay.io/calico/cni,v3.4.0,calico-cni

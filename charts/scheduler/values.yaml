@@ -85,8 +85,8 @@ secrets:
 
 images:
   tags:
-    anchor: bitnami/kubectl:1.24.4
-    scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.24.4
+    anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
+    scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.26.0
   pull_policy: "IfNotPresent"
 
 network:
