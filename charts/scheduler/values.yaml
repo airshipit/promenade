@@ -8,16 +8,11 @@ anchor:
   period: 15
   termination_grace_period: 3600
   files_to_copy:
-    - source: /configmap/cluster-ca.pem
-      dest: /etc/kubernetes/scheduler/cluster-ca.pem
-    - source: /configmap/scheduler.pem
-      dest: /etc/kubernetes/scheduler/scheduler.pem
-    - source: /configmap/kubeconfig.yaml
-      dest: /etc/kubernetes/scheduler/kubeconfig.yaml
-    - source: /secret/scheduler-key.pem
-      dest: /etc/kubernetes/scheduler/scheduler-key.pem
-    - source: /configmap/kubernetes-scheduler.yaml
-      dest: /etc/kubernetes/manifests/kubernetes-scheduler.yaml
+    /etc/kubernetes/scheduler/cluster-ca.pem: /configmap/cluster-ca.pem
+    /etc/kubernetes/scheduler/scheduler.pem: /configmap/scheduler.pem
+    /etc/kubernetes/scheduler/kubeconfig.yaml: /configmap/kubeconfig.yaml
+    /etc/kubernetes/scheduler/scheduler-key.pem: /secret/scheduler-key.pem
+    /etc/kubernetes/manifests/kubernetes-scheduler.yaml: /configmap/kubernetes-scheduler.yaml
 
 labels:
   scheduler:

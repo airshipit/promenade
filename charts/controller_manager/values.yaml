@@ -32,18 +32,12 @@ anchor:
     manifest_path: /etc/kubernetes/manifests
   period: 15
   files_to_copy:
-    - source: /configmap/cluster-ca.pem
-      dest: /etc/kubernetes/controller-manager/cluster-ca.pem
-    - source: /configmap/controller-manager.pem
-      dest: /etc/kubernetes/controller-manager/controller-manager.pem
-    - source: /configmap/kubeconfig.yaml
-      dest: /etc/kubernetes/controller-manager/kubeconfig.yaml
-    - source: /secret/controller-manager-key.pem
-      dest: /etc/kubernetes/controller-manager/controller-manager-key.pem
-    - source: /secret/service-account.priv
-      dest: /etc/kubernetes/controller-manager/service-account.priv
-    - source: /configmap/kubernetes-controller-manager.yaml
-      dest: /etc/kubernetes/manifests/kubernetes-controller-manager.yaml
+    /etc/kubernetes/controller-manager/cluster-ca.pem: /configmap/cluster-ca.pem
+    /etc/kubernetes/controller-manager/controller-manager.pem: /configmap/controller-manager.pem
+    /etc/kubernetes/controller-manager/kubeconfig.yaml: /configmap/kubeconfig.yaml
+    /etc/kubernetes/controller-manager/controller-manager-key.pem: /secret/controller-manager-key.pem
+    /etc/kubernetes/controller-manager/service-account.priv: /secret/service-account.priv
+    /etc/kubernetes/manifests/kubernetes-controller-manager.yaml: /configmap/kubernetes-controller-manager.yaml
 
 controller_manager:
   host_etc_path: /etc/kubernetes/controller-manager

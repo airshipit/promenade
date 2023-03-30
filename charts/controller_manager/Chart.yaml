@@ -15,4 +15,4 @@
 apiVersion: v1
 description: A chart for Kubernetes controller-manager
 name: controller_manager
-version: 0.1.1
+version: 0.1.2

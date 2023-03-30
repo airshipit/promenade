@@ -15,23 +15,59 @@
 
 set -xu
 
-compare_copy_files() {
+snapshot_files() {
+    SNAPSHOT_DIR=${1}
+    {{ range $dest, $source := .Values.anchor.files_to_copy }}
+    mkdir -p $(dirname "${SNAPSHOT_DIR}{{ $dest }}")
+    cp "{{ $source }}" "${SNAPSHOT_DIR}{{ $dest }}"
+    {{- end }}
+    {{ range $key, $val := .Values.conf }}
+    {{- if $val.file }}
+    cp "/tmp/etc/{{ $val.file }}" "${SNAPSHOT_DIR}/etc/kubernetes/controller-manager/{{ $val.file }}"
+    {{- end }}
+    {{- end }}
+    # annotate the static manifest with the name of the creating anchor pod
+    sed -i "/created-by: /s/ANCHOR_POD/${POD_NAME}/" "${SNAPSHOT_DIR}{{ .Values.anchor.kubelet.manifest_path }}/kubernetes-controller-manager.yaml"
+}
 
-    {{range .Values.anchor.files_to_copy}}
-    if [ ! -e /host{{ .dest }} ] || ! cmp -s {{ .source }} /host{{ .dest }}; then
-        mkdir -p $(dirname /host{{ .dest }})
-        cp {{ .source }} /host{{ .dest }}
-        chmod go-rwx /host{{ .dest }}
+compare_copy_files() {
+    SNAPSHOT_DIR=${1}
+    {{ range $dest, $source := .Values.anchor.files_to_copy }}
+    SRC="${SNAPSHOT_DIR}{{ $dest }}"
+    DEST="/host{{ $dest }}"
+    if [ ! -e "${DEST}" ] || ! cmp -s "${SRC}" "${DEST}"; then
+        mkdir -p $(dirname "${DEST}")
+        cp "${SRC}" "${DEST}"
+        chmod go-rwx "${DEST}"
     fi
-    {{end}}
+    {{- end}}
+    {{ range $key, $val := .Values.conf }}
+    {{- if $val.file }}
+    SRC="${SNAPSHOT_DIR}/etc/kubernetes/controller-manager/{{ $val.file }}"
+    DEST="/host/etc/kubernetes/controller-manager/{{ $val.file }}"
+    if [ ! -e "${DEST}" ] || ! cmp -s "${SRC}" "${DEST}"; then
+        mkdir -p $(dirname "${DEST}")
+        cp "${SRC}" "${DEST}"
+        chmod go-rwx "${DEST}"
+    fi
+    {{- end }}
+    {{- end }}
 }
 
 cleanup() {
-
-    {{range .Values.anchor.files_to_copy}}
-    rm -f /host{{ .dest }}
-    {{end}}
+    {{- range $dest, $source := .Values.anchor.files_to_copy }}
+    rm -f "/host{{ $dest }}"
+    {{- end }}
+    {{  range $key, $val := .Values.conf }}
+    {{- if $val.file }}
+    rm -f "/host/etc/kubernetes/controller-manager/{{ $val.file }}"
+    {{- end }}
+    {{- end }}
 }
+
+SNAPSHOT_DIR=$(mktemp -d)
+
+snapshot_files "${SNAPSHOT_DIR}"
 
 while true; do
 
@@ -45,7 +81,7 @@ while true; do
 
     # Compare and replace files on Genesis host if needed
     # Copy files to other master nodes
-    compare_copy_files
+    compare_copy_files "${SNAPSHOT_DIR}"
 
     sleep {{ .Values.anchor.period }}
 done

@@ -64,6 +64,10 @@ spec:
             value: /host{{ .Values.anchor.kubelet.manifest_path }}/kubernetes-controller-manager.yaml
           - name: ETC_PATH
             value: /host{{ .Values.controller_manager.host_etc_path }}
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
 {{ tuple $envAll $envAll.Values.pod.resources.anchor_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
 {{ dict "envAll" $envAll "application" "kubernetes" "container" "anchor" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           command:
@@ -73,13 +77,20 @@ spec:
               exec:
                 command:
                   - /tmp/bin/pre_stop
-
           readinessProbe:
-            httpGet:
-              host: 127.0.0.1
-              path: /healthz
-              port: {{ .Values.network.kubernetes_controller_manager.port }}
-              scheme: HTTPS
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - |-
+                grep -q "created-by: ${POD_NAME}" "${MANIFEST_PATH}" || exit 1
+                [ "$(curl -k -s -S -o /dev/null \
+                    --cert "/host{{ .Values.controller_manager.host_etc_path }}/controller-manager.pem" \
+                    --key "/host{{ .Values.controller_manager.host_etc_path }}/controller-manager-key.pem" \
+                    --cacert "/host{{ .Values.controller_manager.host_etc_path }}/cluster-ca.pem" \
+                    "https://localhost:{{ .Values.network.kubernetes_controller_manager.port }}/healthz" \
+                    -w "%{http_code}")" = "200" ]
+                exit $?
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 5

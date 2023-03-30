@@ -25,6 +25,7 @@ metadata:
     {{ .Values.service.name }}-service: enabled
 {{ tuple $envAll "kubernetes" "scheduler" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
   annotations:
+    created-by: ANCHOR_POD
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{ dict "envAll" $envAll "podName" "scheduler" "containerNames" (list "scheduler") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
