@@ -114,18 +114,17 @@ def default_error_serializer(req, resp, exception):
     """
     Writes the default error message body, when we don't handle it otherwise
     """
-    format_error_resp(
-        req,
-        resp,
-        status_code=exception.status,
-        message=exception.description,
-        reason=exception.title,
-        error_type=exception.__class__.__name__,
-        error_list=[{
-            'message': exception.description,
-            'error': True
-        }],
-        info_list=None)
+    format_error_resp(req,
+                      resp,
+                      status_code=exception.status,
+                      message=exception.description,
+                      reason=exception.title,
+                      error_type=exception.__class__.__name__,
+                      error_list=[{
+                          'message': exception.description,
+                          'error': True
+                      }],
+                      info_list=None)
 
 
 def default_exception_handler(ex, req, resp, params):
@@ -140,13 +139,12 @@ def default_exception_handler(ex, req, resp, params):
         # take care of the uncaught stuff
         exc_string = traceback.format_exc()
         LOG.error('Unhanded Exception being handled: \n%s', exc_string)
-        format_error_resp(
-            req,
-            resp,
-            falcon.HTTP_500,
-            error_type=ex.__class__.__name__,
-            message="Unhandled Exception raised: %s" % str(ex),
-            retry=True)
+        format_error_resp(req,
+                          resp,
+                          falcon.HTTP_500,
+                          error_type=ex.__class__.__name__,
+                          message="Unhandled Exception raised: %s" % str(ex),
+                          retry=True)
 
 
 class PromenadeException(Exception):
@@ -190,8 +188,8 @@ class PromenadeException(Exception):
         self.info_list = info_list
         self.retry = retry
         self.trace = trace
-        super().__init__(
-            PromenadeException._gen_ex_message(title, description))
+        super().__init__(PromenadeException._gen_ex_message(
+            title, description))
 
     @staticmethod
     def _gen_ex_message(title, description):
@@ -204,16 +202,15 @@ class PromenadeException(Exception):
         """
         The handler used for app errors and child classes
         """
-        format_error_resp(
-            req,
-            resp,
-            ex.status,
-            message=ex.title,
-            reason=ex.description,
-            error_list=ex.error_list,
-            info_list=ex.info_list,
-            error_type=ex.__class__.__name__,
-            retry=ex.retry)
+        format_error_resp(req,
+                          resp,
+                          ex.status,
+                          message=ex.title,
+                          reason=ex.description,
+                          error_list=ex.error_list,
+                          info_list=ex.info_list,
+                          error_type=ex.__class__.__name__,
+                          retry=ex.retry)
 
     def display(self, debug=False):
         if self.trace or debug:
@@ -300,8 +297,9 @@ class InvalidFormatError(PromenadeException):
             title = self.title
         if not description:
             description = self.title
-        super(InvalidFormatError, self).__init__(
-            title, description, status=self.status)
+        super(InvalidFormatError, self).__init__(title,
+                                                 description,
+                                                 status=self.status)
 
 
 class ValidationException(PromenadeException):

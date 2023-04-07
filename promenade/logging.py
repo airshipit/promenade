@@ -58,6 +58,7 @@ DEFAULT_CONFIG = {
 
 
 class BlankContextFilter(logging.Filter):
+
     def filter(self, record):
         for key in BLANK_CONTEXT_VALUES:
             if getattr(record, key, None) is None:
@@ -66,6 +67,7 @@ class BlankContextFilter(logging.Filter):
 
 
 class Adapter(logging.LoggerAdapter):
+
     def process(self, msg, kwargs):
         extra = kwargs.get('extra', {})
 

@@ -89,9 +89,10 @@ class ContextMiddleware(object):
     """
 
     def _format_uuid_string(self, string):
-        return (string.replace('urn:', '').replace('uuid:',
-                                                   '').strip('{}').replace(
-                                                       '-', '').lower())
+        return (string.replace('urn:',
+                               '').replace('uuid:',
+                                           '').strip('{}').replace('-',
+                                                                   '').lower())
 
     def _is_uuid_like(self, val):
         try:
@@ -115,16 +116,16 @@ class ContextMiddleware(object):
 
 
 class LoggingMiddleware(object):
+
     def process_request(self, req, resp):
         # don't log health checks
         if not req.url.endswith('/health'):
             ctx = req.context
-            LOG.info(
-                "Request: %s %s %s",
-                req.method,
-                req.uri,
-                req.query_string,
-                ctx=ctx)
+            LOG.info("Request: %s %s %s",
+                     req.method,
+                     req.uri,
+                     req.query_string,
+                     ctx=ctx)
 
     def process_response(self, req, resp, resource, req_succeeded):
         ctx = req.context
@@ -132,10 +133,9 @@ class LoggingMiddleware(object):
         if req.url.endswith('/health'):
             resp_code = self._get_resp_code(resp)
             if not resp_code == 204:
-                LOG.error(
-                    'Health check has failed with response status %s',
-                    resp.status,
-                    ctx=ctx)
+                LOG.error('Health check has failed with response status %s',
+                          resp.status,
+                          ctx=ctx)
         else:
             context_marker = getattr(ctx, 'context_marker', None)
             request_id = getattr(ctx, 'request_id', None)
@@ -149,12 +149,11 @@ class LoggingMiddleware(object):
                 resp.append_header('X-END-USER', end_user)
             if user is not None:
                 resp.append_header('X-USER-NAME', user)
-            LOG.info(
-                "Response: %s %s %s",
-                req.method,
-                req.uri,
-                resp.status,
-                ctx=ctx)
+            LOG.info("Response: %s %s %s",
+                     req.method,
+                     req.uri,
+                     resp.status,
+                     ctx=ctx)
 
     def _get_resp_code(self, resp):
         # Falcon response object doesn't have a raw status code.

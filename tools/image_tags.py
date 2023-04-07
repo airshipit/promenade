@@ -86,9 +86,9 @@ def _valid_dg(config, dynamic_tag, context_name=None):
         if config.get('context', {}).get(context_name):
             return True
         else:
-            raise TagGenExeception(
-                'Dynamic tag "%s" requested, but "%s"'
-                ' not found in context' % (dynamic_tag, context_name))
+            raise TagGenExeception('Dynamic tag "%s" requested, but "%s"'
+                                   ' not found in context' %
+                                   (dynamic_tag, context_name))
     else:
         return False
 

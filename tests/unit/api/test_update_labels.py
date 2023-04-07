@@ -62,8 +62,9 @@ def test_node_labels_pass(mock_kubeclient, mock_update_node_labels, client,
     """
     mock_kubeclient.return_value = None
     mock_update_node_labels.return_value = _mock_update_node_labels()
-    response = client.simulate_put(
-        '/api/v1.0/node-labels/ubuntubox', headers=req_header, body=req_body)
+    response = client.simulate_put('/api/v1.0/node-labels/ubuntubox',
+                                   headers=req_header,
+                                   body=req_body)
     assert response.status == falcon.HTTP_200
     assert response.json["status"] == "Success"
 
@@ -77,8 +78,9 @@ def test_node_labels_missing_inputs(client, req_header, req_body):
         req_header: API request header
         req_body: API request body
     """
-    response = client.simulate_post(
-        '/api/v1.0/node-labels', headers=req_header, body=req_body)
+    response = client.simulate_post('/api/v1.0/node-labels',
+                                    headers=req_header,
+                                    body=req_body)
     assert response.status == falcon.HTTP_404
 
 

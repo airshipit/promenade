@@ -46,7 +46,7 @@ def _get_from_deckhand(design_ref, ctx=None):
     else:
         addl_headers = {}
     auth = keystoneauth1.identity.v3.Password(**keystone_args)
-    session = keystoneauth1.session.Session(
-        auth=auth, additional_headers=addl_headers)
+    session = keystoneauth1.session.Session(auth=auth,
+                                            additional_headers=addl_headers)
 
     return session.get(design_ref[len(_DECKHAND_PREFIX):], timeout=DH_TIMEOUT)

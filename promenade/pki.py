@@ -13,6 +13,7 @@ LOG = logging.getLogger(__name__)
 
 
 class PKI:
+
     def __init__(self, *, block_strings=True):
         self.block_strings = block_strings
         self._ca_config_string = None
@@ -193,8 +194,9 @@ class block_literal(str):
 
 
 def block_literal_representer(dumper, data):
-    return dumper.represent_scalar(
-        'tag:yaml.org,2002:str', str(data), style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str',
+                                   str(data),
+                                   style='|')
 
 
 yaml.add_representer(block_literal, block_literal_representer)

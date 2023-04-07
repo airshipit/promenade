@@ -140,8 +140,8 @@ def _load_schemas():
             for schema in yaml.safe_load_all(f):
                 name = schema['metadata']['name']
                 if name in SCHEMAS:
-                    raise RuntimeError(
-                        'Duplicate schema specified for: %s' % name)
+                    raise RuntimeError('Duplicate schema specified for: %s' %
+                                       name)
 
                 SCHEMAS[name] = schema['data']
 

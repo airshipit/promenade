@@ -30,8 +30,8 @@ def build_tarball_from_roles(config, *, roles, file_specs):
 
 
 def insert_charts_into_bundler(bundler):
-    for root, _dirnames, filenames in os.walk(
-            '/opt/promenade/charts', followlinks=True):
+    for root, _dirnames, filenames in os.walk('/opt/promenade/charts',
+                                              followlinks=True):
         for source_filename in filenames:
             if _source_file_is_excluded(source_filename):
                 continue
@@ -43,8 +43,9 @@ def insert_charts_into_bundler(bundler):
             LOG.debug('Copying asset file %s (mode=%o)', source_path,
                       stat.st_mode)
             with open(source_path) as f:
-                bundler.add(
-                    path=destination_path, data=f.read(), mode=stat.st_mode)
+                bundler.add(path=destination_path,
+                            data=f.read(),
+                            mode=stat.st_mode)
 
 
 def render_role_into_bundler(*, bundler, config, role):
@@ -57,12 +58,11 @@ def render_role_into_bundler(*, bundler, config, role):
             stat = os.stat(source_path)
             LOG.debug('Rendering file %s (mode=%o)', source_path, stat.st_mode)
             destination_path = os.path.join(destination_base, source_filename)
-            render_template_into_bundler(
-                bundler=bundler,
-                config=config,
-                destination_path=destination_path,
-                source_path=source_path,
-                mode=stat.st_mode)
+            render_template_into_bundler(bundler=bundler,
+                                         config=config,
+                                         destination_path=destination_path,
+                                         source_path=source_path,
+                                         mode=stat.st_mode)
 
 
 def render_template_into_bundler(*, bundler, config, destination_path,
@@ -126,8 +126,8 @@ def _base64_encode(s):
 def _fill_no_proxy(network_config):
     proxy = network_config.get('proxy', {}).get('url')
     if proxy:
-        additional = network_config.get('proxy', {}).get(
-            'additional_no_proxy', [])
+        additional = network_config.get('proxy',
+                                        {}).get('additional_no_proxy', [])
         if additional:
             return ','.join(additional) + ',' + _default_no_proxy(
                 network_config)
@@ -145,8 +145,8 @@ def _default_no_proxy(network_config):
         'kubernetes',
         'kubernetes.default',
         'kubernetes.default.svc',
-        'kubernetes.default.svc.%s' % network_config.get('dns', {}).get(
-            'cluster_domain', 'cluster.local'),
+        'kubernetes.default.svc.%s' %
+        network_config.get('dns', {}).get('cluster_domain', 'cluster.local'),
     ]
     return ','.join(include)
 

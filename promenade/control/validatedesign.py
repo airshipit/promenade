@@ -24,6 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 class ValidateDesignResource(base.BaseResource):
+
     @policy.ApiEnforcer('kubernetes_provisioner:post_validatedesign')
     def on_post(self, req, resp):
         result = ValidationMessage()

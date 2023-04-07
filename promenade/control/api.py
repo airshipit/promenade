@@ -33,8 +33,8 @@ def start_api():
         ContextMiddleware(),
         LoggingMiddleware(),
     ]
-    control_api = falcon.API(
-        request_type=PromenadeRequest, middleware=middlewares)
+    control_api = falcon.App(request_type=PromenadeRequest,
+                             middleware=middlewares)
 
     # v1.0 of Promenade API
     v1_0_routes = [
@@ -72,10 +72,9 @@ class VersionsResource(BaseResource):
     """
 
     def on_get(self, req, resp):
-        resp.body = self.to_json({
-            'v1.0': {
+        resp.body = self.to_json(
+            {'v1.0': {
                 'path': '/api/v1.0',
                 'status': 'stable'
-            }
-        })
+            }})
         resp.status = falcon.HTTP_200

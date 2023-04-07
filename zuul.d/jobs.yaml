@@ -46,7 +46,7 @@
     name: airship-promenade-chart-build-latest-htk
     description: |
       Lints charts using latest HTK
-    voting: false
+    voting: true
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 300
     nodeset: airship-promenade-single-node-focal

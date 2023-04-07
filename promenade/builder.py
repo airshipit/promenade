@@ -29,6 +29,7 @@ CACHE = CacheManager(**parse_cache_config_options(CACHE_OPTS))
 
 
 class Builder:
+
     def __init__(self, config, *, validators=False):
         self.config = config
         self.validators = validators
@@ -64,9 +65,8 @@ class Builder:
 
     @property
     def _file_specs(self):
-        return itertools.chain(
-            self.config.get_path('HostSystem:files', []),
-            self.config.get_path('Genesis:files', []))
+        return itertools.chain(self.config.get_path('HostSystem:files', []),
+                               self.config.get_path('Genesis:files', []))
 
     def build_all(self, *, output_dir):
         self.build_genesis(output_dir=output_dir)
@@ -99,21 +99,23 @@ class Builder:
         (encrypted_tarball, decrypt_setup_command, decrypt_command,
          decrypt_teardown_command) = _encrypt_genesis(sub_config, tarball)
 
-        return renderer.render_template(
-            sub_config,
-            template='scripts/genesis.sh',
-            context={
-                'decrypt_command': decrypt_command,
-                'decrypt_setup_command': decrypt_setup_command,
-                'decrypt_teardown_command': decrypt_teardown_command,
-                'encrypted_tarball': encrypted_tarball,
-            },
-            roles=genesis_roles)
+        return renderer.render_template(sub_config,
+                                        template='scripts/genesis.sh',
+                                        context={
+                                            'decrypt_command': decrypt_command,
+                                            'decrypt_setup_command':
+                                            decrypt_setup_command,
+                                            'decrypt_teardown_command':
+                                            decrypt_teardown_command,
+                                            'encrypted_tarball':
+                                            encrypted_tarball,
+                                        },
+                                        roles=genesis_roles)
 
     def _build_genesis_validate_script(self):
         sub_config = self.config.extract_genesis_config()
-        return renderer.render_template(
-            sub_config, template='scripts/validate-genesis.sh')
+        return renderer.render_template(sub_config,
+                                        template='scripts/validate-genesis.sh')
 
     def build_node(self, node_document, *, output_dir):
         node_name = node_document['metadata']['name']
@@ -134,27 +136,30 @@ class Builder:
             f['path'] for f in self.config.get_path('HostSystem:files', [])
         ]
         file_specs = [self.file_cache[p] for p in file_spec_paths]
-        tarball = renderer.build_tarball_from_roles(
-            config=sub_config, roles=build_roles, file_specs=file_specs)
+        tarball = renderer.build_tarball_from_roles(config=sub_config,
+                                                    roles=build_roles,
+                                                    file_specs=file_specs)
 
         (encrypted_tarball, decrypt_setup_command, decrypt_command,
          decrypt_teardown_command) = _encrypt_node(sub_config, tarball)
 
-        return renderer.render_template(
-            sub_config,
-            template='scripts/join.sh',
-            context={
-                'decrypt_command': decrypt_command,
-                'decrypt_setup_command': decrypt_setup_command,
-                'decrypt_teardown_command': decrypt_teardown_command,
-                'encrypted_tarball': encrypted_tarball,
-            },
-            roles=build_roles)
+        return renderer.render_template(sub_config,
+                                        template='scripts/join.sh',
+                                        context={
+                                            'decrypt_command': decrypt_command,
+                                            'decrypt_setup_command':
+                                            decrypt_setup_command,
+                                            'decrypt_teardown_command':
+                                            decrypt_teardown_command,
+                                            'encrypted_tarball':
+                                            encrypted_tarball,
+                                        },
+                                        roles=build_roles)
 
     def _build_node_validate_script(self, node_name):
         sub_config = self.config.extract_node_config(node_name)
-        return renderer.render_template(
-            sub_config, template='scripts/validate-join.sh')
+        return renderer.render_template(sub_config,
+                                        template='scripts/validate-join.sh')
 
 
 def _encrypt_genesis(config, data):

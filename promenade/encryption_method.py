@@ -12,6 +12,7 @@ LOG = logging.getLogger(__name__)
 
 
 class EncryptionMethod(metaclass=abc.ABCMeta):
+
     @abc.abstractmethod
     def encrypt(self, data):
         pass
@@ -50,6 +51,7 @@ class EncryptionMethod(metaclass=abc.ABCMeta):
 
 
 class NullEncryptionMethod(EncryptionMethod):
+
     def encrypt(self, data):
         LOG.debug('Performing NOOP encryption')
         return data

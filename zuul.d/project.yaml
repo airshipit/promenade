@@ -22,7 +22,7 @@
     check:
       jobs:
         - openstack-tox-pep8
-        # - openstack-tox-py38
+        - openstack-tox-docs
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
         - airship-promenade-chart-build-gate
@@ -32,6 +32,7 @@
     gate:
       jobs:
         - openstack-tox-pep8
+        - openstack-tox-docs
         - airship-promenade-lint-ws
         - airship-promenade-docker-build-gate
         - airship-promenade-chart-build-gate

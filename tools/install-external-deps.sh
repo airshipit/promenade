@@ -3,6 +3,9 @@
 
 set -ex
 
+export DEBIAN_FRONTEND=noninteractive
+echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
+
 CFSSL_URL=${CFSSL_URL:-https://pkg.cfssl.org/R1.2/cfssl_linux-amd64}
 
 if [[ ! $(command -v cfssl) ]]; then

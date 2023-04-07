@@ -46,6 +46,7 @@ tests-unit: external-deps
 	tox -e py38
 
 external-deps:
+	export DEBIAN_FRONTEND=noninteractive
 	./tools/install-external-deps.sh
 
 tests-pep8:
@@ -69,10 +70,12 @@ helm-init-%: helm-toolkit
 lint: helm-lint gate-lint
 
 gate-lint: gate-lint-deps
+	export DEBIAN_FRONTEND=noninteractive
 	tox -e gate-lint
 
 gate-lint-deps:
-	sudo apt-get install -y --no-install-recommends shellcheck tox
+	sudo apt install -y --no-install-recommends shellcheck
+	sudo pip3 install tox
 
 helm-lint: $(addprefix helm-lint-,$(CHARTS))
 

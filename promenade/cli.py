@@ -18,19 +18,19 @@ def promenade(*, verbose):
 
 
 @promenade.command('build-all', help='Construct all scripts')
-@click.option(
-    '-o',
-    '--output-dir',
-    default='.',
-    type=click.Path(
-        exists=True, file_okay=False, dir_okay=True, resolve_path=True),
-    required=True,
-    help='Location to write complete cluster configuration.')
+@click.option('-o',
+              '--output-dir',
+              default='.',
+              type=click.Path(exists=True,
+                              file_okay=False,
+                              dir_okay=True,
+                              resolve_path=True),
+              required=True,
+              help='Location to write complete cluster configuration.')
 @click.option('--validators', is_flag=True, help='Generate validation scripts')
-@click.option(
-    '--leave-kubectl',
-    is_flag=True,
-    help='Leave behind kubectl on joined nodes')
+@click.option('--leave-kubectl',
+              is_flag=True,
+              help='Leave behind kubectl on joined nodes')
 @click.argument('config_files', nargs=-1, type=click.File('rb'))
 def build_all(*, config_files, leave_kubectl, output_dir, validators):
     debug = _debug()
@@ -49,23 +49,23 @@ def build_all(*, config_files, leave_kubectl, output_dir, validators):
 
 
 @promenade.command('generate-certs', help='Generate a certs for a site')
-@click.option(
-    '-o',
-    '--output-dir',
-    type=click.Path(
-        exists=True, file_okay=False, dir_okay=True, resolve_path=True),
-    required=True,
-    help='Location to write *-certificates.yaml')
+@click.option('-o',
+              '--output-dir',
+              type=click.Path(exists=True,
+                              file_okay=False,
+                              dir_okay=True,
+                              resolve_path=True),
+              required=True,
+              help='Location to write *-certificates.yaml')
 @click.argument('config_files', nargs=-1, type=click.File('rb'))
 def generate_certs(*, config_files, output_dir):
     debug = _debug()
     try:
-        c = config.Configuration.from_streams(
-            debug=debug,
-            streams=config_files,
-            substitute=True,
-            allow_missing_substitutions=True,
-            validate=False)
+        c = config.Configuration.from_streams(debug=debug,
+                                              streams=config_files,
+                                              substitute=True,
+                                              allow_missing_substitutions=True,
+                                              validate=False)
         g = generator.Generator(c)
         g.generate(output_dir)
     except exceptions.PromenadeException as e:

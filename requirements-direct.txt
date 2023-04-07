@@ -1,19 +1,35 @@
-Beaker==1.12.0
-click==8.1.3
-falcon==3.1.1
-Jinja2==3.1.2
-jsonpath-ng==1.5.3
-jsonschema==3.2.0
-keystoneauth1==5.1.1
-keystonemiddleware==10.2.0
-setuptools==67.0.0
+#
+Beaker<=1.12.0
+click
+ConfigParser
+Deckhand @ git+https://opendev.org/airship/deckhand.git@ac4edb0c64c9f9af62e7cb63f049508596d25747#egg=deckhand
+docutils
+falcon
+fixtures
+importlib_metadata
+Jinja2
+jsonpath_ng
+jsonschema<=3.2.0
+keystoneauth1<=5.1.1
 kubernetes==26.1.0
-oslo.context==5.0.0
-oslo.policy==4.0.0
-PasteDeploy==3.0.1
+MarkupSafe<2.1.0, >=0.9.2
+mock
+nose
+oslo.config<=8.7.1
+oslo.context<=4.1.0
+oslo.policy<=3.10.1
 pylibyaml==0.1.0
-PyYAML==5.4.1
-requests==2.28.2
-uWSGI==2.0.21
-Deckhand @ git+https://opendev.org/airship/deckhand.git@70aa35a396d5f76753616f5289228f9c2b0e7ec7
-# Deckhand @ git+https://review.opendev.org/airship/deckhand@refs/changes/93/869293/222#egg=deckhand
+PyYAML<=5.4.1
+reno
+requests==2.27.0
+setuptools<=45.2.0
+six
+Sphinx
+sphinx-rtd-theme==0.5.0
+testrepository
+testresources
+testscenarios
+testtools<=2.5.0
+urllib3 >= 1.21.1, <= 1.25.11
+virtualenv
+wheel

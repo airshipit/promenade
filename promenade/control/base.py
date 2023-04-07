@@ -28,6 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseResource(object):
+
     def on_options(self, req, resp, **kwargs):
         """
         Handle options requests
@@ -56,8 +57,8 @@ class BaseResource(object):
                 LOG.info('Input message body: %s \nContext: %s' %
                          (raw_body, req.context))
             else:
-                LOG.info(
-                    'No message body specified. \nContext: %s' % req.context)
+                LOG.info('No message body specified. \nContext: %s' %
+                         req.context)
         if has_input:
             # read the json and validate if necessary
             try:
@@ -72,8 +73,8 @@ class BaseResource(object):
                           (raw_body, req.context))
                 raise exc.InvalidFormatError(
                     title='JSON could not be decoded',
-                    description='%s: Invalid JSON in body: %s' % (req.path,
-                                                                  jex))
+                    description='%s: Invalid JSON in body: %s' %
+                    (req.path, jex))
         else:
             # No body passed as input. Fail validation if it was asekd for
             if validate_json_schema is not None:

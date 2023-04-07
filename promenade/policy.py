@@ -25,10 +25,9 @@ LOG = logging.getLogger(__name__)
 policy_engine = None
 
 POLICIES = [
-    op.RuleDefault(
-        'admin_required',
-        'role:admin or is_admin:1',
-        description='Actions requiring admin authority'),
+    op.RuleDefault('admin_required',
+                   'role:admin or is_admin:1',
+                   description='Actions requiring admin authority'),
     op.DocumentedRuleDefault('kubernetes_provisioner:get_join_scripts',
                              'role:admin', 'Get join script for node',
                              [{
@@ -51,6 +50,7 @@ POLICIES = [
 
 
 class PromenadePolicy:
+
     def __init__(self):
         self.enforcer = op.Enforcer(cfg.CONF)
 
@@ -72,18 +72,18 @@ class ApiEnforcer(object):
         self.action = action
 
     def __call__(self, f):
+
         @functools.wraps(f)
         def secure_handler(slf, req, resp, *args, **kwargs):
             ctx = req.context
             policy_eng = ctx.policy_engine
             # policy engine must be configured
             if policy_eng is not None:
-                LOG.debug(
-                    'Enforcing policy %s on request %s using engine %s',
-                    self.action,
-                    ctx.request_id,
-                    policy_eng.__class__.__name__,
-                    ctx=ctx)
+                LOG.debug('Enforcing policy %s on request %s using engine %s',
+                          self.action,
+                          ctx.request_id,
+                          policy_eng.__class__.__name__,
+                          ctx=ctx)
             else:
                 LOG.error('No policy engine configured', ctx=ctx)
                 raise ex.PromenadeException(
@@ -97,34 +97,30 @@ class ApiEnforcer(object):
                     LOG.debug('Request is authorized', ctx=ctx)
                     authorized = True
             except Exception:
-                LOG.exception(
-                    'Error authorizing request for action %s',
-                    self.action,
-                    ctx=ctx)
-                raise ex.ApiError(
-                    title="Expectation Failed",
-                    status=falcon.HTTP_417,
-                    retry=False)
+                LOG.exception('Error authorizing request for action %s',
+                              self.action,
+                              ctx=ctx)
+                raise ex.ApiError(title="Expectation Failed",
+                                  status=falcon.HTTP_417,
+                                  retry=False)
 
             if authorized:
                 return f(slf, req, resp, *args, **kwargs)
             else:
                 # raise the appropriate response exeception
                 if ctx.authenticated:
-                    LOG.error(
-                        'Unauthorized access attempted for action %s',
-                        self.action,
-                        ctx=ctx)
+                    LOG.error('Unauthorized access attempted for action %s',
+                              self.action,
+                              ctx=ctx)
                     raise ex.ApiError(
                         title="Forbidden",
                         status=falcon.HTTP_403,
                         description="Credentials do not permit access",
                         retry=False)
                 else:
-                    LOG.error(
-                        'Unathenticated access attempted for action %s',
-                        self.action,
-                        ctx=ctx)
+                    LOG.error('Unathenticated access attempted for action %s',
+                              self.action,
+                              ctx=ctx)
                     raise ex.ApiError(
                         title="Unauthenticated",
                         status=falcon.HTTP_401,

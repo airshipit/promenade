@@ -13,6 +13,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Configuration:
+
     def __init__(self,
                  *,
                  documents,
@@ -63,11 +64,10 @@ class Configuration:
     def from_design_ref(cls, design_ref, ctx=None, **kwargs):
         documents, use_dh_engine = dr.get_documents(design_ref, ctx)
 
-        return cls(
-            documents=documents,
-            substitute=use_dh_engine,
-            validate=use_dh_engine,
-            **kwargs)
+        return cls(documents=documents,
+                   substitute=use_dh_engine,
+                   validate=use_dh_engine,
+                   **kwargs)
 
     def __getitem__(self, path):
         return self.get_path(
@@ -105,8 +105,10 @@ class Configuration:
             schema = 'promenade/%s/v1' % kind
 
         for document in self.documents:
-            if _matches_filter(
-                    document, schema=schema, labels=labels, name=name):
+            if _matches_filter(document,
+                               schema=schema,
+                               labels=labels,
+                               name=name):
                 yield document
 
     def find(self, *args, **kwargs):
@@ -122,12 +124,11 @@ class Configuration:
             else:
                 LOG.debug('Excluding schema=%s metadata.name=%s',
                           document['schema'], _mg(document, 'name'))
-        return Configuration(
-            debug=self.debug,
-            documents=documents,
-            leave_kubectl=self.leave_kubectl,
-            substitute=False,
-            validate=False)
+        return Configuration(debug=self.debug,
+                             documents=documents,
+                             leave_kubectl=self.leave_kubectl,
+                             substitute=False,
+                             validate=False)
 
     def extract_node_config(self, name):
         LOG.debug('Extracting node config for %s.', name)
@@ -145,12 +146,11 @@ class Configuration:
                 continue
             else:
                 documents.append(document)
-        return Configuration(
-            debug=self.debug,
-            documents=documents,
-            leave_kubectl=self.leave_kubectl,
-            substitute=False,
-            validate=False)
+        return Configuration(debug=self.debug,
+                             documents=documents,
+                             leave_kubectl=self.leave_kubectl,
+                             substitute=False,
+                             validate=False)
 
     @property
     def kubelet_name(self):

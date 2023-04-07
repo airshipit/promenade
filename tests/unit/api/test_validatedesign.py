@@ -49,8 +49,9 @@ def std_body():
 def test_post_validatedesign_empty_docs(client, std_body, std_headers):
     with mock.patch('promenade.design_ref.get_documents') as gd:
         gd.return_value = ([], False)
-        response = client.simulate_post(
-            '/api/v1.0/validatedesign', headers=std_headers, body=std_body)
+        response = client.simulate_post('/api/v1.0/validatedesign',
+                                        headers=std_headers,
+                                        body=std_body)
     assert response.status == falcon.HTTP_400
     assert response.json['details']['errorCount'] == 5
 
@@ -93,10 +94,8 @@ VALID_DOCS = [
             'files': [{
                 'content':
                 '# placeholder for triggering calico etcd bootstrapping',
-                'mode':
-                420,
-                'path':
-                '/var/lib/anchor/calico-etcd-bootstrap'
+                'mode': 420,
+                'path': '/var/lib/anchor/calico-etcd-bootstrap'
             }],
             'hostname':
             'n0',
@@ -107,10 +106,8 @@ VALID_DOCS = [
                     'registry.k8s.io/kube-apiserver-amd64:v1.26.0',
                     'controller-manager':
                     'registry.k8s.io/kube-controller-manager-amd64:v1.26.0',
-                    'etcd':
-                    'quay.io/coreos/etcd:v3.5.4',
-                    'scheduler':
-                    'registry.k8s.io/kube-scheduler-amd64:v1.26.0'
+                    'etcd': 'quay.io/coreos/etcd:v3.5.4',
+                    'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.26.0'
                 }
             },
             'ip':
@@ -137,8 +134,7 @@ VALID_DOCS = [
     },
     {
         'data': {
-            'files':
-            [{
+            'files': [{
                 'mode':
                 365,
                 'path':
@@ -147,15 +143,12 @@ VALID_DOCS = [
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
                 'https://dl.k8s.io/v1.26.0/kubernetes-node-linux-amd64.tar.gz'
-            },
-             {
-                 'content':
-                 '/var/lib/docker/containers/*/*-json.log\n{\n    compress\n    copytruncate\n    create 0644 root root\n    daily\n    dateext\n    dateformat -%Y%m%d-%s\n    maxsize 10M\n    missingok\n    notifempty\n    su root root\n    rotate 1\n}',
-                 'mode':
-                 292,
-                 'path':
-                 '/etc/logrotate.d/json-logrotate'
-             }],
+            }, {
+                'content':
+                '/var/lib/docker/containers/*/*-json.log\n{\n    compress\n    copytruncate\n    create 0644 root root\n    daily\n    dateext\n    dateformat -%Y%m%d-%s\n    maxsize 10M\n    missingok\n    notifempty\n    su root root\n    rotate 1\n}',
+                'mode': 292,
+                'path': '/etc/logrotate.d/json-logrotate'
+            }],
             'images': {
                 'haproxy': 'haproxy:1.8.3',
                 'helm': {
@@ -261,7 +254,8 @@ VALID_DOCS = [
 def test_post_validatedesign_valid_docs(client, std_body, std_headers):
     with mock.patch('promenade.design_ref.get_documents') as gd:
         gd.return_value = (VALID_DOCS, False)
-        response = client.simulate_post(
-            '/api/v1.0/validatedesign', headers=std_headers, body=std_body)
+        response = client.simulate_post('/api/v1.0/validatedesign',
+                                        headers=std_headers,
+                                        body=std_body)
     assert response.status == falcon.HTTP_200
     assert response.json['details']['errorCount'] == 0

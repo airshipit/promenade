@@ -1,19 +1,12 @@
 - hosts: all
+  roles:
+    - bindep
+    - ensure-docker
+    - ensure-python
+    - ensure-pip
 
   tasks:
     - include_vars: vars.yaml
-
-    - name: Ensure pip
-      include_role:
-        name: ensure-pip
-
-    - name: Clear firewall
-      include_role:
-        name: clear-firewall
-
-    - name: Ensure docker
-      include_role:
-        name: ensure-docker
 
     - name: Debug tag generation inputs
       block:
@@ -40,6 +33,14 @@
     - name: Debug computed tags
       debug:
         var: image_tags
+
+    - name: Install Docker python module for ansible docker login
+      block:
+        - pip:
+            name: docker
+            version: 4.4.4
+            executable: pip3
+      become: True
 
     - name: Make images
       when: not publish

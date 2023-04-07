@@ -11,6 +11,7 @@ LOG = logging.getLogger(__name__)
 
 
 class TarBundler:
+
     def __init__(self):
         self._tar_blob = io.BytesIO()
         self._tf = tarfile.open(fileobj=self._tar_blob, mode='w|gz')

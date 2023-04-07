@@ -10,6 +10,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Generator:
+
     def __init__(self, config, block_strings=True):
         self.config = config
         self.keys = pki.PKI(block_strings=block_strings)
@@ -69,8 +70,10 @@ class Generator:
     def gen_cert(self, document_name, *, ca_cert, ca_key, **kwargs):
         ca_cert_data = ca_cert['data']
         ca_key_data = ca_key['data']
-        return self.keys.generate_certificate(
-            document_name, ca_cert=ca_cert_data, ca_key=ca_key_data, **kwargs)
+        return self.keys.generate_certificate(document_name,
+                                              ca_cert=ca_cert_data,
+                                              ca_key=ca_key_data,
+                                              **kwargs)
 
     def gen_keypair(self, document_name):
         return self.keys.generate_keypair(document_name)
@@ -95,9 +98,9 @@ class Generator:
                           document_name, kinds)
                 return docs
             else:
-                raise exceptions.IncompletePKIPairError(
-                    'Incomplete set %s '
-                    'for name: %s' % (kinds, document_name))
+                raise exceptions.IncompletePKIPairError('Incomplete set %s '
+                                                        'for name: %s' %
+                                                        (kinds, document_name))
 
         else:
             docs = self._find_in_outputs(schemas, document_name)
@@ -129,17 +132,16 @@ class Generator:
         documents = self.get_documents()
         with open(os.path.join(output_dir, 'certificates.yaml'), 'w') as f:
             # Don't use safe_dump_all so we can block format certificate data.
-            yaml.dump_all(
-                documents,
-                stream=f,
-                default_flow_style=False,
-                explicit_start=True,
-                indent=2)
+            yaml.dump_all(documents,
+                          stream=f,
+                          default_flow_style=False,
+                          explicit_start=True,
+                          indent=2)
 
     def get_documents(self):
         return list(
-            itertools.chain.from_iterable(
-                v.values() for v in self.outputs.values()))
+            itertools.chain.from_iterable(v.values()
+                                          for v in self.outputs.values()))
 
 
 def get_host_list(service_names):
