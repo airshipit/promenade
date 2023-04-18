@@ -1,7 +1,7 @@
 [Unit]
 Description=Kubernetes Worker Process
 Requires=network-online.target
-After=network-online.target
+After=network-online.target containerd.service
 
 [Service]
 ExecStart=/opt/kubernetes/bin/kubelet \
