@@ -17,7 +17,7 @@ release_group: null
 images:
   tags:
     anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
-    controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.26.0
+    controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.26.0
   pull_policy: "IfNotPresent"
 
 labels:
@@ -52,7 +52,6 @@ command_prefix:
   - --cluster-cidr=10.97.0.0/16
   - --node-monitor-period=5s
   - --node-monitor-grace-period=20s
-  - --pod-eviction-timeout=60s
   - --service-cluster-ip-range=10.96.0.0/16
   - --terminated-pod-gc-threshold=1000
 

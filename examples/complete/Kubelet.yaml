@@ -13,7 +13,7 @@ data:
     - --container-runtime-endpoint=unix:///run/containerd/containerd.sock
     - --v=3
   images:
-    pause: k8s.gcr.io/pause-amd64:3.1
+    pause: registry.k8s.io/pause-amd64:3.1
   config_file_overrides:
     evictionMaxPodGracePeriod: -1
     nodeStatusUpdateFrequency: "5s"
