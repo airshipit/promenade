@@ -104,13 +104,13 @@ VALID_DOCS = [
                 'armada': 'quay.io/airshipit/armada:master-ubuntu_bionic',
                 'kubernetes': {
                     'apiserver':
-                    'k8s.gcr.io/kube-apiserver-amd64:v1.26.0',
+                    'registry.k8s.io/kube-apiserver-amd64:v1.26.0',
                     'controller-manager':
-                    'k8s.gcr.io/kube-controller-manager-amd64:v1.26.0',
+                    'registry.k8s.io/kube-controller-manager-amd64:v1.26.0',
                     'etcd':
                     'quay.io/coreos/etcd:v3.5.4',
                     'scheduler':
-                    'k8s.gcr.io/kube-scheduler-amd64:v1.26.0'
+                    'registry.k8s.io/kube-scheduler-amd64:v1.26.0'
                 }
             },
             'ip':
@@ -195,7 +195,7 @@ VALID_DOCS = [
         'data': {
             'arguments': ['--v=5'],
             'images': {
-                'pause': 'k8s.gcr.io/pause-amd64:3.1'
+                'pause': 'registry.k8s.io/pause-amd64:3.1'
             },
             'config_file_overrides': {
                 'evictionMaxPodGracePeriod': -1,

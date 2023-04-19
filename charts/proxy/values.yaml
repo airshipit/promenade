@@ -68,7 +68,7 @@ pod:
 
 images:
   tags:
-    proxy: k8s.gcr.io/kube-proxy-amd64:v1.26.0
+    proxy: registry.k8s.io/kube-proxy-amd64:v1.26.0
   pull_policy: "IfNotPresent"
 
 proxy:

@@ -200,7 +200,7 @@ data:
   values:
     images:
       tags:
-        proxy: k8s.gcr.io/kube-proxy-amd64:v1.26.0
+        proxy: registry.k8s.io/kube-proxy-amd64:v1.26.0
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -736,7 +736,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
-        apiserver: k8s.gcr.io/kube-apiserver-amd64:v1.26.0
+        apiserver: registry.k8s.io/kube-apiserver-amd64:v1.26.0
     secrets:
       service_account:
         public_key: placeholder
@@ -813,7 +813,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
-        controller_manager: k8s.gcr.io/kube-controller-manager-amd64:v1.26.0
+        controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.26.0
     secrets:
       service_account:
         private_key: placeholder
@@ -886,7 +886,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
-        scheduler: k8s.gcr.io/kube-scheduler-amd64:v1.26.0
+        scheduler: registry.k8s.io/kube-scheduler-amd64:v1.26.0
 
   source:
     type: local
@@ -1665,7 +1665,7 @@ data:
         entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
         # https://github.com/kubernetes/ingress-nginx/blob/09524cd3363693463da5bf4a9bb3900da435ad05/Changelog.md#090
         ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0
-        error_pages: k8s.gcr.io/defaultbackend:1.0
+        error_pages: registry.k8s.io/defaultbackend:1.0
         dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
   source:
     type: git
