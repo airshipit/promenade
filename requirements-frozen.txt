@@ -1,7 +1,7 @@
 alabaster==0.7.13
 alembic==1.4.3
 amqp==2.6.1
-argcomplete==3.0.5
+argcomplete==3.0.8
 attrs==23.1.0
 autopage==0.5.1
 Babel==2.12.1
@@ -12,21 +12,21 @@ cachetools==5.3.0
 certifi==2022.12.7
 cffi==1.15.1
 chardet==3.0.4
-charset-normalizer==2.0.12
+charset-normalizer==3.1.0
 click==8.1.3
-cliff==4.2.0
+cliff==3.10.1
 cmd2==2.4.3
 configparser==5.3.0
 coverage==7.2.3
 cryptography==3.4.8
 debtcollector==2.5.0
-Deckhand @ git+https://opendev.org/airship/deckhand.git@ac4edb0c64c9f9af62e7cb63f049508596d25747#egg=deckhand
+Deckhand @ git+https://opendev.org/airship/deckhand.git@13c5199f18664d66ccdd3a1e54bb40ad2c293d1a#egg=deckhand
 decorator==5.1.1
 deepdiff==5.8.1
 distlib==0.3.6
 dnspython==2.3.0
-docutils==0.19
-dogpile.cache==1.1.8
+docutils==0.17
+dogpile.cache==1.2.0
 dulwich==0.21.3
 eventlet==0.33.3
 exceptiongroup==1.1.1
@@ -44,12 +44,12 @@ greenlet==2.0.2
 hacking==4.1.0
 html5lib==0.9999999
 httpexceptor==1.4.0
-idna==3.4
+idna==2.10
 imagesize==1.4.1
-importlib-metadata==6.5.0
+importlib-metadata==2.1.3
 iniconfig==2.0.0
 iso8601==1.1.0
-Jinja2==3.1.2
+Jinja2==3.0.3
 jsonpath-ng==1.5.3
 jsonpath-rw==1.4.0
 jsonpath-rw-ext==1.2.2
@@ -91,7 +91,7 @@ PasteDeploy==3.0.1
 PasteScript==3.3.0
 pbr==5.5.1
 pip==23.0.1
-platformdirs==3.2.0
+platformdirs==3.4.0
 pluggy==1.0.0
 ply==3.11
 prettytable==3.7.0
@@ -113,7 +113,7 @@ pyrsistent==0.19.3
 pytest==7.3.1
 pytest-cov==4.0.0
 python-barbicanclient==5.2.0
-python-dateutil==2.8.2
+python-dateutil==2.8.1
 python-editor==1.0.4
 python-keystoneclient==5.1.0
 python-memcached==1.59
@@ -123,7 +123,7 @@ pytz==2023.3
 PyYAML==5.4.1
 reno==4.0.0
 repoze.lru==0.7
-requests==2.27.0
+requests==2.23.0
 requests-oauthlib==1.3.1
 resolver==0.2.1
 rfc3986==2.0.0
@@ -135,7 +135,7 @@ simplejson==3.19.1
 six==1.16.0
 smmap==5.0.0
 snowballstemmer==2.2.0
-Sphinx==6.1.3
+Sphinx==3.3.1
 sphinx-rtd-theme==0.5.0
 sphinxcontrib-applehelp==1.0.4
 sphinxcontrib-devhelp==1.0.2
@@ -156,7 +156,7 @@ testtools==2.5.0
 tiddlyweb==2.4.3
 tomli==2.0.1
 tomlkit==0.11.7
-typing_extensions==4.5.0
+typing-extensions==3.7.2
 urllib3==1.25.11
 uWSGI==2.0.21
 vine==1.3.0

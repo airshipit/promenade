@@ -2,12 +2,12 @@
 Beaker<=1.12.0
 click
 ConfigParser
-Deckhand @ git+https://opendev.org/airship/deckhand.git@ac4edb0c64c9f9af62e7cb63f049508596d25747#egg=deckhand
-docutils
+Deckhand @ git+https://opendev.org/airship/deckhand.git@13c5199f18664d66ccdd3a1e54bb40ad2c293d1a#egg=deckhand
+docutils<=0.17
 falcon
 fixtures
-importlib_metadata
-Jinja2
+importlib-metadata~=2.0
+Jinja2<=3.0.3
 jsonpath_ng
 jsonschema<=3.2.0
 keystoneauth1<=5.1.1
@@ -21,10 +21,10 @@ oslo.policy<=3.10.1
 pylibyaml==0.1.0
 PyYAML<=5.4.1
 reno
-requests==2.27.0
+requests==2.23.0
 setuptools<=45.2.0
 six
-Sphinx
+Sphinx==3.3.1
 sphinx-rtd-theme==0.5.0
 testrepository
 testresources

@@ -1,4 +1,4 @@
-sphinx
+Sphinx==3.3.1
 sphinx-rtd-theme==0.5.0
 oslo.config<=8.7.1
 MarkupSafe<2.1.0

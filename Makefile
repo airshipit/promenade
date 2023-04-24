@@ -81,7 +81,9 @@ helm-lint: $(addprefix helm-lint-,$(CHARTS))
 
 helm-lint-%: helm-install helm-init-%
 	@echo Linting chart $*
-	cd charts;$(HELM) lint $*
+	cd charts
+	$(HELM) dep up charts/$*
+	$(HELM) lint charts/$*
 
 images: check-docker build_promenade
 
