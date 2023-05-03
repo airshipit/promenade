@@ -16,7 +16,7 @@ Sample Document to run containers in Docker runtime
     data:
       files:
         - path: /opt/kubernetes/bin/kubelet
-          tar_url: https://dl.k8s.io/v1.26.0/kubernetes-node-linux-amd64.tar.gz
+          tar_url: https://dl.k8s.io/v1.27.1/kubernetes-node-linux-amd64.tar.gz
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
@@ -115,7 +115,7 @@ Sample Document to run containers in Containerd runtime
     data:
       files:
         - path: /opt/kubernetes/bin/kubelet
-          tar_url: https://dl.k8s.io/v1.26.0/kubernetes-node-linux-amd64.tar.gz
+          tar_url: https://dl.k8s.io/v1.27.1/kubernetes-node-linux-amd64.tar.gz
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
