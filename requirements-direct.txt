@@ -2,7 +2,7 @@
 Beaker<=1.12.0
 click
 ConfigParser
-Deckhand @ git+https://opendev.org/airship/deckhand.git@13c5199f18664d66ccdd3a1e54bb40ad2c293d1a#egg=deckhand
+Deckhand @ git+https://opendev.org/airship/deckhand.git@e4cf0c17df103683b971b07f6b29d58f1ae681c0#egg=deckhand
 docutils<=0.17
 falcon
 fixtures
