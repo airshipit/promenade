@@ -78,4 +78,4 @@ class ValidationMessage(Message):
     def update_response(self, resp):
         output = self.get_output()
         resp.status = output['code']
-        resp.body = json.dumps(output)
+        resp.text = json.dumps(output)

@@ -40,5 +40,5 @@ class NodeLabelsResource(BaseResource):
         kubeclient = KubeClient()
         response = kubeclient.update_node_labels(node_name, json_data)
 
-        resp.body = response
+        resp.text = response
         resp.status = falcon.HTTP_200

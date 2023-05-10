@@ -89,7 +89,7 @@ class JoinScriptsResource(BaseResource):
         builder = Builder(config)
         script = builder.build_node_script(hostname)
 
-        resp.body = script
+        resp.text = script
         resp.content_type = 'text/x-shellscript'
         resp.status = falcon.HTTP_200
 
