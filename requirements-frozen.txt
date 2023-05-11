@@ -20,7 +20,7 @@ configparser==5.3.0
 coverage==7.2.5
 cryptography==3.4.8
 debtcollector==2.5.0
-Deckhand @ git+https://opendev.org/airship/deckhand.git@e4cf0c17df103683b971b07f6b29d58f1ae681c0
+Deckhand @ git+https://opendev.org/airship/deckhand.git@3a06b1b6040865483a09514e2bf7dc5fae24560e
 decorator==5.1.1
 deepdiff==5.8.1
 distlib==0.3.6
@@ -39,7 +39,7 @@ flake8==3.8.4
 futurist==2.4.1
 gitdb==4.0.10
 GitPython==3.1.31
-google-auth==2.17.3
+google-auth==2.18.0
 greenlet==2.0.2
 hacking==4.1.0
 html5lib==0.9999999
@@ -90,8 +90,8 @@ Paste==3.5.0
 PasteDeploy==3.0.1
 PasteScript==3.3.0
 pbr==5.5.1
-pip==23.0.1
-platformdirs==3.5.0
+pip==23.1.2
+platformdirs==3.5.1
 pluggy==1.0.0
 ply==3.11
 prettytable==3.7.0

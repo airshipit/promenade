@@ -196,7 +196,7 @@ def _fetch_tar_url(url):
     # by a timeout.
     for attempt in itertools.count():
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=None)
             response.raise_for_status()
             break
         except requests.exceptions.RequestException:
