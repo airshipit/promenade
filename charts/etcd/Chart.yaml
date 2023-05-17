@@ -15,4 +15,4 @@
 apiVersion: v1
 description: A chart for a DaemonSet-based etcd deployment.
 name: etcd
-version: 0.1.1
+version: 0.1.2

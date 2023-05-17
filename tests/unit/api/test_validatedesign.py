@@ -103,11 +103,11 @@ VALID_DOCS = [
                 'armada': 'quay.io/airshipit/armada:master-ubuntu_bionic',
                 'kubernetes': {
                     'apiserver':
-                    'registry.k8s.io/kube-apiserver-amd64:v1.26.0',
+                    'registry.k8s.io/kube-apiserver-amd64:v1.27.1',
                     'controller-manager':
-                    'registry.k8s.io/kube-controller-manager-amd64:v1.26.0',
-                    'etcd': 'quay.io/coreos/etcd:v3.5.4',
-                    'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.26.0'
+                    'registry.k8s.io/kube-controller-manager-amd64:v1.27.1',
+                    'etcd': 'quay.io/coreos/etcd:v3.5.6',
+                    'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.27.1'
                 }
             },
             'ip':
@@ -142,7 +142,7 @@ VALID_DOCS = [
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
-                'https://dl.k8s.io/v1.26.0/kubernetes-node-linux-amd64.tar.gz'
+                'https://dl.k8s.io/v1.27.1/kubernetes-node-linux-amd64.tar.gz'
             }, {
                 'content':
                 '/var/lib/docker/containers/*/*-json.log\n{\n    compress\n    copytruncate\n    create 0644 root root\n    daily\n    dateext\n    dateformat -%Y%m%d-%s\n    maxsize 10M\n    missingok\n    notifempty\n    su root root\n    rotate 1\n}',
