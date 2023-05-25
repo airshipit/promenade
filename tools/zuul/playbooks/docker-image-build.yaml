@@ -4,6 +4,7 @@
     - ensure-docker
     - ensure-python
     - ensure-pip
+    - ensure-tox
 
   tasks:
     - include_vars: vars.yaml
@@ -41,6 +42,16 @@
             version: 4.4.4
             executable: pip3
       become: True
+
+    - name: Make images - verbosive
+      when: not publish
+      shell: |
+        make images
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+      become: True
+
 
     - name: Make images
       when: not publish

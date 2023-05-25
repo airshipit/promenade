@@ -39,3 +39,16 @@ ENV/
 
 # vscode ide
 .vscode
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.stestr
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+cover
+.hypothesis/

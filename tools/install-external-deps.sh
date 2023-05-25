@@ -4,7 +4,7 @@
 set -ex
 
 export DEBIAN_FRONTEND=noninteractive
-echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
+echo 'debconf debconf/frontend select Noninteractive' | sudo -En debconf-set-selections
 
 CFSSL_URL=${CFSSL_URL:-https://pkg.cfssl.org/R1.2/cfssl_linux-amd64}
 
@@ -13,7 +13,7 @@ if [[ ! $(command -v cfssl) ]]; then
     pushd "${TMP_DIR}"
     curl -Lo cfssl "${CFSSL_URL}"
     chmod 755 cfssl
-    sudo mv cfssl /usr/local/bin/
+    sudo -En mv cfssl /usr/local/bin/
     popd
     rm -rf "${TMP_DIR}"
     cfssl version

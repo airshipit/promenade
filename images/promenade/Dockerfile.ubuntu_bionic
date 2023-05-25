@@ -49,6 +49,7 @@ RUN set -ex \
         gpg-agent \
         libpcre3-dev \
         libtool \
+        libpq-dev \
         make \
         python3-dev \
         python3-pip \
@@ -78,8 +79,8 @@ RUN set -ex \
     && cd .. \
     && rm -fr libyaml
 
-COPY requirements-frozen.txt /opt/promenade
-RUN pip3 install --no-cache-dir -r requirements-frozen.txt
+COPY requirements-frozen-bionic.txt /opt/promenade
+RUN pip3 install --no-cache-dir -r requirements-frozen-bionic.txt
 
 # Setting promenade version for BPR
 ENV PBR_VERSION 0.9.0

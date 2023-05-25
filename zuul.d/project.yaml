@@ -21,25 +21,31 @@
       rtd_project_name: 'airship-promenade'
     check:
       jobs:
-        - openstack-tox-pep8
+        - airship-promenade-openstack-tox-cover-focal
+        - airship-promenade-openstack-tox-pep8-focal
+        - airship-promenade-openstack-tox-py38-focal
+        - airship-promenade-openstack-tox-py36-bionic
         - openstack-tox-docs
-        - airship-promenade-lint-ws
-        - airship-promenade-docker-build-gate
+        - airship-promenade-docker-build-gate-ubuntu_focal
+        - airship-promenade-docker-build-gate-ubuntu_bionic
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
-        - airship-promenade-unit-py38
         - airship-promenade-genesis-containerd-gate
     gate:
       jobs:
-        - openstack-tox-pep8
+        - airship-promenade-openstack-tox-cover-focal
+        - airship-promenade-openstack-tox-pep8-focal
+        - airship-promenade-openstack-tox-py38-focal
+        - airship-promenade-openstack-tox-py36-bionic
         - openstack-tox-docs
-        - airship-promenade-lint-ws
-        - airship-promenade-docker-build-gate
+        - airship-promenade-docker-build-gate-ubuntu_focal
+        - airship-promenade-docker-build-gate-ubuntu_bionic
         - airship-promenade-chart-build-gate
-        - airship-promenade-unit-py38
+        - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
     post:
       jobs:
-        - airship-promenade-docker-build-post
+        - airship-promenade-docker-publish_ubuntu_focal
+        - airship-promenade-docker-publish_ubuntu_bionic
         - promenade-upload-git-mirror
 ...

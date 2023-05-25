@@ -14,6 +14,33 @@
 # limitations under the License.
 
 - job:
+    name: airship-promenade-openstack-tox-cover-focal
+    parent: openstack-tox-cover
+    description: Runs cover job on focal
+    nodeset: airship-promenade-single-node-focal
+    pre-run: tools/zuul/playbooks/install-deps.yaml
+
+- job:
+    name: airship-promenade-openstack-tox-py38-focal
+    parent: openstack-tox-py38
+    description: Runs cover job on focal
+    nodeset: airship-promenade-single-node-focal
+    pre-run: tools/zuul/playbooks/install-deps.yaml
+
+- job:
+    name: airship-promenade-openstack-tox-py36-bionic
+    parent: openstack-tox-py36
+    description: Runs cover job on bionic
+    nodeset: airship-promenade-single-node-bionic
+    pre-run: tools/zuul/playbooks/install-deps.yaml
+
+- job:
+    name: airship-promenade-openstack-tox-pep8-focal
+    parent: openstack-tox-pep8
+    description: Runs pep8 job on focal
+    nodeset: airship-promenade-single-node-focal
+
+- job:
     name: airship-promenade-genesis-containerd-gate
     description: |
       Deploy airship promenade genesis with containerd
@@ -27,20 +54,24 @@
       distro: ubuntu_focal
 
 - job:
-    name: airship-promenade-lint-ws
-    description: |
-      Lints all files for trailing whitespace
-    run: tools/zuul/playbooks/zuul-linter.yaml
-    timeout: 300
-    nodeset: airship-promenade-single-node-focal
-
-- job:
     name: airship-promenade-chart-build-gate
     description: |
       Lints charts using pinned HTK
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 300
     nodeset: airship-promenade-single-node-focal
+    vars:
+      HTK_COMMIT: a7cd689280cdbc0acd04a7a1b745941260e8700b
+
+- job:
+    name: airship-promenade-chart-build-gate-latest-htk
+    description: |
+      Lints charts using latest HTK
+    run: tools/zuul/playbooks/helm-linter.yaml
+    timeout: 300
+    nodeset: airship-promenade-single-node-focal
+    vars:
+      HTK_COMMIT: master
 
 - job:
     name: airship-promenade-chart-build-latest-htk
@@ -54,22 +85,7 @@
       HTK_COMMIT: master
 
 - job:
-    name: airship-promenade-unit-py38
-    description: |
-      Executes unit tests under Python 3.8
-    run: tools/zuul/playbooks/make-tests.yaml
-    timeout: 1500
-    nodeset: airship-promenade-single-node-focal
-    files:
-      - ^.*\.py$
-
-- job:
-    name: airship-promenade-linter
-    run: tools/zuul/playbooks/zuul-linter.yaml
-    nodeset: airship-promenade-single-node-focal
-
-- job:
-    name: airship-promenade-docker-build-gate
+    name: airship-promenade-docker-build-gate-ubuntu_focal
     voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: airship-promenade-single-node-focal
@@ -84,8 +100,27 @@
       - ^etc/.*$
       - ^tests/.*$
       - ^tools/.*$
+
 - job:
-    name: airship-promenade-docker-build-post
+    name: airship-promenade-docker-build-gate-ubuntu_bionic
+    voting: true
+    run: tools/zuul/playbooks/docker-image-build.yaml
+    nodeset: airship-promenade-single-node
+    vars:
+      publish: false
+      distro: ubuntu_bionic
+      tags:
+        dynamic:
+          patch_set: true
+    irrelevant-files:
+      - ^charts/.*$
+      - ^etc/.*$
+      - ^tests/.*$
+      - ^tools/.*$
+
+
+- job:
+    name: airship-promenade-docker-publish_ubuntu_focal
     voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
     nodeset: airship-promenade-single-node-focal
@@ -105,6 +140,29 @@
       - ^etc/.*$
       - ^tests/.*$
       - ^tools/.*$
+
+- job:
+    name: airship-promenade-docker-publish_ubuntu_bionic
+    voting: false
+    run: tools/zuul/playbooks/docker-image-build.yaml
+    nodeset: airship-promenade-single-node
+    secrets:
+      - airship_promenade_quay_creds
+    vars:
+      publish: true
+      distro: ubuntu_bionic
+      tags:
+        dynamic:
+          branch: true
+          commit: true
+        static:
+          - latest
+    irrelevant-files:
+      - ^charts/.*$
+      - ^etc/.*$
+      - ^tests/.*$
+      - ^tools/.*$
+
 
 - secret:
     name: airship_promenade_quay_creds
