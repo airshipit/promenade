@@ -111,7 +111,6 @@ while true; do
     if ! DEBIAN_FRONTEND=noninteractive apt-get install \
       -o Dpkg::Options::="--force-confold" \
       -y \
-      --allow-downgrades \
       --no-install-recommends \
       {%- for role in roles %}
         {%- for package in config.get_path('HostSystem:packages.' + role + '.required',{}).values() %}
@@ -132,9 +131,6 @@ while true; do
         break
     fi
 done
-
-sed -i -e 's/slot //g' /lib/systemd/network/99-default.link
-DEBIAN_FRONTEND=noninteractive apt-get upgrade -o Dpkg::Options::="--force-confold" -q -y --allow-downgrades --no-install-recommends
 
 # Start core processes
 #
