@@ -100,7 +100,7 @@ VALID_DOCS = [
             'hostname':
             'n0',
             'images': {
-                'armada': 'quay.io/airshipit/armada:master-ubuntu_bionic',
+                'armada': 'quay.io/airshipit/armada:latest-ubuntu_focal',
                 'kubernetes': {
                     'apiserver':
                     'registry.k8s.io/kube-apiserver-amd64:v1.27.4',
@@ -152,7 +152,7 @@ VALID_DOCS = [
             'images': {
                 'haproxy': 'haproxy:1.8.3',
                 'helm': {
-                    'helm': 'lachlanevenson/k8s-helm:v3.9.4'
+                    'helm': 'lachlanevenson/k8s-helm:v3.12.2'
                 }
             },
             'packages': {

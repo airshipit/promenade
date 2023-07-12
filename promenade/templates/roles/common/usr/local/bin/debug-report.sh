@@ -60,7 +60,6 @@ ingresses
 jobs
 networkpolicies
 pods
-podsecuritypolicies
 persistentvolumeclaims
 rolebindings
 roles

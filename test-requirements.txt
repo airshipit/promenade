@@ -5,4 +5,3 @@ bandit==1.6.0
 yapf
 stestr==3.2.0
 testrepository==0.0.20
-testtools==2.5.0

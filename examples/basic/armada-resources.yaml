@@ -626,7 +626,7 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
         haproxy: haproxy:1.8.3
         test: python:3.6
 
@@ -734,7 +734,7 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
         apiserver: registry.k8s.io/kube-apiserver-amd64:v1.27.4
     network:
       kubernetes_service_ip: 10.96.0.1
@@ -800,7 +800,7 @@ data:
   values:
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
         controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.27.4
     secrets:
       service_account:
@@ -874,7 +874,7 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:master-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
         scheduler: registry.k8s.io/kube-scheduler-amd64:v1.27.4
 
   source:

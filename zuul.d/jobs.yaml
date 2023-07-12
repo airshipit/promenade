@@ -14,6 +14,12 @@
 # limitations under the License.
 
 - job:
+    name: airship-promenade-openstack-tox-docs-focal
+    parent: openstack-tox-docs
+    description: Runs docs job on focal
+    nodeset: airship-promenade-single-node-focal
+
+- job:
     name: airship-promenade-openstack-tox-cover-focal
     parent: openstack-tox-cover
     description: Runs cover job on focal
@@ -25,13 +31,6 @@
     parent: openstack-tox-py38
     description: Runs cover job on focal
     nodeset: airship-promenade-single-node-focal
-    pre-run: tools/zuul/playbooks/install-deps.yaml
-
-- job:
-    name: airship-promenade-openstack-tox-py36-bionic
-    parent: openstack-tox-py36
-    description: Runs cover job on bionic
-    nodeset: airship-promenade-single-node-bionic
     pre-run: tools/zuul/playbooks/install-deps.yaml
 
 - job:
@@ -48,7 +47,7 @@
       - tools/zuul/playbooks/deploy-promenade-containerd.yaml
     required-projects:
       - openstack/openstack-helm-infra
-    timeout: 3600
+    timeout: 9600
     nodeset: airship-promenade-single-node-focal
     vars:
       distro: ubuntu_focal
@@ -58,7 +57,7 @@
     description: |
       Lints charts using pinned HTK
     run: tools/zuul/playbooks/helm-linter.yaml
-    timeout: 300
+    timeout: 900
     nodeset: airship-promenade-single-node-focal
     vars:
       HTK_COMMIT: a7cd689280cdbc0acd04a7a1b745941260e8700b
@@ -68,7 +67,7 @@
     description: |
       Lints charts using latest HTK
     run: tools/zuul/playbooks/helm-linter.yaml
-    timeout: 300
+    timeout: 900
     nodeset: airship-promenade-single-node-focal
     vars:
       HTK_COMMIT: master
@@ -79,7 +78,7 @@
       Lints charts using latest HTK
     voting: true
     run: tools/zuul/playbooks/helm-linter.yaml
-    timeout: 300
+    timeout: 900
     nodeset: airship-promenade-single-node-focal
     vars:
       HTK_COMMIT: master
@@ -88,6 +87,7 @@
     name: airship-promenade-docker-build-gate-ubuntu_focal
     voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
+    timeout: 3600
     nodeset: airship-promenade-single-node-focal
     vars:
       publish: false
@@ -100,29 +100,12 @@
       - ^etc/.*$
       - ^tests/.*$
       - ^tools/.*$
-
-- job:
-    name: airship-promenade-docker-build-gate-ubuntu_bionic
-    voting: true
-    run: tools/zuul/playbooks/docker-image-build.yaml
-    nodeset: airship-promenade-single-node
-    vars:
-      publish: false
-      distro: ubuntu_bionic
-      tags:
-        dynamic:
-          patch_set: true
-    irrelevant-files:
-      - ^charts/.*$
-      - ^etc/.*$
-      - ^tests/.*$
-      - ^tools/.*$
-
 
 - job:
     name: airship-promenade-docker-publish_ubuntu_focal
     voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
+    timeout: 3600
     nodeset: airship-promenade-single-node-focal
     secrets:
       - airship_promenade_quay_creds
@@ -135,28 +118,7 @@
           commit: true
         static:
           - latest
-    irrelevant-files:
-      - ^charts/.*$
-      - ^etc/.*$
-      - ^tests/.*$
-      - ^tools/.*$
-
-- job:
-    name: airship-promenade-docker-publish_ubuntu_bionic
-    voting: false
-    run: tools/zuul/playbooks/docker-image-build.yaml
-    nodeset: airship-promenade-single-node
-    secrets:
-      - airship_promenade_quay_creds
-    vars:
-      publish: true
-      distro: ubuntu_bionic
-      tags:
-        dynamic:
-          branch: true
-          commit: true
-        static:
-          - latest
+          - airflow_2.6.2
     irrelevant-files:
       - ^charts/.*$
       - ^etc/.*$
@@ -198,15 +160,15 @@
       git_mirror_repository: airshipit/promenade
     secrets:
       - name: git_mirror_credentials
-        secret: promenade-airshipit-github-secret
+        secret: promenade-airshipit-github-secret-2023-03-23
         pass-to-parent: true
 
 - secret:
-    name: promenade-airshipit-github-secret
+    name: promenade-airshipit-github-secret-2023-03-23
     data:
       user: git
       host: github.com
-      host_key: github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==
+      host_key: github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
       ssh_key: !encrypted/pkcs1-oaep
         - hTUHCpbnsCidmIdpIjKq0QpvpmsjwJcly0Qrc236DNIgcRaZDywmad9eRy7ANYLGT2T6V
           rxbvxo4JSkmwlN7P1RDb+d63bXNtbYst8yLD2jr+FWlaVmLSlo5WYnVHdwJvSt1Sv9YCY
