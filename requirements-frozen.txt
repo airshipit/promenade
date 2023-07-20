@@ -84,7 +84,7 @@ pycadf==3.1.1
 pycodestyle==2.5.0
 pycparser==2.21
 pyflakes==2.1.1
-Pygments==2.14.0
+Pygments==2.15.0
 pyinotify==0.9.6
 pylibyaml==0.1.0
 pyparsing==3.0.9
