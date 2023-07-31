@@ -42,10 +42,10 @@ Here is a complete sample document:
       images:
         armada: quay.io/airshipit/armada:latest
         kubernetes:
-          apiserver: registry.k8s.io/kube-apiserver-amd64:v1.27.2
-          controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.27.2
+          apiserver: registry.k8s.io/kube-apiserver-amd64:v1.27.4
+          controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.27.4
           etcd: quay.io/coreos/etcd:v3.5.6
-          scheduler: registry.k8s.io/kube-scheduler-amd64:v1.27.2
+          scheduler: registry.k8s.io/kube-scheduler-amd64:v1.27.4
       files:
         - path: /var/lib/anchor/calico-etcd-bootstrap
           content: ""
