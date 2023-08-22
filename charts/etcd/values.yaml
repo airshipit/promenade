@@ -215,6 +215,14 @@ pod:
             failureThreshold: 10
             initialDelaySeconds: 5
             periodSeconds: 30
+    etcd-anchor:
+      etcdctl:
+        readiness:
+          enabled: true
+          params:
+            failureThreshold: 10
+            initialDelaySeconds: 5
+            periodSeconds: 30
   mounts:
     daemonset_anchor:
       daemonset_anchor:

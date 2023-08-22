@@ -14,8 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if .Values.manifests.daemonset_anchor }}
 {{- $envAll := . }}
+{{- define "etcdanchorreadinessProbeTemplate" }}
+exec:
+  command:
+    - /tmp/bin/readiness
+{{- end }}
+{{- if .Values.manifests.daemonset_anchor }}
 {{- $mounts_daemonset_anchor := .Values.pod.mounts.daemonset_anchor.daemonset_anchor }}
 # Strip off "etcd" from service name to get the application name
 # Note that application can either be kubernetes or calico for now
@@ -103,12 +108,7 @@ spec:
               value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
             - name: MANIFEST_PATH
               value: /manifests/{{ .Values.service.name }}.yaml
-          readinessProbe:
-            exec:
-              command:
-                - /tmp/bin/readiness
-            initialDelaySeconds: 15
-            periodSeconds: 30
+{{ dict "envAll" $envAll "component" "etcd-anchor" "container" "etcdctl" "type" "readiness" "probeTemplate" (include "etcdanchorreadinessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 10 }}
           lifecycle:
             preStop:
               exec:
