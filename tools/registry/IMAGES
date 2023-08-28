@@ -5,7 +5,7 @@ registry.k8s.io/kube-apiserver-amd64,v1.27.4,apiserver
 registry.k8s.io/kube-controller-manager-amd64,v1.27.4,controller-manager
 registry.k8s.io/kube-scheduler-amd64,v1.27.4,scheduler
 registry.k8s.io/kube-proxy-amd64,v1.27.4,proxy
-lachlanevenson/k8s-helm,v3.9.4,helm
+lachlanevenson/k8s-helm,v3.12.2,helm
 quay.io/airshipit/armada,master,armada
 quay.io/calico/cni,v3.4.0,calico-cni
 quay.io/calico/ctl,v3.4.0,calico-ctl
