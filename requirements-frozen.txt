@@ -38,7 +38,7 @@ fixtures==3.0.0
 flake8==3.8.4
 futurist==2.4.1
 gitdb==4.0.10
-GitPython==3.1.31
+GitPython==3.1.32
 google-auth==2.18.0
 greenlet==2.0.2
 hacking==4.1.0
