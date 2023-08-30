@@ -14,8 +14,9 @@
 # limitations under the License.
 
 - project:
-    templates:
-      - docs-on-readthedocs
+    # commented out because openstack-tox-docs fails on jammy zuul nodes
+    # templates:
+    #   - docs-on-readthedocs
     vars:
       rtd_webhook_id: '38575'
       rtd_project_name: 'airship-promenade'
@@ -24,28 +25,32 @@
         - airship-promenade-openstack-tox-cover-focal
         - airship-promenade-openstack-tox-pep8-focal
         - airship-promenade-openstack-tox-py38-focal
-        - airship-promenade-openstack-tox-py36-bionic
-        - openstack-tox-docs
+        - airship-promenade-openstack-tox-docs-focal
         - airship-promenade-docker-build-gate-ubuntu_focal
-        - airship-promenade-docker-build-gate-ubuntu_bionic
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
+
     gate:
       jobs:
         - airship-promenade-openstack-tox-cover-focal
         - airship-promenade-openstack-tox-pep8-focal
         - airship-promenade-openstack-tox-py38-focal
-        - airship-promenade-openstack-tox-py36-bionic
-        - openstack-tox-docs
+        - airship-promenade-openstack-tox-docs-focal
         - airship-promenade-docker-build-gate-ubuntu_focal
-        - airship-promenade-docker-build-gate-ubuntu_bionic
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
+        - trigger-readthedocs-webhook
     post:
       jobs:
         - airship-promenade-docker-publish_ubuntu_focal
-        - airship-promenade-docker-publish_ubuntu_bionic
         - promenade-upload-git-mirror
+        - trigger-readthedocs-webhook
+    pre-release:
+      jobs:
+        - trigger-readthedocs-webhook
+    release:
+      jobs:
+        - trigger-readthedocs-webhook
 ...

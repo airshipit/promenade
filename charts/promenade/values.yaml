@@ -49,7 +49,7 @@ conf:
 images:
   tags:
     monitoring_image: busybox:1.28.3
-    promenade: quay.io/airshipit/promenade:latest
+    promenade: quay.io/airshipit/promenade:latest-ubuntu_focal
     ks_user: docker.io/openstackhelm/heat:newton
     ks_service: docker.io/openstackhelm/heat:newton
     ks_endpoints: docker.io/openstackhelm/heat:newton

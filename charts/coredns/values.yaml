@@ -29,7 +29,7 @@ conf:
 images:
   tags:
     coredns: coredns/coredns:1.9.4
-    test: quay.io/airshipit/promenade:latest
+    test: quay.io/airshipit/promenade:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
 
 labels:
