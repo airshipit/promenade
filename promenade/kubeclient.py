@@ -115,10 +115,9 @@ def _get_update_labels(existing_labels, input_labels):
     # no existing labels found
     if not existing_labels:
         # filter delete label request since there is no labels set on a node
-        update_labels.update({
-            k: v
-            for k, v in input_labels.items() if v is not None
-        })
+        update_labels.update(
+            {k: v
+             for k, v in input_labels.items() if v is not None})
         return update_labels
 
     # new labels or overriding labels

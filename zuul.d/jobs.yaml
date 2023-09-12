@@ -60,7 +60,7 @@
     timeout: 900
     nodeset: airship-promenade-single-node-focal
     vars:
-      HTK_COMMIT: a7cd689280cdbc0acd04a7a1b745941260e8700b
+      HTK_COMMIT: 51c70e48dff173281a77d374d87af2c49caa6348
 
 - job:
     name: airship-promenade-chart-build-gate-latest-htk
