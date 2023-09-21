@@ -17,7 +17,7 @@ cliff==3.10.1
 cmd2==2.4.3
 configparser==5.2.0
 coverage==6.2
-cryptography==3.4.8
+cryptography==41.0.4
 dataclasses==0.8
 debtcollector==2.5.0
 Deckhand @ git+https://opendev.org/airship/deckhand.git@06b1631d8a31a1e7147e8751025d0ef2ff4b31f5
