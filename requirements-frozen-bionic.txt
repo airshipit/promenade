@@ -150,7 +150,7 @@ tiddlyweb==2.4.3
 tomli==1.2.3
 tomlkit==0.11.6
 typing-extensions==3.7.4.3
-urllib3==1.25.11
+urllib3==1.26.17
 uWSGI==2.0.21
 vine==1.3.0
 virtualenv==20.16.2
