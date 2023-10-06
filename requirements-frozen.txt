@@ -8,7 +8,7 @@ bcrypt==4.0.1
 Beaker==1.12.1
 cachetools==5.3.1
 castellan==4.1.0
-certifi==2023.5.7
+certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.1.0
 click==8.1.3
