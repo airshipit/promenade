@@ -28,7 +28,7 @@ fixtures==4.1.0
 futurist==2.4.1
 google-auth==2.20.0
 greenlet==2.0.2
-html5lib==0.9999999
+html5lib==0.999999999
 httpexceptor==1.4.0
 idna==3.4
 importlib-metadata==4.13.0
