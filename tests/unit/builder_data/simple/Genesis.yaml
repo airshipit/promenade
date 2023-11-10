@@ -31,11 +31,13 @@ data:
       - ucp-control-plane=enabled
   images:
     armada: quay.io/airshipit/armada:latest-ubuntu_focal
+    armada-operator: quay.io/raliev12/armada-controller:latest
     kubernetes:
       apiserver: registry.k8s.io/kube-apiserver-amd64:v1.27.4
       controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.27.4
       etcd: quay.io/coreos/etcd:v3.5.6
       scheduler: registry.k8s.io/kube-scheduler-amd64:v1.27.4
+  enable_operator: false
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: "# placeholder for triggering calico etcd bootstrapping"

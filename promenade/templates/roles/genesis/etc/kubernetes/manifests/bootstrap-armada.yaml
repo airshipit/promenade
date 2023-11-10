@@ -68,6 +68,37 @@ spec:
           mountPath: /tmp/log
         - name: metrics
           mountPath: /tmp/metrics
+{%- if config['Genesis:enable_operator'] is sameas true %}
+    - args:
+      - --health-probe-bind-address=:8081
+      - --metrics-bind-address=127.0.0.1:8080
+      - --leader-elect
+      - --leader-elect-namespace=ucp
+      command:
+      - /manager
+      env:
+      - name: KUBECONFIG
+        value: /root/.kube/config
+      image: {{ config['Genesis:images.armada-operator'] }}
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8081
+        initialDelaySeconds: 15
+        periodSeconds: 20
+      name: manager
+      readinessProbe:
+        httpGet:
+          path: /readyz
+          port: 8081
+        initialDelaySeconds: 5
+        periodSeconds: 10
+      securityContext:
+        runAsUser: 0
+      volumeMounts:
+        - name: auth
+          mountPath: /root/.kube
+{%- endif %}
     - name: monitor
       image: {{ config['HostSystem:images.monitoring_image'] }}
       command:

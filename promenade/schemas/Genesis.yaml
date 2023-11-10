@@ -149,10 +149,15 @@ data:
             $ref: '#/definitions/kubernetes_label'
       additionalProperties: false
 
+    enable_operator:
+      type: boolean
+
     images:
       type: object
       properties:
         armada:
+          $ref: '#/definitions/image'
+        armada-operator:
           $ref: '#/definitions/image'
         kubernetes:
           type: object

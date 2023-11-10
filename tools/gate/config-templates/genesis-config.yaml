@@ -36,6 +36,7 @@ data:
       controller-manager: ${IMAGE_CONTROLLER_MANAGER}
       etcd: ${IMAGE_ETCD}
       scheduler: ${IMAGE_SCHEDULER}
+  enable_operator: false
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: ""
