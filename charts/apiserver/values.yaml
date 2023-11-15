@@ -59,7 +59,7 @@ images:
   tags:
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
     anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
-    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.27.4
+    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.28.4
     key_rotate: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
   local_registry:
