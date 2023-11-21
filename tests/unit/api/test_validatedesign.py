@@ -101,6 +101,7 @@ VALID_DOCS = [
             'n0',
             'images': {
                 'armada': 'quay.io/airshipit/armada:latest-ubuntu_focal',
+                'armada-operator': 'quay.io/airshipit/armada-operator:latest',
                 'kubernetes': {
                     'apiserver':
                     'registry.k8s.io/kube-apiserver-amd64:v1.27.4',

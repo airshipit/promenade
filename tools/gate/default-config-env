@@ -1,5 +1,5 @@
 IMAGE_ARMADA=quay.io/airshipit/armada:latest-ubuntu_focal
-IMAGE_ARMADA_OPERATOR=quay.io/raliev12/armada-controller:latest
+IMAGE_ARMADA_OPERATOR=quay.io/airshipit/armada-operator:latest
 IMAGE_CALICO_CNI=quay.io/calico/cni:v3.4.0
 IMAGE_CALICO_CTL=quay.io/calico/ctl:v3.4.0
 IMAGE_CALICO_KUBE_CONTROLLERS=quay.io/calico/kube-controllers:v3.4.0

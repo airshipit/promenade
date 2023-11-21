@@ -41,6 +41,7 @@ Here is a complete sample document:
           - ucp-control-plane=enabled
       images:
         armada: quay.io/airshipit/armada:latest
+        armada-operator: quay.io/airshipit/armada-operator:latest
         kubernetes:
           apiserver: registry.k8s.io/kube-apiserver-amd64:v1.27.4
           controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.27.4

@@ -7,7 +7,7 @@ registry.k8s.io/kube-scheduler-amd64,v1.27.4,scheduler
 registry.k8s.io/kube-proxy-amd64,v1.27.4,proxy
 lachlanevenson/k8s-helm,v3.12.2,helm
 quay.io/airshipit/armada,master,armada
-quay.io/raliev12/armada-controller,latest,armada-operator
+quay.io/airshipit/armada-operator,latest,armada-operator
 quay.io/calico/cni,v3.4.0,calico-cni
 quay.io/calico/ctl,v3.4.0,calico-ctl
 quay.io/calico/kube-controllers,v3.4.0,calico-kube-controllers
