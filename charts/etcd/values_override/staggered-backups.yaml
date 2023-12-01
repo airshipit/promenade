@@ -1,0 +1,25 @@
+---
+pod:
+  labels:
+    etcd-backup:
+      staggered-backups: enabled
+  etcd_backup:
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: status.phase
+                  operator: NotIn
+                  values:
+                    - Running
+                - key: staggered-backups
+                  operator: In
+                  values:
+                    - enabled
+            namespaces:
+              - openstack
+              - kube-system
+              - osh-infra
+            topologyKey: kubernetes.io/os
+...

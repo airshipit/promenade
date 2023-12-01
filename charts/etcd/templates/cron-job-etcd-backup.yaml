@@ -16,7 +16,10 @@ limitations under the License.
 {{- if .Values.manifests.cron_etcd_backup }}
 {{- $envAll := . }}
 {{- $serviceAccountName := "etcd-backup" }}
-{{- $applicationName := "etcd-backup" }}
+# Strip off "etcd" from service name to get the application name
+# Note that application can either be kubernetes or calico for now
+# and may expand in scope in the future
+{{- $applicationName := .Values.service.name | replace "-etcd" "" }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -74,7 +77,7 @@ spec:
   jobTemplate:
     metadata:
       labels:
-{{ tuple $envAll $applicationName "etcd-anchor" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+{{ tuple $envAll $applicationName "etcd-backup" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
 {{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
     spec:
@@ -83,6 +86,12 @@ spec:
 {{ dict "envAll" $envAll "application" "etcd-backup" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 10 }}
           serviceAccountName: {{ .Values.service.name }}-{{ $serviceAccountName }}
           restartPolicy: OnFailure
+{{- if .Values.pod.etcd_backup }}
+{{- if .Values.pod.etcd_backup.affinity }}
+          affinity:
+{{  index .Values.pod.etcd_backup "affinity"  | toYaml | indent 12}}
+{{- end }}
+{{- end }}
           nodeSelector:
             {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
           containers:
