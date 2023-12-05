@@ -86,10 +86,10 @@ spec:
 {{ dict "envAll" $envAll "application" "etcd-backup" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 10 }}
           serviceAccountName: {{ .Values.service.name }}-{{ $serviceAccountName }}
           restartPolicy: OnFailure
-{{- if .Values.pod.etcd_backup }}
-{{- if .Values.pod.etcd_backup.affinity }}
+{{- if .Values.pod.affinity }}
+{{- if .Values.pod.affinity.etcd_backup }}
           affinity:
-{{  index .Values.pod.etcd_backup "affinity"  | toYaml | indent 12}}
+{{  index .Values.pod.affinity "etcd_backup"  | toYaml | indent 12}}
 {{- end }}
 {{- end }}
           nodeSelector:

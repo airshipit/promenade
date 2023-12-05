@@ -3,8 +3,8 @@ pod:
   labels:
     etcd-backup:
       staggered-backups: enabled
-  etcd_backup:
-    affinity:
+  affinity:
+    etcd_backup:
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
