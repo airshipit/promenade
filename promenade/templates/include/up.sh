@@ -138,6 +138,7 @@ set +x
 log
 log === Starting Docker and Kubelet ===
 set -x
+chmod 0600 /etc/systemd/system/kubelet.service
 systemctl daemon-reload
 
 {% for a in ['enable','start','stop','disable','mask'] %}
