@@ -28,6 +28,9 @@ spec:
               if armada \
                       apply \
                       --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
+{%- if config['Genesis:enable_operator'] is sameas true %}
+                      --enable-operator \
+{%- endif %}
                       $([[ $attempt -le $ARMADA_METRICS_MAX_ATTEMPTS ]] && echo --metrics-output "${ARMADA_METRICS_OUTPUT_DIR}/armada-bootstrap-${attempt}.prom") \
                       /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
                   break
