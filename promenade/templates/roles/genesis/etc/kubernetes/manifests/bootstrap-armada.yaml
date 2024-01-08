@@ -21,6 +21,11 @@ spec:
         - |-
           set -x
 
+          if [ ! -e "${ARMADA_LOGFILE}" ]; then
+            touch "${ARMADA_LOGFILE}"
+          fi
+          tail -f "${ARMADA_LOGFILE}" &
+
           declare -i attempt=1
 
           while true; do
@@ -28,9 +33,6 @@ spec:
               if armada \
                       apply \
                       --target-manifest {{ config.get_path('Genesis:armada.target_manifest', 'cluster-bootstrap') }} \
-{%- if config['Genesis:enable_operator'] is sameas true %}
-                      --enable-operator \
-{%- endif %}
                       $([[ $attempt -le $ARMADA_METRICS_MAX_ATTEMPTS ]] && echo --metrics-output "${ARMADA_METRICS_OUTPUT_DIR}/armada-bootstrap-${attempt}.prom") \
                       /etc/genesis/armada/assets/manifest.yaml &>> "${ARMADA_LOGFILE}"; then
                   break
@@ -72,14 +74,25 @@ spec:
         - name: metrics
           mountPath: /tmp/metrics
 {%- if config['Genesis:enable_operator'] is sameas true %}
-    - args:
-      - --health-probe-bind-address=:8081
-      - --metrics-bind-address=127.0.0.1:8080
-      - --leader-elect
-      - --leader-elect-namespace=ucp
-      command:
-      - /manager
+    - command:
+        - /bin/sh
+        - -c
+        - |-
+          set -x
+
+          if [ ! -e "${ARMADA_OPERATOR_LOGFILE}" ]; then
+            touch "${ARMADA_OPERATOR_LOGFILE}"
+          fi
+          tail -f "${ARMADA_OPERATOR_LOGFILE}" &
+
+          /manager \
+            --health-probe-bind-address=:8081 \
+            --metrics-bind-address=127.0.0.1:8080 \
+            --leader-elect \
+            --leader-elect-namespace=ucp 2>&1 | tee -a "${ARMADA_OPERATOR_LOGFILE}"
       env:
+      - name: ARMADA_OPERATOR_LOGFILE
+        value: /tmp/log/bootstrap-armada-operator.log
       - name: KUBECONFIG
         value: /root/.kube/config
       image: {{ config['Genesis:images.armada-operator'] }}
@@ -101,6 +114,8 @@ spec:
       volumeMounts:
         - name: auth
           mountPath: /root/.kube
+        - name: log
+          mountPath: /tmp/log
 {%- endif %}
     - name: monitor
       image: {{ config['HostSystem:images.monitoring_image'] }}
