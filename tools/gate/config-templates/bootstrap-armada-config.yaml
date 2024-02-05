@@ -329,7 +329,7 @@ data:
     images:
       tags:
         etcd: ${IMAGE_ETCD}
-        etcdctl: ${IMAGE_ETCD}
+        etcdctl: ${IMAGE_ETCDCTL}
     nodes:
       - name: ${GENESIS_HOSTNAME}
         tls:
@@ -965,7 +965,7 @@ data:
     images:
       tags:
         etcd: ${IMAGE_ETCD}
-        etcdctl: ${IMAGE_ETCD}
+        etcdctl: ${IMAGE_ETCDCTL}
     nodes:
       - name: ${GENESIS_HOSTNAME}
         tls:

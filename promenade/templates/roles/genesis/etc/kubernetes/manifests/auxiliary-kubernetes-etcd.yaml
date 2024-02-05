@@ -20,7 +20,7 @@ spec:
 {%- endwith %}
 
     - name: monitor
-      image: {{ config['Genesis:images.kubernetes.etcd'] }}
+      image: {{ config['Genesis:images.kubernetes.etcdctl'] }}
       command:
         - /bin/sh
         - -c

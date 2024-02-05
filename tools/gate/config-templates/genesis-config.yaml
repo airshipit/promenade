@@ -35,6 +35,7 @@ data:
       apiserver: ${IMAGE_APISERVER}
       controller-manager: ${IMAGE_CONTROLLER_MANAGER}
       etcd: ${IMAGE_ETCD}
+      etcdctl: ${IMAGE_ETCDCTL}
       scheduler: ${IMAGE_SCHEDULER}
   enable_operator: false
   files:

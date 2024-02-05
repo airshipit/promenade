@@ -107,7 +107,7 @@ VALID_DOCS = [
                     'registry.k8s.io/kube-apiserver-amd64:v1.29.0',
                     'controller-manager':
                     'registry.k8s.io/kube-controller-manager-amd64:v1.29.0',
-                    'etcd': 'quay.io/coreos/etcd:v3.5.6',
+                    'etcd': 'quay.io/coreos/etcd:v3.5.11',
                     'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.29.0'
                 }
             },
