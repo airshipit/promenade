@@ -21,7 +21,6 @@ exec:
     - /bin/sh
     - -c
     - |-
-      export ETCDCTL_ENDPOINTS=https://$POD_IP:{{ .Values.network.service_client.target_port }}
       etcdctl endpoint health
       exit $?
 {{- end }}
@@ -31,7 +30,6 @@ exec:
     - /bin/sh
     - -c
     - |-
-      export ETCDCTL_ENDPOINTS=https://$POD_IP:{{ .Values.network.service_client.target_port }}
       etcdctl endpoint status
       exit $?
 {{- end }}
@@ -150,6 +148,8 @@ spec:
           value: "/etc/etcd/tls/etcd-client-key.pem"
       command: ["/bin/sh", "-c", "--"]
       args: ["while true; do sleep 30; done;"]
+{{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "readiness" "probeTemplate" (include "etcdreadinessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
+{{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "liveness" "probeTemplate" (include "etcdlivenessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
       volumeMounts:
         - name: etc
           mountPath: /etc/etcd
