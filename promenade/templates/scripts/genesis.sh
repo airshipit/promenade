@@ -55,8 +55,7 @@ while true; do
         sleep 30
         kubectl get pods --all-namespaces || echo "Could not get current pod status."
         {%- if config['Genesis:enable_operator'] is sameas true %}
-        kubectl get armadacharts \
-         -o=custom-columns='NAMESPACE:metadata.namespace,NAME:metadata.name,READY:status.conditions[?(@.type=="Ready")].status,MESSAGE:status.conditions[?(@.type=="Ready")].message' -A || echo "Could not get current armada chart status."
+        kubectl get armadacharts -A -o wide || echo "Could not get current armada chart status."
         {%- endif %}
     else
         log Armada bootstrap manifest deployed
