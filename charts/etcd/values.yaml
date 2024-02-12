@@ -261,6 +261,13 @@ pod:
       limits:
         memory: "1024Mi"
         cpu: "2000m"
+    etcd_pod_sidecar:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
     test:
       limits:
         memory: "128Mi"

@@ -131,7 +131,7 @@ spec:
     - name: etcd-health-check
       image: {{ .Values.images.tags.etcdctl }}
       imagePullPolicy: {{ .Values.images.pull_policy }}
-{{ tuple $envAll $envAll.Values.pod.resources.etcd_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ tuple $envAll $envAll.Values.pod.resources.etcd_pod_sidecar | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
 {{ dict "envAll" $envAll "application" "etcd" "container" "etcd" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
       env:
         - name: ETCDCTL_API
