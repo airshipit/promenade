@@ -118,7 +118,7 @@
           commit: true
         static:
           - latest
-          - airflow_2.6.2
+          - airflow_2.8.1
     irrelevant-files:
       - ^charts/.*$
       - ^etc/.*$

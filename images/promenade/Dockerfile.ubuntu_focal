@@ -40,7 +40,8 @@ ENV TZ=Etc/UTC
 ENTRYPOINT ["/opt/promenade/entrypoint.sh"]
 
 RUN set -ex \
-    && apt-get update -qq \
+    && apt update -qq \
+    && apt upgrade -y \
     && apt-get install --no-install-recommends -y \
         automake \
         ca-certificates \
