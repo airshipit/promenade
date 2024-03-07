@@ -47,11 +47,11 @@ data:
     armada: quay.io/airshipit/armada:latest-ubuntu_focal
     armada-operator: quay.io/airshipit/armada-operator:latest
     kubernetes:
-      apiserver: registry.k8s.io/kube-apiserver-amd64:v1.29.0
-      controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.29.0
+      apiserver: registry.k8s.io/kube-apiserver-amd64:v1.29.2
+      controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.29.2
       etcd: quay.io/coreos/etcd:v3.5.11
       etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
-      scheduler: registry.k8s.io/kube-scheduler-amd64:v1.29.0
+      scheduler: registry.k8s.io/kube-scheduler-amd64:v1.29.2
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: "# placeholder for triggering calico etcd bootstrapping"

@@ -2,10 +2,10 @@
 coredns/coredns,1.9.4,coredns
 quay.io/airshipit/porthole-compute-utility,latest-ubuntu_focal,kubectl
 quay.io/airshipit/porthole-etcdctl-utility,latest-ubuntu_focal
-registry.k8s.io/kube-apiserver-amd64,v1.29.0,apiserver
-registry.k8s.io/kube-controller-manager-amd64,v1.29.0,controller-manager
-registry.k8s.io/kube-scheduler-amd64,v1.29.0,scheduler
-registry.k8s.io/kube-proxy-amd64,v1.29.0,proxy
+registry.k8s.io/kube-apiserver-amd64,v1.29.2,apiserver
+registry.k8s.io/kube-controller-manager-amd64,v1.29.2,controller-manager
+registry.k8s.io/kube-scheduler-amd64,v1.29.2,scheduler
+registry.k8s.io/kube-proxy-amd64,v1.29.2,proxy
 lachlanevenson/k8s-helm,v3.13.2,helm
 quay.io/airshipit/armada,master,armada
 quay.io/airshipit/armada-operator,latest,armada-operator

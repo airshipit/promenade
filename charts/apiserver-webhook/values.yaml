@@ -17,7 +17,7 @@ release_uuid: null
 
 images:
   tags:
-    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.29.0
+    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.29.2
     kubernetes_keystone_webhook: docker.io/k8scloudprovider/k8s-keystone-auth:latest
     scripted_test: docker.io/openstackhelm/heat:newton
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
