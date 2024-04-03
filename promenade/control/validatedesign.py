@@ -39,6 +39,6 @@ class ValidateDesignResource(base.BaseResource):
             msg = "Invalid JSON Format: %s" % str(e)
             result.add_error_message(msg, name=e.title)
         except Exception as e:
-            result.add_error_message(str(e), name=e.title)
+            result.add_error_message(str(e))
 
         result.update_response(resp)
