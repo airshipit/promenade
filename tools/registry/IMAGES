@@ -1,16 +1,16 @@
 # source_name, tag, cache_name
-coredns/coredns,1.9.4,coredns
+coredns/coredns,1.11.1,coredns
 quay.io/airshipit/porthole-compute-utility,latest-ubuntu_focal,kubectl
 quay.io/airshipit/porthole-etcdctl-utility,latest-ubuntu_focal
-registry.k8s.io/kube-apiserver-amd64,v1.29.2,apiserver
-registry.k8s.io/kube-controller-manager-amd64,v1.29.2,controller-manager
-registry.k8s.io/kube-scheduler-amd64,v1.29.2,scheduler
-registry.k8s.io/kube-proxy-amd64,v1.29.2,proxy
-lachlanevenson/k8s-helm,v3.13.2,helm
+registry.k8s.io/kube-apiserver-amd64,v1.29.4,apiserver
+registry.k8s.io/kube-controller-manager-amd64,v1.29.4,controller-manager
+registry.k8s.io/kube-scheduler-amd64,v1.29.4,scheduler
+registry.k8s.io/kube-proxy-amd64,v1.29.4,proxy
+lachlanevenson/k8s-helm,v3.14.4,helm
 quay.io/airshipit/armada,master,armada
 quay.io/airshipit/armada-operator,latest,armada-operator
 quay.io/calico/cni,v3.4.0,calico-cni
 quay.io/calico/ctl,v3.4.0,calico-ctl
 quay.io/calico/kube-controllers,v3.4.0,calico-kube-controllers
 quay.io/calico/node,v3.4.0,calico-node
-quay.io/coreos/etcd,v3.5.11,etcd
+quay.io/coreos/etcd,v3.5.12,etcd

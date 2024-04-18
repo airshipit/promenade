@@ -28,7 +28,7 @@ conf:
 
 images:
   tags:
-    coredns: coredns/coredns:1.9.4
+    coredns: coredns/coredns:1.11.1
     test: quay.io/airshipit/promenade:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
 

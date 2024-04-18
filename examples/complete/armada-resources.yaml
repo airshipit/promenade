@@ -200,7 +200,7 @@ data:
   values:
     images:
       tags:
-        proxy: registry.k8s.io/kube-proxy-amd64:v1.29.2
+        proxy: registry.k8s.io/kube-proxy-amd64:v1.29.4
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -400,7 +400,7 @@ data:
       filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.5.11
+        etcd: quay.io/coreos/etcd:v3.5.12
         etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
     nodes:
       - name: n0
@@ -540,7 +540,7 @@ data:
 
     images:
       tags:
-        calico_etcd: quay.io/coreos/etcd:v3.5.11
+        calico_etcd: quay.io/coreos/etcd:v3.5.12
         calico_node: quay.io/calico/node:v3.4.0
         calico_cni: quay.io/calico/cni:v3.4.0
         calico_ctl: quay.io/calico/ctl:v3.4.0
@@ -586,7 +586,7 @@ data:
 
     images:
       tags:
-        coredns: coredns/coredns:1.9.4
+        coredns: coredns/coredns:1.11.1
         test: quay.io/airshipit/promenade:master
   source:
     type: local
@@ -643,7 +643,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
-        haproxy: haproxy:1.8.3
+        haproxy: haproxy:2.4
         test: python:3.6
 
   source:
@@ -736,7 +736,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
-        apiserver: registry.k8s.io/kube-apiserver-amd64:v1.29.2
+        apiserver: registry.k8s.io/kube-apiserver-amd64:v1.29.4
     secrets:
       service_account:
         public_key: placeholder
@@ -813,7 +813,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
-        controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.29.2
+        controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.29.4
     secrets:
       service_account:
         private_key: placeholder
@@ -886,7 +886,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
-        scheduler: registry.k8s.io/kube-scheduler-amd64:v1.29.2
+        scheduler: registry.k8s.io/kube-scheduler-amd64:v1.29.4
 
   source:
     type: local
@@ -1082,7 +1082,7 @@ data:
       host_etc_path: /etc/etcd/kubernetes
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.5.11
+        etcd: quay.io/coreos/etcd:v3.5.12
         etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
     nodes:
       - name: n0
@@ -1281,7 +1281,7 @@ data:
         ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
         ceph_daemon: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
         ceph_rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         ks_endpoints: docker.io/openstackhelm/heat:newton
         ks_service: docker.io/openstackhelm/heat:newton
         ks_user: docker.io/openstackhelm/heat:newton
@@ -1332,7 +1332,7 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         mariadb: docker.io/mariadb:10.1.23
     labels:
       server:
@@ -1366,7 +1366,7 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         memcached: docker.io/memcached:1.5.5
     labels:
       server:
@@ -1424,7 +1424,7 @@ data:
         keystone_credential_rotate: docker.io/openstackhelm/keystone:newton
         keystone_api: docker.io/openstackhelm/keystone:newton
         keystone_domain_manage: docker.io/openstackhelm/keystone:newton
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
     pod:
       replicas:
         api: 1
@@ -1468,7 +1468,7 @@ data:
         node_selector_value: enabled
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         postgresql: docker.io/postgres:9.5
   source:
     type: git
@@ -1509,7 +1509,7 @@ data:
         bootstrap: sthussey/maas-region-controller:2.3_patchv4
         db_init: docker.io/postgres:9.5
         db_sync: sthussey/maas-region-controller:2.3_patchv4
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         export_api_key: sthussey/maas-region-controller:2.3_patchv4
         maas_rack: sthussey/maas-rack-controller:2.3
         maas_region: sthussey/maas-region-controller:2.3_patchv4
@@ -1576,7 +1576,7 @@ data:
         prometheus_rabbitmq_exporter: docker.io/kbudde/rabbitmq-exporter:v0.21.0
         prometheus_rabbitmq_exporter_helm_tests: docker.io/openstackhelm/heat:newton
         rabbitmq: docker.io/rabbitmq:3.7.3
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
     pod:
       replicas:
         server: 1
@@ -1620,7 +1620,7 @@ data:
     images:
       tags:
         bootstrap: docker.io/openstackhelm/heat:newton
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         scripted_test: docker.io/openstackhelm/heat:newton
         db_init: docker.io/openstackhelm/heat:newton
         barbican_db_sync: docker.io/openstackhelm/barbican:newton
@@ -1662,11 +1662,11 @@ data:
         node_selector_value: enabled
     images:
       tags:
-        entrypoint: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        entrypoint: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         # https://github.com/kubernetes/ingress-nginx/blob/09524cd3363693463da5bf4a9bb3900da435ad05/Changelog.md#090
         ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0
         error_pages: registry.k8s.io/defaultbackend:1.0
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
   source:
     type: git
     location: https://github.com/openstack/openstack-helm
@@ -1697,7 +1697,7 @@ data:
     images:
       tags:
         deckhand: quay.io/airshipit/deckhand:latest-ubuntu_focal
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         db_init: docker.io/postgres:9.5
         db_sync: docker.io/postgres:9.5
         ks_endpoints: docker.io/openstackhelm/heat:newton
@@ -1737,7 +1737,7 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         drydock: quay.io/airshipit/drydock:master
         drydock_db_init: docker.io/postgres:9.5
         drydock_db_sync: quay.io/airshipit/drydock:master
@@ -1830,7 +1830,7 @@ data:
       tags:
         api: quay.io/airshipit/armada:latest-ubuntu_focal
         operator: quay.io/airshipit/armada-operator:latest
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         ks_endpoints: docker.io/openstackhelm/heat:newton
         ks_service: docker.io/openstackhelm/heat:newton
         ks_user: docker.io/openstackhelm/heat:newton
@@ -1879,7 +1879,7 @@ data:
       tags:
         airflow: quay.io/airshipit/airflow:master
         shipyard: quay.io/airshipit/shipyard:master
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
         shipyard_db_init: docker.io/postgres:9.5
         shipyard_db_sync: quay.io/airshipit/shipyard:master
         airflow_db_init: docker.io/postgres:9.5

@@ -53,6 +53,26 @@
           value: $(ETCD_CERT_FILE)
         - name: ETCDCTL_KEY
           value: $(ETCD_KEY_FILE)
+{%- if config['Genesis:etcd.heartbeat_interval'] is defined %}
+        - name: ETCD_HEARTBEAT_INTERVAL
+          value: {{ config['Genesis:etcd.heartbeat_interval'] }}
+{%- endif %}
+{%- if config['Genesis:etcd.election_timeout'] is defined %}
+        - name: ETCD_ELECTION_TIMEOUT
+          value: {{ config['Genesis:etcd.election_timeout'] }}
+{%- endif %}
+{%- if config['Genesis:etcd.snapshot_count'] is defined %}
+        - name: ETCD_SNAPSHOT_COUNT
+          value: {{ config['Genesis:etcd.snapshot_count'] }}
+{%- endif %}
+{%- if config['Genesis:etcd.cipher_suites'] is defined %}
+        - name: ETCD_CIPHER_SUITES
+          value: {{ config['Genesis:etcd.cipher_suites'] }}
+{%- endif %}
+{%- if config['Genesis:etcd.gomaxprocs'] is defined %}
+        - name: GOMAXPROCS
+          value: {{ config['Genesis:etcd.gomaxprocs'] }}
+{%- endif %}
       ports:
         - name: client
           containerPort: {{ client_port }}

@@ -111,6 +111,16 @@ data:
         # before the auxiliary members will self-terminate
         auxiliary_threshold:
           type: integer
+        heartbeat_interval:
+          type: integer
+        election_timeout:
+          type: integer
+        snapshot_count:
+          type: integer
+        cipher_suites:
+          type: string
+        gomaxprocs:
+          type: integer
       additionalProperties: false
 
     files:
