@@ -18,20 +18,26 @@
 {{- define "etcdreadinessProbeTemplate" }}
 exec:
   command:
-    - /bin/sh
-    - -c
-    - |-
-      etcdctl endpoint health
-      exit $?
+    - etcdctl
+    - endpoint
+    - health
+initialDelaySeconds: 10
+timeoutSeconds: 5
+periodSeconds: 10
+successThreshold: 1
+failureThreshold: 3
 {{- end }}
 {{- define "etcdlivenessProbeTemplate" }}
 exec:
   command:
-    - /bin/sh
-    - -c
-    - |-
-      etcdctl endpoint status
-      exit $?
+    - etcdctl
+    - endpoint
+    - health
+initialDelaySeconds: 15
+timeoutSeconds: 5
+periodSeconds: 10
+successThreshold: 1
+failureThreshold: 3
 {{- end }}
 # Strip off "etcd" from service name to get the application name
 # Note that application can either be kubernetes or calico for now
@@ -109,7 +115,7 @@ spec:
         - name: ETCDCTL_DIAL_TIMEOUT
           value: 3s
         - name: ETCDCTL_ENDPOINTS
-          value: https://127.0.0.1:{{ .Values.network.service_client.target_port }}
+          value: https://$(POD_IP):{{ .Values.network.service_client.target_port }}
         - name: ETCDCTL_CACERT
           value: $(ETCD_TRUSTED_CA_FILE)
         - name: ETCDCTL_CERT
@@ -123,34 +129,11 @@ spec:
         - name: MANIFEST_PATH
           value: /manifests/{{ .Values.service.name }}.yaml
 {{ include "helm-toolkit.utils.to_k8s_env_vars" .Values.pod.env.etcd | indent 8 }}
-      volumeMounts:
-        - name: data
-          mountPath: /var/lib/etcd
-        - name: etc
-          mountPath: /etc/etcd
-    - name: etcd-health-check
-      image: {{ .Values.images.tags.etcdctl }}
-      imagePullPolicy: {{ .Values.images.pull_policy }}
-{{ tuple $envAll $envAll.Values.pod.resources.etcd_pod_sidecar | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
-{{ dict "envAll" $envAll "application" "etcd" "container" "etcd" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
-      env:
-        - name: ETCDCTL_API
-          value: "{{ .Values.etcd.etcdctl_api }}"
-        - name: ETCDCTL_DIAL_TIMEOUT
-          value: "3s"
-        - name: ETCDCTL_ENDPOINTS
-          value: "https://127.0.0.1:{{ .Values.network.service_client.target_port }}"
-        - name: ETCDCTL_CACERT
-          value: "/etc/etcd/tls/client-ca.pem"
-        - name: ETCDCTL_CERT
-          value: "/etc/etcd/tls/etcd-client.pem"
-        - name: ETCDCTL_KEY
-          value: "/etc/etcd/tls/etcd-client-key.pem"
-      command: ["/bin/sh", "-c", "--"]
-      args: ["while true; do sleep 30; done;"]
 {{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "readiness" "probeTemplate" (include "etcdreadinessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
 {{ dict "envAll" $envAll "component" "etcd" "container" "etcd" "type" "liveness" "probeTemplate" (include "etcdlivenessProbeTemplate" $envAll | fromYaml) | include "helm-toolkit.snippets.kubernetes_probe" | indent 6 }}
       volumeMounts:
+        - name: data
+          mountPath: /var/lib/etcd
         - name: etc
           mountPath: /etc/etcd
   volumes:

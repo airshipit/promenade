@@ -35,17 +35,61 @@ spec:
           }
 
           remove_if_possible () {
-              MEMBER_NAME=$1
+              MEMBER_NAME="$1"
               MEMBER_ID=$(etcdctl member list | grep "${MEMBER_NAME}" | awk -F ', ' '{ print $1 }')
               if [ -n "${MEMBER_ID}" ]; then
+                  if is_leader "$MEMBER_ID"; then
+                    abdicate "$MEMBER_ID"
+                  fi
                   etcdctl member remove $MEMBER_ID
+                  sleep 5
               fi
+          }
+
+          abdicate () {
+            OLD_LEADER="$1"
+            OLD_LEADER_EP=$(etcdctl member list | grep "$OLD_LEADER" | awk -F ', ' '{print $5}')
+            NEW_LEADER=$(etcdctl member list | grep '\bstarted\b' | grep -Ev "\\b(auxiliary-0|auxiliary-1)\\b" | head -1 | awk -F ', ' '{print $1}')
+            if [ -n "$NEW_LEADER" ]; then
+              if ! ETCDCTL_ENDPOINTS="$OLD_LEADER_EP" etcdctl move-leader "$NEW_LEADER"; then
+                echo "Attempted abdication, but failed."
+                return
+              fi
+              sleep 5
+              return
+            fi
+          }
+
+          abdicate_if_needed () {
+            AUX_MEMBERS=$(etcdctl member list | grep '\bstarted\b' | grep -E "\\b(auxiliary-0|auxiliary-1)\\b" | awk -F ', ' '{print $1}')
+            for m in $AUX_MEMBERS; do
+              if is_leader "$m"; then
+                abdicate "$m"
+              fi
+            done
+          }
+
+          is_leader () {
+            MEMBER_ID="$1"
+            MEMBER_EP=$(etcdctl member list | grep "$MEMBER_ID" | awk -F ', ' '{print $5}')
+            IS_LEADER=$(ETCDCTL_ENDPOINTS="$MEMBER_EP" etcdctl endpoint status | awk -F ', ' '{ print $5 }')
+            if [ "$IS_LEADER" = "true" ]; then
+              return 0
+            else
+              return 1
+            fi
+          }
+
+          aux_endpoint_present () {
+            awk '/- name: ETCD_ENDPOINTS/{getline; sub(/.*: "/, ""); sub(/".*/, ""); print}' /manifests/kubernetes-apiserver.yaml \
+                          | grep -E "\\b(12379|22379)\\b"
           }
 
           auxiliary_threshold="{{ config.get_first('Genesis:etcd.auxiliary_threshold', default=3) }}"
           # NOTE(sh8121att): If there are enough (a fully resilient contigent) non-auxiliary members,
           # then we are ready to remove the auxiliary members.  Otherwise, wait.
-          while [ ! "$(external_member_count)" -ge "$auxiliary_threshold" ]; do
+          while [ ! "$(external_member_count)" -ge "$auxiliary_threshold" ] || [ "$(aux_endpoint_present)" ]; do
+              abdicate_if_needed
               sleep 30
           done
 

@@ -61,6 +61,7 @@ cleanup_host () {
 firstrun=true
 saddness_duration=0
 while true; do
+    date
     # TODO(mark-burnett) Need to monitor a file(s) when shutting down/starting
     # up so I don't try to take two actions on the node at once.
     {{- if .Values.bootstrapping.enabled  }}
@@ -117,7 +118,10 @@ while true; do
         fi
         echo Successfully added $HOSTNAME to cluster members.
         # Refresh member list so we start with the right configuration.
-        etcdctl member list > /tmp/members
+        if ! etcdctl member list > /tmp/members; then
+          echo Could not get a member list, trying again.
+          continue
+        fi
     elif grep $PEER_ENDPOINT /tmp/members | grep '\bunstarted\b'; then
         # This member is in the cluster but not started
         if [ $saddness_duration -ge {{ .Values.anchor.saddness_threshold }} ]

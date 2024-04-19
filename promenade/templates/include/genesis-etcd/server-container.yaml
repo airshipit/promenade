@@ -46,7 +46,7 @@
         - name: ETCDCTL_DIAL_TIMEOUT
           value: 3s
         - name: ETCDCTL_ENDPOINTS
-          value: https://$(POD_IP):{{ client_port }},https://127.0.0.1:{{ client_port }}
+          value: https://$(POD_IP):{{ client_port }}
         - name: ETCDCTL_CACERT
           value: $(ETCD_TRUSTED_CA_FILE)
         - name: ETCDCTL_CERT
@@ -55,29 +55,51 @@
           value: $(ETCD_KEY_FILE)
 {%- if config['Genesis:etcd.heartbeat_interval'] is defined %}
         - name: ETCD_HEARTBEAT_INTERVAL
-          value: {{ config['Genesis:etcd.heartbeat_interval'] }}
+          value: "{{ config['Genesis:etcd.heartbeat_interval'] }}"
 {%- endif %}
 {%- if config['Genesis:etcd.election_timeout'] is defined %}
         - name: ETCD_ELECTION_TIMEOUT
-          value: {{ config['Genesis:etcd.election_timeout'] }}
+          value: "{{ config['Genesis:etcd.election_timeout'] }}"
 {%- endif %}
 {%- if config['Genesis:etcd.snapshot_count'] is defined %}
         - name: ETCD_SNAPSHOT_COUNT
-          value: {{ config['Genesis:etcd.snapshot_count'] }}
+          value: "{{ config['Genesis:etcd.snapshot_count'] }}"
 {%- endif %}
 {%- if config['Genesis:etcd.cipher_suites'] is defined %}
         - name: ETCD_CIPHER_SUITES
-          value: {{ config['Genesis:etcd.cipher_suites'] }}
+          value: "{{ config['Genesis:etcd.cipher_suites'] }}"
 {%- endif %}
 {%- if config['Genesis:etcd.gomaxprocs'] is defined %}
         - name: GOMAXPROCS
-          value: {{ config['Genesis:etcd.gomaxprocs'] }}
+          value: "{{ config['Genesis:etcd.gomaxprocs'] }}"
 {%- endif %}
       ports:
         - name: client
           containerPort: {{ client_port }}
         - name: peer
           containerPort: {{ peer_port }}
+      livenessProbe:
+        exec:
+          command:
+            - etcdctl
+            - endpoint
+            - health
+        initialDelaySeconds: 15
+        timeoutSeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        failureThreshold: 3
+      readinessProbe:
+        exec:
+          command:
+            - etcdctl
+            - endpoint
+            - health
+        initialDelaySeconds: 10
+        timeoutSeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        failureThreshold: 3
       volumeMounts:
         - name: data-{{ etcd_name }}
           mountPath: /var/lib/etcd
