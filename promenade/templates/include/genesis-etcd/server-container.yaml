@@ -1,5 +1,9 @@
     - name: etcd-{{ etcd_name }}
       image: {{ config['Genesis:images.kubernetes.etcd'] }}
+{%- if config['Genesis:etcd.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:etcd.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
       env:
         - name: ETCD_NAME
           value: {{ etcd_name }}

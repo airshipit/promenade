@@ -54,11 +54,7 @@ etcd:
   cleanup_data: true
   etcdctl_api: "3"
   logging:
-    # Set individual etcd subpackages to specific log levels.
-    # An example being etcdserver=WARNING,security=DEBUG
-    log_level:
-      - etcdserver=DEBUG
-      - security=DEBUG
+    log_level: debug
 backup:
   enabled: true
   host_backup_path: /var/backups

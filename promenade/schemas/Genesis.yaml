@@ -121,6 +121,8 @@ data:
           type: string
         gomaxprocs:
           type: integer
+        resources:
+          type: object
       additionalProperties: false
 
     files:

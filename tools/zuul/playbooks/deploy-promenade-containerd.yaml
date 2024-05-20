@@ -52,7 +52,7 @@
         set -xe;
         ./tools/deployment/apparmor/001-setup-apparmor-profiles.sh
       args:
-        chdir: "{{ zuul.projects['opendev.org/openstack/openstack-helm-infra'].src_dir }}"
+        chdir: "{{ zuul.project.src_dir }}"
         executable: /bin/bash
 
     - name: List interfaces

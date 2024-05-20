@@ -34,6 +34,14 @@ spec:
                   | wc -l
           }
 
+          anchor_number_ready () {
+              NUM=$(kubectl -n kube-system get daemonset kubernetes-etcd-anchor --ignore-not-found -o jsonpath="{.status.numberReady}" || true)
+              if [ -z "$NUM" ]; then
+                NUM=0
+              fi
+              return $NUM
+          }
+
           remove_if_possible () {
               MEMBER_NAME="$1"
               MEMBER_ID=$(etcdctl member list | grep "${MEMBER_NAME}" | awk -F ', ' '{ print $1 }')
@@ -50,7 +58,7 @@ spec:
             OLD_LEADER="$1"
             OLD_LEADER_EP=$(etcdctl member list | grep "$OLD_LEADER" | awk -F ', ' '{print $5}')
             NEW_LEADER=$(etcdctl member list | grep '\bstarted\b' | grep -Ev "\\b(auxiliary-0|auxiliary-1)\\b" | head -1 | awk -F ', ' '{print $1}')
-            if [ -n "$NEW_LEADER" ]; then
+            if [ -n "$NEW_LEADER" ] && [ -n "$OLD_LEADER_EP" ]; then
               if ! ETCDCTL_ENDPOINTS="$OLD_LEADER_EP" etcdctl move-leader "$NEW_LEADER"; then
                 echo "Attempted abdication, but failed."
                 return
