@@ -61,7 +61,6 @@ cleanup_host () {
 firstrun=true
 saddness_duration=0
 while true; do
-    date
     # TODO(mark-burnett) Need to monitor a file(s) when shutting down/starting
     # up so I don't try to take two actions on the node at once.
     {{- if .Values.bootstrapping.enabled  }}
@@ -104,7 +103,10 @@ while true; do
         echo Waiting to stop..
         continue
     fi
-    etcdctl member list > /tmp/members
+    if ! etcdctl member list > /tmp/members; then
+        echo Could not get a member list, trying again.
+        continue
+    fi
     if ! grep $PEER_ENDPOINT /tmp/members; then
         # If this member is not in the cluster, try to add it.
         if grep -v '\bstarted\b' /tmp/members; then
@@ -112,7 +114,7 @@ while true; do
             continue
         fi
         # Add this member to the cluster
-        if ! etcdctl member add $HOSTNAME --peer-urls $PEER_ENDPOINT; then
+        if ! etcdctl member add $HOSTNAME --peer-urls $PEER_ENDPOINT --learner; then
             echo Failed to add $HOSTNAME to member list.  Waiting.
             continue
         fi
@@ -134,14 +136,24 @@ while true; do
           else
             echo "ERROR: Attempted recreate member and failed!!!"
           fi
-          continue
         else
           saddness_duration=$(($saddness_duration+1))
+          sync_configuration /tmp/members
+          sleep {{ .Values.anchor.health_wait_period }}
+          firstrun=false
         fi
+        continue
+    elif [ "$(grep $PEER_ENDPOINT /tmp/members | awk -F, '/,/{gsub(/ /, "", $6); print $6}')" = "true" ]; then
+        if ! etcdctl member promote "$(grep $PEER_ENDPOINT /tmp/members | awk -F, '{print $1}')"; then
+            echo Failed to promote $HOSTNAME to member list.  Waiting.
+        fi
+        continue
     fi
     if $firstrun; then
         sync_configuration /tmp/members
         firstrun=false
+        sleep {{ .Values.anchor.health_wait_period }}
+        continue
     fi
     if ! ETCDCTL_ENDPOINTS=$CLIENT_ENDPOINT etcdctl endpoint health; then
         # If not health, sleeps before checking again and then updating configs.
