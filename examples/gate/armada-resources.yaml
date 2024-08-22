@@ -516,16 +516,6 @@ data:
                   - mode tcp
                   - option tcp-check
                   - option redispatch
-            kubernetes-etcd:
-              server_opts: "check port 2379"
-              conf_parts:
-                frontend:
-                  - mode tcp
-                  - bind *:2378
-                backend:
-                  - mode tcp
-                  - option tcp-check
-                  - option redispatch
 
     images:
       tags:
@@ -635,7 +625,7 @@ data:
           apiVersion: apiserver.config.k8s.io/v1
     apiserver:
       etcd:
-        endpoints: https://127.0.0.1:2378
+        endpoints: https://127.0.0.1:2379
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal

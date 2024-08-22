@@ -41,16 +41,16 @@
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
-        - trigger-readthedocs-webhook
+        #- trigger-readthedocs-webhook
     post:
       jobs:
         - airship-promenade-docker-publish_ubuntu_focal
         - promenade-upload-git-mirror
-        - trigger-readthedocs-webhook
+        #- trigger-readthedocs-webhook
     pre-release:
-      jobs:
-        - trigger-readthedocs-webhook
+      jobs: []
+        #- trigger-readthedocs-webhook
     release:
-      jobs:
-        - trigger-readthedocs-webhook
+      jobs: []
+        #- trigger-readthedocs-webhook
 ...
