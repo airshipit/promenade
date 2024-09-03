@@ -14,7 +14,7 @@ charset-normalizer==3.3.2
 click==8.1.7
 cliff==4.6.0
 cmd2==2.4.3
-cryptography==41.0.7
+cryptography==43.0.1
 debtcollector==3.0.0
 Deckhand @ git+https://opendev.org/airship/deckhand.git@fd58230f6e31ede4925bab0325105eb5b05ad1a8
 decorator==5.1.1
