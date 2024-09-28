@@ -1,0 +1,26 @@
+---
+networkPolicy:
+  enabled: true
+  policies:
+    - etcd:
+        ingress:
+          - ports:
+              - protocol: TCP
+                port: 2379
+              - protocol: TCP
+                port: 2380
+        egress:
+          - {}
+    - auxiliary-etcd:
+        ingress:
+          - ports:
+              - protocol: TCP
+                port: 12379
+              - protocol: TCP
+                port: 12380
+              - protocol: TCP
+                port: 22379
+              - protocol: TCP
+                port: 22380
+        egress:
+          - {}

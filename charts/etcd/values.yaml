@@ -128,6 +128,9 @@ network:
     target_port: 2380
     enable_node_port: false
 
+networkPolicy:
+  enabled: false
+
 service:
   # requires override for a specific use case e.g. calico-etcd or kubernetes-etcd
   name: example-etcd
