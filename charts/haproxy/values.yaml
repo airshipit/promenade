@@ -36,16 +36,6 @@ conf:
               - mode tcp
               - option tcp-check
               - option redispatch
-        kubernetes-etcd:
-          server_opts: "check"
-          conf_parts:
-            frontend:
-              - mode tcp
-              - bind *:2378
-            backend:
-              - mode tcp
-              - option tcp-check
-              - option redispatch
     enable_cleanup: true
 
   haproxy:
