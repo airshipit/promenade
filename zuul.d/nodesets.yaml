@@ -12,17 +12,12 @@
 # limitations under the License.
 
 - nodeset:
-    name: airship-promenade-single-node-focal
+    name: airship-promenade-single-node-jammy
     nodes:
       - name: primary
-        label: ubuntu-focal
+        label: ubuntu-jammy
     groups:
       - name: primary
         nodes:
           - primary
 
-- nodeset:
-    name: airship-promenade-single-node-bionic
-    nodes:
-      - name: primary
-        label: ubuntu-bionic

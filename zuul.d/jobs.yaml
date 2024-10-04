@@ -14,30 +14,30 @@
 # limitations under the License.
 
 - job:
-    name: airship-promenade-openstack-tox-docs-focal
+    name: airship-promenade-openstack-tox-docs-jammy
     parent: openstack-tox-docs
-    description: Runs docs job on focal
-    nodeset: airship-promenade-single-node-focal
+    description: Runs docs job on jammy
+    nodeset: airship-promenade-single-node-jammy
 
 - job:
-    name: airship-promenade-openstack-tox-cover-focal
+    name: airship-promenade-openstack-tox-cover-jammy
     parent: openstack-tox-cover
-    description: Runs cover job on focal
-    nodeset: airship-promenade-single-node-focal
+    description: Runs cover job on jammy
+    nodeset: airship-promenade-single-node-jammy
     pre-run: tools/zuul/playbooks/install-deps.yaml
 
 - job:
-    name: airship-promenade-openstack-tox-py38-focal
-    parent: openstack-tox-py38
-    description: Runs cover job on focal
-    nodeset: airship-promenade-single-node-focal
+    name: airship-promenade-openstack-tox-py310-jammy
+    parent: openstack-tox-py310
+    description: Runs cover job on jammy
+    nodeset: airship-promenade-single-node-jammy
     pre-run: tools/zuul/playbooks/install-deps.yaml
 
 - job:
-    name: airship-promenade-openstack-tox-pep8-focal
+    name: airship-promenade-openstack-tox-pep8-jammy
     parent: openstack-tox-pep8
-    description: Runs pep8 job on focal
-    nodeset: airship-promenade-single-node-focal
+    description: Runs pep8 job on jammy
+    nodeset: airship-promenade-single-node-jammy
 
 - job:
     name: airship-promenade-genesis-containerd-gate
@@ -48,9 +48,9 @@
     required-projects:
       - openstack/openstack-helm-infra
     timeout: 9600
-    nodeset: airship-promenade-single-node-focal
+    nodeset: airship-promenade-single-node-jammy
     vars:
-      distro: ubuntu_focal
+      distro: ubuntu_jammy
 
 - job:
     name: airship-promenade-chart-build-gate
@@ -58,9 +58,9 @@
       Lints charts using pinned HTK
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 900
-    nodeset: airship-promenade-single-node-focal
+    nodeset: airship-promenade-single-node-jammy
     vars:
-      HTK_COMMIT: 51c70e48dff173281a77d374d87af2c49caa6348
+      HTK_COMMIT: 43fd7143481b6ddda0dbd2f26bf6ec39a417b15b
 
 - job:
     name: airship-promenade-chart-build-gate-latest-htk
@@ -68,7 +68,7 @@
       Lints charts using latest HTK
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 900
-    nodeset: airship-promenade-single-node-focal
+    nodeset: airship-promenade-single-node-jammy
     vars:
       HTK_COMMIT: master
 
@@ -79,19 +79,19 @@
     voting: true
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 900
-    nodeset: airship-promenade-single-node-focal
+    nodeset: airship-promenade-single-node-jammy
     vars:
       HTK_COMMIT: master
 
 - job:
-    name: airship-promenade-docker-build-gate-ubuntu_focal
+    name: airship-promenade-docker-build-gate-ubuntu_jammy
     voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
     timeout: 3600
-    nodeset: airship-promenade-single-node-focal
+    nodeset: airship-promenade-single-node-jammy
     vars:
       publish: false
-      distro: ubuntu_focal
+      distro: ubuntu_jammy
       tags:
         dynamic:
           patch_set: true
@@ -102,23 +102,23 @@
       - ^tools/.*$
 
 - job:
-    name: airship-promenade-docker-publish_ubuntu_focal
+    name: airship-promenade-docker-publish_ubuntu_jammy
     voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
     timeout: 3600
-    nodeset: airship-promenade-single-node-focal
+    nodeset: airship-promenade-single-node-jammy
     secrets:
       - airship_promenade_quay_creds
     vars:
       publish: true
-      distro: ubuntu_focal
+      distro: ubuntu_jammy
       tags:
         dynamic:
           branch: true
           commit: true
         static:
           - latest
-          - airflow_2.8.2
+          - airflow_2.10.2
     irrelevant-files:
       - ^charts/.*$
       - ^etc/.*$
