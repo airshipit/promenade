@@ -14,9 +14,8 @@
 # limitations under the License.
 
 - project:
-    # commented out because openstack-tox-docs fails on jammy zuul nodes
-    # templates:
-    #   - docs-on-readthedocs
+    templates:
+      - docs-on-readthedocs
     vars:
       rtd_webhook_id: '38575'
       rtd_project_name: 'airship-promenade'
@@ -25,7 +24,7 @@
         - airship-promenade-openstack-tox-cover-jammy
         - airship-promenade-openstack-tox-pep8-jammy
         - airship-promenade-openstack-tox-py310-jammy
-        - airship-promenade-openstack-tox-docs-jammy
+        # - airship-promenade-openstack-tox-docs-jammy
         - airship-promenade-docker-build-gate-ubuntu_jammy
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
@@ -36,21 +35,15 @@
         - airship-promenade-openstack-tox-cover-jammy
         - airship-promenade-openstack-tox-pep8-jammy
         - airship-promenade-openstack-tox-py310-jammy
-        - airship-promenade-openstack-tox-docs-jammy
+        # - airship-promenade-openstack-tox-docs-jammy
         - airship-promenade-docker-build-gate-ubuntu_jammy
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
-        #- trigger-readthedocs-webhook
+
     post:
       jobs:
         - airship-promenade-docker-publish_ubuntu_jammy
         - promenade-upload-git-mirror
-        #- trigger-readthedocs-webhook
-    pre-release:
-      jobs: []
-        #- trigger-readthedocs-webhook
-    release:
-      jobs: []
-        #- trigger-readthedocs-webhook
+
 ...
