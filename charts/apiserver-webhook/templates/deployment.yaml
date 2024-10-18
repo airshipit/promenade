@@ -121,7 +121,6 @@ spec:
       annotations:
 {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
 {{ dict "envAll" $envAll "podName" "apiserver-webhook" "containerNames" (list "apiserver" "webhook") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
-        configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
         dynamic-config-hash: {{ tuple "config-dynamic-config.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
@@ -226,22 +225,27 @@ spec:
 {{ tuple $envAll $envAll.Values.pod.resources.server | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
 {{ dict "envAll" $envAll "application" "apiserver_webhook" "container" "webhook" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           command:
-            - /tmp/webhook_start.sh
+            - "/bin/k8s-keystone-auth"
+          args:
+            - "--v"
+            - {{ .Values.apiserver_webhook.logging.log_level | quote }}
+            - "--tls-cert-file"
+            - {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki "cert" $envAll | include "local.cert_bundle_path" | quote }}
+            - "--tls-private-key-file"
+            - {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" | quote }}
+            - "--keystone-policy-file"
+            - {{ $envAll.Values.conf.paths.policy | quote }}
+            - "--listen"
+            - "127.0.0.1:{{ tuple "webhook_apiserver" "podport" "webhook" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}"
+{{- if hasKey .Values.certificates "keystone" }}
+            - "--keystone-ca-file"
+            - {{ tuple "keystone" "server" $envAll.Values.conf.paths.pki "ca" $envAll | include "local.cert_bundle_path" | quote }}
+{{- end }}
+            - "--keystone-url"
+            - {{ tuple "identity" "internal" "api" . | include "helm-toolkit.endpoints.keystone_endpoint_uri_lookup" | quote }}
           env:
 {{- with $env := dict "ksUserSecret" .Values.secrets.identity.webhook }}
 {{- include "helm-toolkit.snippets.keystone_openrc_env_vars" $env | indent 12 }}
-{{- end }}
-            - name: SERVER_CERT_FILE
-              value: {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki "cert" $envAll | include "local.cert_bundle_path" | quote }}
-            - name: SERVER_KEY_FILE
-              value: {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki "key" $envAll | include "local.cert_bundle_path" | quote }}
-            - name: POLICY_FILE
-              value: {{ $envAll.Values.conf.paths.policy | quote }}
-            - name: SERVER_PORT
-              value: {{ tuple "webhook_apiserver" "podport" "webhook" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" | quote }}
-{{- if hasKey .Values.certificates "keystone" }}
-            - name: KEYSTONE_CA_FILE
-              value: {{ tuple "keystone" "server" $envAll.Values.conf.paths.pki "ca" $envAll | include "local.cert_bundle_path" | quote }}
 {{- end }}
           volumeMounts:
             - name: etc-webhook
@@ -251,10 +255,6 @@ spec:
             - name: configmap-etc
               mountPath: {{ $envAll.Values.conf.paths.policy }}
               subPath: policy.json
-              readOnly: true
-            - name: configmap-bin
-              mountPath: /tmp/webhook_start.sh
-              subPath: webhook_start.sh
               readOnly: true
 {{ tuple "keystone_webhook" "server" $envAll.Values.conf.paths.pki $envAll | include "local.mount_cert_bundle" | indent 12 }}
 {{ if $mounts_webhook.volumeMounts }}{{ toYaml $mounts_webhook.volumeMounts | indent 12 }}{{ end }}
@@ -283,10 +283,6 @@ spec:
           secret:
             secretName: {{ .Release.Name }}-keys
             defaultMode: 0444
-        - name: configmap-bin
-          configMap:
-            name: {{ .Release.Name }}-bin
-            defaultMode: 0555
         - name: tls-apiserver-webhook-public-server
           secret:
             defaultMode: 292
