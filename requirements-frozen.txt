@@ -124,7 +124,7 @@ vine==5.1.0
 wcwidth==0.2.13
 WebOb==1.8.8
 websocket-client==1.8.0
-Werkzeug==2.2.3
+Werkzeug==3.0.6
 wheel==0.43.0
 wrapt==1.16.0
 xattr==0.10.1
