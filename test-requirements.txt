@@ -1,6 +1,6 @@
 pytest
 pytest-cov==4.0.0
-flake8==3.8.4
+flake8
 bandit==1.6.0
 yapf
 stestr==3.2.0
