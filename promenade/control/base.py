@@ -154,7 +154,7 @@ class PromenadeRequestContext(context.RequestContext):
         result['request_id'] = getattr(self, 'request_id', None)
         result['context_marker'] = getattr(self, 'context_marker', None)
         result['end_user'] = getattr(self, 'end_user', None)
-        result['user'] = getattr(self, 'user', None)
+        result['user'] = getattr(self, 'user_id', None)
 
         return result
 

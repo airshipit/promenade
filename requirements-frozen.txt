@@ -15,7 +15,7 @@ cliff==4.8.0
 cmd2==2.5.8
 cryptography==42.0.8
 debtcollector==3.0.0
-Deckhand @ git+https://opendev.org/airship/deckhand.git@dacedae17b71acd249dc01ad0540e58136245fe1
+Deckhand @ git+https://opendev.org/airship/deckhand.git@4d500e48e880ea7f9a3582324c55c61373a855ea
 decorator==5.1.1
 deepdiff==8.1.1
 dnspython==2.7.0

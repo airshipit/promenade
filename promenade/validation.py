@@ -17,7 +17,7 @@ from promenade import logging
 from promenade.utils.validation_message import ValidationMessage
 import jsonschema
 import os
-import pkg_resources
+from importlib.resources import files
 import yaml
 
 __all__ = ['check_schema', 'check_schemas', 'validate_all']
@@ -147,7 +147,7 @@ def _load_schemas():
 
 
 def _get_schema_dir():
-    return pkg_resources.resource_filename('promenade', 'schemas')
+    return str(files('promenade') / 'schemas')
 
 
 # Fill the cache

@@ -4,7 +4,7 @@ import datetime
 import io
 import jinja2
 import os
-import pkg_resources
+from importlib.resources import files
 import yaml
 
 __all__ = [
@@ -49,8 +49,7 @@ def insert_charts_into_bundler(bundler):
 
 
 def render_role_into_bundler(*, bundler, config, role):
-    role_root = pkg_resources.resource_filename(
-        'promenade', os.path.join('templates', 'roles', role))
+    role_root = files('promenade').joinpath('templates', 'roles', role)
     for root, _dirnames, filenames in os.walk(role_root, followlinks=True):
         destination_base = os.path.relpath(root, role_root)
         for source_filename in filenames:
@@ -89,12 +88,12 @@ def render_template(config, *, template, context=None, roles=None):
     if roles is None:
         roles = {}
 
-    template_contents = pkg_resources.resource_string(
-        'promenade', os.path.join('templates', template))
+    template_path = files('promenade') / 'templates' / template
+    template_contents = template_path.read_text(encoding='utf-8')
 
     env = _build_env()
 
-    template_obj = env.from_string(template_contents.decode('utf-8'))
+    template_obj = env.from_string(template_contents)
     try:
         return template_obj.render(config=config, roles=roles, **context)
     except jinja2.exceptions.TemplateRuntimeError as e:

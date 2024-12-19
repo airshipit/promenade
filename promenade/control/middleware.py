@@ -43,7 +43,7 @@ class AuthMiddleware(object):
             # Process account and roles
             ctx.authenticated = True
             # User Identity, unique within owning domain
-            ctx.user = req.get_header(
+            ctx.user_id = req.get_header(
                 'X-SERVICE-USER-NAME') if service else req.get_header(
                     'X-USER-NAME')
             # Identity-service managed unique identifier
@@ -77,7 +77,7 @@ class AuthMiddleware(object):
                 ctx.is_admin_project = False
 
             LOG.debug('Request from authenticated user %s with roles %s',
-                      ctx.user, ctx.roles)
+                      ctx.user_id, ctx.roles)
         else:
             ctx.authenticated = False
 
@@ -112,7 +112,7 @@ class ContextMiddleware(object):
         if end_user is not None:
             ctx.set_end_user(end_user)
         else:
-            ctx.set_end_user(ctx.user)
+            ctx.set_end_user(ctx.user_id)
 
 
 class LoggingMiddleware(object):
@@ -139,7 +139,7 @@ class LoggingMiddleware(object):
         else:
             context_marker = getattr(ctx, 'context_marker', None)
             request_id = getattr(ctx, 'request_id', None)
-            user = getattr(ctx, 'user', None)
+            user = getattr(ctx, 'user_id', None)
             end_user = getattr(ctx, 'end_user', None)
             if context_marker is not None:
                 resp.append_header('X-CONTEXT-MARKER', context_marker)
