@@ -18,7 +18,7 @@
 # 429 Too Many Requests - Server message: too many requests:
 #   You have reached your pull rate limit.
 #   You may increase the limit by authenticating and upgrading: https://www.docker.com/increase-rate-limit
-ARG FROM=public.ecr.aws/docker/library/ubuntu:jammy
+ARG FROM=quay.io/airshipit/ubuntu:jammy
 FROM ${FROM}
 
 LABEL org.opencontainers.image.authors='airship-discuss@lists.airshipit.org, irc://#airshipit@freenode' \

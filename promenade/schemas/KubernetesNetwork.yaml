@@ -6,7 +6,7 @@ metadata:
   labels:
     application: promenade
 data:
-  $schema: http://json-schema.org/schema#
+  $schema: http://json-schema.org/draft-04/schema#
   definitions:
     cidr:
       type: string
