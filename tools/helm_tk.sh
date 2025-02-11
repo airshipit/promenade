@@ -26,7 +26,7 @@ TMP_DIR=$(mktemp -d)
 {
     HTK_REPO_DIR=$TMP_DIR/htk
     git clone "$HTK_REPO" "$HTK_REPO_DIR"
-    (cd "$HTK_REPO_DIR" && git reset --hard "${HTK_STABLE_COMMIT}")
+    (cd "$HTK_REPO_DIR" && git fetch --depth=1 "$HTK_REPO" "$HTK_STABLE_COMMIT" && git checkout FETCH_HEAD)
     cp -r "${HTK_REPO_DIR}/helm-toolkit" charts/deps/
 }
 
