@@ -29,6 +29,10 @@ spec:
       - --service-cluster-ip-range={{ config['KubernetesNetwork:kubernetes.service_cidr'] }}
       - --use-service-account-credentials=true
       - --v=5
+{%- if config['Genesis:controller-manager.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:controller-manager.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
       volumeMounts:
         - name: config
           mountPath: /etc/kubernetes/controller-manager

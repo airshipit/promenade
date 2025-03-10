@@ -27,10 +27,71 @@ data:
       - --admission-control-config-file=/etc/kubernetes/apiserver/acconfig.yaml
       - --encryption-provider-config=/etc/kubernetes/apiserver/encryption_provider.yaml
       - --v=3
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "8"
+        memory: "8Gi"
+  controller-manager:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "8"
+        memory: "8Gi"
+  scheduler:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "8"
+        memory: "8Gi"
   armada:
     target_manifest: cluster-bootstrap
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "8"
+        memory: "8Gi"
+    manager:
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "8"
+          memory: "8Gi"
+    monitor:
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "8"
+          memory: "8Gi"
   etcd:
     auxiliary_threshold: 3
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "8"
+        memory: "8Gi"
+    monitor:
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "8"
+          memory: "8Gi"
   labels:
     dynamic:
       - calico-etcd=enabled
@@ -47,11 +108,11 @@ data:
     armada: quay.io/airshipit/armada:latest-ubuntu_focal
     armada-operator: quay.io/airshipit/armada-operator:latest
     kubernetes:
-      apiserver: registry.k8s.io/kube-apiserver-amd64:v1.29.4
-      controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.29.4
+      apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
+      controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.32.1
       etcd: quay.io/coreos/etcd:v3.5.12
       etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
-      scheduler: registry.k8s.io/kube-scheduler-amd64:v1.29.4
+      scheduler: registry.k8s.io/kube-scheduler-amd64:v1.32.1
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: "# placeholder for triggering calico etcd bootstrapping"

@@ -65,6 +65,18 @@ data:
     armada:
       type: object
       properties:
+        resources:
+          type: object
+        manager:
+          type: object
+          properties:
+            resources:
+              type: object
+        monitor:
+          type: object
+          properties:
+            resources:
+              type: object
         target_manifest:
           type: string
         metrics:
@@ -80,6 +92,8 @@ data:
     apiserver:
       type: object
       properties:
+        resources:
+          type: object
         command_prefix:
           type: array
           items:
@@ -104,6 +118,18 @@ data:
                   additionalProperties: true
       additionalProperties: false
 
+    controller-manager:
+      type: object
+      properties:
+        resources:
+          type: object
+
+    scheduler:
+      type: object
+      properties:
+        resources:
+          type: object
+
     etcd:
       type: object
       properties:
@@ -123,6 +149,11 @@ data:
           type: integer
         resources:
           type: object
+        monitor:
+          type: object
+          properties:
+            resources:
+              type: object
       additionalProperties: false
 
     files:

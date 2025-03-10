@@ -21,6 +21,10 @@ spec:
 {% include "genesis-apiserver.yaml" with context %}
         - --etcd-servers=https://localhost:2379
         - --secure-port=6443
+{%- if config['Genesis:apiserver.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:apiserver.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
       volumeMounts:
         - name: config
           mountPath: /etc/kubernetes/apiserver

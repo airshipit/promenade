@@ -39,6 +39,7 @@ ENV/
 
 # vscode ide
 .vscode
+.devcontainer/
 
 # Unit test / coverage reports
 htmlcov/

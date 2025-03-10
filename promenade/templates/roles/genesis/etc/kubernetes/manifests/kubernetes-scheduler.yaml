@@ -26,6 +26,10 @@ spec:
       volumeMounts:
         - name: config
           mountPath: /etc/kubernetes/scheduler
+{%- if config['Genesis:scheduler.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:scheduler.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
   volumes:
     - name: config
       hostPath:

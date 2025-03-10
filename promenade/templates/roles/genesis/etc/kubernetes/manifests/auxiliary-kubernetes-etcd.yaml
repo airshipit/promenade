@@ -127,6 +127,10 @@ spec:
           value: /etc/etcd/pki/etcd-client.pem
         - name: ETCDCTL_KEY
           value: /etc/etcd/pki/etcd-client-key.pem
+{%- if config['Genesis:etcd.monitor.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:etcd.monitor.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
       volumeMounts:
         - name: all-etcd-data
           mountPath: /var/lib/etcd

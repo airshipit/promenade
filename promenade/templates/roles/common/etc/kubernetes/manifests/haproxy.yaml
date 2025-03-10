@@ -32,6 +32,10 @@ spec:
         - name: etc
           mountPath: /usr/local/etc/haproxy
           readOnly: true
+{%- if config['Genesis:haproxy.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:haproxy.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
   volumes:
     - name: etc
       hostPath:

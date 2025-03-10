@@ -62,6 +62,10 @@ spec:
         - name: no_proxy
           value: {{ config.get(kind='KubernetesNetwork') | fill_no_proxy }}
   {%- endif %}
+{%- if config['Genesis:armada.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:armada.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
       volumeMounts:
         - name: assets
           mountPath: /etc/genesis/armada/assets
@@ -111,6 +115,10 @@ spec:
         periodSeconds: 10
       securityContext:
         runAsUser: 0
+{%- if config['Genesis:armada.manager.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:armada.manager.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
       volumeMounts:
         - name: auth
           mountPath: /root/.kube
@@ -131,6 +139,10 @@ spec:
 
           rm -f /etc/kubernetes/manifests/bootstrap-armada.yaml
           sleep 10000
+{%- if config['Genesis:armada.monitor.resources'] is defined %}
+      resources:
+{{ config.get_path('Genesis:armada.monitor.resources', {}) | toyaml | trim | indent(8, true) }}
+{%- endif %}
       volumeMounts:
         - name: ipc
           mountPath: /ipc

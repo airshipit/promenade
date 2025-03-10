@@ -17,7 +17,7 @@ release_group: null
 images:
   tags:
     anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
-    controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.29.4
+    controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.32.1
   pull_policy: "IfNotPresent"
 
 labels:
