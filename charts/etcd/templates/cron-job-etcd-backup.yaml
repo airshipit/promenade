@@ -78,10 +78,11 @@ spec:
     metadata:
       labels:
 {{ tuple $envAll $applicationName "etcd-backup" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
-      annotations:
-{{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
     spec:
       template:
+        metadata:
+          annotations:
+{{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 12 }}
         spec:
 {{ dict "envAll" $envAll "application" "etcd-backup" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 10 }}
           serviceAccountName: {{ .Values.service.name }}-{{ $serviceAccountName }}
