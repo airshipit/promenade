@@ -47,7 +47,7 @@
     run:
       - tools/zuul/playbooks/deploy-promenade-containerd.yaml
     required-projects:
-      - openstack/openstack-helm-infra
+      - openstack/openstack-helm
     timeout: 9600
     nodeset: airship-promenade-single-node-jammy
     vars:
@@ -61,7 +61,7 @@
     timeout: 900
     nodeset: airship-promenade-single-node-jammy
     vars:
-      HTK_COMMIT: 962333df313e04a01923ca8394d2a44f2afbb714
+      HTK_COMMIT: 6b985e51be5e52011b88b408fe3265175ce8f47f
 
 - job:
     name: airship-promenade-chart-build-gate-latest-htk

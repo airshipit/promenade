@@ -109,9 +109,9 @@ data:
   values: {}
   source:
     type: git
-    location: https://opendev.org/openstack/openstack-helm-infra.git
+    location: https://opendev.org/openstack/openstack-helm.git
     subpath: helm-toolkit
-    reference: fa8916f5bcc8cbf064a387569e2630b7bbf0b49b
+    reference: 6b985e51be5e52011b88b408fe3265175ce8f47f
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -133,9 +133,9 @@ data:
   values: {}
   source:
     type: git
-    location: https://opendev.org/openstack/openstack-helm-infra.git
+    location: https://opendev.org/openstack/openstack-helm.git
     subpath: helm-toolkit
-    reference: fa8916f5bcc8cbf064a387569e2630b7bbf0b49b
+    reference: 6b985e51be5e52011b88b408fe3265175ce8f47f
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -533,8 +533,8 @@ data:
       service_calico_etcd: false
   source:
     type: git
-    location: https://opendev.org/openstack/openstack-helm-infra.git
-    reference: fa8916f5bcc8cbf064a387569e2630b7bbf0b49b
+    location: https://opendev.org/openstack/openstack-helm.git
+    reference: master
     subpath: calico
   dependencies:
     - infra-helm-toolkit
