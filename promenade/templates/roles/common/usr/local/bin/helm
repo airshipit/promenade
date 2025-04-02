@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 IMAGE_HELM="{{ config['HostSystem:images.helm.helm'] }}"
 
@@ -12,7 +12,47 @@ else
     WORKDIR=/up/$(basename "$(pwd)")
 fi
 
-exec docker run --rm \
+EXTRACT_VALUES=$(cat <<END
+import os,sys,yaml
+
+chart_name=sys.argv[1]
+manifests=sys.argv[2]
+tmp_values=sys.argv[3]
+
+default_release_prefix="clcp"
+release_prefix=""
+chart_data={}
+
+docs = yaml.safe_load_all(open(manifests, "r"))
+for x in docs:
+    if release_prefix == "" and x.get('schema', '') == 'armada/Manifest/v1':
+        release_prefix = x.get("data", {}).get("release_prefix", "clcp")
+    if x.get('schema', '') == 'armada/Chart/v1' and \
+      x.get('metadata', {}).get('name') == chart_name:
+        chart_data = x.get('data', {})
+
+if not release_prefix:
+    release_prefix = default_release_prefix
+
+release_name=f"{release_prefix}-{chart_name}"
+namespace=chart_data.get('namespace', '')
+chart_location=chart_data.get('source', {}).get('location', '')
+wait_time=chart_data.get('wait', {}).get('timeout', '300')
+values=chart_data.get('values', {})
+
+if release_name == '-' or not namespace or not chart_location or not values:
+  print("unable to extract values", file=sys.stderr)
+  sys.exit(1)
+
+with open(tmp_values, 'w') as outfile:
+    yaml.dump(values, outfile, default_flow_style=False)
+
+print(f"RELEASE_NAME={release_name};NAMESPACE={namespace};CHART_LOCATION={chart_location};WAIT_TIME={wait_time}s")
+END
+)
+
+run_helm() {
+  exec docker run --rm \
     --net host \
     -v "$UPDIR":/up \
     -v /etc/kubernetes/admin:/etc/kubernetes/admin \
@@ -20,3 +60,30 @@ exec docker run --rm \
     -e KUBECONFIG=/etc/kubernetes/admin/kubeconfig.yaml \
     "$IMAGE_HELM" \
         "$@"
+}
+
+if [[ $# -eq 3 ]] && \
+  { [[ $1 == "armadachart-install" ]] || [[ $1 == "armadachart-upgrade" ]]; }; then
+  CHART_NAME=$2
+  MANIFESTS=$3
+  RELEASE_NAME=""
+  NAMESPACE=""
+  CHART_LOCATION=""
+  WAIT_TIME=""
+
+  TEMP_DIR=$(mktemp -d)
+  UPDIR=$TEMP_DIR/..
+  WORKDIR=/up/$(basename "$TEMP_DIR")
+  trap 'rm -rf $TEMP_DIR' EXIT
+
+  output="$(python3 -c "$EXTRACT_VALUES" "$CHART_NAME" "$MANIFESTS" "$TEMP_DIR/values.yaml")"
+  eval "$output"
+
+  run_helm upgrade --install \
+    -n "$NAMESPACE" \
+    -f "values.yaml" \
+    --wait --timeout "$WAIT_TIME" \
+    "$RELEASE_NAME" "$CHART_LOCATION"
+else
+  run_helm "$@"
+fi
