@@ -532,9 +532,8 @@ data:
       job_image_repo_sync: false
       service_calico_etcd: false
   source:
-    type: git
-    location: https://opendev.org/openstack/openstack-helm.git
-    reference: master
+    type: local
+    location: /etc/genesis/armada/assets/charts
     subpath: calico
   dependencies:
     - infra-helm-toolkit
