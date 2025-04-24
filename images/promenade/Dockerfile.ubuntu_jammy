@@ -49,48 +49,54 @@ RUN set -ex \
     && apt update -qq \
     && apt upgrade -y \
     && apt-get install --no-install-recommends -y \
-        automake \
         ca-certificates \
         curl \
         dnsutils \
-        gcc \
-        git \
         gpg \
         gpg-agent \
-        libpcre3-dev \
-        libtool \
-        libpq-dev \
-        make \
         python3-dev \
-        python3-pip \
         python3-setuptools \
         rsync \
+        # this will install golang-cfssl 1.2.0 in Jammy
+        golang-cfssl \
     && ln -s /usr/bin/python3 /usr/bin/python \
-    && curl -Lo /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
-    && chmod 555 /usr/local/bin/cfssl \
-    && python3 -m pip install -U pip \
     && apt-get autoremove -yqq --purge \
     && apt-get clean \
     && useradd -u 1000 -g users -d /opt/promenade promenade \
     && rm -rf /var/lib/apt/lists/*
 
-# Install LibYAML
-ENV LD_LIBRARY_PATH=/usr/local/lib
-
-ARG LIBYAML_VERSION=0.2.5
-RUN set -ex \
-    && git clone https://github.com/yaml/libyaml.git \
-    && cd libyaml \
-    && git checkout $LIBYAML_VERSION \
-    && ./bootstrap \
-    && ./configure \
-    && make \
-    && make install \
-    && cd .. \
-    && rm -fr libyaml
-
 COPY requirements-frozen.txt /opt/promenade
-RUN pip3 install --no-cache-dir -r requirements-frozen.txt
+
+RUN set -ex \
+        && buildDeps=' \
+        automake \
+        gcc \
+        libpcre3-dev \
+        libffi-dev \
+        libpq-dev \
+        libssl-dev \
+        libtool \
+        libyaml-dev \
+        libvirt-dev \
+        make \
+        python3-pip \
+        pkg-config \
+        ' \
+        && apt-get -qq update \
+        # Keep git separate so it's not removed below
+        && apt-get install -y $buildDeps git --no-install-recommends \
+        && python3 -m pip install -U pip \
+        && pip3 install --no-cache-dir -r requirements-frozen.txt \
+        && apt-get purge -y --auto-remove $buildDeps \
+        && apt-get autoremove -yqq --purge \
+        && apt-get clean \
+        && rm -rf \
+            /var/lib/apt/lists/* \
+            /tmp/* \
+            /var/tmp/* \
+            /usr/share/man \
+            /usr/share/doc \
+            /usr/share/doc-base
 
 # Setting promenade version for BPR
 ENV PBR_VERSION 0.9.0
