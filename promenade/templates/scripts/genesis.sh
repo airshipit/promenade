@@ -35,6 +35,9 @@ register_labels {{ config['Genesis:hostname'] }} 3600 {{ config['Genesis:labels.
 set +x
 log
 log === Deploying bootstrap manifest via Armada ===
+{%- if config['Genesis:armada_helm_bootstrap'] is sameas true %}
+helm armadachart-install armada-bootstrap /etc/genesis/armada/assets/manifest.yaml
+{%- endif %}
 set -x
 
 {%- if config['Genesis:enable_operator'] is sameas true %}
@@ -59,6 +62,9 @@ while true; do
         {%- endif %}
     else
         log Armada bootstrap manifest deployed
+        {%- if config['Genesis:armada_helm_bootstrap'] is sameas true %}
+        kubectl label node {{ config['Genesis:hostname'] }} armada-bootstrap-
+        {%- endif %}
         break
     fi
 done

@@ -195,6 +195,9 @@ data:
     enable_operator:
       type: boolean
 
+    armada_helm_bootstrap:
+      type: boolean
+
     images:
       type: object
       properties:

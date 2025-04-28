@@ -38,6 +38,7 @@ data:
       etcdctl: ${IMAGE_ETCDCTL}
       scheduler: ${IMAGE_SCHEDULER}
   enable_operator: false
+  armada_helm_bootstrap: false
   files:
     - path: /var/lib/anchor/calico-etcd-bootstrap
       content: ""
