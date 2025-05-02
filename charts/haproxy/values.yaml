@@ -54,7 +54,7 @@ conf:
 
 images:
   tags:
-    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
     haproxy: haproxy:1.8.25
     test: python:3.6
   pull_policy: "IfNotPresent"

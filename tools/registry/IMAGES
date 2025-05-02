@@ -1,7 +1,7 @@
 # source_name, tag, cache_name
 coredns/coredns,1.11.1,coredns
-quay.io/airshipit/porthole-compute-utility,latest-ubuntu_focal,kubectl
-quay.io/airshipit/porthole-etcdctl-utility,latest-ubuntu_focal
+quay.io/airshipit/porthole-compute-utility,latest-ubuntu_jammy,kubectl
+quay.io/airshipit/porthole-etcdctl-utility,latest-ubuntu_jammy
 registry.k8s.io/kube-apiserver-amd64,v1.32.1,apiserver
 registry.k8s.io/kube-controller-manager-amd64,v1.32.1,controller-manager
 registry.k8s.io/kube-scheduler-amd64,v1.32.1,scheduler

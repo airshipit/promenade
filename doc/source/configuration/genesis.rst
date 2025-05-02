@@ -46,7 +46,7 @@ Here is a complete sample document:
           apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
           controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.32.1
           etcd: quay.io/coreos/etcd:v3.5.12
-          etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
+          etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
           scheduler: registry.k8s.io/kube-scheduler-amd64:v1.32.1
       files:
         - path: /var/lib/anchor/calico-etcd-bootstrap

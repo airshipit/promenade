@@ -364,7 +364,7 @@ data:
     images:
       tags:
         etcd: quay.io/coreos/etcd:v3.5.12
-        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
+        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
     nodes:
       - name: n0
         tls:
@@ -525,7 +525,7 @@ data:
         calico_ctl: quay.io/calico/ctl:v3.4.0
         calico_settings: quay.io/calico/ctl:v3.4.0
         calico_kube_controllers: quay.io/calico/kube-controllers:v3.4.0
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
 
     manifests:
       daemonset_calico_etcd: false
@@ -625,7 +625,7 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         haproxy: haproxy:2.4
         test: python:3.6
 
@@ -733,7 +733,7 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
     network:
       kubernetes_service_ip: 10.96.0.1
@@ -799,7 +799,7 @@ data:
   values:
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.32.1
     secrets:
       service_account:
@@ -873,7 +873,7 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         scheduler: registry.k8s.io/kube-scheduler-amd64:v1.32.1
 
   source:
@@ -1071,7 +1071,7 @@ data:
     images:
       tags:
         etcd: quay.io/coreos/etcd:v3.5.12
-        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
+        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
     nodes:
       - name: n0
         tls:

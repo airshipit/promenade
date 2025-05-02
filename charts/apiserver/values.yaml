@@ -57,10 +57,10 @@ const:
 
 images:
   tags:
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
     apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
-    key_rotate: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+    key_rotate: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
   pull_policy: "IfNotPresent"
   local_registry:
     active: false

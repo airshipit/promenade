@@ -100,7 +100,7 @@ VALID_DOCS = [
             'hostname':
             'n0',
             'images': {
-                'armada': 'quay.io/airshipit/armada:latest-ubuntu_focal',
+                'armada': 'quay.io/airshipit/armada:latest-ubuntu_jammy',
                 'armada-operator': 'quay.io/airshipit/armada-operator:latest',
                 'kubernetes': {
                     'apiserver':

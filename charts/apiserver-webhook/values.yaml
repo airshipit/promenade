@@ -19,10 +19,10 @@ images:
   tags:
     apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
     kubernetes_keystone_webhook: docker.io/k8scloudprovider/k8s-keystone-auth:latest
-    scripted_test: docker.io/openstackhelm/heat:newton
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-    image_repo_sync: docker.io/docker:17.07.0
-    ks_user: docker.io/openstackhelm/heat:ocata
+    scripted_test: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+    image_repo_sync: quay.io/airshipit/docker:27.5.0
+    ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
   pull_policy: IfNotPresent
   local_registry:
     active: false

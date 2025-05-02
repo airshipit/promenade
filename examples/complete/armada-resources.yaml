@@ -401,7 +401,7 @@ data:
     images:
       tags:
         etcd: quay.io/coreos/etcd:v3.5.12
-        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
+        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
     nodes:
       - name: n0
         tls:
@@ -545,7 +545,7 @@ data:
         calico_cni: quay.io/calico/cni:v3.4.0
         calico_ctl: quay.io/calico/ctl:v3.4.0
         calico_settings: quay.io/calico/ctl:v3.4.0
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
 
     manifests:
       daemonset_calico_etcd: false
@@ -641,7 +641,7 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         haproxy: haproxy:2.4
         test: python:3.6
 
@@ -734,7 +734,7 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
     secrets:
       service_account:
@@ -811,7 +811,7 @@ data:
   values:
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.32.1
     secrets:
       service_account:
@@ -884,7 +884,7 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
         scheduler: registry.k8s.io/kube-scheduler-amd64:v1.32.1
 
   source:
@@ -1082,7 +1082,7 @@ data:
     images:
       tags:
         etcd: quay.io/coreos/etcd:v3.5.12
-        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_focal
+        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
     nodes:
       - name: n0
         tls:
@@ -1231,15 +1231,15 @@ data:
 
     images:
       tags:
-        ceph_bootstrap: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
-        ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
-        ceph_daemon: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
+        ceph_bootstrap: docker.io/openstackhelm/ceph-daemon:ubuntu_jammy_19.2.2-1-20250414
+        ceph_config_helper: docker.io/openstackhelm/ceph-config-helper:ubuntu_jammy_19.2.2-1-20250414
+        ceph_daemon: docker.io/openstackhelm/ceph-daemon:ubuntu_jammy_19.2.2-1-20250414
         ceph_rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
         ceph_cephfs_provisioner: quay.io/external_storage/cephfs-provisioner:v0.1.1
-        dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1276,14 +1276,14 @@ data:
   values:
     images:
       tags:
-        ceph_bootstrap: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
-        ceph_config_helper: docker.io/port/ceph-config-helper:v1.7.5
-        ceph_daemon: docker.io/ceph/daemon:tag-build-master-luminous-ubuntu-16.04
+        ceph_bootstrap: docker.io/openstackhelm/ceph-daemon:ubuntu_jammy_19.2.2-1-20250414
+        ceph_config_helper: docker.io/openstackhelm/ceph-config-helper:ubuntu_jammy_19.2.2-1-20250414
+        ceph_daemon: docker.io/openstackhelm/ceph-daemon:ubuntu_jammy_19.2.2-1-20250414
         ceph_rbd_provisioner: quay.io/external_storage/rbd-provisioner:v0.1.1
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
     labels:
       job:
         node_selector_key: ucp-control-plane
@@ -1331,8 +1331,8 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        mariadb: docker.io/mariadb:10.1.23
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        mariadb: quay.io/airshipit/mariadb:latest-ubuntu_jammy
     labels:
       server:
         node_selector_key: ucp-control-plane
@@ -1365,8 +1365,8 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        memcached: docker.io/memcached:1.5.5
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        memcached: quay.io/airshipit/memcached:1.6.32
     labels:
       server:
         node_selector_key: ucp-control-plane
@@ -1410,20 +1410,20 @@ data:
         override:
     images:
       tags:
-        bootstrap: docker.io/openstackhelm/heat:newton
+        bootstrap: quay.io/airshipit/heat:2024.1-ubuntu_jammy
         test: docker.io/kolla/ubuntu-source-rally:4.0.0
-        db_init: docker.io/openstackhelm/heat:newton
-        keystone_db_sync: docker.io/openstackhelm/keystone:newton
-        db_drop: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
-        rabbit_init: docker.io/rabbitmq:3.7.3-management
-        keystone_fernet_setup: docker.io/openstackhelm/keystone:newton
-        keystone_fernet_rotate: docker.io/openstackhelm/keystone:newton
-        keystone_credential_setup: docker.io/openstackhelm/keystone:newton
-        keystone_credential_rotate: docker.io/openstackhelm/keystone:newton
-        keystone_api: docker.io/openstackhelm/keystone:newton
-        keystone_domain_manage: docker.io/openstackhelm/keystone:newton
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+        db_init: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        keystone_db_sync: quay.io/airshipit/keystone:2024.1-ubuntu_jammy
+        db_drop: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        rabbit_init: quay.io/airshipit/rabbitmq:3.10.18-management
+        keystone_fernet_setup: quay.io/airshipit/keystone:2024.1-ubuntu_jammy
+        keystone_fernet_rotate: quay.io/airshipit/keystone:2024.1-ubuntu_jammy
+        keystone_credential_setup: quay.io/airshipit/keystone:2024.1-ubuntu_jammy
+        keystone_credential_rotate: quay.io/airshipit/keystone:2024.1-ubuntu_jammy
+        keystone_api: quay.io/airshipit/keystone:2024.1-ubuntu_jammy
+        keystone_domain_manage: quay.io/airshipit/keystone:2024.1-ubuntu_jammy
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
     pod:
       replicas:
         api: 1
@@ -1467,8 +1467,8 @@ data:
         node_selector_value: enabled
     images:
       tags:
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        postgresql: docker.io/postgres:9.5
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        postgresql: quay.io/airshipit/postgres:14.8
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1506,9 +1506,9 @@ data:
     images:
       tags:
         bootstrap: sthussey/maas-region-controller:2.3_patchv4
-        db_init: docker.io/postgres:9.5
+        db_init: quay.io/airshipit/postgres:14.8
         db_sync: sthussey/maas-region-controller:2.3_patchv4
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
         export_api_key: sthussey/maas-region-controller:2.3_patchv4
         maas_rack: sthussey/maas-rack-controller:2.3
         maas_region: sthussey/maas-region-controller:2.3_patchv4
@@ -1572,10 +1572,10 @@ data:
   values:
     images:
       tags:
-        prometheus_rabbitmq_exporter: docker.io/kbudde/rabbitmq-exporter:v0.21.0
-        prometheus_rabbitmq_exporter_helm_tests: docker.io/openstackhelm/heat:newton
-        rabbitmq: docker.io/rabbitmq:3.7.3
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+        prometheus_rabbitmq_exporter: docker.io/kbudde/rabbitmq-exporter:v1.0.0-RC7.1
+        prometheus_rabbitmq_exporter_helm_tests: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        rabbitmq: quay.io/airshipit/rabbitmq:3.10.18
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
     pod:
       replicas:
         server: 1
@@ -1618,17 +1618,17 @@ data:
         node_selector_value: enabled
     images:
       tags:
-        bootstrap: docker.io/openstackhelm/heat:newton
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        scripted_test: docker.io/openstackhelm/heat:newton
-        db_init: docker.io/openstackhelm/heat:newton
-        barbican_db_sync: docker.io/openstackhelm/barbican:newton
-        db_drop: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        barbican_api: docker.io/openstackhelm/barbican:newton
-        rabbit_init: docker.io/rabbitmq:3.7.3-management
+        bootstrap: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        scripted_test: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        db_init: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        barbican_db_sync: quay.io/airshipit/barbican:2024.1-ubuntu_jammy
+        db_drop: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        barbican_api: quay.io/airshipit/barbican:2024.1-ubuntu_jammy
+        rabbit_init: quay.io/airshipit/rabbitmq:3.10.18-management
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
@@ -1661,11 +1661,11 @@ data:
         node_selector_value: enabled
     images:
       tags:
-        entrypoint: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+        entrypoint: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
         # https://github.com/kubernetes/ingress-nginx/blob/09524cd3363693463da5bf4a9bb3900da435ad05/Changelog.md#090
         ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0
         error_pages: registry.k8s.io/defaultbackend:1.0
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
   source:
     type: git
     location: https://github.com/openstack/openstack-helm
@@ -1695,13 +1695,13 @@ data:
             password: sergtsop
     images:
       tags:
-        deckhand: quay.io/airshipit/deckhand:latest-ubuntu_focal
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        db_init: docker.io/postgres:9.5
-        db_sync: docker.io/postgres:9.5
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
+        deckhand: quay.io/airshipit/deckhand:latest-ubuntu_jammy
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        db_init: quay.io/airshipit/postgres:14.8
+        db_sync: quay.io/airshipit/postgres:14.8
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
@@ -1736,13 +1736,13 @@ data:
   values:
     images:
       tags:
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
         drydock: quay.io/airshipit/drydock:master
-        drydock_db_init: docker.io/postgres:9.5
+        drydock_db_init: quay.io/airshipit/postgres:14.8
         drydock_db_sync: quay.io/airshipit/drydock:master
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
@@ -1799,9 +1799,9 @@ data:
             value: '1'
     images:
       tags:
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
         promenade: quay.io/airshipit/promenade:master
   upgrade:
     no_hooks: true
@@ -1827,12 +1827,12 @@ data:
   values:
     images:
       tags:
-        api: quay.io/airshipit/armada:latest-ubuntu_focal
+        api: quay.io/airshipit/armada:latest-ubuntu_jammy
         operator: quay.io/airshipit/armada-operator:latest
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        ks_endpoints: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_user: docker.io/openstackhelm/heat:newton
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
@@ -1876,16 +1876,16 @@ data:
     prod_environment: true
     images:
       tags:
-        airflow: quay.io/airshipit/airflow:master
-        shipyard: quay.io/airshipit/shipyard:master
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
-        shipyard_db_init: docker.io/postgres:9.5
-        shipyard_db_sync: quay.io/airshipit/shipyard:master
-        airflow_db_init: docker.io/postgres:9.5
-        airflow_db_sync: quay.io/airshipit/airflow:master
-        ks_user: docker.io/openstackhelm/heat:newton
-        ks_service: docker.io/openstackhelm/heat:newton
-        ks_endpoints: docker.io/openstackhelm/heat:newton
+        airflow: quay.io/airshipit/airflow:latest-ubuntu_jammy
+        shipyard: quay.io/airshipit/shipyard:latest-ubuntu_jammy
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        shipyard_db_init: quay.io/airshipit/postgres:14.8
+        shipyard_db_sync: quay.io/airshipit/shipyard:latest-ubuntu_jammy
+        airflow_db_init: quay.io/airshipit/postgres:14.8
+        airflow_db_sync: quay.io/airshipit/airflow:latest-ubuntu_jammy
+        ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+        ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
     labels:
       node_selector_key: ucp-control-plane
       node_selector_value: enabled
