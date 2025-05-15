@@ -1,0 +1,7 @@
+{%- if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') and 'kubernetes-apiserver=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}---
+kind: AdmissionConfiguration
+apiVersion: apiserver.k8s.io/v1alpha1
+plugins:
+  - name: EventRateLimit
+    path: eventconfig.yaml
+{%- endif %}

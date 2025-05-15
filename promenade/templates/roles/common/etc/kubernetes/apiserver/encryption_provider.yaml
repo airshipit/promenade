@@ -1,0 +1,6 @@
+{%- if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') and 'kubernetes-apiserver=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}---
+kind: EncryptionConfiguration
+apiVersion: apiserver.config.k8s.io/v1
+resources:
+{{ config.get_path('EncryptionPolicy:etcd', {}) | toyaml | indent(2, true) }}
+{%- endif %}

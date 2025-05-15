@@ -1,3 +1,1 @@
-{%- if 'kubeadm-enabled=true' not in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}
-{% include "kubelet-config.yaml" with context %}
-{%- endif %}
+{%- if 'kubeadm=enabled' not in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}{% include "kubelet-config.yaml" with context %}{%- endif %}

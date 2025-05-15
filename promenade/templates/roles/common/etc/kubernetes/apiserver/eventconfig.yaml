@@ -1,0 +1,8 @@
+{%- if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') and 'kubernetes-apiserver=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}---
+kind: Configuration
+apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+limits:
+  - type: Server
+    qps: 1000 # reduce to 100
+    burst: 10000 # reduce to 1000
+{%- endif %}

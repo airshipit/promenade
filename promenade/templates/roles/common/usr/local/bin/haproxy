@@ -1,17 +1,19 @@
 #!/bin/bash
 
-set -exuo pipefail
+set -euo pipefail
 
 IMAGE_HAPROXY="{{ config['HostSystem:images.haproxy'] }}"
 
 while true; do
-    if systemctl is-active kubelet && [[ -e /etc/kubernetes/manifests/haproxy.yaml ]]; then
+    if systemctl -q is-active kubelet && [[ -e /etc/kubernetes/manifests/haproxy.yaml ]]; then
         if docker ps | grep -q haproxy; then
+          echo "Stopping auxiliary haproxy..."
           docker stop -t 10 haproxy
         fi
         break
     else
         if ! docker ps | grep -q haproxy; then
+          echo "Starting auxiliary haproxy..."
           docker run --rm -d --net host -v /etc/promenade/haproxy:/usr/local/etc/haproxy:ro \
                 --name haproxy "$IMAGE_HAPROXY"
         fi

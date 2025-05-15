@@ -17,7 +17,8 @@
 set -x
 
 HELM=$1
-HELM_ARTIFACT_URL=${HELM_ARTIFACT_URL:-"https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz"}
+OS=$(uname -s | awk '{print tolower($0)}')
+HELM_ARTIFACT_URL=${HELM_ARTIFACT_URL:-"https://get.helm.sh/helm-v3.17.3-$OS-amd64.tar.gz"}
 
 
 function install_helm_binary {
@@ -33,7 +34,7 @@ function install_helm_binary {
     curl -o "${TMP_DIR}/helm.tar.gz" "${HELM_ARTIFACT_URL}"
     cd ${TMP_DIR}
     tar -xvzf helm.tar.gz
-    cp "${TMP_DIR}/linux-amd64/helm" "${HELM}"
+    cp "${TMP_DIR}/$OS-amd64/helm" "${HELM}"
   else
     echo "Cannot write to ${HELM}"
     exit -1

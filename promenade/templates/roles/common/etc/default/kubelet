@@ -1,6 +1,17 @@
-{%- if 'kubeadm-enabled=true' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}
-KUBELET_EXTRA_ARGS=""
-{%- else %}
+# Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 KUBELET_EXTRA_ARGS="
 --hostname-override={{ config.get_first('Genesis:hostname', 'KubernetesNode:hostname') }}
 --node-ip={{ config.get_first('Genesis:ip', 'KubernetesNode:ip') }}
@@ -9,10 +20,15 @@ KUBELET_EXTRA_ARGS="
 {%- elif config['KubernetesNode:labels.static'] is defined %}
 --node-labels={{ config['KubernetesNode:labels.static'] | join(',') }}
 {%- endif %}
+{%- if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}
+{%- for argument in config.get(schema='armada/Chart/v1', name='kubernetes-kubeadm', jsonpath='values.kubelet.arguments', default=[]) %}
+{{ argument }}
+{%- endfor %}
+{%- else %}
 {%- if config['Kubelet:arguments'] is defined %}
 {%- for argument in config['Kubelet:arguments'] %}
 {{ argument }}
 {%- endfor %}
 {%- endif %}
-"
 {%- endif %}
+"

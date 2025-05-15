@@ -1,0 +1,484 @@
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+release_group: null
+
+kubernetes:
+  version: v1.33.3
+
+host_dir: "/host"
+
+kubeconfig:
+  cluster_name: kubernetes
+  cluster_ip: "127.0.0.1"
+  cluster_port: 6553
+  configs:
+    admin:
+      path: /etc/kubernetes/admin.conf
+      ca: /etc/kubernetes/admin/pki/cluster-ca.pem
+      client_cert: /etc/kubernetes/admin/pki/admin.pem
+      client_key: /etc/kubernetes/admin/pki/admin-key.pem
+    controller-manager:
+      path: /etc/kubernetes/controller-manager.conf
+      ca: pki/ca.crt
+      client_cert: pki/controller-manager.pem
+      client_key: pki/controller-manager-key.pem
+    kubelet:
+      path: /etc/kubernetes/kubelet.conf
+      ca: /etc/kubernetes/pki/kubelet-client-ca.pem
+      client_cert: /etc/kubernetes/pki/kubelet.pem
+      client_key: /etc/kubernetes/pki/kubelet-key.pem
+    scheduler:
+      path: /etc/kubernetes/scheduler.conf
+      ca: pki/ca.crt
+      client_cert: pki/scheduler.pem
+      client_key: pki/scheduler-key.pem
+
+# NOTE(mark-burnett): These values are not really configurable -- they live
+# here to keep the templates cleaner.
+const:
+
+  files_to_copy: {}
+    # NOTE(mark-burnett): These are (host dest): (container source) pairs
+
+  files_to_delete:
+    - /etc/kubernetes/manifests/kubernetes-apiserver.yaml
+    - /etc/kubernetes/manifests/kubernetes-controller-manager.yaml
+    - /etc/kubernetes/manifests/kubernetes-scheduler.yaml
+    - /etc/kubernetes/kubelet
+    - /etc/kubernetes/controller-manager
+    - /etc/kubernetes/scheduler
+    - /etc/kubernetes/apiserver/apiserver-proxy-cert.pem
+    - /etc/kubernetes/apiserver/apiserver-proxy-key.pem
+    - /etc/kubernetes/apiserver/agg-api-ca.pem
+    - /etc/kubernetes/apiserver/kubeconfig
+    - /etc/kubernetes/apiserver/pki
+    - /etc/kubernetes/kubeconfig
+    - /etc/kubernetes/pki/cluster-ca.pem
+    - /opt/kubernetes/bin/kubelet
+
+images:
+  tags:
+    dep_check: docker-open-nc.zc1.cti.att.com/airship/kubernetes-entrypoint@sha256:9c43e6965e8cdac750c256cbf161d8ab6549d6f7e4fbf08d73d2de78174e2e94
+    anchor: docker-open-nc.zc1.cti.att.com/airship/porthole/kubeadm-utility@sha256:fec3c6ed2834fc5cf88c031a4e3705286ff33c1d917c578c3c02ccbb81d0a36c
+    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
+    key_rotate: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
+  pull_policy: "IfNotPresent"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
+
+labels:
+  common:
+    node_selector_key: kubeadm
+    node_selector_value: enabled
+  masters:
+    node_selector_key: kubernetes-apiserver
+    node_selector_value: enabled
+  etcd:
+    node_selector_key: kubernetes-etcd
+    node_selector_value: enabled
+  job:
+    node_selector_key: kubelet-restart
+    node_selector_value: true
+
+anchor:
+  dns_policy: Default
+  enable_cleanup: true
+  kubelet:
+    manifest_path: /etc/kubernetes/manifests
+  period: 15
+
+# TODO(sh8121att): Add dynamic rendering of the admission controller list allowing a base list
+# and each conf entry to enable additional AC plugins
+conf: {}
+
+kubeadm:
+  cluster_config:
+    apiVersion: kubeadm.k8s.io/v1beta4
+    kind: ClusterConfiguration
+
+
+  join_config:
+    skip_phases:
+      - preflight
+      - control-plane-prepare/download-certs
+      - control-plane-prepare/certs
+      - control-plane-prepare/kubeconfig
+      - kubelet-start
+      - control-plane-join
+      - wait-control-plane
+
+  upgrade_config:
+    skip_phases:
+      - kubelet-config
+      - addon
+
+  patches:
+    kube-apiserver.yaml:
+      spec:
+        containers:
+          - name: kube-apiserver
+            resources:
+              limits:
+                cpu: '8'
+                memory: 8Gi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+    kube-controller-manager.yaml:
+      spec:
+        containers:
+          - name: kube-controller-manager
+            resources:
+              limits:
+                cpu: '8'
+                memory: 8Gi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+    kube-scheduler.yaml:
+      spec:
+        containers:
+          - name: kube-scheduler
+            resources:
+              limits:
+                cpu: '8'
+                memory: 8Gi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+
+etcd:
+  external:
+    endpoints:
+      - "https://172.29.0.11:2379"
+      - "https://172.29.0.12:2379"
+      - "https://172.29.0.17:2379"
+    caFile: "/etc/kubernetes/pki/etcd/ca.crt"
+    certFile: "/etc/kubernetes/pki/etcd/healthcheck-client.crt"
+    keyFile: "/etc/kubernetes/pki/etcd/healthcheck-client.key"
+
+apiserver:
+  extraArgs:
+    - name: admission-control-config-file
+      value: "/etc/kubernetes/apiserver/acconfig.yaml"
+    - name: anonymous-auth
+      value: "true"
+    - name: audit-log-maxbackup
+      value: "10"
+    - name: audit-log-maxsize
+      value: "100"
+    - name: audit-log-path
+      value: "/var/log/kubernetes/apiserver/kube-apiserver-audit.log"
+    - name: audit-policy-file
+      value: "/etc/kubernetes/apiserver/audit-policy.yaml"
+    - name: bind-address
+      value: "0.0.0.0"
+    - name: enable-admission-plugins
+      value: "PodSecurity,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit"
+    - name: encryption-provider-config
+      value: "/etc/kubernetes/apiserver/encryption_provider.yaml"
+    - name: kubelet-certificate-authority
+      value: "/etc/kubernetes/pki/ca.crt"
+    - name: requestheader-allowed-names
+      value: "aggregator"
+    - name: service-node-port-range
+      value: "30000-32767"
+    - name: tls-cipher-suites
+      value: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
+    - name: tls-min-version
+      value: "VersionTLS12"
+    - name: v
+      value: "2"
+  extraVolumes:
+    - hostPath: "/etc/kubernetes/apiserver"
+      mountPath: "/etc/kubernetes/apiserver"
+      name: apiserver
+      pathType: DirectoryOrCreate
+    - hostPath: "/var/log/kubernetes/apiserver"
+      mountPath: "/var/log/kubernetes/apiserver"
+      name: audit-logs
+      pathType: DirectoryOrCreate
+  etcd:
+    endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
+  host_etc_path: /etc/kubernetes/apiserver
+  config_files: {}
+  logging:
+    # Which messages to log.
+    # Valid values include any number from 0 to 9.
+    # Default 5(Trace level verbosity).
+    log_level: 5
+#XXX another possible configuration
+#  tls:
+#    tls-cipher-suites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
+#    # https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+#    #Possible values: VersionTLS10, VersionTLS11, VersionTLS12
+#    tls-min-version: 'VersionTLS12'
+
+kubelet:
+  arguments:
+    - --maximum-dead-containers-per-container=1
+  config:
+    apiVersion: kubelet.config.k8s.io/v1beta1
+    kind: KubeletConfiguration
+  restart: true
+  config_file_overrides:
+    cgroupDriver: systemd
+    cgroupRoot: /kube_whitelist
+    containerLogMaxFiles: 2
+    containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+    eventRecordQPS: 50
+    evictionMaxPodGracePeriod: -1
+    kubeAPIBurst: 40
+    kubeAPIQPS: 20
+    maxPods: 250
+    nodeStatusUpdateFrequency: 5s
+    podPidsLimit: 10000
+    podsPerCore: 10
+    readOnlyPort: 0
+    runtimeRequestTimeout: 15m
+    seccompDefault: true
+    tlsCipherSuites:
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+      - TLS_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_RSA_WITH_AES_128_CBC_SHA
+      - TLS_RSA_WITH_AES_256_CBC_SHA
+
+  files_to_copy:
+    /etc/default/kubelet: /tmp/kubelet/kubelet-defaults
+    /etc/systemd/system/kubelet.service: /tmp/kubelet/kubelet-service
+    /var/lib/kubelet/config: /tmp/kubelet/kubelet-config
+
+network:
+  dns:
+    service_ip: "10.96.0.10"
+    cluster_domain: "cluster.local"
+  kubernetes_apiserver:
+    ingress:
+      public: true
+      classes:
+        namespace: "nginx-cluster"
+        cluster: "nginx-cluster"
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/secure-backends: "true"
+    name: kubernetes-apiserver
+    port: 6443
+    node_port:
+      enabled: false
+      port: 31943
+
+service:
+  name: kubeadm-service
+  ip: null
+
+secrets:
+  ca:
+    crt: placeholder
+    key: placeholder
+
+  sa:
+    key: placeholder
+    pub: placeholder
+
+  front_proxy_ca:
+    crt: placeholder
+    key: placeholder
+
+  front_proxy_client:
+    crt: placeholder
+    key: placeholder
+
+  apiserver:
+    crt: placeholder
+    key: placeholder
+    etcd_client:
+      crt: placeholder
+      key: placeholder
+    kubelet_client:
+      crt: placeholder
+      key: placeholder
+
+  controller_manager:
+    crt: placeholder
+    key: placeholder
+
+  scheduler:
+    crt: placeholder
+    key: placeholder
+
+  etcd:
+    ca:
+      crt: placeholder
+    healthcheck_client:
+      crt: placeholder
+      key: placeholder
+
+  kubelet: {}
+
+# typically overriden by environmental
+# values, but should include all endpoints
+# required by this chart
+endpoints:
+  cluster_domain_suffix: cluster.local
+  kubernetes_apiserver:
+    name: kubernetes-apiserver
+    hosts:
+      default: kubernetes-apiserver
+    port:
+      https:
+        default: 6443
+        public: 443
+    path:
+      default: /
+    scheme:
+      default: https
+      public: https
+    host_fqdn_override:
+      default: null
+      # NOTE: this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
+
+pod:
+  mandatory_access_control:
+    type: apparmor
+    kubernetes_apiserver_anchor:
+      anchor: runtime/default
+    kube-apiserver:
+      init: runtime/default
+      apiserver-key-rotate: runtime/default
+    apiserver:
+      apiserver: runtime/default
+  security_context:
+    kubernetes_apiserver_anchor:
+      pod:
+        runAsUser: 65534
+      container:
+        anchor:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
+    key_rotate:
+      pod:
+        runAsUser: 65534
+      container:
+        apiserver_key_rotate:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
+    apiserver:
+      pod:
+        runAsUser: 65534
+      container:
+        apiserver:
+          runAsUser: 0
+          readOnlyRootFilesystem: false
+  mounts:
+    # .pod.mounts.kubernetes_apiserver is for the anchor daemonset
+    kubernetes_apiserver:
+      init_container: null
+      kubernetes_apiserver:
+    # .pod.mounts.apiserver is for the apiserver static pod
+    apiserver:
+      apiserver:
+# Example mounts for audit logging, refer to .conf.auditpolicy above.
+#        volumeMounts:
+#          - name: audit-logs
+#            mountPath: /var/log/audit
+#            mountPropagation: HostToContainer
+#            readOnly: false
+#        volumes:
+#          - name: audit-logs
+#            hostPath:
+#              path: /var/log/audit
+#              type: DirectoryOrCreate
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        kubernetes-apiserver-anchor:
+          enabled: false
+          min_ready_seconds: 0
+          max_unavailable: 1
+    termination_grace_period:
+      kubernetes_apiserver:
+        timeout: 3600
+  resources:
+    enabled: true
+    anchor_pod:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    key_rotate:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    kubernetes_apiserver:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+  probes:
+    apiserver:
+      apiserver:
+        liveness:
+          enabled: true
+          params:
+            failureThreshold: 3
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+        readiness:
+          enabled: true
+          params:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+  env:
+    apiserver:
+
+manifests:
+  configmap_apiserver_misc: true
+  configmap_bin: true
+  configmap_certs: true
+  configmap_kubeconfig: true
+  configmap_jobs: true
+  configmap_kubelet: true
+  configmap_kubeadm: true
+  configmap_patches: true
+  daemonset_masters: true
+  daemonset_workers: true
+  rbac: true

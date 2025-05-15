@@ -187,7 +187,9 @@ function register_annotations {
     NODE=$1
     SEC=$2
     shift 2
+
     ANNOTATIONS="$@"
+
     end=$(($(date +%s) + $SEC))
     while true; do
         if kubectl annotate node --overwrite $NODE $ANNOTATIONS ; then

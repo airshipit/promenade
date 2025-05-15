@@ -17,8 +17,6 @@ trap delete_kubectl EXIT
 
 {% include "up.sh" with context %}
 
-haproxy &
-
 set +x
 log
 log === Waiting for Node to be Ready ===
@@ -34,6 +32,7 @@ register_labels {{ config['KubernetesNode:hostname'] }} 3600 {{ config['Kubernet
 {%- endif %}
 
 sleep 60
+wait $(jobs -p)
 
 set +x
 log

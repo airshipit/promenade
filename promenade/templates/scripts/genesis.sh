@@ -4,7 +4,14 @@
 
 {% include "up.sh" with context %}
 
-haproxy &
+{%- if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}
+set +x
+log
+log === Bootstrapping node using kubeadm ===
+set -x
+kubeadm init --config /etc/kubernetes/kubeadm/init-config.yaml --v=5 2>&1 | tee /var/log/kubeadm.log
+register_annotations {{ config['Genesis:hostname'] }} 3600 "kubeadm.alpha.kubernetes.io/cri-socket={{ config.get(schema='armada/Chart/v1', name='kubernetes-kubeadm', jsonpath='values.kubelet.config.containerRuntimeEndpoint') }}"
+{%- endif %}
 
 mkdir -p /var/log/armada
 touch /var/log/armada/bootstrap-armada.log
@@ -38,7 +45,7 @@ set +x
 log
 log === Deploying bootstrap manifest via Armada ===
 if [[ ! -e /etc/kubernetes/manifests/bootstrap-armada.yaml ]]; then
-touch /etc/kubernetes/manifests/bootstrap-armada.yaml
+  touch /etc/kubernetes/manifests/bootstrap-armada.yaml
 fi
 {%- if config['Genesis:armada_helm_bootstrap'] is sameas true %}
 helm armadachart-install armada-bootstrap /etc/genesis/armada/assets/manifest.yaml
@@ -73,19 +80,14 @@ while true; do
         break
     fi
 done
-set -x
 
-# Terminate background job (tear down exit trap?)
-kill %1
-{%- if config['Genesis:enable_operator'] is sameas true %}
-kill %2
-{%- endif %}
-
-set +x
 log
 log === Waiting for Node to be Ready ===
 set -x
 wait_for_node_ready {{ config['Genesis:hostname'] }} 3600
+
+# Terminate background job (tear down exit trap?)
+kill $(jobs -p)
 
 {% include "cleanup.sh" with context %}
 

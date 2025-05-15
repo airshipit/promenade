@@ -1,0 +1,3 @@
+{% if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') -%}
+{{- config.get(schema='armada/Chart/v1', name='kubernetes-kubeadm', jsonpath='values.kubelet.config') | toyaml | trim }}
+{% endif -%}
