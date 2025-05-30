@@ -32,6 +32,9 @@ data:
     domain:
       type: string
 
+    role:
+      type: string
+
     join_ip:
       $ref: '#/definitions/ip_address'
 

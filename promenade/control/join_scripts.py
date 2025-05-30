@@ -14,6 +14,7 @@
 
 import falcon
 import kubernetes
+import re
 
 from promenade.control.base import BaseResource
 from promenade.builder import Builder
@@ -48,6 +49,7 @@ class JoinScriptsResource(BaseResource):
         static_labels = _get_param_list(req, 'labels.static')
 
         join_ips = _get_join_ips()
+        role = _get_role(hostname)
 
         try:
             config = Configuration.from_design_ref(
@@ -78,6 +80,7 @@ class JoinScriptsResource(BaseResource):
                 'ip': ip,
                 'external_ip': external_ip,
                 'join_ips': join_ips,
+                'role': role,
                 'labels': {
                     'dynamic': dynamic_labels,
                     'static': static_labels,
@@ -101,6 +104,14 @@ def _get_join_ips():
     response = client.list_node(label_selector='kubernetes-apiserver=enabled')
 
     return list(map(_extract_ip, response.items))
+
+
+def _get_role(hostname):
+    pattern = re.compile(r'^[a-z]{3}\d{2}r\d{2}(?P<role>[co])\d{3}$')
+    m = pattern.match(hostname)
+    if not m:
+        return "unknown"
+    return "controller" if m.group("role") == "o" else "worker"
 
 
 def _extract_ip(item):
