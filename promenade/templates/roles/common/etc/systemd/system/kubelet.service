@@ -4,22 +4,19 @@ Requires=network-online.target
 After=network-online.target containerd.service
 
 [Service]
-ExecStart=/opt/kubernetes/bin/kubelet \
-    --config=/etc/kubernetes/kubelet/config.yaml \
-    --hostname-override={{ config.get_first('Genesis:hostname', 'KubernetesNode:hostname') }} \
-    --kubeconfig=/etc/kubernetes/kubeconfig \
-    --node-ip={{ config.get_first('Genesis:ip', 'KubernetesNode:ip') }} \
-    {%- if config['Genesis:labels.static'] is defined %}
-    --node-labels={{ config['Genesis:labels.static'] | join(',') }} \
-    {%- elif config['KubernetesNode:labels.static'] is defined %}
-    --node-labels={{ config['KubernetesNode:labels.static'] | join(',') }} \
-    {%- endif %}
-    {%- if config['Kubelet:arguments'] is defined %}
-    {%- for argument in config['Kubelet:arguments'] %}
-    {{ argument }} \
-    {%- endfor %}
-    {%- endif %}
-
+{%- if 'kubeadm-enabled=true' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}
+Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
+Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
+{%- else %}
+Environment="KUBELET_KUBECONFIG_ARGS=--kubeconfig=/etc/kubernetes/kubeconfig"
+Environment="KUBELET_CONFIG_ARGS=--config=/etc/kubernetes/kubelet/config.yaml"
+{%- endif %}
+# This is a file that "kubeadm init" and "kubeadm join" generates at runtime, populating the KUBELET_KUBEADM_ARGS variable dynamically
+EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
+# This is a file that the user can use for overrides of the kubelet args as a last resort. Preferably, the user should use
+# the .NodeRegistration.KubeletExtraArgs object in the configuration files instead. KUBELET_EXTRA_ARGS should be sourced from this file.
+EnvironmentFile=-/etc/default/kubelet
+ExecStart=/opt/kubernetes/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
 Restart=always
 StartLimitInterval=0
 RestartSec=10

@@ -1,0 +1,21 @@
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "/etc/kubernetes/pki/kubelet-client-ca.pem"
+authorization:
+  mode: AlwaysAllow
+clusterDNS:
+- {{ config['KubernetesNetwork:dns.service_ip'] }}
+clusterDomain: {{ config['KubernetesNetwork:dns.cluster_domain'] }}
+staticPodPath: "/etc/kubernetes/manifests"
+tlsCertFile: "/etc/kubernetes/pki/kubelet.pem"
+tlsPrivateKeyFile: "/etc/kubernetes/pki/kubelet-key.pem"
+{%- if config['Kubelet:config_file_overrides'] is defined %}
+{{ config.get_path('Kubelet:config_file_overrides') | toyaml }}
+{%- endif %}

@@ -1,0 +1,18 @@
+{%- if 'kubeadm-enabled=true' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}
+KUBELET_EXTRA_ARGS=""
+{%- else %}
+KUBELET_EXTRA_ARGS="
+--hostname-override={{ config.get_first('Genesis:hostname', 'KubernetesNode:hostname') }}
+--node-ip={{ config.get_first('Genesis:ip', 'KubernetesNode:ip') }}
+{%- if config['Genesis:labels.static'] is defined %}
+--node-labels={{ config['Genesis:labels.static'] | join(',') }}
+{%- elif config['KubernetesNode:labels.static'] is defined %}
+--node-labels={{ config['KubernetesNode:labels.static'] | join(',') }}
+{%- endif %}
+{%- if config['Kubelet:arguments'] is defined %}
+{%- for argument in config['Kubelet:arguments'] %}
+{{ argument }}
+{%- endfor %}
+{%- endif %}
+"
+{%- endif %}
