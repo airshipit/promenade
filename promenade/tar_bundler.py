@@ -38,7 +38,8 @@ class TarBundler:
                 'Adding file path=%s size=%s md5=%s', path, tar_info.size,
                 checksum.hexdigest())
         else:
-            LOG.warning('Zero length file added to path=%s', path)
+            LOG.warning('Skipping zero length file, path=%s', path)
+            return
 
         if islink:
             tar_info.type = tarfile.SYMTYPE
