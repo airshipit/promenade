@@ -36,6 +36,8 @@ create_manifest () {
     cp -f /anchor-etcd/{{ .Values.service.name }}.yaml $WIP
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_STATE_#'$2'#g' $WIP
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_#'$1'#g' $WIP
+    sed -i -e 's#_ADVERTISE_ADDRESS_#'$POD_IP'#g' $WIP
+    sed -i -e 's#_ADVERTISE_PORT_#'{{ .Values.network.service_client.target_port }}'#g' $WIP
     sync_file "$WIP" "$3"
 }
 

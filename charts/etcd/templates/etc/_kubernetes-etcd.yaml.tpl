@@ -51,8 +51,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{ .Values.service.name }}-service: enabled
+    tier: control-plane
 {{ tuple $envAll $applicationName "etcd" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
   annotations:
+    kubeadm.kubernetes.io/etcd.advertise-client-urls: "https://_ADVERTISE_ADDRESS_:_ADVERTISE_PORT_"
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
 {{- dict "envAll" $envAll "podName" "etcd" "containerNames" (list "etcd") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
 spec:
