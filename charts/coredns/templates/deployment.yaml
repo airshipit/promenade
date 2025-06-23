@@ -87,7 +87,7 @@ spec:
         image: {{ $envAll.Values.images.tags.test | quote }}
         imagePullPolicy: {{ $envAll.Values.images.pull_policy | quote }}
 {{ tuple $envAll $envAll.Values.pod.resources.coredns | include "helm-toolkit.snippets.kubernetes_resources" | indent 8 }}
-{{ dict "envAll" $envAll "application" "coredns" "container" "coredns" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 8 }}
+{{ dict "envAll" $envAll "application" "coredns" "container" "coredns_health" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 8 }}
         command: ["python"]
         args:
         - "-u"

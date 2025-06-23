@@ -56,6 +56,9 @@ pod:
         coredns:
           runAsUser: 0
           readOnlyRootFilesystem: true
+        coredns_health:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
     test:
       pod:
         runAsUser: 65534
