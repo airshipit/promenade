@@ -35,6 +35,9 @@ register_labels {{ config['Genesis:hostname'] }} 3600 {{ config['Genesis:labels.
 set +x
 log
 log === Deploying bootstrap manifest via Armada ===
+if [[ ! -e /etc/kubernetes/manifests/bootstrap-armada.yaml ]]; then
+touch /etc/kubernetes/manifests/bootstrap-armada.yaml
+fi
 {%- if config['Genesis:armada_helm_bootstrap'] is sameas true %}
 helm armadachart-install armada-bootstrap /etc/genesis/armada/assets/manifest.yaml
 {%- endif %}
