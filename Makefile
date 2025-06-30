@@ -16,7 +16,7 @@ BUILD_DIR         := $(shell mktemp -d)
 DOCKER_REGISTRY   ?= quay.io
 HELM              := $(BUILD_DIR)/helm
 IMAGE_PREFIX      ?= airshipit
-IMAGE_NAME        ?= promenade
+IMAGE_NAME        ?= kubernetes-registry promenade
 IMAGE_TAG         ?= latest
 PROXY             ?= http://proxy.foo.com:8000
 NO_PROXY          ?= localhost,127.0.0.1,.svc.cluster.local
@@ -85,7 +85,22 @@ helm-lint-%: helm-install helm-init-%
 	$(HELM) dep up charts/$*
 	$(HELM) lint charts/$*
 
-images: check-docker build_promenade
+# Build all docker images for this project
+images: check-docker build_images
+
+build_images: build_kubernetes_registry build_promenade
+
+#Build all images in list
+build_kubernetes_registry:
+	@echo
+	@echo "===== Processing [kubernetes-registry] image ====="
+	./images/kubernetes-registry/setup.sh
+	@make build IMAGE=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/kubernetes-registry:${IMAGE_TAG}-${DISTRO} IMAGE_NAME=kubernetes-registry
+
+build_promenade:
+	@echo
+	@echo "===== Processing [promenade] image ====="
+	@make build IMAGE=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/promenade:${IMAGE_TAG}-${DISTRO} IMAGE_NAME=promenade
 
 check-docker:
 	@if [ -z $$(which docker) ]; then \
@@ -104,13 +119,13 @@ $(CHARTS): $(addprefix dry-run-,$(CHARTS)) chartbanner
 
 _BASE_IMAGE_ARG := $(if $(BASE_IMAGE),--build-arg FROM="${BASE_IMAGE}" ,)
 
-build_promenade:
+build:
 ifeq ($(USE_PROXY), true)
 	docker build --network host -t $(IMAGE) --label $(LABEL) \
 		--label "org.opencontainers.image.revision=$(COMMIT)" \
 		--label "org.opencontainers.image.created=$(shell date --rfc-3339=seconds --utc)" \
 		--label "org.opencontainers.image.title=$(IMAGE_NAME)" \
-	        -f images/promenade/Dockerfile.${DISTRO} \
+	        -f images/$(IMAGE_NAME)/Dockerfile.${DISTRO} \
                 $(_BASE_IMAGE_ARG) \
 		--build-arg http_proxy=$(PROXY) \
 		--build-arg https_proxy=$(PROXY) \
@@ -123,7 +138,7 @@ else
 		--label "org.opencontainers.image.revision=$(COMMIT)" \
 		--label "org.opencontainers.image.created=$(shell date --rfc-3339=seconds --utc)" \
 		--label "org.opencontainers.image.title=$(IMAGE_NAME)" \
-	        -f images/promenade/Dockerfile.${DISTRO} \
+	        -f images/$(IMAGE_NAME)/Dockerfile.${DISTRO} \
 		$(_BASE_IMAGE_ARG) .
 endif
 ifeq ($(PUSH_IMAGE), true)
@@ -136,6 +151,7 @@ helm-toolkit: helm-install
 
 clean:
 	rm -rf doc/build
+	rm -rf images/kubernetes-registry/assets/registry*
 	rm -f charts/*.tgz
 	rm -f charts/*/requirements.lock
 	rm -rf charts/*/charts
@@ -145,7 +161,7 @@ clean:
 helm-install:
 	tools/helm_install.sh $(HELM)
 
-.PHONY: $(CHARTS) all build_promenade charts check-docker clean docs \
-  dry-run dry-run-% external-deps gate-lint gate-lint-deps helm-init \
-  helm-init-% helm-install helm-lint helm-lint-% helm-toolkit images \
+.PHONY: $(CHARTS) all build_images build_promenade build_kubernetes_registry charts \
+  clean docs check-docker dry-run dry-run-% external-deps gate-lint gate-lint-deps \
+  helm-init helm-init-% helm-install helm-lint helm-lint-% helm-toolkit images \
   lint tests tests-pep8 tests-security tests-unit

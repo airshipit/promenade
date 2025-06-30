@@ -13,6 +13,6 @@ data:
       - registry:5000
     live-restore: true
     max-concurrent-downloads: 10
-    oom-score-adjust: -999
+#    oom-score-adjust: -999
     storage-driver: overlay2
 ...
