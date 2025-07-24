@@ -42,6 +42,13 @@
             executable: pip3
       become: True
 
+    - name: Install pyyaml
+      block:
+        - pip:
+            name: pyyaml
+            executable: pip3
+      become: True
+
     - name: Make images - verbosive
       when: not publish
       shell: |
