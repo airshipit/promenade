@@ -67,15 +67,6 @@ endpoints:
     port: 6553
 
 pod:
-  mandatory_access_control:
-    type: apparmor
-    haproxy-anchor:
-      haproxy-perms: runtime/default
-      anchor: runtime/default
-    kubernetes:
-      haproxy-haproxy-test: runtime/default
-    haproxy:
-      haproxy: runtime/default
   security_context:
     haproxy_anchor:
       pod:

@@ -363,12 +363,6 @@ data:
   upgrade:
     no_hooks: true
   values:
-    pod:
-      # Disables AppArmor for the calico-node in the gate
-      mandatory_access_control:
-        type: apparmor
-        calico-node:
-          calico-node: null
     conf:
       cni_network_config:
         name: k8s-pod-network

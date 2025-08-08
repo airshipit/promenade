@@ -284,17 +284,6 @@ pod:
         limits:
           memory: "1024Mi"
           cpu: "2000m"
-  mandatory_access_control:
-    type: apparmor
-    # requires override for a specific use case e.g. calico-etcd or kubernetes-etcd
-    etcd:
-      etcd: runtime/default
-    etcd-anchor:
-      etcdctl: runtime/default
-    etcd-test:
-      etcd-test: runtime/default
-    etcd-backup:
-      etcd-backup: runtime/default
   env:
     etcd:
       # can be used for tuning, e.g. https://etcd.io/docs/v3.4.0/tuning/

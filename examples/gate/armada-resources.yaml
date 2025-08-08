@@ -251,12 +251,6 @@ data:
   upgrade:
     no_hooks: true
   values:
-    pod:
-      # Disables AppArmor for calico-etcd
-      mandatory_access_control:
-        type: apparmor
-        example-etcd:
-          etcd: null
     anchor:
       etcdctl_endpoint: 10.96.232.136
     labels:
@@ -369,12 +363,6 @@ data:
   upgrade:
     no_hooks: true
   values:
-    pod:
-      # Disables AppArmor for calico
-      mandatory_access_control:
-        type: apparmor
-        calico-node:
-          calico-node: null
     conf:
       cni_network_config:
         name: k8s-pod-network

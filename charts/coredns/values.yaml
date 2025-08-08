@@ -42,12 +42,6 @@ service:
   ip: 10.96.0.10
 
 pod:
-  mandatory_access_control:
-    type: apparmor
-    coredns:
-      coredns: runtime/default
-      coredns-health: runtime/default
-      coredns-test: runtime/default
   security_context:
     coredns:
       pod:

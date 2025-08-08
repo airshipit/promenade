@@ -191,14 +191,6 @@ pod:
         promenade_api_test:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
-  mandatory_access_control:
-    type: apparmor
-    promenade-api:
-      promenade-util: runtime/default
-      promenade-api: runtime/default
-    promenade:
-      init: runtime/default
-      promenade-api-test: runtime/default
   affinity:
     anti:
       type:

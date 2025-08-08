@@ -202,11 +202,6 @@ network_policy:
       - {}
 
 pod:
-  mandatory_access_control:
-    type: apparmor
-    apiserver-webhook:
-      apiserver: runtime/default
-      webhook: runtime/default
   security_context:
     apiserver_webhook:
       pod:

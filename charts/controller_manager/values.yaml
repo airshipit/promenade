@@ -77,12 +77,6 @@ dependencies:
   controller_manager:
 
 pod:
-  mandatory_access_control:
-    type: apparmor
-    kubernetes-controller-manager-anchor:
-      anchor: runtime/default
-    controller-manager:
-      controller-manager: runtime/default
   security_context:
     kubernetes:
       pod:
