@@ -17,7 +17,7 @@ cryptography==42.0.8
 debtcollector==3.0.0
 Deckhand @ git+https://opendev.org/airship/deckhand.git@d8cc9f3ed2c9f2b9d9bf271a72c9bf301f16f647
 decorator==5.2.1
-deepdiff==8.5.0
+deepdiff==8.6.1
 dnspython==2.7.0
 dogpile.cache==1.4.0
 durationpy==0.10
