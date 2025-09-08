@@ -13,7 +13,7 @@ data:
     # (either here or via debian package; however, these unit tests don't
     # attempt to actually run Kubernetes, only to construct the genesis and
     # join scripts.
-    # - path: /opt/kubernetes/bin/kubelet
+    # - path: /usr/local/bin/kubelet
     #   tar_url: https://dl.k8s.io/v1.32.1/kubernetes-node-linux-amd64.tar.gz
     #   tar_path: kubernetes/node/bin/kubelet
     #   mode: 0555

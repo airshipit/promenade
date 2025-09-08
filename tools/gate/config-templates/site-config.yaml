@@ -65,7 +65,7 @@ metadata:
   storagePolicy: cleartext
 data:
   files:
-    - path: /opt/kubernetes/bin/kubelet
+    - path: /usr/local/bin/kubelet
       tar_url: ${KUBELET_URL}
       tar_path: kubernetes/node/bin/kubelet
       mode: 0555

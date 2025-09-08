@@ -139,7 +139,7 @@ VALID_DOCS = [
                 'mode':
                 365,
                 'path':
-                '/opt/kubernetes/bin/kubelet',
+                '/usr/local/bin/kubelet',
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
