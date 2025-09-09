@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -exuo pipefail
+
+IMAGE_HAPROXY="{{ config['HostSystem:images.haproxy'] }}"
+
+while true; do
+    if systemctl is-active kubelet && [[ -e /etc/kubernetes/manifests/haproxy.yaml ]]; then
+        if docker ps | grep -q haproxy; then
+          docker stop -t 10 haproxy
+        fi
+        break
+    else
+        if ! docker ps | grep -q haproxy; then
+          docker run --rm -d --net host -v /etc/promenade/haproxy:/usr/local/etc/haproxy:ro \
+                --name haproxy "$IMAGE_HAPROXY"
+        fi
+        sleep 5
+    fi
+done
