@@ -17,6 +17,8 @@ trap delete_kubectl EXIT
 
 {% include "up.sh" with context %}
 
+haproxy &
+
 set +x
 log
 log === Waiting for Node to be Ready ===

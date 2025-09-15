@@ -4,6 +4,8 @@
 
 {% include "up.sh" with context %}
 
+haproxy &
+
 mkdir -p /var/log/armada
 touch /var/log/armada/bootstrap-armada.log
 chmod 777 /var/log/armada/bootstrap-armada.log
