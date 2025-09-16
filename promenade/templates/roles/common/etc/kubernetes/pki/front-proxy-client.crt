@@ -1,0 +1,1 @@
+{%- if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') and 'kubernetes-apiserver=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') %}{{ config.get(schema='deckhand/Certificate/v1', name='apiserver-proxy') }}{%- endif %}
