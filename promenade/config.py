@@ -84,11 +84,20 @@ class Configuration:
                 return jinja2.StrictUndefined(
                     'Nothing found matching paths: %s' % ','.join(paths))
 
-    def get(self, *, kind=None, name=None, schema=None, default=None):
+    def get(self,
+            *,
+            kind=None,
+            name=None,
+            schema=None,
+            jsonpath=None,
+            default=None):
         result = _get(self.documents, kind=kind, schema=schema, name=name)
 
         if result:
-            return result['data']
+            data = result['data']
+            if jsonpath:
+                return _extract(data, jsonpath)
+            return data
         else:
             if default is not None:
                 return default
