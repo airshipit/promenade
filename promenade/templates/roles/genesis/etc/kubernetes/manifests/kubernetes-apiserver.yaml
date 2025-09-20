@@ -1,3 +1,4 @@
+{%- if 'kubeadm=enabled' not in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') -%}
 ---
 apiVersion: v1
 kind: Pod
@@ -33,3 +34,4 @@ spec:
     - name: config
       hostPath:
         path: /etc/genesis/apiserver
+{%- endif %}
