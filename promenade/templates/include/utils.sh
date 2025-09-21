@@ -158,7 +158,7 @@ function wait_for_kubernetes_api {
 function register_labels {
     set +x
     NODE=$1
-    TIMEOUT=$2
+    SEC=$2
     shift 2
 
     LABELS="$@"
@@ -173,6 +173,31 @@ function register_labels {
             now=$(date +%s)
             if [ $now -gt $end ]; then
                 log Failed to apply labels $LABELS on $NODE
+                fail
+            fi
+            echo -n . 1>&2
+            sleep 15
+        fi
+    done
+    set -x
+}
+
+function register_annotations {
+    set +x
+    NODE=$1
+    SEC=$2
+    shift 2
+    ANNOTATIONS="$@"
+    end=$(($(date +%s) + $SEC))
+    while true; do
+        if kubectl annotate node --overwrite $NODE $ANNOTATIONS ; then
+            echo 1>&2
+            log Applied annotations $ANNOTATIONS on $NODE
+            break
+        else
+            now=$(date +%s)
+            if [ $now -gt $end ]; then
+                log Failed to apply annotations $ANNOTATIONS on $NODE
                 fail
             fi
             echo -n . 1>&2
