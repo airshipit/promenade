@@ -160,7 +160,7 @@ data:
   values:
     images:
       tags:
-        proxy: registry.k8s.io/kube-proxy-amd64:v1.32.1
+        proxy: registry.k8s.io/kube-proxy-amd64:v1.33.5
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -634,7 +634,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-        apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
+        apiserver: registry.k8s.io/kube-apiserver-amd64:v1.33.5
     secrets:
       service_account:
         public_key: placeholder
@@ -711,7 +711,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-        controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.32.1
+        controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.33.5
     secrets:
       service_account:
         private_key: placeholder
@@ -784,7 +784,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-        scheduler: registry.k8s.io/kube-scheduler-amd64:v1.32.1
+        scheduler: registry.k8s.io/kube-scheduler-amd64:v1.33.5
 
   source:
     type: local

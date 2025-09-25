@@ -104,11 +104,11 @@ VALID_DOCS = [
                 'armada-operator': 'quay.io/airshipit/armada-operator:latest',
                 'kubernetes': {
                     'apiserver':
-                    'registry.k8s.io/kube-apiserver-amd64:v1.32.1',
+                    'registry.k8s.io/kube-apiserver-amd64:v1.33.5',
                     'controller-manager':
-                    'registry.k8s.io/kube-controller-manager-amd64:v1.32.1',
+                    'registry.k8s.io/kube-controller-manager-amd64:v1.33.5',
                     'etcd': 'quay.io/coreos/etcd:v3.5.12',
-                    'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.32.1'
+                    'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.33.5'
                 }
             },
             'ip':
@@ -143,7 +143,7 @@ VALID_DOCS = [
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
-                'https://dl.k8s.io/v1.32.1/kubernetes-node-linux-amd64.tar.gz'
+                'https://dl.k8s.io/v1.33.5/kubernetes-node-linux-amd64.tar.gz'
             }, {
                 'content':
                 '/var/lib/docker/containers/*/*-json.log\n{\n    compress\n    copytruncate\n    create 0644 root root\n    daily\n    dateext\n    dateformat -%Y%m%d-%s\n    maxsize 10M\n    missingok\n    notifempty\n    su root root\n    rotate 1\n}',

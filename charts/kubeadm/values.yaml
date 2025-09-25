@@ -72,7 +72,7 @@ images:
   tags:
     dep_check: docker-open-nc.zc1.cti.att.com/airship/kubernetes-entrypoint@sha256:9c43e6965e8cdac750c256cbf161d8ab6549d6f7e4fbf08d73d2de78174e2e94
     anchor: docker-open-nc.zc1.cti.att.com/airship/porthole/kubeadm-utility@sha256:fec3c6ed2834fc5cf88c031a4e3705286ff33c1d917c578c3c02ccbb81d0a36c
-    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
+    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.33.5
     key_rotate: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
   local_registry:

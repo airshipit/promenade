@@ -43,11 +43,11 @@ Here is a complete sample document:
         armada: quay.io/airshipit/armada:latest
         armada-operator: quay.io/airshipit/armada-operator:latest
         kubernetes:
-          apiserver: registry.k8s.io/kube-apiserver-amd64:v1.32.1
-          controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.32.1
+          apiserver: registry.k8s.io/kube-apiserver-amd64:v1.33.5
+          controller-manager: registry.k8s.io/kube-controller-manager-amd64:v1.33.5
           etcd: quay.io/coreos/etcd:v3.5.12
           etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
-          scheduler: registry.k8s.io/kube-scheduler-amd64:v1.32.1
+          scheduler: registry.k8s.io/kube-scheduler-amd64:v1.33.5
       files:
         - path: /var/lib/anchor/calico-etcd-bootstrap
           content: ""
