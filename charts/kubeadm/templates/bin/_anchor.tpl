@@ -21,29 +21,33 @@ KUBERNETES_DIR="/etc/kubernetes"
 CERT_DIR="${HOST_DIR}${KUBERNETES_DIR}/pki"
 
 # flow controls
-READY_TO_START=false
-FIRST_POD=false # remove
-KUBEADM_ACTION_REQUIRED=$([ $NODE_ROLE == "master" ] && echo "true" || echo "false")
+STATIC_PODS_RESTART_REQUIRED=false
 KUBELET_RESTART_REQUIRED=false
 
-KUBERNETES_VERSION="{{ .Values.kubeadm.cluster_config.kubernetesVersion }}"
+KUBERNETES_VERSION="{{ .Values.cluster_config.kubernetesVersion }}"
 KUBEADM_ANNOTATION="last-applied-kubeadm-cfg-sha256"
 KUBELET_ANNOTATION="last-applied-kubelet-cfg-sha256"
+CRI_SOCKET_ANNOTATION="kubeadm.alpha.kubernetes.io/cri-socket"
 
-LAST_APPLIED_KUBEADM_CONFIG_SHA256=$([ $NODE_ROLE == "master" ] && kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}" || echo "")
-LAST_APPLIED_KUBELET_CONFIG_SHA256=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBELET_ANNOTATION}")
+# Node info
+LAST_APPLIED_KUBEADM_CONFIG_SHA256=""
+LAST_APPLIED_KUBELET_CONFIG_SHA256=""
+CRI_SOCKET=""
+KUBELET_CURRENT_VERSION=""
+KUBERNETES_ETCD=""
 
-# substitute from values
-MASTERS_DS_NAME="{{ .Values.service.name }}-masters-anchor"
-WORKERS_DS_NAME="{{ .Values.service.name }}-workers-anchor"
-CURRENT_DS_NAME=$([ $NODE_ROLE == "master" ] && echo "$MASTERS_DS_NAME" || echo "$WORKERS_DS_NAME")
+# sleep randomly up to 30 seconds
+sleep $(shuf -i 1-30 -n 1)
 
-MASTERS_POD_LABELS="component=kubernetes-kubeadm-anchor"
-WORKERS_POD_LABELS="component=kubernetes-kubeadm-workers-anchor"
-CURRENT_POD_LABELS=$([ $NODE_ROLE == "master" ] && echo "$MASTERS_POD_LABELS" || echo "$WORKERS_POD_LABELS")
+NODE_INFO=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.metadata.annotations.$CRI_SOCKET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}|{.metadata.labels.kubernetes-etcd}")
+IFS='|' read -r LAST_APPLIED_KUBEADM_CONFIG_SHA256 LAST_APPLIED_KUBELET_CONFIG_SHA256 CRI_SOCKET KUBELET_CURRENT_VERSION KUBERNETES_ETCD <<<$NODE_INFO
 
 kubeadm() {
-  $(which kubeadm) --rootfs "$HOST_DIR" --v=5 $@
+  if [[ "$1" == "version" ]]; then
+    command kubeadm $@
+  else
+    command kubeadm --rootfs "$HOST_DIR" --v=5 $@
+  fi
 }
 
 annotate_node() {
@@ -56,13 +60,13 @@ sync_configs() {
   sync_binaries
 
   if [[ $NODE_ROLE == "master" ]]; then
+    rename_cp_pods
     sync_control_plane_certs
+    sync_etcd_certs
     sync_apiserver_misc_configs
     sync_kubeadm_configs
     sync_patches
   fi
-
-  cleanup_old_configs
 }
 
 compare_copy_file() {
@@ -82,6 +86,11 @@ compare_copy_file() {
     cp "${src}" "${dst}"
     chmod a+r "${dst}"
 
+    if [[ "${dst}" == /etc/kubernetes/pki/* ]]; then
+      echo "Certificates change detected, static pods will be restarted"
+      #STATIC_PODS_RESTART_REQUIRED=true
+    fi
+
 {{- if .Values.kubelet.restart }}
     if [[ "${dst}" == "${HOST_DIR}/etc/default/kubelet" ||
           "${dst}" == "${HOST_DIR}/etc/systemd/system/kubelet.service" ||
@@ -97,11 +106,28 @@ compare_copy_file() {
   fi
 }
 
-move_if_exists() {
-  path="$1"
-  move_to="$2"
+rename_cp_pods() {
+  cp_pods="etcd apiserver controller-manager scheduler"
+  for cp_pod in $cp_pods; do
+    src_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kubernetes-${cp_pod}.yaml"
+    if [ -e "$src_path" ]; then
+      dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-${cp_pod}.yaml"
+      component="kube-${cp_pod}"
+      if [[ $cp_pod == "etcd" ]]; then
+        dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/${cp_pod}.yaml"
+        component="${cp_pod}"
+      fi
 
-  if [ -e "$path" ]; then mv "$path" "$move_to"; fi
+      if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l component=$component --no-headers | wc -l) -gt 0 ]; then
+        kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l component=$component --timeout=180s
+      fi
+      cp "$src_path" "$dst_path"
+      rm "$src_path"
+      sed -i -e "s/name: kubernetes-$cp_pod/name: $component/g" "$dst_path"
+      sleep 30
+      kubectl wait --for=condition=ready pod -n kube-system --field-selector spec.nodeName=$NODE_NAME -l component=$component --timeout=180s
+    fi
+  done
 }
 
 remove_if_exists() {
@@ -125,21 +151,16 @@ sync_kubeconfigs() {
   {{- end }}
 
   if [ $NODE_ROLE == "master" ] && ! kubectl get cm -n kube-public cluster-info; then
-    kubeadm init phase bootstrap-token --kubeconfig /etc/kubernetes/admin.conf
+    kubeadm init phase bootstrap-token --kubeconfig /etc/kubernetes/admin.conf # move to prior join check
   fi
 
   echo "kubeconfigs are synced"
 }
 
 sync_control_plane_certs() {
-  if [[ $NODE_ROLE != "master" ]]; then return; fi
   for file in /tmp/certs/*; do
     file_name="$(basename $file)"
-    if [[ "$file_name" == etcd-* ]]; then
-      compare_copy_file "$file" "$CERT_DIR/etcd/${file_name/etcd-/}"
-    else
-      compare_copy_file "$file" "$CERT_DIR/$file_name"
-    fi
+    compare_copy_file "$file" "$CERT_DIR/$file_name"
   done
 }
 
@@ -148,12 +169,22 @@ sync_kubelet_certs() {
 }
 
 sync_etcd_certs() {
-  echo "placeholder"
+    compare_copy_file /tmp/etcd-certs/ca.crt "$CERT_DIR/etcd/ca.crt"
+    compare_copy_file /tmp/etcd-certs/healthcheck-client.crt "$CERT_DIR/etcd/healthcheck-client.crt"
+    compare_copy_file /tmp/etcd-certs/healthcheck-client.key "$CERT_DIR/etcd/healthcheck-client.key"
+
+    if [[ $KUBERNETES_ETCD == "enabled" ]]; then
+      compare_copy_file /tmp/etcd-certs/ca-peer.crt "$CERT_DIR/etcd/ca-peer.crt"
+
+      compare_copy_file "/tmp/etcd-certs/${NODE_NAME}-peer.crt" "$CERT_DIR/etcd/peer.crt"
+      compare_copy_file "/tmp/etcd-certs/${NODE_NAME}-peer.key" "$CERT_DIR/etcd/peer.key"
+
+      compare_copy_file "/tmp/etcd-certs/${NODE_NAME}-server.crt" "$CERT_DIR/etcd/server.crt"
+      compare_copy_file "/tmp/etcd-certs/${NODE_NAME}-server.key" "$CERT_DIR/etcd/server.key"
+    fi
 }
 
 sync_patches() {
-  #remove_if_exists "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/patches/"
-  if [[ $NODE_ROLE != "master" ]]; then return; fi
   for file in /tmp/patches/*; do
     compare_copy_file "$file" "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/patches/$(basename $file)"
   done
@@ -162,7 +193,7 @@ sync_patches() {
 sync_apiserver_misc_configs() {
   if [[ $NODE_ROLE == "master" ]]; then
     for file in /tmp/apiserver-misc/*; do
-      compare_copy_file  "$file" "${HOST_DIR}${KUBERNETES_DIR}/apiserver/$(basename $file)"
+      compare_copy_file "$file" "${HOST_DIR}${KUBERNETES_DIR}/apiserver/$(basename $file)"
     done
   fi
 }
@@ -174,14 +205,20 @@ sync_kubelet_configs() {
 }
 
 sync_kubeadm_configs() {
-  #ETCD_ENABLED=$(kubectl get nodes -l kubernetes-etcd=enabled --no-headers -o custom-columns=":metadata.name" | grep -q "$NODE_NAME" && echo "true" || echo "false")
   envsubst < /tmp/kubeadm/join-config.yaml | compare_copy_file - "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
   envsubst < /tmp/kubeadm/upgrade-config.yaml | compare_copy_file - "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
+
+  if [[ $KUBERNETES_ETCD == "enabled" ]]; then
+    # do not skip etcd related phases
+    sed -i '/check-etcd\|etcd-join/d' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
+    # turn on etcd upgrade
+    sed -i -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
+  fi
 }
 
 sync_binaries() {
-  envsubst < "/tmp/bin/kubelet_restart.sh" | compare_copy_file - "$HOST_DIR/usr/local/bin/kubelet_restart.sh"
-  chmod a+x "$HOST_DIR/usr/local/bin/kubelet_restart.sh"
+  #envsubst < "/tmp/bin/kubelet_restart.sh" | compare_copy_file - "$HOST_DIR/usr/local/bin/kubelet_restart.sh"
+  #chmod a+x "$HOST_DIR/usr/local/bin/kubelet_restart.sh"
 
   if [[ ! -e "$HOST_DIR/usr/local/bin/kubelet" || $(kubelet --version) != $($HOST_DIR/usr/local/bin/kubelet --version) ]]; then
 {{- if .Values.kubelet.restart }}
@@ -202,66 +239,6 @@ sync_binaries() {
   fi
 }
 
-# to remove
-ready_to_start() {
-  pod_list=$(kubectl get pods -n kube-system -l $CURRENT_POD_LABELS --sort-by=.metadata.creationTimestamp --no-headers -o custom-columns=":metadata.name")
-  for pod in $pod_list; do
-    if [ $pod == $POD_NAME ]; then
-      READY_TO_START="true"
-      break
-    fi
-
-    if ! kubectl wait --for=condition=ready pod -n kube-system $pod --timeout=0; then
-      break
-    fi
-  done
-}
-
-daemonset_status() {
-  if [[ $NODE_ROLE == "worker" ]] && ! kubectl rollout status "ds/$MASTERS_DS_NAME" -n kube-system -w=false | grep -q "successfully rolled out"; then
-    echo "waiting for masters nodes to be ready..."
-    return
-  fi
-
-  generation=0
-  observed_generation=0
-  updated_number_scheduled=0
-  desired_number_scheduled=0
-  number_available=0
-
-  read -r generation observed_generation updated_number_scheduled desired_number_scheduled number_available <<<$(kubectl get ds -n kube-system "$CURRENT_DS_NAME" -o jsonpath='{ .metadata.generation } { .status.observedGeneration } { .status.updatedNumberScheduled } { .status.desiredNumberScheduled } { .status.numberAvailable }')
-  while [ $generation -gt $observed_generation ]; do
-    echo "Waiting for daemon set spec update to be observed..."
-    read -r generation observed_generation updated_number_scheduled desired_number_scheduled number_available <<<$(kubectl get ds -n kube-system "$CURRENT_DS_NAME" -o jsonpath='{ .metadata.generation } { .status.observedGeneration } { .status.updatedNumberScheduled } { .status.desiredNumberScheduled } { .status.numberAvailable }')
-    sleep 5
-  done
-
-  if [ -z $number_available ]; then
-    number_available=0
-  fi
-
-	if [ $updated_number_scheduled -lt $desired_number_scheduled ]; then
-		echo "Waiting for daemon set rollout to finish: ${updated_number_scheduled} out of ${desired_number_scheduled} new pods have been updated..."
-	  # add verification that the pod has to be single (unready)
-	  READY_TO_START="true"
-	  if [ $updated_number_scheduled -eq 1 ]; then
-	    echo "first in sequence"
-	    FIRST_POD=true
-	  fi
-	elif [ $number_available -lt $desired_number_scheduled ]; then
-		echo "Waiting for daemon set rollout to finish: ${number_available} of ${desired_number_scheduled} updated pods are available..."
-	  if [[ $(($desired_number_scheduled-$number_available)) -eq 1 ]]; then
-	    READY_TO_START="true"
-	  else
-	    ready_to_start
-	  fi
-	else
-		echo "Daemon set successfully rolled out"
-		READY_TO_START="true"
-		KUBEADM_ACTION_REQUIRED=false
-  fi
-}
-
 cleanup_old_configs() {
 {{- range $file := .Values.const.files_to_delete }}
   remove_if_exists "${HOST_DIR}{{ $file }}"
@@ -279,7 +256,8 @@ restart_kubelet() {
 
   sleep 60
 
-  if [[ $(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.nodeInfo.kubeletVersion}') != $(kubelet --version | awk '{print $2}') ]]; then
+  KUBELET_CURRENT_VERSION=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.nodeInfo.kubeletVersion}')
+  if [[ $KUBELET_CURRENT_VERSION != $(kubelet --version | awk '{print $2}') ]]; then
     echo "kubelet version mismatch"
     exit 1
   fi
@@ -287,22 +265,20 @@ restart_kubelet() {
   sleep 60
 }
 
-is_upgrade_required() {
-  IFS='|' read -r last_cluster_config_sha256 last_kubelet_config_sha256 kubelet_current_version <<<$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}")
-
+is_action_required() {
   if [[ $NODE_ROLE == "master" ]]; then
-    if [ -z $last_cluster_config_sha256 ]; then return 0; fi
+    if [ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 ]; then return 0; fi
     current_cluster_config_sha256=$(sha256sum < /tmp/kubeadm/ClusterConfiguration | cut -d ' ' -f 1)
-    if [[ $last_cluster_config_sha256 != $current_cluster_config_sha256 ]]; then
+    if [[ $LAST_APPLIED_KUBEADM_CONFIG_SHA256 != $current_cluster_config_sha256 ]]; then
       return 0
     fi
   fi
 
 {{- if .Values.kubelet.restart }}
-  if [ -z $last_kubelet_config_sha256 ]; then return 0; fi
+  if [ -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 ]; then return 0; fi
   current_kubelet_config_sha256=$(sha256sum < /tmp/kubelet/kubelet | cut -d ' ' -f 1)
 
-  if [[ $last_kubelet_config_sha256 != $current_kubelet_config_sha256 || $kubelet_current_version != $KUBERNETES_VERSION ]]; then
+  if [[ $LAST_APPLIED_KUBELET_CONFIG_SHA256 != $current_kubelet_config_sha256 || $KUBELET_CURRENT_VERSION != $KUBERNETES_VERSION ]]; then
     KUBELET_RESTART_REQUIRED=true
     return 0
   fi
@@ -320,55 +296,53 @@ verlt() {
 }
 
 kubeadm_action() {
-  if is_upgrade_required; then
-   if [[ ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-apiserver.yaml" ||
-         ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-controller-manager.yaml" ||
-         ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-scheduler.yaml"  ]]; then
-     rm -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-*" || true
-     kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"
-   else
-     kubeadm upgrade node --config "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
-     sync_kubeconfigs
-   fi
+  if [ -z $CRI_SOCKET ]; then
+    annotate_node "$CRI_SOCKET_ANNOTATION" "{{ .Values.kubelet.config.containerRuntimeEndpoint }}"
+  fi
+
+  if [[ ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-apiserver.yaml" ||
+       ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-controller-manager.yaml" ||
+       ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-scheduler.yaml"  ]] ||
+       [[ $KUBERNETES_ETCD == "enabled" && ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" ]]; then
+    kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"
+  else
+    if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --no-headers | wc -l) -gt 0 ]; then
+      kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --timeout 300s
+    fi
+    kubeadm upgrade node --config "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
+    sync_kubeconfigs
+    kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 300s
   fi
 }
-
-rollout_restart() {
-  if kubectl rollout status "ds/$CURRENT_DS_NAME" -n kube-system -w=false | grep -q "successfully rolled out"; then
-    kubectl rollout restart "ds/$CURRENT_DS_NAME" -n kube-system
-  fi
-}
-
-while [[ $READY_TO_START != true ]]; do
-  daemonset_status
-  sleep 5
-done
-
-sync_configs
 
 if [[ $(kubeadm version -o short) != "$KUBERNETES_VERSION" ]]; then
   echo "Desired kubernetes version mismatch with provided binaries version, please update kubernetes version in values to $(kubeadm version -o short)"
   exit 1
 fi
 
-if [[ $KUBEADM_ACTION_REQUIRED == true ]]; then
+sync_configs
+
+if [[ $NODE_ROLE == "master" ]] && is_action_required; then
   kubeadm_action
-  annotate_node "$KUBEADM_ANNOTATION" "$(sha256sum < /tmp/kubeadm/ClusterConfiguration | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(sha256sum < /tmp/kubeadm/ClusterConfiguration | cut -d ' ' -f 1)"
+  annotate_node "$KUBEADM_ANNOTATION" "$LAST_APPLIED_KUBEADM_CONFIG_SHA256"
 fi
 
 if [[ $KUBELET_RESTART_REQUIRED == true ]]; then
   restart_kubelet
-  annotate_node "$KUBELET_ANNOTATION" "$(sha256sum < /tmp/kubelet/kubelet | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBELET_CONFIG_SHA256="$(sha256sum < /tmp/kubelet/kubelet | cut -d ' ' -f 1)"
+  annotate_node "$KUBELET_ANNOTATION" "$LAST_APPLIED_KUBELET_CONFIG_SHA256"
 fi
+
+cleanup_old_configs
 
 touch /tmp/done
 
 # main loop
 while true; do
-  if [ -e /tmp/stop ] || is_upgrade_required; then
+  if [ -e /tmp/stop ] || is_action_required; then
     echo "Stopping"
-    rollout_restart
     break
   fi
-  sleep 15
+  sleep 30
 done

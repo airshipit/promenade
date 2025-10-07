@@ -1,4 +1,4 @@
-# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+# Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,31 +13,22 @@
 # limitations under the License.
 apiVersion: kubeadm.k8s.io/v1beta4
 kind: JoinConfiguration
-caCertPath: /etc/kubernetes/pki/ca.crt
+caCertPath: {{ .Values.join_config.caCertPath }}
 controlPlane:
   localAPIEndpoint:
     advertiseAddress: "${HOST_IP}"
-    bindPort: {{ .Values.network.kubernetes_apiserver.port }}
+    bindPort: {{ .Values.join_config.controlPlane.localAPIEndpoint.bindPort }}
 discovery:
   file:
-    kubeConfigPath: /etc/kubernetes/admin.conf
+    kubeConfigPath: {{ .Values.join_config.discovery.file.kubeConfigPath }}
 nodeRegistration:
-  imagePullPolicy: Always
-  imagePullSerial: false
+  imagePullPolicy: {{ .Values.join_config.nodeRegistration.imagePullPolicy }}
+  imagePullSerial: {{ .Values.join_config.nodeRegistration.imagePullSerial }}
   name: ${NODE_NAME}
   ignorePreflightErrors:
-  - Service-Kubelet
-  - FileAvailable--etc-kubernetes-kubelet.conf
-  - SystemVerification
-  - Port-10250
-  - Port-6443
-  - Port-10259
-  - Port-10257
-  - Port-2379
-  - Port-2380
-  - DirAvailable--var-lib-etcd
+{{ toYaml .Values.join_config.nodeRegistration.ignorePreflightErrors | indent 2 }}
   taints: []
 skipPhases:
-{{ toYaml .Values.kubeadm.join_config.skip_phases }}
+{{ toYaml .Values.join_config.skipPhases }}
 patches:
-  directory: /etc/kubernetes/kubeadm/patches
+  directory: {{ .Values.join_config.patches.directory }}

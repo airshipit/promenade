@@ -1,0 +1,10 @@
+spec:
+  containers:
+    - name: etcd
+      resources:
+        limits:
+          memory: "4Gi"
+          cpu: "10000m"
+        requests:
+          memory: "4Gi"
+          cpu: "10000m"

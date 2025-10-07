@@ -30,9 +30,6 @@ data:
   ca.key: {{ .Values.secrets.ca.key | quote }}
   controller-manager.pem: {{ .Values.secrets.controller_manager.crt | quote }}
   controller-manager-key.pem: {{ .Values.secrets.controller_manager.key | quote }}
-  etcd-ca.crt: {{ .Values.secrets.etcd.ca.crt | quote }}
-  etcd-healthcheck-client.crt: {{ .Values.secrets.etcd.healthcheck_client.crt | quote }}
-  etcd-healthcheck-client.key: {{ .Values.secrets.etcd.healthcheck_client.key | quote }}
   front-proxy-ca.crt: {{ .Values.secrets.front_proxy_ca.crt | quote }}
   front-proxy-ca.key: {{ .Values.secrets.front_proxy_ca.key | quote }}
   front-proxy-client.crt: {{ .Values.secrets.front_proxy_client.crt | quote }}

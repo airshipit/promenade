@@ -1,4 +1,4 @@
-# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+# Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,54 +13,78 @@
 # limitations under the License.
 apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
-kubernetesVersion: {{ .Values.kubernetes.version }}
+kubernetesVersion: {{ .Values.cluster_config.kubernetesVersion }}
 apiServer:
-{{- if .Values.apiserver.extraArgs }}
   extraArgs:
-{{ toYaml .Values.apiserver.extraArgs | indent 4 }}
+    - name: etcd-servers
+      value: "{{ .Values.cluster_config.apiserver.etcd_endpoints }}"
+    - name: v
+      value: "{{ .Values.cluster_config.apiserver.log_level }}"
+{{- if .Values.cluster_config.apiserver.extraArgs }}
+{{ toYaml .Values.cluster_config.apiserver.extraArgs | indent 4 }}
 {{- end }}
-{{- if .Values.apiserver.extraVolumes }}
+{{- if .Values.cluster_config.apiserver.extraVolumes }}
   extraVolumes:
-{{ toYaml .Values.apiserver.extraVolumes | indent 4 }}
+{{ toYaml .Values.cluster_config.apiserver.extraVolumes | indent 4 }}
 {{- end }}
-caCertificateValidityPeriod: 87600h0m0s
-certificateValidityPeriod: 8760h0m0s
-certificatesDir: "/etc/kubernetes/pki"
-clusterName: kubernetes
-controlPlaneEndpoint: "127.0.0.1:6553"
+certificatesDir: {{ .Values.cluster_config.certificatesDir }}
+clusterName: {{ .Values.cluster_config.clusterName }}
+controlPlaneEndpoint: "{{ .Values.cluster_config.controlPlaneEndpoint }}"
 controllerManager:
   extraArgs:
-  - name: node-monitor-period
-    value: "5s"
-  - name: node-monitor-grace-period
-    value: "20s"
-  - name: terminated-pod-gc-threshold
-    value: "1000"
-  - name: configure-cloud-routes
-    value: "false"
-  - name: v
-    value: "2"
-  extraVolumes: []
+    - name: v
+      value: "{{ .Values.cluster_config.controller_manager.log_level }}"
+{{- if .Values.cluster_config.controller_manager.extraArgs }}
+{{ toYaml .Values.cluster_config.controller_manager.extraArgs | indent 4 }}
+{{- end }}
+{{- if .Values.cluster_config.controller_manager.extraVolumes }}
+  extraVolumes:
+{{ toYaml .Values.cluster_config.controller_manager.extraVolumes | indent 4 }}
+{{- end }}
+featureGates:
+  NodeLocalCRISocket: false
 dns:
   disabled: true
 encryptionAlgorithm: RSA-2048
 etcd:
-{{ toYaml .Values.etcd | indent 2 }}
-imageRepository: docker-open-nc.zc1.cti.att.com/upstream-local/kubernetes
+  local:
+    imageRepository: "{{ .Values.cluster_config.etcd.imageRepository }}"
+    dataDir: "{{ .Values.cluster_config.etcd.dataDir }}"
+    extraArgs:
+{{- if .Values.cluster_config.etcd.initial_cluster }}
+      - name: initial-cluster
+        value: "{{ .Values.cluster_config.etcd.initial_cluster }}"
+{{- end }}
+{{- if .Values.cluster_config.etcd.initial_cluster_state }}
+      - name: initial-cluster-state
+        value: "{{ .Values.cluster_config.etcd.initial_cluster_state }}"
+{{- end }}
+{{- if .Values.cluster_config.etcd.initial_cluster_token }}
+      - name: initial-cluster-token
+        value: "{{ .Values.cluster_config.etcd.initial_cluster_token }}"
+{{- end }}
+      - name: log-level
+        value: "{{ .Values.cluster_config.etcd.log_level }}"
+{{- if .Values.cluster_config.etcd.extraArgs }}
+{{ toYaml .Values.cluster_config.etcd.extraArgs | indent 6 }}
+{{- end }}
+{{- if .Values.cluster_config.etcd.extraEnvs }}
+    extraEnvs:
+{{ toYaml .Values.cluster_config.etcd.extraEnvs | indent 6 }}
+{{- end }}
+imageRepository: {{ .Values.cluster_config.imageRepository }}
 networking:
-  dnsDomain: cluster.local
-  podSubnet: "10.97.0.0/16"
-  serviceSubnet: "10.96.0.0/16"
+{{ toYaml .Values.cluster_config.networking | indent 2 }}
 proxy:
   disabled: true
 scheduler:
   extraArgs:
-  - name: secure-port
-    value: "10259"
-  - name: v
-    value: "2"
+    - name: v
+      value: "{{ .Values.cluster_config.scheduler.log_level }}"
+{{- if .Values.cluster_config.scheduler.extraArgs }}
+{{ toYaml .Values.cluster_config.scheduler.extraArgs | indent 4 }}
+{{- end }}
+{{- if .Values.cluster_config.scheduler.extraVolumes }}
   extraVolumes:
-  - hostPath: "/etc/kubernetes/pki"
-    mountPath: "/etc/kubernetes/pki"
-    name: pki-certs
-    pathType: DirectoryOrCreate
+{{ toYaml .Values.cluster_config.scheduler.extraVolumes | indent 4 }}
+{{- end }}

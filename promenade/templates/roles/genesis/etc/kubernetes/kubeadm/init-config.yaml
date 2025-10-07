@@ -1,7 +1,7 @@
 {% if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') -%}
 apiVersion: kubeadm.k8s.io/v1beta4
-bootstrapTokens: []
 kind: InitConfiguration
+bootstrapTokens: []
 localAPIEndpoint:
   advertiseAddress: "{{ config['Genesis:ip'] }}"
   bindPort: 6443
@@ -10,6 +10,10 @@ nodeRegistration:
   - IsPrivilegedUser
   - ExternalEtcdVersion
   - Port-10250
+  - FileAvailable--etc-kubernetes-manifests-etcd.yaml
+  - Port-2379
+  - Port-2380
+  - DirAvailable--var-lib-etcd-kubernetes
   imagePullPolicy: IfNotPresent
   imagePullSerial: false
   name: "{{ config['Genesis:hostname'] }}"
@@ -26,6 +30,10 @@ skipPhases:
 - kubelet-finalize
 - addon
 - show-join-command
+- bootstrap-token
+- wait-control-plane
+patches:
+  directory: /etc/kubernetes/kubeadm/patches
 timeouts:
   controlPlaneComponentHealthCheck: 4m0s
   discovery: 5m0s
@@ -35,5 +43,73 @@ timeouts:
   tlsBootstrap: 5m0s
   upgradeManifests: 5m0s
 ---
-{{ config.get(schema='armada/Chart/v1', name='kubernetes-kubeadm', jsonpath='values.kubeadm.cluster_config') | toyaml | trim }}
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: "{{ config['Genesis:cluster_config.kubernetesVersion'] }}"
+apiServer:
+  extraArgs:
+    - name: etcd-servers
+      value: "{{ config['Genesis:cluster_config.apiserver.etcd_endpoints'] }}"
+    - name: v
+      value: "{{ config['Genesis:cluster_config.apiserver.log_level'] }}"
+{%- if config['Genesis:cluster_config.apiserver.extraArgs'] is defined %}
+{{ config['Genesis:cluster_config.apiserver.extraArgs'] | toyaml | trim | indent(4, true) }}
+{%- endif %}
+{%- if config['Genesis:cluster_config.apiserver.extraVolumes'] is defined %}
+  extraVolumes:
+{{ config['Genesis:cluster_config.apiserver.extraVolumes'] | toyaml | trim | indent(4, true) }}
+{%- endif %}
+certificatesDir: "{{ config['Genesis:cluster_config.certificatesDir'] }}"
+clusterName: "{{ config['Genesis:cluster_config.clusterName'] }}"
+controlPlaneEndpoint: "{{ config['Genesis:cluster_config.controlPlaneEndpoint'] }}"
+controllerManager:
+  extraArgs:
+    - name: v
+      value: "{{ config['Genesis:cluster_config.controller_manager.log_level'] }}"
+{%- if config['Genesis:cluster_config.controller_manager.extraArgs'] is defined %}
+{{ config['Genesis:cluster_config.controller_manager.extraArgs'] | toyaml | trim | indent(4, true) }}
+{%- endif %}
+{%- if config['Genesis:cluster_config.controller_manager.extraVolumes'] is defined %}
+  extraVolumes:
+{{ config['Genesis:cluster_config.controller_manager.extraVolumes'] | toyaml | trim | indent(4, true) }}
+{%- endif %}
+dns:
+  disabled: true
+encryptionAlgorithm: RSA-2048
+etcd:
+  local:
+    imageRepository: "{{ config['Genesis:cluster_config.etcd.imageRepository'] }}"
+    dataDir: "{{ config['Genesis:cluster_config.etcd.dataDir'] }}"
+    extraArgs:
+      - name: initial-cluster
+        value: "{{ config['Genesis:cluster_config.etcd.initial_cluster'] }}"
+      - name: initial-cluster-state
+        value: "{{ config['Genesis:cluster_config.etcd.initial_cluster_state'] }}"
+      - name: initial-cluster-token
+        value: "{{ config['Genesis:cluster_config.etcd.initial_cluster_token'] }}"
+      - name: log-level
+        value: "{{ config['Genesis:cluster_config.etcd.log_level'] }}"
+{%- if config['Genesis:cluster_config.etcd.extraArgs'] is defined %}
+{{ config['Genesis:cluster_config.etcd.extraArgs'] | toyaml | trim | indent(6, true) }}
+{%- endif %}
+{%- if config['Genesis:cluster_config.etcd.extraEnvs'] is defined %}
+    extraEnvs:
+{{ config['Genesis:cluster_config.etcd.extraEnvs'] | toyaml | trim | indent(6, true) }}
+{%- endif %}
+imageRepository: "{{ config['Genesis:cluster_config.imageRepository'] }}"
+networking:
+{{ config['Genesis:cluster_config.networking'] | toyaml | trim | indent(2, true) }}
+proxy:
+  disabled: true
+scheduler:
+  extraArgs:
+    - name: v
+      value: "{{ config['Genesis:cluster_config.scheduler.log_level'] }}"
+{%- if config['Genesis:cluster_config.scheduler.extraArgs'] is defined %}
+{{ config['Genesis:cluster_config.scheduler.extraArgs'] | toyaml | trim | indent(4, true) }}
+{%- endif %}
+{%- if config['Genesis:cluster_config.scheduler.extraVolumes'] is defined %}
+  extraVolumes:
+{{ config['Genesis:cluster_config.scheduler.extraVolumes'] | toyaml | trim | indent(4, true) }}
+{%- endif %}
 {%- endif %}

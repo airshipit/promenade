@@ -121,6 +121,8 @@ spec:
               mountPropagation: HostToContainer
             - name: {{ .Values.service.name }}-certs
               mountPath: /tmp/certs
+            - name: {{ .Values.service.name }}-etcd-certs
+              mountPath: /tmp/etcd-certs
             - name: {{ .Values.service.name }}-patches
               mountPath: /tmp/patches
             - name: {{ .Values.service.name }}-bin
@@ -148,6 +150,10 @@ spec:
         - name: {{ .Values.service.name }}-certs
           configMap:
             name: {{ .Values.service.name }}-certs
+            defaultMode: 0444
+        - name: {{ .Values.service.name }}-etcd-certs
+          configMap:
+            name: {{ .Values.service.name }}-etcd-certs
             defaultMode: 0444
         - name: {{ .Values.service.name }}-patches
           configMap:

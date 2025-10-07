@@ -14,16 +14,14 @@
 apiVersion: kubeadm.k8s.io/v1beta4
 kind: UpgradeConfiguration
 node:
-  certificateRenewal: false
+  certificateRenewal: {{ .Values.upgrade_config.node.certificateRenewal }}
   dryRun: false
   etcdUpgrade: false
   ignorePreflightErrors:
-  - SystemVerification
-  - CoreDNSUnsupportedPlugins
-  - CoreDNSMigration
+{{ toYaml .Values.upgrade_config.node.ignorePreflightErrors | indent 2 }}
   patches:
-    directory: /etc/kubernetes/kubeadm/patches
+    directory: {{ .Values.upgrade_config.node.patches.directory }}
   skipPhases:
-{{ toYaml .Values.kubeadm.upgrade_config.skip_phases | indent 2 }}
-  imagePullPolicy: Always
-  imagePullSerial: false
+{{ toYaml .Values.upgrade_config.node.skipPhases | indent 2 }}
+  imagePullPolicy: {{ .Values.upgrade_config.node.imagePullPolicy }}
+  imagePullSerial: {{ .Values.upgrade_config.node.imagePullSerial }}

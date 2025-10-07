@@ -24,7 +24,7 @@ metadata:
   name: kubeadm-config
 data:
   ClusterConfiguration: |
-{{ toYaml .Values.kubeadm.cluster_config | indent 4 }}
+{{ tuple "kubeadm/_cluster_config.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
   join-config.yaml: |
 {{ tuple "kubeadm/_join_config.yaml.tpl" . | include "helm-toolkit.utils.template" | indent 4 }}
   upgrade-config.yaml: |

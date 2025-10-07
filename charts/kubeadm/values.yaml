@@ -14,8 +14,103 @@
 
 release_group: null
 
-kubernetes:
-  version: v1.33.3
+cluster_config:
+  kubernetesVersion: v1.33.6
+
+  certificatesDir: "/etc/kubernetes/pki"
+  clusterName: kubernetes
+  controlPlaneEndpoint: "127.0.0.1:6443"
+  imageRepository: "registry.k8s.io"
+  featureGates:
+    NodeLocalCRISocket: false
+  networking:
+    dnsDomain: cluster.local
+    podSubnet: "10.97.0.0/16"
+    serviceSubnet: "10.96.0.0/16"
+
+  apiserver:
+    etcd_endpoints: "https://10.96.0.2:2379"
+    log_level: "2"
+    extraArgs: []
+    extraVolumes: []
+
+  controller_manager:
+    log_level: "2"
+    extraArgs: []
+    extraVolumes: []
+
+  scheduler:
+    log_level: "2"
+    extraArgs: []
+    extraVolumes: []
+
+  etcd:
+    imageRepository: "registry.k8s.io"
+    dataDir: "/var/lib/etcd/"
+    log_level: "info"
+
+    extraArgs: []
+    extraEnvs: []
+
+join_config:
+  caCertPath: /etc/kubernetes/pki/ca.crt
+  discovery:
+    file:
+      kubeConfigPath: /etc/kubernetes/admin.conf
+  controlPlane:
+    localAPIEndpoint:
+      bindPort: 6443
+  nodeRegistration:
+    imagePullPolicy: Always
+    imagePullSerial: false
+    ignorePreflightErrors:
+    - Service-Kubelet
+    - FileAvailable--etc-kubernetes-kubelet.conf
+    - SystemVerification
+    - Port-10250
+    - Port-6443
+    - Port-10259
+    - Port-10257
+    - Port-2379
+    - Port-2380
+    - DirAvailable--var-lib-etcd
+  skipPhases:
+  - preflight
+  - control-plane-prepare/download-certs
+  - control-plane-prepare/certs
+  - control-plane-prepare/kubeconfig
+  - check-etcd
+  - etcd-join
+  - kubelet-start
+  - control-plane-join
+  - wait-control-plane
+  patches:
+    directory: /etc/kubernetes/kubeadm/patches
+
+upgrade_config:
+  node:
+    certificateRenewal: false
+    ignorePreflightErrors:
+    - SystemVerification
+    - CoreDNSUnsupportedPlugins
+    - CoreDNSMigration
+    patches:
+      directory: /etc/kubernetes/kubeadm/patches
+    skipPhases:
+    - kubelet-config
+    - addon
+    imagePullPolicy: Always
+    imagePullSerial: false
+
+etcd_service:
+  name: kubernetes-etcd
+  ip: "10.96.0.2"
+  service_client:
+    enable_node_port: false
+    node_port: 32379
+    port: 2379
+    target_port: 2379
+
 
 host_dir: "/host"
 
@@ -53,9 +148,10 @@ const:
     # NOTE(mark-burnett): These are (host dest): (container source) pairs
 
   files_to_delete:
-    - /etc/kubernetes/manifests/kubernetes-apiserver.yaml
-    - /etc/kubernetes/manifests/kubernetes-controller-manager.yaml
-    - /etc/kubernetes/manifests/kubernetes-scheduler.yaml
+    #- /etc/kubernetes/manifests/kubernetes-apiserver.yaml
+    #- /etc/kubernetes/manifests/kubernetes-controller-manager.yaml
+    #- /etc/kubernetes/manifests/kubernetes-scheduler.yaml
+    #- /etc/kubernetes/manifests/kubernetes-etcd.yaml
     - /etc/kubernetes/kubelet
     - /etc/kubernetes/controller-manager
     - /etc/kubernetes/scheduler
@@ -113,21 +209,76 @@ kubeadm:
 
 
   join_config:
-    skip_phases:
-      - preflight
-      - control-plane-prepare/download-certs
-      - control-plane-prepare/certs
-      - control-plane-prepare/kubeconfig
-      - kubelet-start
-      - control-plane-join
-      - wait-control-plane
+    apiVersion: kubeadm.k8s.io/v1beta4
+    kind: JoinConfiguration
+    caCertPath: /etc/kubernetes/pki/ca.crt
+    controlPlane:
+      localAPIEndpoint:
+        advertiseAddress: "${HOST_IP}"
+        bindPort: 6443
+    discovery:
+      file:
+        kubeConfigPath: /etc/kubernetes/admin.conf
+    nodeRegistration:
+      imagePullPolicy: Always
+      imagePullSerial: false
+      name: "${NODE_NAME}"
+      ignorePreflightErrors:
+      - Service-Kubelet
+      - FileAvailable--etc-kubernetes-kubelet.conf
+      - SystemVerification
+      - Port-10250
+      - Port-6443
+      - Port-10259
+      - Port-10257
+      - Port-2379
+      - Port-2380
+      - DirAvailable--var-lib-etcd
+      taints: []
+    skipPhases:
+    - preflight
+    - control-plane-prepare/download-certs
+    - control-plane-prepare/certs
+    - control-plane-prepare/kubeconfig
+    - check-etcd
+    - etcd-join
+    - kubelet-start
+    - control-plane-join
+    - wait-control-plane
+    patches:
+      directory: /etc/kubernetes/kubeadm/patches
 
   upgrade_config:
-    skip_phases:
+    apiVersion: kubeadm.k8s.io/v1beta4
+    kind: UpgradeConfiguration
+    node:
+      certificateRenewal: false
+      dryRun: false
+      etcdUpgrade: false
+      ignorePreflightErrors:
+      - SystemVerification
+      - CoreDNSUnsupportedPlugins
+      - CoreDNSMigration
+      patches:
+        directory: /etc/kubernetes/kubeadm/patches
+      skipPhases:
       - kubelet-config
       - addon
+      imagePullPolicy: Always
+      imagePullSerial: false
 
   patches:
+    etcd.yaml:
+      spec:
+        containers:
+          - name: etcd
+            resources:
+              limits:
+                memory: "8Gi"
+                cpu: "20000m"
+              requests:
+                memory: "8Gi"
+                cpu: "20000m"
     kube-apiserver.yaml:
       spec:
         containers:
@@ -161,16 +312,6 @@ kubeadm:
               requests:
                 cpu: 100m
                 memory: 128Mi
-
-etcd:
-  external:
-    endpoints:
-      - "https://172.29.0.11:2379"
-      - "https://172.29.0.12:2379"
-      - "https://172.29.0.17:2379"
-    caFile: "/etc/kubernetes/pki/etcd/ca.crt"
-    certFile: "/etc/kubernetes/pki/etcd/healthcheck-client.crt"
-    keyFile: "/etc/kubernetes/pki/etcd/healthcheck-client.key"
 
 apiserver:
   extraArgs:
@@ -331,9 +472,12 @@ secrets:
   etcd:
     ca:
       crt: placeholder
+    ca_peer:
+      crt: placeholder
     healthcheck_client:
       crt: placeholder
       key: placeholder
+    nodes: []
 
   kubelet: {}
 
@@ -474,6 +618,7 @@ manifests:
   configmap_apiserver_misc: true
   configmap_bin: true
   configmap_certs: true
+  configmap_etcd_certs: true
   configmap_kubeconfig: true
   configmap_jobs: true
   configmap_kubelet: true
@@ -481,4 +626,5 @@ manifests:
   configmap_patches: true
   daemonset_masters: true
   daemonset_workers: true
+  etcd_service: false
   rbac: true

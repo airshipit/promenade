@@ -1,9 +1,9 @@
-{%- if 'kubeadm=enabled' not in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') -%}
+{%- if 'kubeadm=enabled' in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') -%}
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: auxiliary-etcd
+  name: auxiliary-etcd-monitor
   namespace: kube-system
   labels:
     application: kubernetes
@@ -12,14 +12,6 @@ metadata:
 spec:
   hostNetwork: true
   containers:
-{%- with etcd_name = 'auxiliary-0', client_port = 12379, peer_port = 12380  %}
-{% include "genesis-etcd/server-container.yaml" with context %}
-{%- endwith %}
-
-{%- with etcd_name = 'auxiliary-1', client_port = 22379, peer_port = 22380  %}
-{% include "genesis-etcd/server-container.yaml" with context %}
-{%- endwith %}
-
     - name: monitor
       image: {{ config['Genesis:images.kubernetes.etcdctl'] }}
       command:
@@ -31,7 +23,7 @@ spec:
           external_member_count () {
               etcdctl member list \
                   | grep '\bstarted\b' \
-                  | grep -Ev "\\b(auxiliary-0|auxiliary-1)\\b" \
+                  | grep -Ev "\\b(auxiliary-etcd-0|auxiliary-etcd-1)\\b" \
                   | wc -l
           }
 
@@ -58,7 +50,7 @@ spec:
           abdicate () {
             OLD_LEADER="$1"
             OLD_LEADER_EP=$(etcdctl member list | grep "$OLD_LEADER" | awk -F ', ' '{print $5}')
-            NEW_LEADER=$(etcdctl member list | grep '\bstarted\b' | grep -Ev "\\b(auxiliary-0|auxiliary-1)\\b" | head -1 | awk -F ', ' '{print $1}')
+            NEW_LEADER=$(etcdctl member list | grep '\bstarted\b' | grep -Ev "\\b(auxiliary-etcd-0|auxiliary-etcd-1)\\b" | head -1 | awk -F ', ' '{print $1}')
             if [ -n "$NEW_LEADER" ] && [ -n "$OLD_LEADER_EP" ]; then
               if ! ETCDCTL_ENDPOINTS="$OLD_LEADER_EP" etcdctl move-leader "$NEW_LEADER"; then
                 echo "Attempted abdication, but failed."
@@ -70,7 +62,7 @@ spec:
           }
 
           abdicate_if_needed () {
-            AUX_MEMBERS=$(etcdctl member list | grep '\bstarted\b' | grep -E "\\b(auxiliary-0|auxiliary-1)\\b" | awk -F ', ' '{print $1}')
+            AUX_MEMBERS=$(etcdctl member list | grep '\bstarted\b' | grep -E "\\b(auxiliary-etcd-0|auxiliary-etcd-1)\\b" | awk -F ', ' '{print $1}')
             for m in $AUX_MEMBERS; do
               if is_leader "$m"; then
                 abdicate "$m"
@@ -90,7 +82,7 @@ spec:
           }
 
           aux_endpoint_present () {
-            awk '/- name: ETCD_ENDPOINTS/{getline; sub(/.*: "/, ""); sub(/".*/, ""); print}' /manifests/kubernetes-apiserver.yaml \
+            awk '/- name: ETCD_ENDPOINTS/{getline; sub(/.*: "/, ""); sub(/".*/, ""); print}' /manifests/kube-apiserver.yaml \
                           | grep -E "\\b(12379|22379)\\b"
           }
 
@@ -106,13 +98,15 @@ spec:
           # should be recovered by restarting this container.
           set -e
 
-          remove_if_possible auxiliary-0
-          remove_if_possible auxiliary-1
+          remove_if_possible auxiliary-etcd-0
+          remove_if_possible auxiliary-etcd-1
 
           rm -rf \
-              /var/lib/etcd/auxiliary-0 \
-              /var/lib/etcd/auxiliary-1 \
-              /manifests/auxiliary-kubernetes-etcd.yaml
+              /var/lib/etcd/auxiliary-etcd-0 \
+              /var/lib/etcd/auxiliary-etcd-1 \
+              /manifests/auxiliary-etcd-0.yaml \
+              /manifests/auxiliary-etcd-1.yaml \
+              /manifests/auxiliary-kubeadm-etcd.yaml
 
           sleep 10000
       env:
@@ -140,17 +134,14 @@ spec:
         - name: manifest
           mountPath: /manifests
   volumes:
-{%- with etcd_name = 'auxiliary-0', client_port = 12379, peer_port = 12380, volume_name = 'auxiliary-0' %}
-{% include "genesis-etcd/common-volumes.yaml" with context %}
-{%- endwith %}
-{%- with etcd_name = 'auxiliary-1', client_port = 22379, peer_port = 22380, volume_name = 'auxiliary-1' %}
-{% include "genesis-etcd/common-volumes.yaml" with context %}
-{%- endwith %}
     - name: manifest
       hostPath:
         path: /etc/kubernetes/manifests
     - name: all-etcd-data
       hostPath:
         path: /var/lib/etcd
+    - name: pki-auxiliary-0
+      hostPath:
+        path: /etc/genesis/etcd/pki
 ...
 {%- endif %}

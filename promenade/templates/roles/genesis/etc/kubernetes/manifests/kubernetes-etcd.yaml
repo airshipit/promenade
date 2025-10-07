@@ -1,3 +1,4 @@
+{%- if 'kubeadm=enabled' not in config.get_first('Genesis:labels.dynamic', 'KubernetesNode:labels.dynamic') -%}
 ---
 apiVersion: v1
 kind: Pod
@@ -18,3 +19,4 @@ spec:
 {% include "genesis-etcd/common-volumes.yaml" with context %}
 {%- endwith %}
 ...
+{%- endif %}

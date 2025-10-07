@@ -9,8 +9,8 @@ set +x
 log
 log === Bootstrapping node using kubeadm ===
 set -x
-kubeadm init --config /etc/kubernetes/kubeadm/init-config.yaml --v=5 2>&1 | tee /var/log/kubeadm.log
-register_annotations {{ config['Genesis:hostname'] }} 3600 "kubeadm.alpha.kubernetes.io/cri-socket={{ config.get(schema='armada/Chart/v1', name='kubernetes-kubeadm', jsonpath='values.kubelet.config.containerRuntimeEndpoint') }}"
+startup_etcd
+kubeadm init phase control-plane all --config /etc/kubernetes/kubeadm/init-config.yaml --v=5
 {%- endif %}
 
 mkdir -p /var/log/armada
@@ -31,7 +31,6 @@ log
 log === Waiting for Kubernetes API availablity ===
 set -x
 wait_for_kubernetes_api 3600
-
 
 {%- if config['Genesis:labels.dynamic']  is defined %}
 set +x
