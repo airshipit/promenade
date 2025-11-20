@@ -152,7 +152,7 @@ data:
     type: git
     location: https://opendev.org/openstack/openstack-helm.git
     subpath: helm-toolkit
-    reference: 6b985e51be5e52011b88b408fe3265175ce8f47f
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -177,7 +177,7 @@ data:
     type: git
     location: https://opendev.org/openstack/openstack-helm.git
     subpath: helm-toolkit
-    reference: 6b985e51be5e52011b88b408fe3265175ce8f47f
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies: []
 ---
 schema: armada/Chart/v1
@@ -1244,7 +1244,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
     subpath: ceph
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1309,7 +1309,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
     subpath: ceph
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1473,7 +1473,7 @@ data:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm
     subpath: postgresql
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1553,7 +1553,7 @@ data:
     type: git
     location: https://opendev.org/airship/maas
     subpath: charts/maas
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1670,7 +1670,7 @@ data:
     type: git
     location: https://github.com/openstack/openstack-helm
     subpath: ingress
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1717,7 +1717,7 @@ data:
     type: git
     location: https://opendev.org/airship/deckhand
     subpath: charts/deckhand
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1771,7 +1771,7 @@ data:
     type: git
     location: https://opendev.org/airship/drydock
     subpath: charts/drydock
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1845,7 +1845,7 @@ data:
     type: git
     location: https://opendev.org/airship/armada
     subpath: charts/armada
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ---
@@ -1905,7 +1905,7 @@ data:
     type: git
     location: https://opendev.org/airship/shipyard
     subpath: charts/shipyard
-    reference: master
+    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
   dependencies:
     - helm-toolkit
 ...

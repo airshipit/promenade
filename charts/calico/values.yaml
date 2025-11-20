@@ -16,12 +16,12 @@ images:
     # These are minimum versions, older images will very likely not
     # work
     calico_etcd: quay.io/coreos/etcd:v3.5.9
-    calico_node: quay.io/calico/node:v3.25.1
-    calico_cni: quay.io/calico/cni:v3.25.1
-    calico_ctl: calico/ctl:v3.25.1
-    calico_settings: calico/ctl:v3.25.1
+    calico_node: quay.io/calico/node:v3.29.1
+    calico_cni: quay.io/calico/cni:v3.29.1
+    calico_ctl: quay.io/calico/ctl:v3.25.1
+    calico_settings: calico/ctl:v3.29.1
     # NOTE: plural key, singular value
-    calico_kube_controllers: quay.io/calico/kube-controllers:v3.25.1
+    calico_kube_controllers: quay.io/calico/kube-controllers:v3.29.1
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     image_repo_sync: quay.io/airshipit/docker:27.5.0
   pull_policy: IfNotPresent
