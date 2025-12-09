@@ -42,6 +42,8 @@
 
 - job:
     name: airship-promenade-genesis-containerd-gate
+    # need to switch to tigera operator
+    voting: false
     description: |
       Deploy airship promenade genesis with containerd
     run:
