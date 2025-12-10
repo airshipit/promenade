@@ -26,6 +26,8 @@ snapshot_files() {
     cp "/tmp/etc/{{ $val.file }}" "${SNAPSHOT_DIR}/etc/kubernetes/apiserver/{{ $val.file }}"
     {{- end }}
     {{- end }}
+    sed -i -e 's#_ADVERTISE_ADDRESS_#'$POD_IP'#g' "${SNAPSHOT_DIR}{{ .Values.anchor.kubelet.manifest_path }}/kubernetes-apiserver.yaml"
+    sed -i -e 's#_ADVERTISE_PORT_#'{{ .Values.network.kubernetes_apiserver.port }}'#g' "${SNAPSHOT_DIR}{{ .Values.anchor.kubelet.manifest_path }}/kubernetes-apiserver.yaml"
     # annotate the static manifest with the name of the creating anchor pod
     sed -i "/created-by: /s/ANCHOR_POD/${POD_NAME}/" "${SNAPSHOT_DIR}{{ .Values.anchor.kubelet.manifest_path }}/kubernetes-apiserver.yaml"
 }

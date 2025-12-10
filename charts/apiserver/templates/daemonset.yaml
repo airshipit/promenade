@@ -65,6 +65,10 @@ spec:
 {{ tuple $envAll $envAll.Values.pod.resources.anchor_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
 {{ dict "envAll" $envAll "application" "kubernetes_apiserver_anchor" "container" "anchor" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
           env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
           - name: MANIFEST_PATH
             value: /host{{ .Values.anchor.kubelet.manifest_path }}/{{ .Values.service.name }}.yaml
           - name: PKI_PATH

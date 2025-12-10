@@ -63,8 +63,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{ .Values.service.name }}-service: enabled
-{{ tuple $envAll "kubernetes" "apiserver" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+    tier: control-plane
+{{ tuple $envAll "kubernetes" "kube-apiserver" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
   annotations:
+    kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint: "_ADVERTISE_ADDRESS_:_ADVERTISE_PORT_"
     {{ $envAll | include "kubernetes_apiserver.key_annotation" }}
     created-by: ANCHOR_POD
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
