@@ -65,6 +65,28 @@ function wait_for_ready_nodes {
     set -x
 }
 
+function startup_etcd {
+  kubeadm init phase etcd local --config /etc/kubernetes/kubeadm/init-config.yaml --v=5
+  create_aux_etcd_pod 'auxiliary-etcd-0' 12379 12380 12381
+  create_aux_etcd_pod 'auxiliary-etcd-1' 22379 22380 22381
+}
+
+function create_aux_etcd_pod {
+  local etcd_name=$1
+  local client_port=$2
+  local peer_port=$3
+  local probe_port=$4
+
+  if [ ! -f /etc/kubernetes/manifests/$etcd_name.yaml ]; then
+    sed -e "s/name: etcd/name: $etcd_name/g" \
+        -e "s/--name=$HOSTNAME/--name=$etcd_name/g" \
+        -e "s/\/var\/lib\/etcd\/kubernetes/\/var\/lib\/etcd\/$etcd_name/g" \
+        -e "s/2379/$client_port/g" \
+        -e "/initial-cluster=/! s/2380/$peer_port/g" \
+        -e "s/2381/$probe_port/g" /etc/kubernetes/manifests/etcd.yaml > /etc/kubernetes/manifests/$etcd_name.yaml
+  fi
+}
+
 function wait_for_node_ready {
     set +x
 
