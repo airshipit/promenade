@@ -23,7 +23,7 @@ CONSTANTS_URL="https://raw.githubusercontent.com/kubernetes/kubernetes/refs/tags
 USE_PROXY=${USE_PROXY:-"false"}
 GITHUB_PROXY=${GITHUB_PROXY:-""}
 
-REGISTRY_IMAGE=${REGISTRY_IMAGE:-"registry:latest"}
+REGISTRY_IMAGE=${REGISTRY_IMAGE:-"quay.io/airshipit/registry:latest"}
 REGISTRY_PORT=${REGISTRY_PORT:-"$(shuf -i 5050-5099 -n 1)"}
 REGISTRY_VERSION=${REGISTRY_VERSION:-"3.0.0"}
 REGISTRY_DOWNLOAD_URL="https://github.com/distribution/distribution/releases/download/v${REGISTRY_VERSION}/registry_${REGISTRY_VERSION}_linux_amd64.tar.gz"
