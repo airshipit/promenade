@@ -13,7 +13,7 @@ else
 fi
 
 EXTRACT_VALUES=$(cat <<END
-import os,sys,yaml
+import sys,yaml
 
 chart_name=sys.argv[1]
 manifests=sys.argv[2]
@@ -34,13 +34,14 @@ for x in docs:
 if not release_prefix:
     release_prefix = default_release_prefix
 
-release_name=f"{release_prefix}-{chart_name}"
+release=chart_data.get('release', '')
+release_name=f"{release_prefix}-{release}"
 namespace=chart_data.get('namespace', '')
 chart_location=chart_data.get('source', {}).get('location', '')
 wait_time=chart_data.get('wait', {}).get('timeout', '300')
 values=chart_data.get('values', {})
 
-if release_name == '-' or not namespace or not chart_location or not values:
+if not release or release_name == '-' or not namespace or not chart_location or not values:
   print("unable to extract values", file=sys.stderr)
   sys.exit(1)
 
