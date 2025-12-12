@@ -20,7 +20,7 @@ Sample Document to run containers in Docker runtime
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
-        haproxy: haproxy:2.4
+        haproxy: quay.io/airshipit/haproxy:2.4
         helm:
           helm: lachlanevenson/k8s-helm:v3.17.3
         monitoring_image: busybox:1.28.3
@@ -119,7 +119,7 @@ Sample Document to run containers in Containerd runtime
           tar_path: kubernetes/node/bin/kubelet
           mode: 0555
       images:
-        haproxy: haproxy:2.4
+        haproxy: quay.io/airshipit/haproxy:2.4
         helm:
           helm: lachlanevenson/k8s-helm:v3.17.3
         monitoring_image: busybox:1.28.3

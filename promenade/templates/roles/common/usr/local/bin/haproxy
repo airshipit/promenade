@@ -15,7 +15,7 @@ while true; do
         if ! docker ps | grep -q haproxy; then
           echo "Starting auxiliary haproxy..."
           docker run --rm -d --net host -v /etc/promenade/haproxy:/usr/local/etc/haproxy:ro \
-                --name haproxy "$IMAGE_HAPROXY"
+                --name haproxy "$IMAGE_HAPROXY" || true
         fi
         sleep 5
     fi

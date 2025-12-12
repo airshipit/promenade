@@ -535,7 +535,7 @@ data:
     images:
       tags:
         anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-        haproxy: haproxy:2.4
+        haproxy: quay.io/airshipit/haproxy:2.4
         test: python:3.6
 
   source:
