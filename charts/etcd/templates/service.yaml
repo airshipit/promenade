@@ -36,7 +36,7 @@ spec:
       targetPort: {{ .Values.network.service_client.target_port }}
     {{ end }}
   selector:
-    {{ $envAll.Values.service.name }}-service: enabled
+    component: etcd
   {{- if $envAll.Values.service.ip }}
   clusterIP: {{ $envAll.Values.service.ip }}
   {{- end }}
