@@ -50,7 +50,7 @@
       - tools/zuul/playbooks/deploy-promenade-containerd.yaml
     required-projects:
       - openstack/openstack-helm
-    timeout: 9600
+    timeout: 600 # fail fast; restore after fixing the job
     nodeset: airship-promenade-single-node-jammy
     vars:
       distro: ubuntu_jammy

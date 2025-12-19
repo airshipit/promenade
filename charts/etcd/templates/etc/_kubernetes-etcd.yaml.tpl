@@ -63,7 +63,7 @@ spec:
   shareProcessNamespace: true
   containers:
     - name: etcd
-      image: {{ .Values.images.tags.etcd }}
+      image: _ETCD_IMAGE_
       imagePullPolicy: {{ .Values.images.pull_policy }}
 {{ tuple $envAll $envAll.Values.pod.resources.etcd_pod | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
 {{ dict "envAll" $envAll "application" "etcd" "container" "etcd" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}

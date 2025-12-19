@@ -34,6 +34,14 @@ sync_certificates () {
 create_manifest () {
     WIP=/tmp/wip-manifest.yaml
     cp -f /anchor-etcd/{{ .Values.service.name }}.yaml $WIP
+    local image={{ .Values.images.tags.etcd }}
+    {{- if .Values.images.version  }}
+    local version={{ .Values.images.version }}
+    local tagged_image=$(echo "$image" | sed "s|\(@sha256:\)|:$version\1|")
+    sed -i -e 's#_ETCD_IMAGE_#'$tagged_image'#g' $WIP
+    {{- else }}
+    sed -i -e 's#_ETCD_IMAGE_#'$image'#g' $WIP
+    {{- end }}
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_STATE_#'$2'#g' $WIP
     sed -i -e 's#_ETCD_INITIAL_CLUSTER_#'$1'#g' $WIP
     sed -i -e 's#_ADVERTISE_ADDRESS_#'$POD_IP'#g' $WIP
