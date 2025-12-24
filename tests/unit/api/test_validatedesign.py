@@ -153,7 +153,7 @@ VALID_DOCS = [
             'images': {
                 'haproxy': 'quay.io/airshipit/haproxy:2.4',
                 'helm': {
-                    'helm': 'lachlanevenson/k8s-helm:v3.19.4'
+                    'helm': 'lachlanevenson/k8s-helm:v3.17.3'
                 }
             },
             'packages': {

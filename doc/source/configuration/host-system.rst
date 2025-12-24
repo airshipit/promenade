@@ -22,7 +22,7 @@ Sample Document to run containers in Docker runtime
       images:
         haproxy: quay.io/airshipit/haproxy:2.4
         helm:
-          helm: lachlanevenson/k8s-helm:v3.19.4
+          helm: lachlanevenson/k8s-helm:v3.17.3
         monitoring_image: busybox:1.28.3
       packages:
         repositories:
@@ -121,7 +121,7 @@ Sample Document to run containers in Containerd runtime
       images:
         haproxy: quay.io/airshipit/haproxy:2.4
         helm:
-          helm: lachlanevenson/k8s-helm:v3.19.4
+          helm: lachlanevenson/k8s-helm:v3.17.3
         monitoring_image: busybox:1.28.3
       packages:
         additional:

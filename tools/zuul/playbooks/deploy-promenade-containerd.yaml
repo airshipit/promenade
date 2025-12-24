@@ -19,6 +19,7 @@
       PROMENADE_TMP_LOCAL: "cache"
       DISTRO: "{{ distro }}"
   become: true
+
   tasks:
 
     - name: Generate configuration files

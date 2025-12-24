@@ -63,7 +63,7 @@
     timeout: 900
     nodeset: airship-promenade-single-node-jammy
     vars:
-      HTK_COMMIT: c1be7b83ff530b2aa39bb81e9ac35f8155266123
+      HTK_COMMIT: 49c117443391cec75e0bd52bb4a9d033325927ad
 
 - job:
     name: airship-promenade-chart-build-gate-latest-htk
@@ -121,7 +121,7 @@
           commit: true
         static:
           - latest
-          - airflow_3.1.1
+          - airflow_3.0.2
     irrelevant-files:
       - ^charts/.*$
       - ^etc/.*$
