@@ -85,7 +85,7 @@ data:
     monitoring_image: busybox:1.28.3
     haproxy: quay.io/airshipit/haproxy:2.4
     helm:
-      helm: lachlanevenson/k8s-helm:v3.17.3
+      helm: lachlanevenson/k8s-helm:v3.19.4
   packages:
     common:
       repositories:

@@ -50,7 +50,7 @@
       - tools/zuul/playbooks/deploy-promenade-containerd.yaml
     required-projects:
       - openstack/openstack-helm
-    timeout: 600 # fail fast; restore after fixing the job
+    timeout: 9600
     nodeset: airship-promenade-single-node-jammy
     vars:
       distro: ubuntu_jammy
@@ -63,7 +63,7 @@
     timeout: 900
     nodeset: airship-promenade-single-node-jammy
     vars:
-      HTK_COMMIT: 49c117443391cec75e0bd52bb4a9d033325927ad
+      HTK_COMMIT: c1be7b83ff530b2aa39bb81e9ac35f8155266123
 
 - job:
     name: airship-promenade-chart-build-gate-latest-htk
@@ -106,7 +106,7 @@
 
 - job:
     name: airship-promenade-docker-publish_ubuntu_jammy
-    voting: false
+    voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
     timeout: 3600
     nodeset: airship-promenade-single-node-jammy
@@ -121,7 +121,7 @@
           commit: true
         static:
           - latest
-          - airflow_3.0.2
+          - airflow_3.1.1
     irrelevant-files:
       - ^charts/.*$
       - ^etc/.*$
