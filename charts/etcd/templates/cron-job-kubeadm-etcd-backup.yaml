@@ -1,0 +1,173 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+{{- if .Values.manifests.cron_kubeadm_etcd_backup }}
+{{- $envAll := . }}
+{{- $serviceAccountName := "etcd-backup" }}
+# Strip off "etcd" from service name to get the application name
+# Note that application can either be kubernetes or calico for now
+# and may expand in scope in the future
+{{- $applicationName := .Values.service.name | replace "-etcd" "" }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    component: etcd-backup
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
+  namespace: {{ $envAll.Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.service.name }}-{{ $serviceAccountName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.service.name }}-{{ $serviceAccountName }}
+    namespace: {{ $envAll.Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.service.name }}-backup
+spec:
+  schedule: {{ .Values.jobs.etcd_backup.cron | quote }}
+  successfulJobsHistoryLimit: {{ .Values.jobs.etcd_backup.history.success }}
+  failedJobsHistoryLimit: {{ .Values.jobs.etcd_backup.history.failed }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+{{ tuple $envAll $applicationName "etcd-backup" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+    spec:
+      template:
+        metadata:
+          annotations:
+{{ dict "envAll" $envAll "podName" "etcd-backup" "containerNames" (list "etcd-backup") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 12 }}
+        spec:
+{{ dict "envAll" $envAll "application" "etcd-backup" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 10 }}
+          serviceAccountName: {{ .Values.service.name }}-{{ $serviceAccountName }}
+          restartPolicy: OnFailure
+{{- if .Values.pod.affinity }}
+{{- if .Values.pod.affinity.etcd_backup }}
+          affinity:
+{{  index .Values.pod.affinity "etcd_backup"  | toYaml | indent 12}}
+{{- end }}
+{{- end }}
+          nodeSelector:
+            {{ .Values.labels.anchor.node_selector_key }}: {{ .Values.labels.anchor.node_selector_value }}
+          containers:
+            - name: etcd-backup
+              image: {{ .Values.images.tags.etcdctl_backup }}
+              imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple $envAll $envAll.Values.pod.resources.jobs.etcd_backup | include "helm-toolkit.snippets.kubernetes_resources" | indent 14 }}
+{{ dict "envAll" $envAll "application" "etcd_backup" "container" "etcd_backup" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 14 }}
+              env:
+                - name: ETCDCTL_API
+                  value: "{{ .Values.etcd.etcdctl_api }}"
+                - name: ETCDCTL_DIAL_TIMEOUT
+                  value: {{ .Values.backup.etcdctl_dial_timeout }}
+                - name: ETCDCTL_ENDPOINTS
+                  value: https://{{ .Values.anchor.etcdctl_endpoint }}:{{ .Values.network.service_client.port }}
+                - name: ETCDCTL_CACERT
+                  value: /etc/kubernetes/pki/etcd/ca.crt
+                - name: ETCDCTL_CERT
+                  value: /etc/kubernetes/pki/etcd/server.crt
+                - name: ETCDCTL_KEY
+                  value: /etc/kubernetes/pki/etcd/server.key
+                - name: CLIENT_ENDPOINT
+                  value: https://$(POD_IP):{{ .Values.network.service_client.target_port }}
+                - name: PEER_ENDPOINT
+                  value: https://$(POD_IP):{{ .Values.network.service_peer.target_port }}
+                - name: POD_NAMESPACE
+                  value: {{ $envAll.Release.Namespace }}
+                - name: REMOTE_BACKUP_ENABLED
+                  value: "{{ .Values.backup.remote_backup.enabled }}"
+{{- if .Values.backup.remote_backup.enabled }}
+                - name: REMOTE_BACKUP_DAYS_TO_KEEP
+                  value: "{{ .Values.backup.remote_backup.days_to_keep }}"
+                - name: CONTAINER_NAME
+                  value: "{{ .Values.backup.remote_backup.container_name }}"
+                - name: STORAGE_POLICY
+                  value: "{{ .Values.backup.remote_backup.storage_policy }}"
+                - name: NUMBER_OF_RETRIES_SEND_BACKUP_TO_REMOTE
+                  value: {{ .Values.backup.remote_backup.number_of_retries | quote }}
+                - name: MIN_DELAY_SEND_BACKUP_TO_REMOTE
+                  value: {{ .Values.backup.remote_backup.delay_range.min | quote }}
+                - name: MAX_DELAY_SEND_BACKUP_TO_REMOTE
+                  value: {{ .Values.backup.remote_backup.delay_range.max | quote }}
+                - name: THROTTLE_BACKUPS_ENABLED
+                  value: "{{ .Values.backup.remote_backup.throttle_backups.enabled }}"
+                - name: THROTTLE_LIMIT
+                  value: {{ .Values.backup.remote_backup.throttle_backups.sessions_limit | quote }}
+                - name: THROTTLE_LOCK_EXPIRE_AFTER
+                  value: {{ .Values.backup.remote_backup.throttle_backups.lock_expire_after | quote }}
+                - name: THROTTLE_RETRY_AFTER
+                  value: {{ .Values.backup.remote_backup.throttle_backups.retry_after | quote }}
+                - name: THROTTLE_CONTAINER_NAME
+                  value: {{ .Values.backup.remote_backup.throttle_backups.container_name | quote }}
+{{- with $env := dict "ksUserSecret" $envAll.Values.secrets.identity.kubernetes }}
+{{- include "helm-toolkit.snippets.keystone_openrc_env_vars" $env | indent 16 }}
+{{- end }}
+{{- end }}
+              command:
+                - /tmp/bin/backup_etcd.sh
+              volumeMounts:
+                - name: {{ .Values.service.name }}-bin
+                  mountPath: /tmp/bin
+                - name: {{ .Values.service.name }}-certs
+                  mountPath: /etc/kubernetes/pki/etcd
+                - name: etcd-backup
+                  mountPath: {{ .Values.backup.host_backup_path }}
+          volumes:
+          - name: {{ .Values.service.name }}-bin
+            configMap:
+              name: {{ .Values.service.name }}-bin
+              defaultMode: 0555
+          - name: {{ .Values.service.name }}-certs
+            hostPath:
+              path: /etc/kubernetes/pki/etcd
+              type: DirectoryOrCreate
+          - name: etcd-backup
+            hostPath:
+              path: {{ .Values.backup.host_backup_path }}
+{{- end }}

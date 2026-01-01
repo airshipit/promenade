@@ -310,4 +310,5 @@ manifests:
   service: true
   test_etcd_health: true
   cron_etcd_backup: true
+  cron_kubeadm_etcd_backup: false
   job_ks_user: false
