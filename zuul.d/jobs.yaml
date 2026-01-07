@@ -106,12 +106,12 @@
 
 - job:
     name: airship-promenade-docker-publish_ubuntu_jammy
-    voting: true
+    voting: false
     run: tools/zuul/playbooks/docker-image-build.yaml
     timeout: 3600
     nodeset: airship-promenade-single-node-jammy
-    secrets:
-      - airship_promenade_quay_creds
+    # secrets:
+    #   - airship_promenade_quay_creds
     vars:
       publish: true
       distro: ubuntu_jammy
@@ -121,7 +121,7 @@
           commit: true
         static:
           - latest
-          - airflow_3.1.1
+          - airflow_3.1.5
     irrelevant-files:
       - ^charts/.*$
       - ^etc/.*$
