@@ -106,12 +106,12 @@
 
 - job:
     name: airship-promenade-docker-publish_ubuntu_jammy
-    voting: false
+    voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
     timeout: 3600
     nodeset: airship-promenade-single-node-jammy
-    # secrets:
-    #   - airship_promenade_quay_creds
+    secrets:
+      - airship_promenade_quay_creds_2026
     vars:
       publish: true
       distro: ubuntu_jammy
@@ -154,6 +154,34 @@
           phFn3dA1xr/cNRWeEDDQvWnC2cJ5obtsDG5Fk6QqJXKtEsLguqys5B3/4ortFTxboN5Wg
           B8LXgIGR6nvi3c+UgWR1REVXIencbYUX2zAmr449NZ2kEys4WZ51EAX0u9C6uCPnwKU/T
           cnoFa9ZcVtbUzddA4j8SfRdIPUH0FmUMHAiXdcfCYhJwbRzzKC9m8C84Emf6Io=
+
+
+- secret:
+    name: airship_promenade_quay_creds_2026
+    data:
+      username: !encrypted/pkcs1-oaep
+        - dpmGcLTG7LklbZNY/WRy43emkyfzjlyVEsRRwJJnSzT7Bif7QyEWt0htX2xbPDsw3AN/d
+          pTS187/0TVwCmnFPIRvf1c0GWcZzqe7eFgJLUdezvCR8XxnH6QacGZggPj5czmD10b1Eb
+          Um6r80+alsCEpStgniYN2JlNgz7DnoxsI9C1qLyWDuRHvHLk1ji+gKzvKbSy8nxSHL2Xq
+          Mn8Ok6A6rfNH4dQRbxzDvh5vLd7q1fInyYQewiixNZiHV8mG8lNFY3QuKtFRsho6GaC2W
+          ZU2VHLTQHscTrwbTWvbNAARY/+Wg3FXl27qx0GgNtDCdNndCd3x6EemlizbBwDmxVRCuf
+          bnIcfp+CnYnyaqvmX8a061/TCTmbF/gra55WzMZQnLVKZO1egm7VMiwbVJzxzIhkfsa81
+          WrdJXuSCSJdyCKlNmEnmznhzLNjIGOv2C7QZCYJWFqKzmW+7xU5q3isr4LZlSIEHjTR8m
+          FS40tsxr1j63AbnXxo4NWjpi3mXr3bysP+MtMzjQZ5X4ra36lIBrAS26Ui1xxIm6o1rvg
+          gIJaW1JzO5rMEEH23Nt47ZTgSQmkbJhvozBni3qUGkVWeA02r9cAoDFFWyg6idiLXfGxe
+          +1fEc2sKWtHqfuuY5WTFOcC4YSj57JSQfiDBjb2DU9qnGRnXIiPfbj9MZmXDCg=
+      password: !encrypted/pkcs1-oaep
+        - OTtTVIyPPDd5VJWI/lMoqvWU/R4TuPhSyAQSI7zKzgqWHN9r+17vNkPfoV6xC7iUibQiu
+          iLSq7ib/XdxotxH7TAtFyq5wtxTUfSgGbVVK6uFPPT3lyUckMPxCbDt6VYfv7KvnqX7Zl
+          143gTG2NMVVfuBzuhocVuwJ4OToIBwAfcmIYUs0nEDtuziePr+QiCfwMHWqPI18zzQVqn
+          7DOJtezfvucMpuJYp1ie4KKse/IkmEsOwa87vfcmPbFry4rdeSLnlVVziwu1NuVBcK0j2
+          uU0ufKwWy5x0TYWuoc5yAgOeNmM4Kt49WMY22JChxFZ1EvSYNUr34Dod/gvtO/fNDx4Dp
+          QThYTFJSO2wdkQ+JuAYuNepB7W7q8C7oUKbthwq8/aLdRseJ3aE4JNBXD2KZHHS0ntJpr
+          QwCwUbvyKigATOF94ZE/jGRAwYxTB44VFvKzst+xQpnxko9jnw698A/oN8odWXrRUd2lQ
+          gEppMXqxqnRmyIbiffmvMf4Potl3cxptRVs/aHzIC7ejTEsoiTo2BpoEMVJoDGfMp6Rgc
+          /fmv00QQgmUbNeG3+UqgkDu1+h+K2Co674Pca8xfv681IcXoa9DSKI67eHibRhYCIIgz1
+          cgr9ck9SJj087+2NHDibydpL9uu6SX5kHC/8rIvNiveVDf8sUw3KMbTW6UceSU=
+
 
 - job:
     name: promenade-upload-git-mirror
