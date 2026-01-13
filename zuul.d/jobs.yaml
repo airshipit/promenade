@@ -191,7 +191,7 @@
       git_mirror_repository: airshipit/promenade
     secrets:
       - name: git_mirror_credentials
-        secret: promenade-airshipit-github-secret-2023-03-23
+        secret: promenade-airshipit-github-ed25519-secret-2026-01-13
         pass-to-parent: true
 
 - secret:
@@ -241,3 +241,21 @@
           Q/Xg0AakbxBtOwmtwpevxHHfFOQ+SQT3frrLtqFw0DehEAJUkb40VI11iGsSKCOk446t1
           neMY02eksimEUmURZa3oneGj1otqAt8ptX+VC4lTqkuICbapCNNYeBzs2sTS2Radvsdwv
           OWHP9f9E+iUoFABFPLwvPdNAU0ulX61uxinxKkcTk1hcekn1lZuIvEBRy7JJ7M=
+
+- secret:
+    name: promenade-airshipit-github-ed25519-secret-2026-01-13
+    data:
+      user: git
+      host: github.com
+      host_key: github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+      ssh_key: !encrypted/pkcs1-oaep
+        - t78GL8CXLeXWwpKjmGXqllMagjky85BI94OlbVlg34IC4Qj43Q9MYw4Q1HEdAceXb8hhf
+          zGx+aJ4FPX4B7/WJuYbUE6xQ2OTSRrEttDHuWMPR8szTQ9gaX1EPyiZhyUWUBnJC+R9y1
+          t7U6TQDTAfk22ckXZDXcuU/xFLG8S6qMUoEao5VuaJfqEdhnRpmi25Tpskib3VYeJx7iE
+          D6+iFoU/AY+gbTXwkfgA+XetHELEJknhV2hn3Nyc03/a8ODFT3bJYYfSZlB9CBycjcwoX
+          Q51M7PCFFhGpSmAm+WyNKakiKGJJSZpTB6CqwSMvNx4szNfyaoipN8BPjA9V3FEQNwR/L
+          kwSsD+7FnMNPvHvL5AWvavDR7k6mDB5ldlTKI2bzpzOQuSBAmTFNDPlpzbsZApbJU7jLS
+          1pDR16YOcvjs1qeVVx/XWAflqx7nz424pKc5WzZ4zQvC0PBk1xoJyi4//F/FOdBfP59Qb
+          WP1yaMJMq8Pa3Z6Yo5rVZdkPAbkn1Tn80ql9ynDKQBBRU6RST5ksK8vq3mqdUsEGh3xw4
+          hX9RFH0YRLu4asQzkPFYHhLM2OPcGv8l81O9xWq1p63kbeIodES3eKdurXGpJS6qhBYyL
+          zHp1LjP4aNJfSz0UYI4Xc2hECK6Cwmivzlrg8p+n/sbpjZar7mlENojM0vMhw8=
