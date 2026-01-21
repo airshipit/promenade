@@ -21,29 +21,29 @@
       rtd_project_name: 'airship-promenade'
     check:
       jobs:
-        - airship-promenade-openstack-tox-cover-jammy
-        - airship-promenade-openstack-tox-pep8-jammy
-        - airship-promenade-openstack-tox-py310-jammy
-        # - airship-promenade-openstack-tox-docs-jammy
-        - airship-promenade-docker-build-gate-ubuntu_jammy
+        - airship-promenade-openstack-tox-cover-noble
+        - airship-promenade-openstack-tox-pep8-noble
+        - airship-promenade-openstack-tox-py312-noble
+        # - airship-promenade-openstack-tox-docs-noble
+        - airship-promenade-docker-build-gate-ubuntu_noble
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
 
     gate:
       jobs:
-        - airship-promenade-openstack-tox-cover-jammy
-        - airship-promenade-openstack-tox-pep8-jammy
-        - airship-promenade-openstack-tox-py310-jammy
-        # - airship-promenade-openstack-tox-docs-jammy
-        - airship-promenade-docker-build-gate-ubuntu_jammy
+        - airship-promenade-openstack-tox-cover-noble
+        - airship-promenade-openstack-tox-pep8-noble
+        - airship-promenade-openstack-tox-py312-noble
+        # - airship-promenade-openstack-tox-docs-noble
+        - airship-promenade-docker-build-gate-ubuntu_noble
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
 
     post:
       jobs:
-        - airship-promenade-docker-publish_ubuntu_jammy
+        - airship-promenade-docker-publish_ubuntu_noble
         - promenade-upload-git-mirror
 
 ...

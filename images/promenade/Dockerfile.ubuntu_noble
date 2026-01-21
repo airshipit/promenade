@@ -1,0 +1,118 @@
+# Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# In order to fix rate limit error
+#
+# 429 Too Many Requests - Server message: too many requests:
+#   You have reached your pull rate limit.
+#   You may increase the limit by authenticating and upgrading: https://www.docker.com/increase-rate-limit
+ARG FROM=quay.io/airshipit/ubuntu:noble
+FROM ${FROM}
+
+LABEL org.opencontainers.image.authors='airship-discuss@lists.airshipit.org, irc://#airshipit@freenode' \
+      org.opencontainers.image.url='https://airshipit.org' \
+      org.opencontainers.image.documentation='https://airship-promenade.readthedocs.org' \
+      org.opencontainers.image.source='https://opendev.org/airship/promenade' \
+      org.opencontainers.image.vendor='The Airship Authors' \
+      org.opencontainers.image.licenses='Apache-2.0'
+
+VOLUME /etc/promenade
+VOLUME /target
+
+RUN mkdir /opt/promenade
+WORKDIR /opt/promenade
+
+ENV PORT=9000
+EXPOSE $PORT
+
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+ENTRYPOINT ["/opt/promenade/entrypoint.sh"]
+
+RUN set -ex \
+    && apt update -qq \
+    && apt upgrade -y \
+    && apt-get install --no-install-recommends -y \
+        ca-certificates \
+        curl \
+        dnsutils \
+        gpg \
+        gpg-agent \
+        python3-dev \
+        python3-setuptools \
+        rsync \
+        # this will install golang-cfssl 1.2.0 in Jammy
+        golang-cfssl \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && apt-get autoremove -yqq --purge \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add promenade user
+RUN groupmod -n promenade ubuntu \
+      && usermod -l promenade -d /opt/promenade  ubuntu
+
+COPY requirements-frozen.txt /opt/promenade
+
+RUN set -ex \
+        && buildDeps=' \
+        automake \
+        gcc \
+        libpcre3-dev \
+        libffi-dev \
+        libpq-dev \
+        libssl-dev \
+        libtool \
+        libyaml-dev \
+        libvirt-dev \
+        make \
+        python3-pip \
+        pkg-config \
+        ' \
+        && apt-get -qq update \
+        # Keep git separate so it's not removed below
+        && apt-get install -y $buildDeps git --no-install-recommends \
+        && python3 -m pip install -U pip --break-system-packages --ignore-installed \
+        && pip3 install --break-system-packages --ignore-installed --no-cache-dir -r requirements-frozen.txt
+
+
+# Setting promenade version for BPR
+ENV PBR_VERSION=0.9.0
+
+COPY . /opt/promenade
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - --break-system-packages --force-reinstall \
+    && pip3 install --break-system-packages --ignore-installed --verbose --editable /opt/promenade \
+    && echo "/opt/promenade" \
+        > /usr/local/lib/python3.12/dist-packages/promenade.pth \
+    && pip3 cache purge
+
+RUN apt-get purge -y --auto-remove $buildDeps \
+        && apt-get autoremove -yqq --purge \
+        && apt-get clean \
+        && rm -rf \
+            /var/lib/apt/lists/* \
+            /tmp/* \
+            /var/tmp/* \
+            /root/.cache \
+            /usr/share/man \
+            /usr/share/doc \
+            /usr/share/doc-base
+
+
+USER promenade

@@ -40,6 +40,7 @@
         - pip:
             name: docker
             executable: pip3
+            break_system_packages: true
       become: True
 
     - name: Install pyyaml
@@ -47,6 +48,7 @@
         - pip:
             name: pyyaml
             executable: pip3
+            break_system_packages: true
       become: True
 
     - name: Make images - verbosive

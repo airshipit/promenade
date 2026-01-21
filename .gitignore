@@ -16,6 +16,8 @@
 /conformance
 /promenade.egg-info
 
+assets
+
 # Python artifacts
 __pycache__
 

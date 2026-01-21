@@ -13,32 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# - job:
-#     name: airship-promenade-openstack-tox-docs-jammy
-#     parent: openstack-tox-docs
-#     description: Runs docs job on jammy
-#     nodeset: airship-promenade-single-node-jammy
-
 - job:
-    name: airship-promenade-openstack-tox-cover-jammy
+    name: airship-promenade-openstack-tox-cover-noble
     parent: openstack-tox-cover
-    description: Runs cover job on jammy
-    nodeset: airship-promenade-single-node-jammy
+    description: Runs cover job on noble
+    nodeset: airship-promenade-single-node-noble
     pre-run: tools/zuul/playbooks/install-deps.yaml
 
 - job:
-    name: airship-promenade-openstack-tox-py310-jammy
-    parent: openstack-tox-py310
-    description: Runs cover job on jammy
-    nodeset: airship-promenade-single-node-jammy
+    name: airship-promenade-openstack-tox-py312-noble
+    parent: openstack-tox-py312
+    description: Runs cover job on noble
+    nodeset: airship-promenade-single-node-noble
     pre-run: tools/zuul/playbooks/install-deps.yaml
 
 - job:
-    name: airship-promenade-openstack-tox-pep8-jammy
+    name: airship-promenade-openstack-tox-pep8-noble
     parent: openstack-tox-pep8
-    description: Runs pep8 job on jammy
-    nodeset: airship-promenade-single-node-jammy
+    description: Runs pep8 job on noble
+    nodeset: airship-promenade-single-node-noble
 
 - job:
     name: airship-promenade-genesis-containerd-gate
@@ -51,9 +44,9 @@
     required-projects:
       - openstack/openstack-helm
     timeout: 9600
-    nodeset: airship-promenade-single-node-jammy
+    nodeset: airship-promenade-single-node-noble
     vars:
-      distro: ubuntu_jammy
+      distro: ubuntu_noble
 
 - job:
     name: airship-promenade-chart-build-gate
@@ -61,7 +54,7 @@
       Lints charts using pinned HTK
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 900
-    nodeset: airship-promenade-single-node-jammy
+    nodeset: airship-promenade-single-node-noble
     vars:
       HTK_COMMIT: c1be7b83ff530b2aa39bb81e9ac35f8155266123
 
@@ -71,7 +64,7 @@
       Lints charts using latest HTK
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 900
-    nodeset: airship-promenade-single-node-jammy
+    nodeset: airship-promenade-single-node-noble
     vars:
       HTK_COMMIT: master
 
@@ -82,19 +75,19 @@
     voting: true
     run: tools/zuul/playbooks/helm-linter.yaml
     timeout: 900
-    nodeset: airship-promenade-single-node-jammy
+    nodeset: airship-promenade-single-node-noble
     vars:
       HTK_COMMIT: master
 
 - job:
-    name: airship-promenade-docker-build-gate-ubuntu_jammy
+    name: airship-promenade-docker-build-gate-ubuntu_noble
     voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
     timeout: 3600
-    nodeset: airship-promenade-single-node-jammy
+    nodeset: airship-promenade-single-node-noble
     vars:
       publish: false
-      distro: ubuntu_jammy
+      distro: ubuntu_noble
       tags:
         dynamic:
           patch_set: true
@@ -105,16 +98,16 @@
       - ^tools/.*$
 
 - job:
-    name: airship-promenade-docker-publish_ubuntu_jammy
+    name: airship-promenade-docker-publish_ubuntu_noble
     voting: true
     run: tools/zuul/playbooks/docker-image-build.yaml
     timeout: 3600
-    nodeset: airship-promenade-single-node-jammy
+    nodeset: airship-promenade-single-node-noble
     secrets:
       - airship_promenade_quay_creds_2026
     vars:
       publish: true
-      distro: ubuntu_jammy
+      distro: ubuntu_noble
       tags:
         dynamic:
           branch: true
@@ -127,34 +120,6 @@
       - ^etc/.*$
       - ^tests/.*$
       - ^tools/.*$
-
-
-- secret:
-    name: airship_promenade_quay_creds
-    data:
-      username: !encrypted/pkcs1-oaep
-        - rZUvxa5mOBb4fmFmoYCcT67hrkI7oqrmuTb3eFzgB7LOJbiZN9/3JSnbBmgG9qeaa8kog
-          ttxjwgu0+YdpKjSk/XEyWtDi6s1yqFwhlJprhS/FR91pjUxO/PGSFwhlZvTp91cb60xjL
-          smg9Kp41GLHwynRboL78GyhSMLlW76Ok/xCCqnpW+60/W0iXDte0tRd5LLKtUl2b8z9kd
-          Ki1MzPLMMXFZKJVtnwnjub1DWPuN9hlwasMwISsOJjE0Ri+aFz5m6qfx0jwHgCRTzPsnZ
-          osHiVeRbZCjdFFRK9AWNid983VGxLz79MObO3lx1wUt9YLH2uwUSmdtBuBbHlEciOWi7x
-          cUm1EWlXqx7XFTKCazYq4SYBzltqYIG9NNdIHBC7WdLTIoHBuxkDvo9fSEnR/82s80LtQ
-          e4+9GPcM4dXsXy4MxRTKdQCfa87qJD8ItbTlHBYLJEQRNkKvGFOqVGtQY7DjRSZwK5GHl
-          cq+9DJShfe4++d3grTJo0zp2Mv/8ronbXqRKkr5zoO3KmmaI+y1FPwsMpfjwXyWhJFEo+
-          Abp9LvThSoaQLWdbLDyZrEp17Wb7fjCnoDfv9oNyD/GOEXTQJ0PYQYYsApAFGYSKA41pg
-          XLCVcT1JtT9F7lbUa3fRyzLcbsjGf9PfToeYTc5BPRPZOYG0vhFcxBcj460SNo=
-      password: !encrypted/pkcs1-oaep
-        - o3z8xpLEED7CslvrePRIXPSnhv0y7FmffIzQmnJUDtevtxIdpHZ6wJll69FwN0gFtucLb
-          WXC4Y5QHZJMmRQa444dCtvqb4Cut58fVd9EJ3hcoSYbcsvenpoq99paehOIYBuUHkq5jR
-          HwolBcGAZjUavdTrDIGyDr/2nbUsfkXmAVlqYSH6Fb/H25IXn6G1ksntDm0Q2OSvtoj99
-          xR9HXfpSsBWk17Cw+MJwDKsp6DZApo3Dr0todp6nOuj7l+heG8IntugxtgL5RD2NQCAZk
-          KYRUjqjLpEjGFIR394ndUlLf3E4H4v+uK9lKca3tCDCMSJfRd7SUXLWhauWVHIPAvy3oR
-          V20u7BrripCXuBEgg6FkMuwnkE+U9TlxaRhtoM1zZdNSMvXNyC/EDFI+HkYho+NHaj1ge
-          o0oGHiqJlKMQfhNY5HpZqTPHKUmqKWShhvF7eyKYu3ynOmPyqO6SL8q/Yp7cRtm4B1s+U
-          phFn3dA1xr/cNRWeEDDQvWnC2cJ5obtsDG5Fk6QqJXKtEsLguqys5B3/4ortFTxboN5Wg
-          B8LXgIGR6nvi3c+UgWR1REVXIencbYUX2zAmr449NZ2kEys4WZ51EAX0u9C6uCPnwKU/T
-          cnoFa9ZcVtbUzddA4j8SfRdIPUH0FmUMHAiXdcfCYhJwbRzzKC9m8C84Emf6Io=
-
 
 - secret:
     name: airship_promenade_quay_creds_2026
@@ -193,54 +158,6 @@
       - name: git_mirror_credentials
         secret: promenade-airshipit-github-ed25519-secret-2026-01-13
         pass-to-parent: true
-
-- secret:
-    name: promenade-airshipit-github-secret-2023-03-23
-    data:
-      user: git
-      host: github.com
-      host_key: github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
-      ssh_key: !encrypted/pkcs1-oaep
-        - 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
 
 - secret:
     name: promenade-airshipit-github-ed25519-secret-2026-01-13

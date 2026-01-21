@@ -21,3 +21,13 @@
         nodes:
           - primary
 
+- nodeset:
+    name: airship-promenade-single-node-noble
+    nodes:
+      - name: primary
+        label: ubuntu-noble
+    groups:
+      - name: primary
+        nodes:
+          - primary
+
