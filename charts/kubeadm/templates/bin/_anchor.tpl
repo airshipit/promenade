@@ -239,6 +239,12 @@ sync_binaries() {
   fi
 }
 
+cleanup_old_backups() {
+  if [ -e "$HOST_DIR/etc/kubernetes/tmp/" ]; then
+    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d $HOST_DIR/etc/kubernetes/tmp/$p-* 2>/dev/null | sort | sed '$d' | xargs -r rm -rf; done
+  fi
+}
+
 cleanup_old_configs() {
 {{- range $file := .Values.const.files_to_delete }}
   remove_if_exists "${HOST_DIR}{{ $file }}"
@@ -304,6 +310,9 @@ kubeadm_action() {
        ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-controller-manager.yaml" ||
        ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-scheduler.yaml"  ]] ||
        [[ $KUBERNETES_ETCD == "enabled" && ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" ]]; then
+    if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --no-headers | wc -l) -gt 0 ]; then
+      kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --timeout 300s
+    fi
     kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"
   else
     if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --no-headers | wc -l) -gt 0 ]; then
@@ -320,6 +329,7 @@ if [[ $(kubeadm version -o short) != "$KUBERNETES_VERSION" ]]; then
   exit 1
 fi
 
+cleanup_old_backups
 sync_configs
 
 if [[ $NODE_ROLE == "master" ]] && is_action_required; then
