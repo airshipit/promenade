@@ -56,7 +56,7 @@
     timeout: 900
     nodeset: airship-promenade-single-node-noble
     vars:
-      HTK_COMMIT: c1be7b83ff530b2aa39bb81e9ac35f8155266123
+      HTK_COMMIT: d7f42fcc18aa7f3a568f3e6e82854d1003993137
 
 - job:
     name: airship-promenade-chart-build-gate-latest-htk

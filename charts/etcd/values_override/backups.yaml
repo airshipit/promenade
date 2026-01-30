@@ -1,0 +1,44 @@
+---
+backup:
+  enabled: true
+  remote_backup:
+    enabled: true
+volume:
+  backup:
+    enabled: true
+manifests:
+  pvc_backup: true
+  job_ks_user: false
+  cron_etcd_backup: false
+  cron_kubeadm_etcd_backup: true
+  secret: true
+  secret_backup_restore: true
+
+secrets:
+  identity:
+    example-admin: example-admin-user
+    example-etcd: example-backup-user
+    kubernetes: etcd-backup-user
+
+endpoints:
+  identity:
+    auth:
+      kubernetes:
+        auth_url: null
+        role: admin
+        region_name: RegionOne
+        username: kubernetes-backup-user
+        password: password
+        project_name: service
+        user_domain_name: service
+        project_domain_name: service
+      kubernetes_failover:
+        auth_url: null
+        role: admin
+        region_name: RegionOne
+        username: kubernetes-backup-user-failover
+        password: password
+        project_name: service
+        user_domain_name: service
+        project_domain_name: service
+...
