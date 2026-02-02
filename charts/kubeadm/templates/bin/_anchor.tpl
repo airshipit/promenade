@@ -241,7 +241,7 @@ sync_binaries() {
 
 cleanup_old_backups() {
   if [ -e "$HOST_DIR/etc/kubernetes/tmp/" ]; then
-    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d $HOST_DIR/etc/kubernetes/tmp/$p-* 2>/dev/null | sort | sed '$d' | xargs -r rm -rf; done
+    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d $HOST_DIR/etc/kubernetes/tmp/$p-* 2>/dev/null | sort | sed '$d' | xargs -r rm -rf || true; done
   fi
 }
 
