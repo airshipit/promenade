@@ -89,8 +89,11 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.name
-          command: ["/bin/bash","-c"]
-          args: ["/tmp/bin/anchor"]
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /tmp/bin/anchor 2>&1 | tee "/host/var/log/kubeadm_output_$(date +%Y%m%d_%H%M%S).log"
           lifecycle:
             preStop:
               exec:

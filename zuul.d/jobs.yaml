@@ -43,7 +43,7 @@
       - tools/zuul/playbooks/deploy-promenade-containerd.yaml
     required-projects:
       - openstack/openstack-helm
-    timeout: 9600
+    timeout: 600
     nodeset: airship-promenade-single-node-noble
     vars:
       distro: ubuntu_noble
