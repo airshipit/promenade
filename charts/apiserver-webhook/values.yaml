@@ -416,6 +416,9 @@ dependencies:
         - service: identity
           endpoint: internal
 
+# List of extra objects to deploy
+extraObjects: []
+
 manifests:
   configmap_bin: true
   configmap_certs: true
