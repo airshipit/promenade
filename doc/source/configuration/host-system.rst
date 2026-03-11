@@ -23,7 +23,7 @@ Sample Document to run containers in Docker runtime
         haproxy: quay.io/airshipit/haproxy:2.4
         helm:
           helm: lachlanevenson/k8s-helm:v3.19.4
-        monitoring_image: busybox:1.28.3
+        monitoring_image: quay.io/airshipit/busybox:1.28.3
       packages:
         repositories:
           - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
@@ -122,7 +122,7 @@ Sample Document to run containers in Containerd runtime
         haproxy: quay.io/airshipit/haproxy:2.4
         helm:
           helm: lachlanevenson/k8s-helm:v3.19.4
-        monitoring_image: busybox:1.28.3
+        monitoring_image: quay.io/airshipit/busybox:1.28.3
       packages:
         additional:
           - curl

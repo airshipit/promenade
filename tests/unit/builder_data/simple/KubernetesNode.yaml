@@ -13,7 +13,6 @@ data:
   join_ip: 192.169.77.10
   labels:
     dynamic:
-      - calico-etcd=enabled
       - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled

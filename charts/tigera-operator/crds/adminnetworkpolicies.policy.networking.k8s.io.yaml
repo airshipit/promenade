@@ -1,0 +1,74 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    api-approved.kubernetes.io: "https://github.com/kubernetes-sigs/network-policy-api/pull/30"
+  name: adminnetworkpolicies.policy.networking.k8s.io
+spec:
+  group: policy.networking.k8s.io
+  names:
+    kind: AdminNetworkPolicy
+    listKind: AdminNetworkPolicyList
+    plural: adminnetworkpolicies
+    shortNames:
+      - anp
+    singular: adminnetworkpolicy
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          description: AdminNetworkPolicy is a cluster-scoped resource that allows
+            administrators to define network policies that apply to the entire cluster.
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: Specification of the desired behavior of AdminNetworkPolicy.
+              type: object
+              required:
+                - priority
+                - subject
+              properties:
+                priority:
+                  description: Priority is a value from 0 to 1000. Policies with lower
+                    priority values have higher precedence.
+                  type: integer
+                  format: int32
+                  maximum: 1000
+                  minimum: 0
+                subject:
+                  description: Subject defines the pods to which this AdminNetworkPolicy
+                    applies.
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                ingress:
+                  description: Ingress is the list of ingress rules to apply to the
+                    subject.
+                  type: array
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                egress:
+                  description: Egress is the list of egress rules to apply to the
+                    subject.
+                  type: array
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true

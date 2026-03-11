@@ -94,7 +94,6 @@ data:
           memory: "8Gi"
   labels:
     dynamic:
-      - calico-etcd=enabled
       - coredns=enabled
       - kubernetes-apiserver=enabled
       - kubernetes-controller-manager=enabled
@@ -114,9 +113,6 @@ data:
       etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
       scheduler: registry.k8s.io/kube-scheduler-amd64:v1.33.5
   files:
-    - path: /var/lib/anchor/calico-etcd-bootstrap
-      content: "# placeholder for triggering calico etcd bootstrapping"
-      mode: 0644
     # NOTE(mark-burnett): These are referenced by the apiserver arguments above.
     - path: /etc/genesis/apiserver/acconfig.yaml
       mode: 0444

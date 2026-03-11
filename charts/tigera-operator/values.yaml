@@ -1,0 +1,53 @@
+images:
+  tags:
+    tigera_operator: quay.io/tigera/operator:v1.36.5
+    calico_node: docker.io/calico/node:v3.29.1
+    calico_cni: docker.io/calico/cni:v3.29.1
+    calico_kube_controllers: docker.io/calico/kube-controllers:v3.29.1
+    calico_typha: docker.io/calico/typha:v3.29.1
+    calico_csi: docker.io/calico/csi:v3.29.1
+    calico_node_driver_registrar: docker.io/calico/node-driver-registrar:v3.29.1
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+  pull_policy: IfNotPresent
+
+pod:
+  security_context:
+    operator:
+      pod:
+        runAsNonRoot: true
+      container:
+        operator:
+          allowPrivilegeEscalation: false
+  resources:
+    operator:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "2000m"
+        memory: "1024Mi"
+
+networking:
+  podSubnet: 192.168.0.0/16
+  mtu: 1500
+  encapsulation: IPIP
+  natOutgoing: Enabled
+  nodeAddressAutodetectionV4: {}
+
+conf:
+  installation:
+    calicoNetwork:
+      linuxDataplane: Iptables
+      bgp: Enabled
+  operator:
+    replicas: 1
+
+labels:
+  operator:
+    node_selector_key: kubernetes.io/os
+    node_selector_value: linux
+
+manifests:
+  namespace: true
+  operator: true
+  installation: true

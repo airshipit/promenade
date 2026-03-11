@@ -39,11 +39,10 @@ metadata:
     layer: site
   storagePolicy: cleartext
 data:
-  description: Container networking via Calico
+  description: Container networking via Tigera Operator
   sequenced: true
   chart_group:
-    - calico-etcd
-    - calico
+    - tigera-operator
 ---
 schema: armada/ChartGroup/v1
 metadata:
@@ -117,30 +116,6 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: infra-helm-toolkit
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-data:
-  chart_name: infra-helm-toolkit
-  release: infra-helm-toolkit
-  namespace: infra-helm-toolkit
-  wait:
-    timeout: 600
-  upgrade:
-    no_hooks: true
-  values: {}
-  source:
-    type: git
-    location: https://opendev.org/openstack/openstack-helm.git
-    subpath: helm-toolkit
-    reference: c1be7b83ff530b2aa39bb81e9ac35f8155266123
-  dependencies: []
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
   name: kubernetes-proxy
   layeringDefinition:
     abstract: false
@@ -173,370 +148,44 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: calico-etcd
+  name: tigera-operator
   layeringDefinition:
     abstract: false
     layer: site
   storagePolicy: cleartext
-  substitutions:
-    -
-      src:
-        schema: deckhand/CertificateAuthority/v1
-        name: calico-etcd
-        path: .
-      dest:
-        path: '.values.secrets.tls.client.ca'
-    -
-      src:
-        schema: deckhand/CertificateAuthority/v1
-        name: calico-etcd-peer
-        path: .
-      dest:
-        path: '.values.secrets.tls.peer.ca'
-
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-anchor
-        path: .
-      dest:
-        path: '.values.secrets.anchor.tls.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-anchor
-        path: .
-      dest:
-        path: '.values.secrets.anchor.tls.key'
-
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n0
-        path: .
-      dest:
-        path: '.values.nodes[0].tls.client.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n0
-        path: .
-      dest:
-        path: '.values.nodes[0].tls.client.key'
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n0-peer
-        path: .
-      dest:
-        path: '.values.nodes[0].tls.peer.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n0-peer
-        path: .
-      dest:
-        path: '.values.nodes[0].tls.peer.key'
-
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n1
-        path: .
-      dest:
-        path: '.values.nodes[1].tls.client.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n1
-        path: .
-      dest:
-        path: '.values.nodes[1].tls.client.key'
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n1-peer
-        path: .
-      dest:
-        path: '.values.nodes[1].tls.peer.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n1-peer
-        path: .
-      dest:
-        path: '.values.nodes[1].tls.peer.key'
-
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n2
-        path: .
-      dest:
-        path: '.values.nodes[2].tls.client.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n2
-        path: .
-      dest:
-        path: '.values.nodes[2].tls.client.key'
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n2-peer
-        path: .
-      dest:
-        path: '.values.nodes[2].tls.peer.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n2-peer
-        path: .
-      dest:
-        path: '.values.nodes[2].tls.peer.key'
-
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n3
-        path: .
-      dest:
-        path: '.values.nodes[3].tls.client.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n3
-        path: .
-      dest:
-        path: '.values.nodes[3].tls.client.key'
-    -
-      src:
-        schema: deckhand/Certificate/v1
-        name: calico-etcd-n3-peer
-        path: .
-      dest:
-        path: '.values.nodes[3].tls.peer.cert'
-    -
-      src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-etcd-n3-peer
-        path: .
-      dest:
-        path: '.values.nodes[3].tls.peer.key'
-
 data:
-  chart_name: etcd
-  release: calico-etcd
-  namespace: kube-system
-  test:
-    enabled: false
+  chart_name: tigera-operator
+  release: tigera-operator
+  namespace: tigera-operator
   wait:
     timeout: 600
     labels:
-      release_group: ucp-calico-etcd
+      release_group: ucp-tigera-operator
   upgrade:
     no_hooks: true
   values:
-    anchor:
-      etcdctl_endpoint: 10.96.232.136
-    labels:
-      anchor:
-        node_selector_key: calico-etcd
-        node_selector_value: enabled
-    secrets:
-      anchor:
-        tls:
-          cert: placeholder
-          key: placeholder
-      tls:
-        client:
-          ca: placeholder
-        peer:
-          ca: placeholder
-    etcd:
-      host_data_path: /var/lib/etcd/calico
-      host_etc_path: /etc/etcd/calico
-    bootstrapping:
-      enabled: true
-      host_directory: /var/lib/anchor
-      filename: calico-etcd-bootstrap
     images:
       tags:
-        etcd: quay.io/coreos/etcd:v3.5.12
-        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
-    nodes:
-      - name: n0
-        tls:
-          client:
-            cert: placeholder
-            key: placeholder
-          peer:
-            cert: placeholder
-            key: placeholder
-      - name: n1
-        tls:
-          client:
-            cert: placeholder
-            key: placeholder
-          peer:
-            cert: placeholder
-            key: placeholder
-      - name: n2
-        tls:
-          client:
-            cert: placeholder
-            key: placeholder
-          peer:
-            cert: placeholder
-            key: placeholder
-      # n3 is here to demonstrate movability of the cluster
-      - name: n3
-        tls:
-          client:
-            cert: placeholder
-            key: placeholder
-          peer:
-            cert: placeholder
-            key: placeholder
-    service:
-      name: calico-etcd
-      ip: 10.96.232.136
-    network:
-      service_client:
-        name: service_client
-        port: 6666
-        target_port: 6666
-      service_peer:
-        name: service_peer
-        port: 6667
-        target_port: 6667
-  source:
-    type: local
-    location: /etc/genesis/armada/assets/charts
-    subpath: etcd
-  dependencies:
-    - helm-toolkit
-
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
-  name: calico
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-  substitutions:
-    - src:
-        schema: deckhand/CertificateAuthority/v1
-        name: calico-etcd
-        path: .
-      dest:
-        path: '.values.endpoints.etcd.auth.client.tls.ca'
-    - src:
-        schema: deckhand/Certificate/v1
-        name: calico-node
-        path: .
-      dest:
-        path: '.values.endpoints.etcd.auth.client.tls.crt'
-    - src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-node
-        path: .
-      dest:
-        path: '.values.endpoints.etcd.auth.client.tls.key'
-    - src:
-        schema: deckhand/CertificateAuthority/v1
-        name: calico-etcd
-        path: .
-      dest:
-        path: '.values.conf.etcd.credentials.ca'
-    - src:
-        schema: deckhand/Certificate/v1
-        name: calico-node
-        path: .
-      dest:
-        path: '.values.conf.etcd.credentials.certificate'
-    - src:
-        schema: deckhand/CertificateKey/v1
-        name: calico-node
-        path: .
-      dest:
-        path: '.values.conf.etcd.credentials.key'
-data:
-  chart_name: calico
-  release: calico
-  namespace: kube-system
-  wait:
-    timeout: 600
-    labels:
-      release_group: ucp-calico
-  upgrade:
-    no_hooks: true
-  values:
-    conf:
-      cni_network_config:
-        name: k8s-pod-network
-        cniVersion: 0.1.0
-        type: calico
-        etcd_endpoints: __ETCD_ENDPOINTS__
-        etcd_ca_cert_file: /etc/calico/pki/ca
-        etcd_cert_file: /etc/calico/pki/crt
-        etcd_key_file: /etc/calico/pki/key
-        log_level: debug
-        mtu: 1500
-        ipam:
-          type: calico-ipam
-        policy:
-          type: k8s
-          k8s_api_root: https://__KUBERNETES_SERVICE_HOST__:__KUBERNETES_SERVICE_PORT__
-          k8s_auth_token: __SERVICEACCOUNT_TOKEN__
-
-      policy_controller:
-        K8S_API: "https://10.96.0.1:443"
-
-      node:
-        CALICO_STARTUP_LOGLEVEL: DEBUG
-        CLUSTER_TYPE:
-          - k8s
-          - bgp
-        IP_AUTODETECTION_METHOD: interface=ens1
-        WAIT_FOR_STORAGE: "true"
-
-    endpoints:
-      etcd:
-        hosts:
-          default: calico-etcd
-        host_fqdn_override:
-          default: 10.96.232.136
-        scheme:
-          default: https
+        tigera_operator: quay.io/tigera/operator:v1.36.5
+        calico_node: docker.io/calico/node:v3.29.1
+        calico_cni: docker.io/calico/cni:v3.29.1
+        calico_kube_controllers: docker.io/calico/kube-controllers:v3.29.1
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
 
     networking:
       podSubnet: 10.97.0.0/16
       mtu: 1500
+      encapsulation: IPIP
+      natOutgoing: Enabled
+      nodeAddressAutodetectionV4:
+        interface: ens1
 
-    images:
-      tags:
-        calico_etcd: quay.io/coreos/etcd:v3.5.12
-        calico_node: quay.io/calico/node:v3.4.0
-        calico_cni: quay.io/calico/cni:v3.4.0
-        calico_ctl: quay.io/calico/ctl:v3.4.0
-        calico_settings: quay.io/calico/ctl:v3.4.0
-        calico_kube_controllers: quay.io/calico/kube-controllers:v3.4.0
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
-
-    manifests:
-      daemonset_calico_etcd: false
-      job_image_repo_sync: false
-      service_calico_etcd: false
   source:
     type: local
     location: /etc/genesis/armada/assets/charts
-    subpath: calico
+    subpath: tigera-operator
   dependencies:
-    - infra-helm-toolkit
+    - helm-toolkit
 ---
 schema: armada/Chart/v1
 metadata:
@@ -560,7 +209,6 @@ data:
     conf:
       test:
         names_to_resolve:
-          - calico-etcd.kube-system.svc.cluster.local
           - kubernetes.default.svc.cluster.local
     images:
       tags:

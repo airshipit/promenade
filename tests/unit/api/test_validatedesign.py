@@ -91,14 +91,7 @@ VALID_DOCS = [
             'armada': {
                 'target_manifest': 'cluster-bootstrap'
             },
-            'files': [{
-                'content':
-                '# placeholder for triggering calico etcd bootstrapping',
-                'mode': 420,
-                'path': '/var/lib/anchor/calico-etcd-bootstrap'
-            }],
-            'hostname':
-            'n0',
+            'hostname': 'n0',
             'images': {
                 'armada': 'quay.io/airshipit/armada:latest-ubuntu_jammy',
                 'armada-operator': 'quay.io/airshipit/armada-operator:latest',
@@ -111,12 +104,10 @@ VALID_DOCS = [
                     'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.33.5'
                 }
             },
-            'ip':
-            '192.168.77.10',
+            'ip': '192.168.77.10',
             'labels': {
                 'dynamic': [
-                    'calico-etcd=enabled', 'coredns=enabled',
-                    'kubernetes-apiserver=enabled',
+                    'coredns=enabled', 'kubernetes-apiserver=enabled',
                     'kubernetes-controller-manager=enabled',
                     'kubernetes-etcd=enabled', 'kubernetes-scheduler=enabled',
                     'promenade-genesis=enabled', 'ucp-control-plane=enabled'
@@ -212,7 +203,7 @@ VALID_DOCS = [
         'data': {
             'dns': {
                 'bootstrap_validation_checks': [
-                    'calico-etcd.kube-system.svc.cluster.local', 'google.com',
+                    'google.com',
                     'kubernetes-etcd.kube-system.svc.cluster.local',
                     'kubernetes.default.svc.cluster.local'
                 ],

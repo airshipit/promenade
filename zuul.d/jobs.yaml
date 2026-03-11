@@ -36,14 +36,19 @@
 - job:
     name: airship-promenade-genesis-containerd-gate
     # need to switch to tigera operator
-    voting: false
+    voting: true
     description: |
       Deploy airship promenade genesis with containerd
+    roles:
+      - zuul: openstack/openstack-helm
+      - zuul: zuul/zuul-jobs
     run:
       - tools/zuul/playbooks/deploy-promenade-containerd.yaml
+    post-run:
+      - tools/zuul/playbooks/osh-infra-collect-logs.yaml
     required-projects:
       - openstack/openstack-helm
-    timeout: 600
+    timeout: 1800
     nodeset: airship-promenade-single-node-noble
     vars:
       distro: ubuntu_noble
