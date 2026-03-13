@@ -13,7 +13,6 @@ data:
   external_ip: ${GENESIS_IP}
   labels:
     dynamic:
-      - calico-etcd=enabled
       - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
@@ -39,8 +38,4 @@ data:
       scheduler: ${IMAGE_SCHEDULER}
   enable_operator: false
   armada_helm_bootstrap: false
-  files:
-    - path: /var/lib/anchor/calico-etcd-bootstrap
-      content: ""
-      mode: 0644
 ...

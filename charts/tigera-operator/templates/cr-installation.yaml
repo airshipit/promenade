@@ -1,0 +1,44 @@
+{{- if .Values.manifests.installation }}
+apiVersion: operator.tigera.io/v1
+kind: Installation
+metadata:
+  name: default
+spec:
+  variant: Calico
+  calicoNetwork:
+    bgp: {{ .Values.conf.installation.calicoNetwork.bgp | default "Enabled" }}
+    linuxDataplane: {{ .Values.conf.installation.calicoNetwork.linuxDataplane | default "Iptables" }}
+    mtu: {{ .Values.networking.mtu | default 1500 }}
+    ipPools:
+      - cidr: {{ .Values.networking.podSubnet }}
+        encapsulation: {{ .Values.networking.encapsulation | default "IPIP" }}
+        natOutgoing: {{ .Values.networking.natOutgoing | default "Enabled" }}
+        blockSize: 26
+    nodeAddressAutodetectionV4:
+{{- if .Values.networking.nodeAddressAutodetectionV4 }}
+{{ toYaml .Values.networking.nodeAddressAutodetectionV4 | indent 6 }}
+{{- else }}
+      firstFound: true
+{{- end }}
+  cni:
+    type: Calico
+    ipam:
+      type: Calico
+  componentResources:
+    - componentName: Node
+      resourceRequirements:
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
+        limits:
+          cpu: "2000m"
+          memory: "1024Mi"
+    - componentName: KubeControllers
+      resourceRequirements:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "2000m"
+          memory: "1024Mi"
+{{- end }}

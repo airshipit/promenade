@@ -14,7 +14,6 @@ data:
   join_ip: ${MASTER1_IP}
   labels:
     dynamic:
-      - calico-etcd=enabled
       - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
@@ -45,7 +44,6 @@ data:
   join_ip: ${GENESIS_IP}
   labels:
     dynamic:
-      - calico-etcd=enabled
       - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled
@@ -78,7 +76,6 @@ data:
     - ${MASTER1_IP}
   labels:
     dynamic:
-      - calico-etcd=enabled
       - ceph-mds=enabled
       - ceph-mon=enabled
       - ceph-osd=enabled

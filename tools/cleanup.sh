@@ -27,7 +27,6 @@ TO_RM=(
     "/usr/local/bin/helm"
     "/usr/local/bin/kubectl"
     "/usr/local/bin/promenade-teardown"
-    "/var/lib/anchor/calico-etcd-bootstrap"
     "/var/lib/etcd"
     "/var/lib/kubelet/pods"
     "/var/lib/openstack-helm"

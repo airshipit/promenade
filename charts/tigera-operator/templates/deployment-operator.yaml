@@ -1,0 +1,160 @@
+{{- if .Values.manifests.operator }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tigera-operator
+  namespace: tigera-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tigera-operator
+rules:
+  - apiGroups: [""]
+    resources:
+      - namespaces
+      - pods
+      - podtemplates
+      - services
+      - endpoints
+      - events
+      - configmaps
+      - secrets
+      - serviceaccounts
+      - nodes
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources:
+      - nodes/status
+    verbs: ["update", "patch"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - daemonsets
+      - statefulsets
+    verbs: ["*"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - clusterroles
+      - clusterrolebindings
+      - roles
+      - rolebindings
+    verbs: ["*"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources:
+      - customresourcedefinitions
+    verbs: ["*"]
+  - apiGroups: ["operator.tigera.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["crd.projectcalico.org"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["projectcalico.org"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+    verbs: ["*"]
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+      - podsecuritypolicies
+    verbs: ["*"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources:
+      - leases
+    verbs: ["*"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["*"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs: ["*"]
+  - apiGroups: ["certificates.k8s.io"]
+    resources:
+      - certificatesigningrequests
+    verbs: ["*"]
+  - apiGroups: ["scheduling.k8s.io"]
+    resources:
+      - priorityclasses
+    verbs: ["*"]
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - csidrivers
+    verbs: ["*"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tigera-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tigera-operator
+subjects:
+  - kind: ServiceAccount
+    name: tigera-operator
+    namespace: tigera-operator
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tigera-operator
+  namespace: tigera-operator
+  labels:
+    k8s-app: tigera-operator
+    release_group: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.conf.operator.replicas | default 1 }}
+  selector:
+    matchLabels:
+      name: tigera-operator
+  template:
+    metadata:
+      labels:
+        name: tigera-operator
+        k8s-app: tigera-operator
+        release_group: {{ .Release.Name }}
+    spec:
+      serviceAccountName: tigera-operator
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      nodeSelector:
+        {{ .Values.labels.operator.node_selector_key }}: {{ .Values.labels.operator.node_selector_value }}
+      containers:
+        - name: tigera-operator
+          image: {{ .Values.images.tags.tigera_operator }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+          command:
+            - operator
+          env:
+            - name: WATCH_NAMESPACE
+              value: ""
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "tigera-operator"
+            - name: TIGERA_OPERATOR_INIT_IMAGE_VERSION
+              value: {{ .Values.images.tags.tigera_operator | splitList ":" | last }}
+{{- if .Values.pod.resources.operator }}
+          resources:
+{{ toYaml .Values.pod.resources.operator | indent 12 }}
+{{- end }}
+{{- end }}

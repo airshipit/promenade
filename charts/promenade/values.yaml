@@ -48,7 +48,7 @@ conf:
 
 images:
   tags:
-    monitoring_image: busybox:1.28.3
+    monitoring_image: quay.io/airshipit/busybox:1.28.3
     promenade: quay.io/airshipit/promenade:latest-ubuntu_jammy
     ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
     ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
