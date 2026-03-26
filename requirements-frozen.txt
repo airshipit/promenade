@@ -98,7 +98,7 @@ python-mimeparse==2.0.0
 PyYAML==6.0.3
 referencing==0.37.0
 repoze.lru==0.7
-requests==2.32.5
+requests==2.33.0
 requests-oauthlib==2.0.0
 resolver==0.2.1
 rfc3986==2.0.0
