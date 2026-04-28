@@ -91,6 +91,12 @@ compare_copy_file() {
       #STATIC_PODS_RESTART_REQUIRED=true
     fi
 
+    # fix permissions for /etc/kubernetes
+    if [[ "${dst}" == $HOST_DIR/etc/kubernetes/* ]]; then
+      chmod 0700 $(dirname "${dst}")
+      chmod 0600 "${dst}"
+    fi
+
 {{- if .Values.kubelet.restart }}
     if [[ "${dst}" == "${HOST_DIR}/etc/default/kubelet" ||
           "${dst}" == "${HOST_DIR}/etc/systemd/system/kubelet.service" ||
