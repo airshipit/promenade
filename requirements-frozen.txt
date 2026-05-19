@@ -30,7 +30,7 @@ google-auth==2.43.0
 greenlet==3.3.0
 html5lib==0.9999999
 httpexceptor==1.4.0
-idna==3.11
+idna==3.15
 iso8601==2.1.0
 Jinja2==3.1.6
 jsonpath-ng==1.7.0
