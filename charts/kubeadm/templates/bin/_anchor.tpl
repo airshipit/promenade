@@ -316,8 +316,35 @@ kubeadm_action() {
        ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-controller-manager.yaml" ||
        ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-scheduler.yaml"  ]] ||
        [[ $KUBERNETES_ETCD == "enabled" && ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" ]]; then
-    kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"
+    if ! kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"; then
+      if [[ $KUBERNETES_ETCD == "enabled" ]]; then
+        echo "kubeadm join failed, performing reset to clean up local etcd member"
+        kubeadm reset phase remove-etcd-member
+        rm -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" || true
+        sleep 30
+      fi
+      exit 1
+    fi
   else
+    if ! kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 30s; then
+      echo "control plane pods are not healthy, resetting the node"
+      if [[ $KUBERNETES_ETCD == "enabled" ]]; then
+        if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l component=etcd --timeout 10s 2>/dev/null; then
+          echo "performing reset to clean up local etcd member"
+          kubeadm reset phase remove-etcd-member
+          rm -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" || true
+          sleep 30
+        fi
+      fi
+      for component in kube-apiserver kube-controller-manager kube-scheduler; do
+        if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l component=$component --timeout 10s 2>/dev/null; then
+          echo "Removing unhealthy static pod manifest for $component"
+          rm -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/${component}.yaml"
+          sleep 30
+        fi
+      done
+      exit 1
+    fi
     if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --no-headers | wc -l) -gt 0 ]; then
       kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --timeout 300s
     fi
