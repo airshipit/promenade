@@ -110,7 +110,7 @@
         override-checkout: v1.9
     secrets:
       - name: quay_creds
-        secret: airship_armada_quay_creds_2026
+        secret: airship_promenade_quay_creds_2026
         pass-to-parent: true
     vars:
       publish: true
