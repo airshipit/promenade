@@ -75,8 +75,8 @@ secrets:
 
 images:
   tags:
-    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-    scheduler: registry.k8s.io/kube-scheduler-amd64:v1.33.5
+    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_noble
+    scheduler: registry.k8s.io/kube-scheduler-amd64:v1.36.1
   pull_policy: "IfNotPresent"
 
 network:

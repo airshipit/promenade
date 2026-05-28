@@ -16,7 +16,7 @@
 set -euxo pipefail
 
 # Inbound variables
-KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.33.3"}
+KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.36.1"}
 KUBERNETES_REGISTRY="registry.k8s.io"
 CONSTANTS_URL="https://raw.githubusercontent.com/kubernetes/kubernetes/refs/tags/${KUBERNETES_VERSION}/cmd/kubeadm/app/constants/constants.go"
 
@@ -25,7 +25,7 @@ GITHUB_PROXY=${GITHUB_PROXY:-""}
 
 REGISTRY_IMAGE=${REGISTRY_IMAGE:-"quay.io/airshipit/registry:latest"}
 REGISTRY_PORT=${REGISTRY_PORT:-"$(shuf -i 5050-5099 -n 1)"}
-REGISTRY_VERSION=${REGISTRY_VERSION:-"3.0.0"}
+REGISTRY_VERSION=${REGISTRY_VERSION:-"3.1.1"}
 REGISTRY_DOWNLOAD_URL="https://github.com/distribution/distribution/releases/download/v${REGISTRY_VERSION}/registry_${REGISTRY_VERSION}_linux_amd64.tar.gz"
 DOCKER_REGISTRY_URL="localhost:$REGISTRY_PORT"
 REGISTRY_DIR="$(dirname "$0")/assets/registry_dir"
@@ -96,9 +96,16 @@ for image in "${CONTROL_PLANE_IMAGES[@]}"; do
     esac
 
     echo "... Processing $image, tag $tag ..."
-    docker pull "$KUBERNETES_REGISTRY/$image:$tag"
+    docker pull --platform linux/amd64 "$KUBERNETES_REGISTRY/$image:$tag"
     docker tag "$KUBERNETES_REGISTRY/$image:$tag" "$DOCKER_REGISTRY_URL/$image:$tag"
-    docker push "$DOCKER_REGISTRY_URL/$image:$tag"
+    # Some scratch-based OCI images (e.g. coredns) lack platform metadata in
+    # their config, causing docker push --platform to fail. Fall back to
+    # imagetools create which copies the manifest directly between registries.
+    if ! docker push --platform linux/amd64 "$DOCKER_REGISTRY_URL/$image:$tag"; then
+        docker buildx imagetools create \
+            --tag "$DOCKER_REGISTRY_URL/$image:$tag" \
+            "$KUBERNETES_REGISTRY/$image:$tag"
+    fi
 
     CLEANUP_IMAGES+="$KUBERNETES_REGISTRY/$image:$tag $DOCKER_REGISTRY_URL/$image:$tag "
     sleep 1

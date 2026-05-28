@@ -28,8 +28,8 @@ conf:
 
 images:
   tags:
-    coredns: coredns/coredns:1.11.1
-    test: quay.io/airshipit/promenade:latest-ubuntu_jammy
+    coredns: coredns/coredns:1.14.1
+    test: quay.io/airshipit/promenade:latest-ubuntu_noble
   pull_policy: "IfNotPresent"
 
 labels:

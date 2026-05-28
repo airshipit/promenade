@@ -93,15 +93,15 @@ VALID_DOCS = [
             },
             'hostname': 'n0',
             'images': {
-                'armada': 'quay.io/airshipit/armada:latest-ubuntu_jammy',
+                'armada': 'quay.io/airshipit/armada:latest-ubuntu_noble',
                 'armada-operator': 'quay.io/airshipit/armada-operator:latest',
                 'kubernetes': {
                     'apiserver':
-                    'registry.k8s.io/kube-apiserver-amd64:v1.33.5',
+                    'registry.k8s.io/kube-apiserver-amd64:v1.36.1',
                     'controller-manager':
-                    'registry.k8s.io/kube-controller-manager-amd64:v1.33.5',
+                    'registry.k8s.io/kube-controller-manager-amd64:v1.36.1',
                     'etcd': 'quay.io/coreos/etcd:v3.5.12',
-                    'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.33.5'
+                    'scheduler': 'registry.k8s.io/kube-scheduler-amd64:v1.36.1'
                 }
             },
             'ip': '192.168.77.10',
@@ -134,7 +134,7 @@ VALID_DOCS = [
                 'tar_path':
                 'kubernetes/node/bin/kubelet',
                 'tar_url':
-                'https://dl.k8s.io/v1.33.5/kubernetes-node-linux-amd64.tar.gz'
+                'https://dl.k8s.io/v1.36.1/kubernetes-node-linux-amd64.tar.gz'
             }, {
                 'content':
                 '/var/lib/docker/containers/*/*-json.log\n{\n    compress\n    copytruncate\n    create 0644 root root\n    daily\n    dateext\n    dateformat -%Y%m%d-%s\n    maxsize 10M\n    missingok\n    notifempty\n    su root root\n    rotate 1\n}',
@@ -144,7 +144,7 @@ VALID_DOCS = [
             'images': {
                 'haproxy': 'quay.io/airshipit/haproxy:2.4',
                 'helm': {
-                    'helm': 'lachlanevenson/k8s-helm:v3.19.4'
+                    'helm': 'alpine/helm:4.2.0'
                 }
             },
             'packages': {

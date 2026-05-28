@@ -7,7 +7,7 @@ images:
     calico_typha: docker.io/calico/typha:v3.29.1
     calico_csi: docker.io/calico/csi:v3.29.1
     calico_node_driver_registrar: docker.io/calico/node-driver-registrar:v3.29.1
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
   pull_policy: IfNotPresent
 
 pod:

@@ -134,7 +134,7 @@ data:
   values:
     images:
       tags:
-        proxy: registry.k8s.io/kube-proxy-amd64:v1.33.5
+        proxy: registry.k8s.io/kube-proxy-amd64:v1.36.1
     network:
       kubernetes_netloc: 127.0.0.1:6553
   source:
@@ -170,7 +170,7 @@ data:
         calico_node: docker.io/calico/node:v3.29.1
         calico_cni: docker.io/calico/cni:v3.29.1
         calico_kube_controllers: docker.io/calico/kube-controllers:v3.29.1
-        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+        dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
 
     networking:
       podSubnet: 10.97.0.0/16
@@ -212,7 +212,7 @@ data:
           - kubernetes.default.svc.cluster.local
     images:
       tags:
-        coredns: coredns/coredns:1.11.1
+        coredns: coredns/coredns:1.14.1
         test: quay.io/airshipit/promenade:master
   source:
     type: local
@@ -273,7 +273,7 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_noble
         haproxy: quay.io/airshipit/haproxy:2.4
         test: python:3.6
 
@@ -381,8 +381,8 @@ data:
         endpoints: https://127.0.0.1:2378
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-        apiserver: registry.k8s.io/kube-apiserver-amd64:v1.33.5
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_noble
+        apiserver: registry.k8s.io/kube-apiserver-amd64:v1.36.1
     network:
       kubernetes_service_ip: 10.96.0.1
       pod_cidr: 10.97.0.0/16
@@ -447,8 +447,8 @@ data:
   values:
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-        controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.33.5
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_noble
+        controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.36.1
     secrets:
       service_account:
         private_key: placeholder
@@ -521,8 +521,8 @@ data:
 
     images:
       tags:
-        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-        scheduler: registry.k8s.io/kube-scheduler-amd64:v1.33.5
+        anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_noble
+        scheduler: registry.k8s.io/kube-scheduler-amd64:v1.36.1
 
   source:
     type: local
@@ -719,7 +719,7 @@ data:
     images:
       tags:
         etcd: quay.io/coreos/etcd:v3.5.12
-        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_jammy
+        etcdctl: quay.io/airshipit/porthole-etcdctl-utility:latest-ubuntu_noble
     nodes:
       - name: n0
         tls:

@@ -16,8 +16,8 @@ release_group: null
 
 images:
   tags:
-    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_jammy
-    controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.33.5
+    anchor: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_noble
+    controller_manager: registry.k8s.io/kube-controller-manager-amd64:v1.36.1
   pull_policy: "IfNotPresent"
 
 labels:

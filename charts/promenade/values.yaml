@@ -49,11 +49,11 @@ conf:
 images:
   tags:
     monitoring_image: quay.io/airshipit/busybox:1.28.3
-    promenade: quay.io/airshipit/promenade:latest-ubuntu_jammy
-    ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+    promenade: quay.io/airshipit/promenade:latest-ubuntu_noble
+    ks_user: quay.io/airshipit/heat:2025.2-ubuntu_noble
+    ks_service: quay.io/airshipit/heat:2025.2-ubuntu_noble
+    ks_endpoints: quay.io/airshipit/heat:2025.2-ubuntu_noble
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
     image_repo_sync: quay.io/airshipit/docker:27.5.0
   pull_policy: "IfNotPresent"
   local_registry:
