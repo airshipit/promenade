@@ -70,7 +70,7 @@ def render_template_into_bundler(*, bundler, config, destination_path,
 
     with open(source_path) as f:
         template = env.from_string(f.read())
-    now = int(datetime.datetime.utcnow().timestamp())
+    now = int(datetime.datetime.now(datetime.UTC).timestamp())
     try:
         data = template.render(config=config, now=now)
     except jinja2.exceptions.TemplateRuntimeError as e:

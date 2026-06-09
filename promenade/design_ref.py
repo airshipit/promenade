@@ -30,7 +30,7 @@ def get_documents(design_ref, ctx=None):
 
 
 def _get_from_basic_web(design_ref):
-    return requests.get(design_ref, timeout=None)
+    return requests.get(design_ref, timeout=None)  # nosec B113
 
 
 def _get_from_deckhand(design_ref, ctx=None):

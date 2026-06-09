@@ -1,7 +1,7 @@
 pytest
-pytest-cov==4.0.0
+pytest-cov
 flake8
-bandit==1.6.0
+bandit
 yapf
-stestr==3.2.0
-testrepository==0.0.20
+stestr
+testrepository
