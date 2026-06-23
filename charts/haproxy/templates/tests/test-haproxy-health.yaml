@@ -50,7 +50,9 @@ spec:
         - /bin/bash
         - -c
         - |-
-          CODE=$(curl -k -s -o /dev/null -w "%{http_code}" ${HAPROXY_URL})
+          CODE=$(curl -k -s -o /dev/null -w "%{http_code}" \
+            --retry 10 --retry-delay 6 --retry-connrefused \
+            ${HAPROXY_URL})
           if [ $CODE -ne 000 ]; then
             exit 0
           fi

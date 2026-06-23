@@ -15,6 +15,8 @@
 
 set -xeuo pipefail
 
+trap 'touch /tmp/done' EXIT
+
 # directories
 HOST_DIR="{{ .Values.host_dir }}"
 KUBERNETES_DIR="/etc/kubernetes"
@@ -117,6 +119,11 @@ rename_cp_pods() {
   for cp_pod in $cp_pods; do
     src_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kubernetes-${cp_pod}.yaml"
     if [ -e "$src_path" ]; then
+      if [[ ! -s "$src_path" ]]; then
+        echo "WARNING: ${src_path} is empty (previously truncated); removing stale file, skipping rename"
+        rm -f "$src_path"
+        continue
+      fi
       dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-${cp_pod}.yaml"
       component="kube-${cp_pod}"
       if [[ $cp_pod == "etcd" ]]; then
@@ -131,7 +138,9 @@ rename_cp_pods() {
       rm "$src_path"
       sed -i -e "s/name: kubernetes-$cp_pod/name: $component/g" "$dst_path"
       sleep 30
-      kubectl wait --for=condition=ready pod -n kube-system --field-selector spec.nodeName=$NODE_NAME -l component=$component --timeout=180s
+      if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector spec.nodeName=$NODE_NAME -l component=$component --timeout=180s; then
+        echo "WARNING: $component pod not ready within 180s after rename; will retry on next anchor cycle"
+      fi
     fi
   done
 }
@@ -325,6 +334,12 @@ kubeadm_action() {
       fi
       exit 1
     fi
+  elif [ -z "$LAST_APPLIED_KUBEADM_CONFIG_SHA256" ]; then
+    # Static pod manifests exist but anchor has never run before: this node was initialized
+    # by kubeadm init (genesis), not by kubeadm join. Running kubeadm upgrade node here
+    # is incorrect — the manifests are already correct and kube-system/kubeadm-config may
+    # not yet be fully settled. Skip the upgrade; the annotation will be set by the caller.
+    echo "Genesis node: static pod manifests exist from kubeadm init, skipping kubeadm upgrade node"
   else
     if ! kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 30s; then
       echo "control plane pods are not healthy, resetting the node"
@@ -347,6 +362,10 @@ kubeadm_action() {
     fi
     if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --no-headers | wc -l) -gt 0 ]; then
       kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --timeout 300s
+    fi
+    if [[ ! -s "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ]]; then
+      echo "ERROR: upgrade_config.yaml is empty or missing; refusing to run kubeadm upgrade node to prevent static pod manifest truncation"
+      exit 1
     fi
     kubeadm upgrade node --config "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
     sync_kubeconfigs
