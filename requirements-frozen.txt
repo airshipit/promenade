@@ -29,7 +29,7 @@ fasteners==0.20
 fixtures==4.3.2
 futurist==3.3.0
 greenlet==3.5.1
-html5lib==0.9999999
+html5lib==0.999999999
 httpexceptor==1.4.0
 idna==3.16
 iso8601==2.1.0
