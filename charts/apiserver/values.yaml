@@ -191,16 +191,6 @@ apiserver:
 
 network:
   kubernetes_apiserver:
-    ingress:
-      public: true
-      classes:
-        namespace: "nginx-cluster"
-        cluster: "nginx-cluster"
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: /
-        nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-        nginx.ingress.kubernetes.io/ssl-redirect: "true"
-        nginx.ingress.kubernetes.io/secure-backends: "true"
     name: kubernetes-apiserver
     port: 6443
     node_port:
@@ -372,10 +362,7 @@ manifests:
   configmap_bin: true
   configmap_certs: true
   configmap_etc: true
-  ingress_api: false
   kubernetes_apiserver: true
   secret: true
-  secret_ingress_tls: false
   service: true
-  service_ingress: false
   job_key_rotate: true

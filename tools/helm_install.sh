@@ -18,7 +18,7 @@ set -x
 
 HELM=$1
 OS=$(uname -s | awk '{print tolower($0)}')
-HELM_ARTIFACT_URL=${HELM_ARTIFACT_URL:-"https://get.helm.sh/helm-v4.2.0-$OS-amd64.tar.gz"}
+HELM_ARTIFACT_URL=${HELM_ARTIFACT_URL:-"https://get.helm.sh/helm-v4.2.2-$OS-amd64.tar.gz"}
 
 
 function install_helm_binary {

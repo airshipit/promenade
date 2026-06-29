@@ -65,7 +65,7 @@
       - name: airship/treasuremap
         override-checkout: v1.9
     vars:
-      HTK_COMMIT: master
+      HTK_COMMIT: 9b9bed08fbba1aaa5880733afeefddef4a9fd302
 
 - job:
     name: airship-promenade-chart-build-gate-latest-htk
@@ -78,7 +78,7 @@
       - name: airship/treasuremap
         override-checkout: v1.9
     vars:
-      HTK_COMMIT: d89bc42b57f8c2898520181550b5019dcf31c06f
+      HTK_COMMIT: master
 
 
 - job:
@@ -121,7 +121,7 @@
           commit: true
         static:
           - latest
-          - airflow_3.1.5
+          - airflow_3.2.2
 
 - secret:
     name: airship_promenade_quay_creds_2026
