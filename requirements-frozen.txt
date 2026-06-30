@@ -17,7 +17,7 @@ cmd2==2.7.0
 cotyledon==2.2.0
 cryptography==48.0.0
 debtcollector==3.1.0
-Deckhand @ git+https://opendev.org/airship/deckhand.git@e2fb04d9e719f4f4dfed0e65a420d027d90fce3b
+Deckhand @ git+https://opendev.org/airship/deckhand.git@0531c10fd6cd645493210ce730a4bd1b75a7e584
 decorator==5.3.1
 deepdiff==9.1.0
 dnspython==2.8.0
