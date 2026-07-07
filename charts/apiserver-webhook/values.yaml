@@ -56,17 +56,6 @@ network:
   pod_cidr: '10.97.0.0/16'
   service_cidr: '10.96.0.0/16'
   api:
-    ingress:
-      public: true
-      classes:
-        namespace: "nginx"
-        cluster: "nginx-cluster"
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: /
-        nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-        nginx.ingress.kubernetes.io/ssl-redirect: "true"
-        nginx.ingress.kubernetes.io/secure-backends: "true"
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     name: webhook_apiserver
 #
 # Insert TLS certificates, keys and CAs
@@ -426,7 +415,7 @@ manifests:
   configmap_dynamic_config: true
   job_ks_user: true
   deployment: true
-  ingress_api: true
+  ingress_api: false
   pod_test: false
   secret_keystone: true
   secret_tls: true

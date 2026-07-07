@@ -1,0 +1,29 @@
+# Gateway API overrides for apiserver-webhook.
+#
+# Uses TLSRoute with passthrough mode because the backend terminates TLS
+# itself (port 6443). The Gateway listener must be configured for TLS
+# passthrough on port 6443 (or 443 remapped to 6443).
+---
+endpoints:
+  webhook_apiserver:
+    host_fqdn_override:
+      public:
+        host: apiserver-webhook.example.com
+
+extraObjects:
+  - apiVersion: gateway.networking.k8s.io/v1alpha2
+    kind: TLSRoute
+    metadata:
+      name: apiserver-webhook-route
+      namespace: "{{ .Release.Namespace }}"
+    spec:
+      hostnames:
+        - "{{ .Values.endpoints.webhook_apiserver.host_fqdn_override.public.host }}"
+      parentRefs:
+        - name: gateway-default
+          namespace: envoy-gateway-system
+          sectionName: tls-passthrough
+      rules:
+        - backendRefs:
+            - name: apiserver-webhook
+              port: 6443
