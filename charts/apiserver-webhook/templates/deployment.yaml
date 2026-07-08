@@ -153,7 +153,7 @@ spec:
             - --v={{ $envAll.Values.apiserver_webhook.logging.log_level }}
             {{- end }}
             - --service-cluster-ip-range={{ $envAll.Values.network.service_cidr }}
-            - --authorization-mode=Webhook
+            - --authorization-mode={{ .Values.conf.apiserver.args.authorization_mode | default "Webhook" }}
             - --advertise-address=$(POD_IP)
             - --anonymous-auth=false
             - --endpoint-reconciler-type=none

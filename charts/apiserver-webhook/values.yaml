@@ -293,6 +293,8 @@ conf:
   # and can mutate the apiserver command-line args.
   # The files are available under /dynamic in conf.paths.base
   apiserver:
+    args:
+      authorization_mode: Webhook
     agg_api_ca:
       file: agg-api-ca.pem
       command_options:

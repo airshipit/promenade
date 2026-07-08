@@ -166,7 +166,10 @@ sync_kubeconfigs() {
   {{- end }}
 
   if [ $NODE_ROLE == "master" ] && ! kubectl get cm -n kube-public cluster-info; then
-    kubeadm init phase bootstrap-token --kubeconfig /etc/kubernetes/admin.conf # move to prior join check
+      BOOTSTRAP_KUBECONFIG=$(mktemp --suffix=.yaml)
+      sed 's|127.0.0.1:6553|127.0.0.1:6443|; s|/etc/kubernetes|/host/etc/kubernetes|g' "${HOST_DIR}/etc/kubernetes/admin.conf" > "$BOOTSTRAP_KUBECONFIG"
+      command kubeadm init phase bootstrap-token --kubeconfig "$BOOTSTRAP_KUBECONFIG"
+      rm -f "$BOOTSTRAP_KUBECONFIG"
   fi
 
   echo "kubeconfigs are synced"
