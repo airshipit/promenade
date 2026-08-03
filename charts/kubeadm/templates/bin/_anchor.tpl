@@ -15,8 +15,6 @@
 
 set -xeuo pipefail
 
-trap 'touch /tmp/done' EXIT
-
 # directories
 HOST_DIR="{{ .Values.host_dir }}"
 KUBERNETES_DIR="/etc/kubernetes"
@@ -118,17 +116,22 @@ rename_cp_pods() {
   cp_pods="etcd apiserver controller-manager scheduler"
   for cp_pod in $cp_pods; do
     src_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kubernetes-${cp_pod}.yaml"
+    dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-${cp_pod}.yaml"
+    component="kube-${cp_pod}"
+    if [[ $cp_pod == "etcd" ]]; then
+      dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/${cp_pod}.yaml"
+      component="${cp_pod}"
+    fi
     if [ -e "$src_path" ]; then
+      if [ -e "$dst_path" ]; then
+        echo "INFO: ${dst_path} already exists; removing stale ${src_path} without overwriting"
+        rm -f "$src_path"
+        continue
+      fi
       if [[ ! -s "$src_path" ]]; then
         echo "WARNING: ${src_path} is empty (previously truncated); removing stale file, skipping rename"
         rm -f "$src_path"
         continue
-      fi
-      dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-${cp_pod}.yaml"
-      component="kube-${cp_pod}"
-      if [[ $cp_pod == "etcd" ]]; then
-        dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/${cp_pod}.yaml"
-        component="${cp_pod}"
       fi
 
       if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l component=$component --no-headers | wc -l) -gt 0 ]; then
@@ -138,9 +141,16 @@ rename_cp_pods() {
       rm "$src_path"
       sed -i -e "s/name: kubernetes-$cp_pod/name: $component/g" "$dst_path"
       sleep 30
-      if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector spec.nodeName=$NODE_NAME -l component=$component --timeout=180s; then
-        echo "WARNING: $component pod not ready within 180s after rename; will retry on next anchor cycle"
-      fi
+      attempts=0
+      max_attempts=3
+      until kubectl wait --for=condition=ready pod -n kube-system --field-selector spec.nodeName=$NODE_NAME -l component=$component --timeout=180s; do
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge "$max_attempts" ]; then
+          echo "ERROR: $component pod not ready after ${max_attempts} attempts (180s each) following rename; aborting"
+          exit 1
+        fi
+        echo "WARNING: $component pod not ready within 180s after rename (attempt ${attempts}/${max_attempts}); retrying"
+      done
     fi
   done
 }
@@ -166,10 +176,7 @@ sync_kubeconfigs() {
   {{- end }}
 
   if [ $NODE_ROLE == "master" ] && ! kubectl get cm -n kube-public cluster-info; then
-      BOOTSTRAP_KUBECONFIG=$(mktemp --suffix=.yaml)
-      sed 's|127.0.0.1:6553|127.0.0.1:6443|; s|/etc/kubernetes|/host/etc/kubernetes|g' "${HOST_DIR}/etc/kubernetes/admin.conf" > "$BOOTSTRAP_KUBECONFIG"
-      command kubeadm init phase bootstrap-token --kubeconfig "$BOOTSTRAP_KUBECONFIG"
-      rm -f "$BOOTSTRAP_KUBECONFIG"
+    kubeadm init phase bootstrap-token --kubeconfig /etc/kubernetes/admin.conf # move to prior join check
   fi
 
   echo "kubeconfigs are synced"
@@ -223,6 +230,12 @@ sync_kubelet_configs() {
 }
 
 sync_kubeadm_configs() {
+  for f in ClusterConfiguration join-config.yaml upgrade-config.yaml; do
+    if [[ ! -s "/tmp/kubeadm/$f" ]]; then
+      echo "ERROR: /tmp/kubeadm/$f is empty or missing; kube-system/kubeadm-config ConfigMap is not correctly populated; aborting"
+      exit 1
+    fi
+  done
   envsubst < /tmp/kubeadm/join-config.yaml | compare_copy_file - "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
   envsubst < /tmp/kubeadm/upgrade-config.yaml | compare_copy_file - "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
 
@@ -337,12 +350,6 @@ kubeadm_action() {
       fi
       exit 1
     fi
-  elif [ -z "$LAST_APPLIED_KUBEADM_CONFIG_SHA256" ]; then
-    # Static pod manifests exist but anchor has never run before: this node was initialized
-    # by kubeadm init (genesis), not by kubeadm join. Running kubeadm upgrade node here
-    # is incorrect — the manifests are already correct and kube-system/kubeadm-config may
-    # not yet be fully settled. Skip the upgrade; the annotation will be set by the caller.
-    echo "Genesis node: static pod manifests exist from kubeadm init, skipping kubeadm upgrade node"
   else
     if ! kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 30s; then
       echo "control plane pods are not healthy, resetting the node"
@@ -365,10 +372,6 @@ kubeadm_action() {
     fi
     if [ $(kubectl get pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --no-headers | wc -l) -gt 0 ]; then
       kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --timeout 300s
-    fi
-    if [[ ! -s "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ]]; then
-      echo "ERROR: upgrade_config.yaml is empty or missing; refusing to run kubeadm upgrade node to prevent static pod manifest truncation"
-      exit 1
     fi
     kubeadm upgrade node --config "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
     sync_kubeconfigs

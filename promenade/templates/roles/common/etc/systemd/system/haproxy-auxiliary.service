@@ -1,0 +1,16 @@
+[Unit]
+Description=Auxiliary haproxy supervisor (host-network fallback for the static pod on :6553)
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/haproxy
+Restart=always
+RestartSec=5s
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

@@ -154,7 +154,8 @@ if systemctl -q is-enabled containerd > /dev/null 2>&1; then
   systemctl restart containerd || true
 fi
 
-# Start haproxy and kubelet
-haproxy &
+# Start auxiliary haproxy supervisor and kubelet
+systemctl daemon-reload
+systemctl enable --now haproxy-auxiliary.service
 sleep 10
 systemctl enable --now kubelet

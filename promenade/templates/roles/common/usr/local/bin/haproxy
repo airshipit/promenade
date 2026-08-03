@@ -2,21 +2,169 @@
 
 set -euo pipefail
 
+LOG_FILE=/var/log/haproxy-auxiliary.log
+LOCK_FILE=/run/haproxy-auxiliary.lock
+HAPROXY_CFG_SRC=/etc/promenade/haproxy
+HAPROXY_PORT=6553
+STATIC_POD_MANIFEST=/etc/kubernetes/manifests/haproxy.yaml
 IMAGE_HAPROXY="{{ config['HostSystem:images.haproxy'] }}"
 
-while true; do
-    if systemctl -q is-active kubelet && [[ -e /etc/kubernetes/manifests/haproxy.yaml ]]; then
-        if docker ps | grep -q haproxy; then
-          echo "Stopping auxiliary haproxy..."
-          docker stop -t 10 haproxy
-        fi
-        break
-    else
-        if ! docker ps | grep -q haproxy; then
-          echo "Starting auxiliary haproxy..."
-          docker run --rm -d --net host -v /etc/promenade/haproxy:/usr/local/etc/haproxy:ro \
-                --name haproxy "$IMAGE_HAPROXY" || true
-        fi
-        sleep 5
+POLL_INTERVAL=5
+YIELD_DEADLINE=30
+YIELD_COOLDOWN=60
+STARTUP_GRACE=10
+AUX_BACKOFF_INITIAL=5
+AUX_BACKOFF_MAX=60
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    echo "another instance is already running (lock $LOCK_FILE held); exiting"
+    exit 0
+fi
+
+exec > >(awk '{ print strftime("%Y-%m-%dT%H:%M:%S%z"), "[script]", $0; fflush() }' >> "$LOG_FILE") 2>&1
+
+HAPROXY_CFG_TMP=""
+log_follower_pid=""
+aux_backoff=$AUX_BACKOFF_INITIAL
+last_yield_ts=0
+
+log() { echo "$*"; }
+
+is_aux_running() {
+    docker inspect -f '{% raw %}{{.State.Running}}{% endraw %}' haproxy 2>/dev/null | grep -q true
+}
+
+port_bound() {
+    ss -H -ltn "sport = :$HAPROXY_PORT" 2>/dev/null | grep -q .
+}
+
+kubelet_wants_haproxy() {
+    [[ -e "$STATIC_POD_MANIFEST" ]] || return 1
+    crictl ps -a --name '^haproxy$' -q 2>/dev/null | grep -q .
+}
+
+static_pod_running() {
+    crictl ps --name '^haproxy$' --state Running -q 2>/dev/null | grep -q .
+}
+
+cleanup_snapshot() {
+    if [[ -n "$HAPROXY_CFG_TMP" && -d "$HAPROXY_CFG_TMP" ]]; then
+        rm -rf "$HAPROXY_CFG_TMP"
     fi
+    HAPROXY_CFG_TMP=""
+}
+
+take_snapshot() {
+    cleanup_snapshot
+    if [[ ! -d "$HAPROXY_CFG_SRC" ]]; then
+        log "ERROR: source config dir $HAPROXY_CFG_SRC does not exist"
+        return 1
+    fi
+    HAPROXY_CFG_TMP="$(mktemp -d -t haproxy-cfg-XXXXXX)"
+    cp -a "${HAPROXY_CFG_SRC}/." "${HAPROXY_CFG_TMP}/"
+    chmod 0755 "$HAPROXY_CFG_TMP"
+    find "$HAPROXY_CFG_TMP" -type d -exec chmod 0755 {} +
+    find "$HAPROXY_CFG_TMP" -type f -exec chmod 0644 {} +
+    if [[ ! -s "${HAPROXY_CFG_TMP}/haproxy.cfg" ]]; then
+        log "ERROR: ${HAPROXY_CFG_TMP}/haproxy.cfg is missing or empty after snapshot"
+        cleanup_snapshot
+        return 1
+    fi
+    log "Snapshot created: $HAPROXY_CFG_TMP"
+}
+
+start_log_follower() {
+    log_follower_pid=""
+    (docker logs -f haproxy 2>&1 | awk '{ print strftime("%Y-%m-%dT%H:%M:%S%z"), "[container]", $0; fflush() }' >> "$LOG_FILE") &
+    log_follower_pid=$!
+}
+
+start_aux() {
+    take_snapshot || return 1
+    log "Starting auxiliary haproxy container..."
+    if docker run --rm -d --net host \
+            -v "${HAPROXY_CFG_TMP}:/usr/local/etc/haproxy:ro" \
+            --name haproxy "$IMAGE_HAPROXY" >/dev/null; then
+        start_log_follower
+        aux_backoff=$AUX_BACKOFF_INITIAL
+        return 0
+    fi
+    log "docker run failed"
+    cleanup_snapshot
+    return 1
+}
+
+stop_aux() {
+    if is_aux_running; then
+        log "Stopping auxiliary haproxy container..."
+        docker stop -t 5 haproxy >/dev/null 2>&1 || true
+    fi
+    log_follower_pid=""
+    cleanup_snapshot
+}
+
+try_yield() {
+    local now
+    now=$(date +%s)
+    if (( now - last_yield_ts < YIELD_COOLDOWN )); then
+        return 1
+    fi
+    log "Yielding port :$HAPROXY_PORT to kubelet-managed static pod"
+    stop_aux
+    last_yield_ts=$now
+
+    local waited=0
+    while (( waited < YIELD_DEADLINE )); do
+        if port_bound && static_pod_running; then
+            log "Static pod took over :$HAPROXY_PORT"
+            return 0
+        fi
+        sleep 2
+        waited=$((waited + 2))
+    done
+    log "Static pod did not take over within ${YIELD_DEADLINE}s; will resume aux"
+    return 1
+}
+
+on_exit() {
+    log "Received termination signal; cleaning up"
+    stop_aux
+    if [[ -n "$log_follower_pid" ]] && kill -0 "$log_follower_pid" 2>/dev/null; then
+        wait "$log_follower_pid" 2>/dev/null || true
+    fi
+    cleanup_snapshot
+}
+trap on_exit EXIT INT TERM
+
+if kubelet_wants_haproxy; then
+    log "Startup grace: kubelet appears to want :$HAPROXY_PORT; deferring aux for ${STARTUP_GRACE}s"
+    sleep "$STARTUP_GRACE"
+fi
+
+while true; do
+    if port_bound; then
+        if is_aux_running; then
+            if kubelet_wants_haproxy; then
+                try_yield || true
+            fi
+        else
+            if ! static_pod_running; then
+                log "WARNING: :$HAPROXY_PORT is bound but no running haproxy container in CRI; leaving it alone"
+            fi
+        fi
+    else
+        if is_aux_running; then
+            log "Aux container is running but :$HAPROXY_PORT is not bound; restarting aux"
+            stop_aux
+        fi
+        if ! start_aux; then
+            log "Backing off ${aux_backoff}s before next start attempt"
+            sleep "$aux_backoff"
+            aux_backoff=$(( aux_backoff * 2 ))
+            (( aux_backoff > AUX_BACKOFF_MAX )) && aux_backoff=$AUX_BACKOFF_MAX
+            continue
+        fi
+    fi
+    sleep "$POLL_INTERVAL"
 done
