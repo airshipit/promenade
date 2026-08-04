@@ -175,8 +175,18 @@ sync_kubeconfigs() {
   fi
   {{- end }}
 
+  # kubeadm mutates the kubeconfig passed via --kubeconfig if it is a default one
+  # (/etc/kubernetes/admin.conf). Operate on a throwaway copy of admin.conf so the
+  # synced /etc/kubernetes/admin.conf on the host is not modified.
+  # (TODO) move this check prior to kubeadm join command, as well add a check if kubeconfig
+  # has been modified due to cert rotation
   if [ $NODE_ROLE == "master" ] && ! kubectl get cm -n kube-public cluster-info; then
-    kubeadm init phase bootstrap-token --kubeconfig /etc/kubernetes/admin.conf # move to prior join check
+    tmp_admin_conf="$(mktemp -p "$HOST_DIR/tmp/" -t temp-kubeconfig.XXXXXX)"
+    cp "$HOST_DIR/etc/kubernetes/admin.conf" "$tmp_admin_conf"
+    rc=0
+    kubeadm init phase bootstrap-token --kubeconfig "${tmp_admin_conf#$HOST_DIR}" || rc=$?
+    rm -f "$tmp_admin_conf"
+    [ $rc -eq 0 ] || exit $rc
   fi
 
   echo "kubeconfigs are synced"

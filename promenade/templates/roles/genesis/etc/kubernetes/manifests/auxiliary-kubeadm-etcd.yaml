@@ -73,7 +73,7 @@ spec:
           is_leader () {
             MEMBER_ID="$1"
             MEMBER_EP=$(etcdctl member list | grep "$MEMBER_ID" | awk -F ', ' '{print $5}')
-            IS_LEADER=$(ETCDCTL_ENDPOINTS="$MEMBER_EP" etcdctl endpoint status | awk -F ', ' '{ print $5 }')
+            IS_LEADER=$(ETCDCTL_ENDPOINTS="$MEMBER_EP" etcdctl endpoint status | awk -F ', ' '{ print $9 }')
             if [ "$IS_LEADER" = "true" ]; then
               return 0
             else
