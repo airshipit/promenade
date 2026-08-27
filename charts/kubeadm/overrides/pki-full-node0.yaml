@@ -1,0 +1,53 @@
+certs:
+  sa:
+    key: sa-key-placeholder
+    pub: sa-pub-placeholder
+
+  front_proxy_ca:
+    crt: front_proxy_ca-crt-placeholder
+    key: front_proxy_ca-key-placeholder
+
+  front_proxy_client:
+    crt: front_proxy_client-crt-placeholder
+    key: front_proxy_client-key-placeholder
+
+  apiserver:
+    crt: apiserver-crt-placeholder
+    key: apiserver-key-placeholder
+
+  apiserver_kubelet_client:
+    crt: apiserver_kubelet_client-crt-placeholder
+    key: apiserver_kubelet_client-key-placeholder
+
+  apiserver_etcd_client:
+    crt: apiserver_etcd_client-crt-placeholder
+    key: apiserver_etcd_client-key-placeholder
+
+  controller_manager:
+    crt: controller_manager-crt-placeholder
+    key: controller_manager-key-placeholder
+
+  scheduler:
+    crt: scheduler-crt-placeholder
+    key: scheduler-key-placeholder
+
+  etcd_ca:
+    crt: etcd_ca-crt-placeholder
+  etcd_ca_peer:
+    crt: etcd_ca_peer-crt-placeholder
+
+  etcd_healthcheck_client:
+    crt: etcd_healthcheck_client-crt-placeholder
+    key: etcd_healthcheck_client-key-placeholder
+
+  nodes:
+    nodename0:
+      etcd_server:
+        crt: etcd_client_node0-crt-placeholder
+        key: etcd_client_node0-key-placeholder
+      etcd_peer:
+        crt: etcd_peer_node0-crt-placeholder
+        key: etcd_peer_node0-key-placeholder
+      kubelet:
+        crt: kubelet_node0-crt-placeholder
+        key: kubelet_node0-key-placeholder

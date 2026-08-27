@@ -1,3 +1,4 @@
 /*.tgz
 /*/charts
 /*/requirements.lock
+kubeadm-*

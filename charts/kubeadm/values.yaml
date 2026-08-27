@@ -12,95 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-release_group: null
+images:
+  tags:
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
+    anchor: quay.io/airshipit/kubeadm-utility:latest-ubuntu_noble
+    haproxy: haproxy:1.8.25
+    containerd_pause: docker-open-nc.zc1.somedomain.com/google_containers/pause-amd64:latest
+  pull_policy: "IfNotPresent"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
 
-cluster_config:
-  kubernetesVersion: v1.33.6
+bootstrap:
+  # it's more convenient to debug if it is true
+  string_data: false
+  # in case there is per-node data the next field can be used to generate only script for 1 node so
+  # it is easier to extract. in that case only 1 secret will be generated with the name {{ include "kubeadm.fullname" $envAll }}-bootstrap
+  # without suffix-<nodename>. Using this parameter disables producing other manifests generated in _main.tpl to help sed find the needed field only.
+  # this is because we assume that bootstrap.nodename is used only for manual helm template execution
+  # nodename: <some node>
 
-  certificatesDir: "/etc/kubernetes/pki"
-  clusterName: kubernetes
-  controlPlaneEndpoint: "127.0.0.1:6443"
-  imageRepository: "registry.k8s.io"
-  featureGates:
-    NodeLocalCRISocket: false
-  networking:
-    dnsDomain: cluster.local
-    podSubnet: "10.97.0.0/16"
-    serviceSubnet: "10.96.0.0/16"
-
-  apiserver:
-    etcd_endpoints: "https://10.96.0.2:2379"
-    log_level: "2"
-    extraArgs: []
-    extraVolumes: []
-
-  controller_manager:
-    log_level: "2"
-    extraArgs: []
-    extraVolumes: []
-
-  scheduler:
-    log_level: "2"
-    extraArgs: []
-    extraVolumes: []
-
-  etcd:
-    imageRepository: "registry.k8s.io"
-    dataDir: "/var/lib/etcd/"
-    log_level: "info"
-
-    extraArgs: []
-    extraEnvs: []
-
-join_config:
-  caCertPath: /etc/kubernetes/pki/ca.crt
-  discovery:
-    file:
-      kubeConfigPath: /etc/kubernetes/admin.conf
-  controlPlane:
-    localAPIEndpoint:
-      bindPort: 6443
-  nodeRegistration:
-    imagePullPolicy: Always
-    imagePullSerial: false
-    ignorePreflightErrors:
-    - Service-Kubelet
-    - FileAvailable--etc-kubernetes-kubelet.conf
-    - SystemVerification
-    - Port-10250
-    - Port-6443
-    - Port-10259
-    - Port-10257
-    - Port-2379
-    - Port-2380
-    - DirAvailable--var-lib-etcd
-  skipPhases:
-  - preflight
-  - control-plane-prepare/download-certs
-  - control-plane-prepare/certs
-  - control-plane-prepare/kubeconfig
-  - check-etcd
-  - etcd-join
-  - kubelet-start
-  - control-plane-join
-  - wait-control-plane
-  patches:
-    directory: /etc/kubernetes/kubeadm/patches
-
-upgrade_config:
-  node:
-    certificateRenewal: false
-    ignorePreflightErrors:
-    - SystemVerification
-    - CoreDNSUnsupportedPlugins
-    - CoreDNSMigration
-    patches:
-      directory: /etc/kubernetes/kubeadm/patches
-    skipPhases:
-    - kubelet-config
-    - addon
-    imagePullPolicy: Always
-    imagePullSerial: false
+anchor:
+  period: 15
+  labels:
+    common:
+      node_selector_key: kubeadm
+      node_selector_value: enabled
+    masters:
+      node_selector_key: kubernetes-apiserver
+      node_selector_value: enabled
 
 etcd_service:
   name: kubernetes-etcd
@@ -109,521 +51,258 @@ etcd_service:
     enable_node_port: false
     node_port: 32379
     port: 2379
+    # TODO: must match with kubeadm.settings.etcd_servers ports
     target_port: 2379
 
+haproxy:
+  container_config_dir: /usr/local/etc/haproxy
+  host_config_dir: /etc/kubernetes/kubeadm/addons
+  period: 5
+  conf_parts:
+    global:
+      - maxconn 10240
+    defaults:
+      - timeout connect 5000ms
+      - timeout client 24h
+      - timeout server 24h
+    frontend:
+      - mode tcp
+    backend:
+      - mode tcp
+      - option tcp-check
+      - option redispatch
 
-host_dir: "/host"
+# files:
+#   rm_files: #groupname
+#     - path: /usr/local/share/ca/certain/dosntexist
+#       state: "rm"
+#   files:
+#     - path: /usr/local/share/ca/certain
+#       state: "dir" # or touch
+#       owner: "root:root" #optional
+#       mode: "0600" #optional
+#     - path: /usr/local/share/ca/certain2
+#       state: "copy" #  or content or tpl
+#       from: "/usr/local/share/ca/certain/filename"
+#       owner: "root:root" #optional
+#       mode: "0600" #optional
+
+# we're storing all files to the 3 'flat' folders:
+# "${nodes_dirs_dir}/allnodes" "${nodes_dirs_dir}/ctrlnodes" "${nodes_dirs_dir}/per-node"
+# each folder may have several unique prefixes depending on which
+# fs we're setting permissions. if there is no data, empty owner and mode are passed
+# and setting of permissions is skept in that case.
+# the approach with 3 folder allows to deliver files to nodes in a compact way wihtout duplication.
+permissions:
+  # certs/kubelet
+  "/etc/kubernetes/pki":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      # produced by certs phase
+      "pkipriv_": # keys
+        owner: "root:root"
+        mode: "0600"
+      "pkipub_": # certs,
+        owner: "root:root"
+        mode: "0644"
+      # produced by kubelet phase
+      "kubeletpkipriv_": # keys
+        owner: "root:root"
+        mode: "0600"
+      "kubeletpkipub_": # certs
+        owner: "root:root"
+        mode: "0644"
+  "/etc/kubernetes/pki/etcd":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      "etcdpriv_": # keys
+        owner: "root:root"
+        mode: "0600"
+      "etcdpub_": # certs,
+        owner: "root:root"
+        mode: "0600" #"0644"
+  "/etc/default":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      "kubelet":
+        owner: "root:root"
+        mode: "0600"
+  "/etc/systemd/system":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      "kubelet.service":
+        owner: "root:root"
+        mode: "0600"
+      "kube-cgroup.service":
+        owner: "root:root"
+        mode: "0600"
+  "/var/lib/kubelet":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      "config.yaml":
+        owner: "root:root"
+        mode: "0600"
+  "/etc/kubernetes":
+    owner: "root:root"
+    prefixes:
+      # produced by kubeconfig phase
+      "admin.conf":
+        owner: "root:root"
+        mode: "0600"
+      "controller-manager.conf":
+        owner: "root:root"
+        mode: "0600"
+      "scheduler.conf":
+        owner: "root:root"
+        mode: "0600"
+      # produced by kubelet phase
+      "kubelet.conf":
+        owner: "root:root"
+        mode: "0600"
+  "/etc/containerd":
+    owner: "root:root"
+    prefixes:
+      "config.toml":
+        owner: "root:root"
+        mode: "0600"
+  "/usr/local/sbin":
+    owner: "root:root"
+    prefixes:
+      "kube-cgroup.sh":
+        owner: "root:root"
+        mode: "0600"
+  "/etc/kubernetes/kubeadm":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      "kubeadm_":
+        owner: "root:root"
+        mode: "0600"
+  "/etc/kubernetes/kubeadm/patches":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      kubeadmpatch_:
+        owner: "root:root"
+        mode: "0600"
+  "/etc/kubernetes/apiserver":
+    owner: "root:root"
+    mode: "0700"
+    prefixes:
+      "kubeadmapiserver_":
+        owner: "root:root"
+        mode: "0600"
+  "/etc/kubernetes/kubeadm/addons":
+    owner: "root:root"
+    mode: "0700"
+  "/etc/kubernetes/manifests":
+    prefixes:
+      # produced by vip phase
+      "manifests_":
+        owner: "root:root"
+        mode: "0600"
+
+
+cluster_config: {}
+  # if not specified - any in accordance to kubeadm version
+  # kubernetesVersion: v1.36.3
 
 kubeconfig:
-  cluster_name: kubernetes
-  cluster_ip: "127.0.0.1"
-  cluster_port: 6553
-  configs:
-    admin:
-      path: /etc/kubernetes/admin.conf
-      ca: /etc/kubernetes/admin/pki/cluster-ca.pem
-      client_cert: /etc/kubernetes/admin/pki/admin.pem
-      client_key: /etc/kubernetes/admin/pki/admin-key.pem
-    controller-manager:
-      path: /etc/kubernetes/controller-manager.conf
-      ca: pki/ca.crt
-      client_cert: pki/controller-manager.pem
-      client_key: pki/controller-manager-key.pem
-    kubelet:
-      path: /etc/kubernetes/kubelet.conf
-      ca: /etc/kubernetes/pki/kubelet-client-ca.pem
-      client_cert: /etc/kubernetes/pki/kubelet.pem
-      client_key: /etc/kubernetes/pki/kubelet-key.pem
-    scheduler:
-      path: /etc/kubernetes/scheduler.conf
-      ca: pki/ca.crt
-      client_cert: pki/scheduler.pem
-      client_key: pki/scheduler-key.pem
-
-# NOTE(mark-burnett): These values are not really configurable -- they live
-# here to keep the templates cleaner.
-const:
-
-  files_to_copy: {}
-    # NOTE(mark-burnett): These are (host dest): (container source) pairs
-
-  files_to_delete:
-    #- /etc/kubernetes/manifests/kubernetes-apiserver.yaml
-    #- /etc/kubernetes/manifests/kubernetes-controller-manager.yaml
-    #- /etc/kubernetes/manifests/kubernetes-scheduler.yaml
-    #- /etc/kubernetes/manifests/kubernetes-etcd.yaml
-    - /etc/kubernetes/kubelet
-    - /etc/kubernetes/controller-manager
-    - /etc/kubernetes/scheduler
-    - /etc/kubernetes/apiserver/apiserver-proxy-cert.pem
-    - /etc/kubernetes/apiserver/apiserver-proxy-key.pem
-    - /etc/kubernetes/apiserver/agg-api-ca.pem
-    - /etc/kubernetes/apiserver/kubeconfig
-    - /etc/kubernetes/apiserver/pki
-    - /etc/kubernetes/kubeconfig
-    - /etc/kubernetes/pki/cluster-ca.pem
-    - /opt/kubernetes/bin/kubelet
-
-images:
-  tags:
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
-    anchor: quay.io/airshipit/kubeadm-utility:latest-ubuntu_noble
-    apiserver: registry.k8s.io/kube-apiserver-amd64:v1.36.1
-    key_rotate: quay.io/airshipit/porthole-compute-utility:latest-ubuntu_noble
-  pull_policy: "IfNotPresent"
-  local_registry:
-    active: false
-    exclude:
-      - dep_check
-      - image_repo_sync
-
-labels:
-  common:
-    node_selector_key: kubeadm
-    node_selector_value: enabled
-  masters:
-    node_selector_key: kubernetes-apiserver
-    node_selector_value: enabled
-  etcd:
-    node_selector_key: kubernetes-etcd
-    node_selector_value: enabled
-  job:
-    node_selector_key: kubelet-restart
-    node_selector_value: true
-
-anchor:
-  dns_policy: Default
-  enable_cleanup: true
-  kubelet:
-    manifest_path: /etc/kubernetes/manifests
-  period: 15
-
-# TODO(sh8121att): Add dynamic rendering of the admission controller list allowing a base list
-# and each conf entry to enable additional AC plugins
-conf: {}
-
-kubeadm:
-  cluster_config:
-    apiVersion: kubeadm.k8s.io/v1beta4
-    kind: ClusterConfiguration
-
-
-  join_config:
-    apiVersion: kubeadm.k8s.io/v1beta4
-    kind: JoinConfiguration
-    caCertPath: /etc/kubernetes/pki/ca.crt
-    controlPlane:
-      localAPIEndpoint:
-        advertiseAddress: "${HOST_IP}"
-        bindPort: 6443
-    discovery:
-      file:
-        kubeConfigPath: /etc/kubernetes/admin.conf
-    nodeRegistration:
-      imagePullPolicy: Always
-      imagePullSerial: false
-      name: "${NODE_NAME}"
-      ignorePreflightErrors:
-      - Service-Kubelet
-      - FileAvailable--etc-kubernetes-kubelet.conf
-      - SystemVerification
-      - Port-10250
-      - Port-6443
-      - Port-10259
-      - Port-10257
-      - Port-2379
-      - Port-2380
-      - DirAvailable--var-lib-etcd
-      taints: []
-    skipPhases:
-    - preflight
-    - control-plane-prepare/download-certs
-    - control-plane-prepare/certs
-    - control-plane-prepare/kubeconfig
-    - check-etcd
-    - etcd-join
-    - kubelet-start
-    - control-plane-join
-    - wait-control-plane
-    patches:
-      directory: /etc/kubernetes/kubeadm/patches
-
-  upgrade_config:
-    apiVersion: kubeadm.k8s.io/v1beta4
-    kind: UpgradeConfiguration
-    node:
-      certificateRenewal: false
-      dryRun: false
-      etcdUpgrade: false
-      ignorePreflightErrors:
-      - SystemVerification
-      - CoreDNSUnsupportedPlugins
-      - CoreDNSMigration
-      patches:
-        directory: /etc/kubernetes/kubeadm/patches
-      skipPhases:
-      - kubelet-config
-      - addon
-      imagePullPolicy: Always
-      imagePullSerial: false
-
-  patches:
-    etcd.yaml:
-      spec:
-        containers:
-          - name: etcd
-            resources:
-              limits:
-                memory: "8Gi"
-                cpu: "20000m"
-              requests:
-                memory: "8Gi"
-                cpu: "20000m"
-    kube-apiserver.yaml:
-      spec:
-        containers:
-          - name: kube-apiserver
-            resources:
-              limits:
-                cpu: '8'
-                memory: 8Gi
-              requests:
-                cpu: 100m
-                memory: 128Mi
-    kube-controller-manager.yaml:
-      spec:
-        containers:
-          - name: kube-controller-manager
-            resources:
-              limits:
-                cpu: '8'
-                memory: 8Gi
-              requests:
-                cpu: 100m
-                memory: 128Mi
-    kube-scheduler.yaml:
-      spec:
-        containers:
-          - name: kube-scheduler
-            resources:
-              limits:
-                cpu: '8'
-                memory: 8Gi
-              requests:
-                cpu: 100m
-                memory: 128Mi
-
-apiserver:
-  extraArgs:
-    - name: admission-control-config-file
-      value: "/etc/kubernetes/apiserver/acconfig.yaml"
-    - name: anonymous-auth
-      value: "true"
-    - name: audit-log-maxbackup
-      value: "10"
-    - name: audit-log-maxsize
-      value: "100"
-    - name: audit-log-path
-      value: "/var/log/kubernetes/apiserver/kube-apiserver-audit.log"
-    - name: audit-policy-file
-      value: "/etc/kubernetes/apiserver/audit-policy.yaml"
-    - name: bind-address
-      value: "0.0.0.0"
-    - name: enable-admission-plugins
-      value: "PodSecurity,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit"
-    - name: encryption-provider-config
-      value: "/etc/kubernetes/apiserver/encryption_provider.yaml"
-    - name: kubelet-certificate-authority
-      value: "/etc/kubernetes/pki/ca.crt"
-    - name: requestheader-allowed-names
-      value: "aggregator"
-    - name: service-node-port-range
-      value: "30000-32767"
-    - name: tls-cipher-suites
-      value: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
-    - name: tls-min-version
-      value: "VersionTLS12"
-    - name: v
-      value: "2"
-  extraVolumes:
-    - hostPath: "/etc/kubernetes/apiserver"
-      mountPath: "/etc/kubernetes/apiserver"
-      name: apiserver
-      pathType: DirectoryOrCreate
-    - hostPath: "/var/log/kubernetes/apiserver"
-      mountPath: "/var/log/kubernetes/apiserver"
-      name: audit-logs
-      pathType: DirectoryOrCreate
-  etcd:
-    endpoints: https://kubernetes-etcd.kube-system.svc.cluster.local
-  host_etc_path: /etc/kubernetes/apiserver
-  config_files: {}
-  logging:
-    # Which messages to log.
-    # Valid values include any number from 0 to 9.
-    # Default 5(Trace level verbosity).
-    log_level: 5
-#XXX another possible configuration
-#  tls:
-#    tls-cipher-suites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
-#    # https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
-#    #Possible values: VersionTLS10, VersionTLS11, VersionTLS12
-#    tls-min-version: 'VersionTLS12'
+  clusterName: kubernetes
+  controlPlaneEndpoint: 127.0.0.1:6443
 
 kubelet:
-  arguments:
-    - --maximum-dead-containers-per-container=1
-  config:
-    apiVersion: kubelet.config.k8s.io/v1beta1
-    kind: KubeletConfiguration
   restart: true
-  config_file_overrides:
-    cgroupDriver: systemd
-    cgroupRoot: /kube_whitelist
-    containerLogMaxFiles: 2
-    containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
-    eventRecordQPS: 50
-    evictionMaxPodGracePeriod: -1
-    kubeAPIBurst: 40
-    kubeAPIQPS: 20
-    maxPods: 250
-    nodeStatusUpdateFrequency: 5s
-    podPidsLimit: 10000
-    podsPerCore: 10
-    readOnlyPort: 0
-    runtimeRequestTimeout: 15m
-    seccompDefault: true
-    tlsCipherSuites:
-      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-      - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
-      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-      - TLS_RSA_WITH_AES_128_GCM_SHA256
-      - TLS_RSA_WITH_AES_256_GCM_SHA384
-      - TLS_RSA_WITH_AES_128_CBC_SHA
-      - TLS_RSA_WITH_AES_256_CBC_SHA
 
-  files_to_copy:
-    /etc/default/kubelet: /tmp/kubelet/kubelet-defaults
-    /etc/systemd/system/kubelet.service: /tmp/kubelet/kubelet-service
-    /var/lib/kubelet/config: /tmp/kubelet/kubelet-config
+containerd:
+  version: v3
+  # auths:
+  #   - repo: docker-open-nc.zc1.somedomain.com
+  #     auth: user:password
 
-network:
-  dns:
-    service_ip: "10.96.0.10"
-    cluster_domain: "cluster.local"
-  kubernetes_apiserver:
-    ingress:
-      public: true
-      classes:
-        namespace: "nginx-cluster"
-        cluster: "nginx-cluster"
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: /
-        nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-        nginx.ingress.kubernetes.io/ssl-redirect: "true"
-        nginx.ingress.kubernetes.io/secure-backends: "true"
-    name: kubernetes-apiserver
-    port: 6443
-    node_port:
-      enabled: false
-      port: 31943
+# this is main data about cluster in full mode
+# and potentially ca mode in case there is an
+# additional haproxy static pod
+# TODO: rename masters to control plance nodes everywhere, it's kubeadm terminology
+# we may also don't need genesis. potenially we can bootstrap from any controller node
+# they must be identical/interchangable in the end of the day
+# ksn stands for k8s network
+# control_plane:
+#   genesis:
+#     hostname: hostname0
+#   masters:
+#   - hostname: hostname0
+#     ip:
+#       ksn: 172.29.0.139
+#   - hostname: hostname1
+#     ip:
+#       ksn: 172.29.0.144
+#   - hostname: hostname2
+#     ip:
+#       ksn: 172.29.0.149
+#   - hostname: hostname3
+#     ip:
+#       ksn: 172.29.0.154
 
-service:
-  name: kubeadm-service
-  ip: null
+# here is where all secrets are provided
+# 3 options are supported:
+# 1. no secrets - assuming that kubadm will be used to generate everything
+# 2. ca key/crt are provided - kubeadm will be used to generate the rest
+# 3. all secrets (including etcd) are pregenerated and kubeadm will be used only only for
+#    certain phases like maintaining manifests
+# NOTE: at the moment we don't support external etcd
+# see templates/utils/_k8s_pki_val_extract.tpl for implementation details
+# to use a different structure - override it in tpl section
+certs:
+  # expected structure:
+  # perms:
+  #   pki_dir:
+  #     owner: "root:root"
+  #     mode: "0700"
+  #   pki_files:
+  #     owner: "root:root"
+  #     mode: "0600"
+  #   etcd_dir: # inherit pki_dir if not defines
+  #     owner: "root:root"
+  #     mode: "0700"
+  #   etcd_files: # inherit pki_files if not defines
+  #     owner: "root:root"
+  #     mode: "0600"
 
-secrets:
-  ca:
-    crt: placeholder
-    key: placeholder
+  # ca:
+  #   crt: placeholder
+  #   key: placeholder
 
-  sa:
-    key: placeholder
-    pub: placeholder
+  # sa:
+  #   key: placeholder
+  #   pub: placeholder
+  # ...
+  # see overrides/pki-*.yaml
 
-  front_proxy_ca:
-    crt: placeholder
-    key: placeholder
 
-  front_proxy_client:
-    crt: placeholder
-    key: placeholder
+# resources prefix
+fullnameOverride: kubeadm-service
 
-  apiserver:
-    crt: placeholder
-    key: placeholder
-    etcd_client:
-      crt: placeholder
-      key: placeholder
-    kubelet_client:
-      crt: placeholder
-      key: placeholder
-
-  controller_manager:
-    crt: placeholder
-    key: placeholder
-
-  scheduler:
-    crt: placeholder
-    key: placeholder
-
-  etcd:
-    ca:
-      crt: placeholder
-    ca_peer:
-      crt: placeholder
-    healthcheck_client:
-      crt: placeholder
-      key: placeholder
-    nodes: []
-
-  kubelet: {}
-
-# typically overriden by environmental
-# values, but should include all endpoints
-# required by this chart
-endpoints:
-  cluster_domain_suffix: cluster.local
-  kubernetes_apiserver:
-    name: kubernetes-apiserver
-    hosts:
-      default: kubernetes-apiserver
-    port:
-      https:
-        default: 6443
-        public: 443
-    path:
-      default: /
-    scheme:
-      default: https
-      public: https
-    host_fqdn_override:
-      default: null
-      # NOTE: this chart supports TLS for fqdn over-ridden public
-      # endpoints using the following format:
-      # public:
-      #   host: null
-      #   tls:
-      #     crt: null
-      #     key: null
-
-pod:
-  mandatory_access_control:
-    type: apparmor
-    kubernetes_apiserver_anchor:
-      anchor: runtime/default
-    kube-apiserver:
-      init: runtime/default
-      apiserver-key-rotate: runtime/default
-    apiserver:
-      apiserver: runtime/default
-  security_context:
-    kubernetes_apiserver_anchor:
-      pod:
-        runAsUser: 65534
-      container:
-        anchor:
-          runAsUser: 0
-          readOnlyRootFilesystem: false
-    key_rotate:
-      pod:
-        runAsUser: 65534
-      container:
-        apiserver_key_rotate:
-          runAsUser: 0
-          readOnlyRootFilesystem: false
-    apiserver:
-      pod:
-        runAsUser: 65534
-      container:
-        apiserver:
-          runAsUser: 0
-          readOnlyRootFilesystem: false
-  mounts:
-    # .pod.mounts.kubernetes_apiserver is for the anchor daemonset
-    kubernetes_apiserver:
-      init_container: null
-      kubernetes_apiserver:
-    # .pod.mounts.apiserver is for the apiserver static pod
-    apiserver:
-      apiserver:
-# Example mounts for audit logging, refer to .conf.auditpolicy above.
-#        volumeMounts:
-#          - name: audit-logs
-#            mountPath: /var/log/audit
-#            mountPropagation: HostToContainer
-#            readOnly: false
-#        volumes:
-#          - name: audit-logs
-#            hostPath:
-#              path: /var/log/audit
-#              type: DirectoryOrCreate
-  lifecycle:
-    upgrades:
-      daemonsets:
-        pod_replacement_strategy: RollingUpdate
-        kubernetes-apiserver-anchor:
-          enabled: false
-          min_ready_seconds: 0
-          max_unavailable: 1
-    termination_grace_period:
-      kubernetes_apiserver:
-        timeout: 3600
-  resources:
-    enabled: true
-    anchor_pod:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "1024Mi"
-        cpu: "2000m"
-    key_rotate:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "1024Mi"
-        cpu: "2000m"
-    kubernetes_apiserver:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "1024Mi"
-        cpu: "2000m"
-  probes:
-    apiserver:
-      apiserver:
-        liveness:
-          enabled: true
-          params:
-            failureThreshold: 3
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 10
-        readiness:
-          enabled: true
-          params:
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            timeoutSeconds: 5
-  env:
-    apiserver:
+# manifests gates
+# for day 1: bootstrap/bootstrap_joing will contain kubeadm init/join related step for node named genesis for init and
+#            kubeadm join for the rest of the nodes. doesn're require anything else.
+#            bootstrap scipt can be up to ~150Kb (in case of perNode is used), that's why the script separated onto
+#            dedicated secret for each node, since Secrets have limit 1 - 2Mb and
+#            we definetly will go beyond this limit in case of 10-20 nodes.
+# for day 2: daemonset perform it bin/bin_helpers/fs_common/fs_masters_fs/fs_per_node/etc/rbac needed for daemonsets
 
 manifests:
-  configmap_apiserver_misc: true
   configmap_bin: true
-  configmap_certs: true
-  configmap_etcd_certs: true
-  configmap_kubeconfig: true
-  configmap_jobs: true
-  configmap_kubelet: true
-  configmap_kubeadm: true
-  configmap_patches: true
+  configmap_for_kubeadm: true
+  secret_daemonset_fs_common: true
+  secret_daemonset_fs_masters: true
+  secret_daemonset_fs_per_node: true
+  secret_bootstrap: false
   daemonset_masters: true
   daemonset_workers: true
   etcd_service: false
@@ -631,6 +310,8 @@ manifests:
 
 #### BUNDLE CONFIG #####
 bundle:
+  tpl: {}
+    #"sometpl": "hello"
   # Mapping of the manifest to the templates. default is 'override'-templates type
   # those are equialent:
   #
@@ -648,7 +329,7 @@ bundle:
   # 1. "tpl" value forces to the template from .Values.manifests.tpl.<path>
   # 2. "fs" value forces to the template accessible by $dot.Chart.Name/<path>
   #    You can use either local chart temlate e.g. templates/<filename>
-  #    Or even templates from dependencies e.g.  charts/helm-toolkit/templates/<filename>
+  #    Or even templates from dependencies e.g.  charts/<dep chart name>/templates/<filename>
   # 3. "include" value is the same as fs, but allows to use path without $dot.Chart.Name prefix
   #     that allows techincally to use and tempalte create with define.
   manifests:
@@ -675,5 +356,6 @@ bundle:
 # this is a re-configurable default template - entrypoint of the chart
 entrypoint:
   "default": |
+    {{ tuple . "templates/phases/_main.tpl" | include "kubeadm.bundle.template" }}
     {{ include "kubeadm.bundle.manifests" . }}
 

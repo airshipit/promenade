@@ -1,0 +1,154 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{/* Note: this file is called from templates/phases/_main.tpl and k8sConfDict contains lots of cached info */}}
+{{- $envAll := index . 0 -}}
+{{- $k8sConfDict := index . 1 -}}
+{{- $labels := tuple $envAll "kubernetes" "kubernetes-kubeadm-anchor" | include "kubeadm.labels" -}}
+
+apiVersion: "apps/v1"
+kind: DaemonSet
+metadata:
+  name: {{ include "kubeadm.fullname" $envAll }}-masters-anchor
+  labels:
+{{ $labels | indent 4 }}
+  annotations:
+spec:
+  selector:
+    matchLabels:
+{{ $labels | indent 6 }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  template:
+    metadata:
+      labels:
+{{ $labels | indent 8 }}
+      annotations:
+        configmap-bin-hash: {{ tuple $envAll "templates/_configmap-bin.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | sha256sum | quote }}
+        secret-daemonset_fs-hash: {{ tuple $envAll "templates/_secret-daemonset-fs.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | sha256sum | quote }}
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: {{ $envAll.Values.anchor.labels.common.node_selector_key }}
+                    operator: In
+                    values:
+                      - {{ $envAll.Values.anchor.labels.common.node_selector_value }}
+                  - key: {{ $envAll.Values.anchor.labels.masters.node_selector_key }}
+                    operator: In
+                    values:
+                      - {{ $envAll.Values.anchor.labels.masters.node_selector_value }}
+      dnsPolicy: Default
+      serviceAccountName: kubeadm
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
+      terminationGracePeriodSeconds: 3600
+      containers:
+        - name: anchor
+          image: {{ $envAll.Values.images.tags.anchor }}
+          imagePullPolicy: {{ $envAll.Values.images.pull_policy }}
+          env:
+          - name: NODE_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: NODE_ROLE
+            value: "master"
+          - name: HOST_DIR
+            value: "/host"
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /tmp/bin/anchor 2>&1 | tee "/host/var/log/kubeadm_output_$(date +%Y%m%d_%H%M%S).log"
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /tmp/bin/pre_stop
+
+          readinessProbe:
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - |-
+                cat /tmp/done
+
+          volumeMounts:
+            - name: host
+              mountPath: /host
+              mountPropagation: HostToContainer
+
+            - name: bin
+              mountPath: /tmp/bin
+
+            - name: allnodes
+              mountPath: /tmp/allnodes
+
+            - name: ctrlnodes
+              mountPath: /tmp/ctrlnodes
+
+{{ if hasKey $k8sConfDict "perNode" }}
+            - name: node
+              mountPath: /tmp/node.tar
+              subPathExpr: $(NODE_NAME).tar
+
+{{ end }}
+            - name: pod-tmp
+              mountPath: /tmp
+      volumes:
+        - name: host
+          hostPath:
+            path: /
+        - name: bin
+          configMap:
+            name: {{ include "kubeadm.fullname" $envAll }}-bin
+            defaultMode: 0555
+        - name: allnodes
+          secret:
+            secretName: {{ include "kubeadm.fullname" $envAll }}-fs-allnodes
+            defaultMode: 0600
+        - name: ctrlnodes
+          secret:
+            secretName: {{ include "kubeadm.fullname" $envAll }}-fs-ctrlnodes
+            defaultMode: 0600
+{{ if hasKey $k8sConfDict "perNode" }}
+        - name: node
+          secret:
+            secretName: {{ include "kubeadm.fullname" $envAll }}-fs-pernode
+            defaultMode: 0600
+{{ end }}
+        - name: pod-tmp
+          emptyDir: {}

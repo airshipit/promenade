@@ -1,0 +1,8 @@
+#use-case0 (can be used in combination with other overrides)
+images:
+  tags:
+    anchor: some-docker-registry.com/some_path0/kubeadm-utility@sha256:39fd8a26a9113213195995030e6c22a8a5e8848fff1dced6c3ddab5675712345
+    haproxy: some-docker-registry.com/some_path2/haproxy@sha256:39fd8a26a9113213195995030e6c22a8a5e8848fff1dced6c3ddab5675754321
+
+manifests:
+  etcd_service: true

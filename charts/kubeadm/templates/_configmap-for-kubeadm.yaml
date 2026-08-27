@@ -1,0 +1,79 @@
+{{/*
+Copyright 2017 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{/* Note: this file is called from templates/phases/_main.tpl and k8sConfDict contains lots of cached info */}}
+{{- $envAll := index . 0 -}}
+{{- $k8sConfDict := index . 1 -}}
+
+{{- if $envAll.Values.manifests.configmap_for_kubeadm }}
+{{- $allNodes := get $k8sConfDict "allNodes" -}}
+
+
+{{- $clusterConfiguartion := "" -}}
+{{- if hasKey $allNodes "kubeadm_ClusterConfiguration" -}}
+  {{- $clusterConfiguartion = get (get $allNodes "kubeadm_ClusterConfiguration") "content" -}}
+{{- end -}}
+{{- $joinConfig := "" -}}
+{{- if hasKey $allNodes "kubeadm_join_config.yaml" -}}
+  {{- $joinConfig = get (get $allNodes "kubeadm_join_config.yaml") "content" -}}
+{{- end -}}
+{{- $upgradeConfig := "" -}}
+{{- if hasKey $allNodes "kubeadm_upgrade_config.yaml" -}}
+  {{- $upgradeConfig = get (get $allNodes "kubeadm_upgrade_config.yaml") "content" -}}
+{{- end -}}
+
+{{- $kubeletDefault := "" -}}
+{{- if hasKey $allNodes "kubelet" -}}
+  {{- $kubeletDefault = get (get $allNodes "kubelet") "content" -}}
+{{- end -}}
+{{- $kubeletService := "" -}}
+{{- if hasKey $allNodes "kubelet.service" -}}
+  {{- $kubeletService = get (get $allNodes "kubelet.service") "content" -}}
+{{- end -}}
+{{- $kubeletConfig := "" -}}
+{{- if hasKey $allNodes "kubelet_config.yaml" -}}
+  {{- $kubeletConfig = get (get $allNodes "kubelet_config.yaml") "content" -}}
+{{- end -}}
+
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubeadm-config
+data:
+  ClusterConfiguration: |
+{{ $clusterConfiguartion | indent 4 }}
+  join-config.yaml: |
+{{ $joinConfig | indent 4 }}
+  upgrade-config.yaml: |
+{{ $upgradeConfig | indent 4 }}
+
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubelet-config
+data:
+  default-kubelet: |
+{{ $kubeletDefault | indent 4 }}
+  kubelet.service: |
+{{ $kubeletService | indent 4 }}
+  kubelet: |
+{{ $kubeletConfig | indent 4 }}
+
+{{- end }}

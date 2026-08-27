@@ -1,0 +1,4 @@
+certs:
+  ca:
+    crt: ca-crt-placeholder
+    key: ca-key-placeholder

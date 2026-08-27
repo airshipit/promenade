@@ -1,0 +1,445 @@
+images:
+  tags:
+    kubeadmImageRepository: docker-open-nc.zc1.somedomain.com/upstream-local/kubernetes
+    etcdImageRepository: docker-open-nc.zc1.somedomain.com/upstream-local/kubernetes/etcd
+
+kubeadm:
+  fs:
+    # kubeadm folder structure - pointing to templates
+    "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
+    "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
+    "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
+    "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
+    # patches dir which is referenced in init/join configs
+    "patches/etcd.yaml": "templates/phases/snippets/kubeadm/patches/etcd.yaml"
+    "patches/kube-apiserver.yaml": "templates/phases/snippets/kubeadm/patches/kube-controller-manager.yaml"
+    "patches/kube-controller-manager.yaml": "templates/phases/snippets/kubeadm/patches/kube-controller-manager.yaml"
+    "patches/kube-scheduler.yaml": "templates/phases/snippets/kubeadm/patches/kube-scheduler.yaml"
+    # kube apiserver files which are referenced in ClusterConfiguration
+    # (note, each folder (/etc/kubernetes/apiserver/) must be accounted for in the code of kubeadm phase)
+    "/etc/kubernetes/apiserver/acconfig.yaml": "templates/phases/snippets/kubeadm/apiserver/acconfig.yaml"
+    "/etc/kubernetes/apiserver/audit-policy.yaml": "templates/phases/snippets/kubeadm/apiserver/audit-policy.yaml"
+    "/etc/kubernetes/apiserver/encryption_provider.yaml": "templates/phases/snippets/kubeadm/apiserver/encryption_provider.yaml"
+    "/etc/kubernetes/apiserver/eventconfig.yaml": "templates/phases/snippets/kubeadm/apiserver/eventconfig.yaml"
+  settings:
+  # here the user can define some values to be configured as yaml and getting used in those files
+  # another strategy which can be used is - make patches here and apply on top of generated yaml template
+  # - its easy to make it that way, but it's not so compact, that's why this approach is used
+  # it's a tpl string - can use include and etc, and also can produse https://${NODE_IP}:2379 for heredoc if needed
+    etcd_servers: https://172.29.1.11:2379,https://172.29.1.22:2379,https://172.29.1.33:2379
+    encryption_provider:
+      # just as example
+      key1: "12345678901234567890123456789012"
+      key2: "01234567890123456789012345678901"
+
+# adding kubeadm templates as tpl files
+bundle:
+  tpl:
+    "templates/phases/snippets/kubeadm/ClusterConfiguration": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: ClusterConfiguration
+      {{- if .Values.cluster_config.kubernetesVersion }}
+      kubernetesVersion: {{ .Values.cluster_config.kubernetesVersion }}
+      {{- end }}
+      apiServer:
+        extraArgs:
+          - name: etcd-servers
+            value: {{ (tpl .Values.kubeadm.settings.etcd_servers . ) | quote }}
+          - name: v
+            value: "2"
+          - name: admission-control-config-file
+            value: /etc/kubernetes/apiserver/acconfig.yaml
+          - name: anonymous-auth
+            value: "true"
+          - name: audit-log-maxbackup
+            value: "10"
+          - name: audit-log-maxsize
+            value: "100"
+          - name: audit-log-path
+            value: /var/log/kubernetes/apiserver/kube-apiserver-audit.log
+          - name: audit-policy-file
+            value: /etc/kubernetes/apiserver/audit-policy.yaml
+          - name: bind-address
+            value: 0.0.0.0
+          - name: enable-admission-plugins
+            value: PodSecurity,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds,NodeRestriction,EventRateLimit
+          - name: encryption-provider-config
+            value: /etc/kubernetes/apiserver/encryption_provider.yaml
+          - name: kubelet-certificate-authority
+            value: /etc/kubernetes/pki/ca.crt
+          - name: requestheader-allowed-names
+            value: aggregator
+          - name: service-node-port-range
+            value: 30000-32767
+          - name: tls-cipher-suites
+            value: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA
+          - name: tls-min-version
+            value: VersionTLS12
+        extraVolumes:
+          - hostPath: /etc/kubernetes/apiserver
+            mountPath: /etc/kubernetes/apiserver
+            name: apiserver
+            pathType: DirectoryOrCreate
+          - hostPath: /var/log/kubernetes/apiserver
+            mountPath: /var/log/kubernetes/apiserver
+            name: audit-logs
+            pathType: DirectoryOrCreate
+      certificatesDir: /etc/kubernetes/pki
+      clusterName: {{ .Values.kubeconfig.clusterName }}
+      controlPlaneEndpoint: {{ .Values.kubeconfig.controlPlaneEndpoint }}
+      controllerManager:
+        extraArgs:
+          - name: v
+            value: "2"
+          - name: node-monitor-period
+            value: 5s
+          - name: node-monitor-grace-period
+            value: 20s
+          - name: terminated-pod-gc-threshold
+            value: "1000"
+          - name: configure-cloud-routes
+            value: "false"
+      featureGates:
+        NodeLocalCRISocket: false
+      dns:
+        disabled: true
+      encryptionAlgorithm: RSA-2048
+      etcd:
+        local:
+          imageRepository: {{ .Values.images.tags.etcdImageRepository | quote }}
+          dataDir: "/var/lib/etcd/kubernetes"
+          extraArgs:
+            - name: initial-cluster-state
+              value: "existing"
+            - name: log-level
+              value: "info"
+            - name: client-cert-auth
+              value: "true"
+            - name: cipher-suites
+              value: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA
+            - name: snapshot-count
+              value: "10000"
+            - name: peer-client-cert-auth
+              value: "true"
+            - name: peer-trusted-ca-file
+              value: /etc/kubernetes/pki/etcd/ca-peer.crt
+            - name: strict-reconfig-check
+              value: "true"
+          extraEnvs:
+            - name: ETCD_ELECTION_TIMEOUT
+              value: "1500"
+            - name: ETCD_HEARTBEAT_INTERVAL
+              value: "300"
+            - name: ETCDCTL_CERT
+              value: /etc/kubernetes/pki/etcd/server.crt
+            - name: ETCDCTL_KEY
+              value: /etc/kubernetes/pki/etcd/server.key
+            - name: ETCDCTL_CACERT
+              value: /etc/kubernetes/pki/etcd/ca.crt
+            - name: GOMAXPROCS
+              value: "20"
+      imageRepository: {{ .Values.images.tags.kubeadmImageRepository | quote }}
+      networking:
+        dnsDomain: cluster.local
+        podSubnet: 10.97.0.0/16
+        serviceSubnet: 10.96.0.0/16
+      proxy:
+        disabled: true
+      scheduler:
+        extraArgs:
+          - name: v
+            value: "2"
+          - name: secure-port
+            value: "10259"
+        extraVolumes:
+          - hostPath: /etc/kubernetes/pki
+            mountPath: /etc/kubernetes/pki
+            name: pki-certs
+            pathType: DirectoryOrCreate
+    "templates/phases/snippets/kubeadm/init_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: InitConfiguration
+      bootstrapTokens: []
+      localAPIEndpoint:
+        advertiseAddress: "${NODE_IP}"
+        bindPort: 6443
+      nodeRegistration:
+        ignorePreflightErrors:
+        - IsPrivilegedUser
+        - ExternalEtcdVersion
+        - Port-10250
+        - FileAvailable--etc-kubernetes-manifests-etcd.yaml
+        - Port-2379
+        - Port-2380
+        - DirAvailable--var-lib-etcd-kubernetes
+        imagePullPolicy: IfNotPresent
+        imagePullSerial: false
+        name: "${NODE_NAME}"
+        criSocket: "unix:///run/containerd/containerd.sock"
+        taints: []
+      skipPhases:
+      - certs
+      - kubeconfig
+      - etcd
+      - kubelet-start
+      - upload-config
+      - upload-certs
+      - mark-control-plane
+      - kubelet-finalize
+      - addon
+      - show-join-command
+      - bootstrap-token
+      - wait-control-plane
+      patches:
+        directory: /etc/kubernetes/kubeadm/patches
+      timeouts:
+        controlPlaneComponentHealthCheck: 4m0s
+        discovery: 5m0s
+        etcdAPICall: 2m0s
+        kubeletHealthCheck: 4m0s
+        kubernetesAPICall: 1m0s
+        tlsBootstrap: 5m0s
+        upgradeManifests: 5m0s
+    "templates/phases/snippets/kubeadm/join_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      caCertPath: /etc/kubernetes/pki/ca.crt
+      controlPlane:
+        # todo: align with controlPlaneEndpoint?
+        localAPIEndpoint:
+          advertiseAddress: "${NODE_IP}"
+          bindPort: 6443
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/admin.conf
+      nodeRegistration:
+        imagePullPolicy: Always
+        imagePullSerial: false
+        name: ${NODE_NAME}
+        ignorePreflightErrors:
+        - Service-Kubelet
+        - FileAvailable--etc-kubernetes-kubelet.conf
+        - SystemVerification
+        - Port-10250
+        - Port-6443
+        - Port-10259
+        - Port-10257
+        - Port-2379
+        - Port-2380
+        - DirAvailable--var-lib-etcd
+        taints: []
+      skipPhases:
+      - preflight
+      - control-plane-prepare/download-certs
+      - control-plane-prepare/certs
+      - control-plane-prepare/kubeconfig
+      - check-etcd
+      - etcd-join
+      - kubelet-start
+      - control-plane-join
+      - wait-control-plane
+      patches:
+        directory: /etc/kubernetes/kubeadm/patches
+    "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: UpgradeConfiguration
+      node:
+        certificateRenewal: false
+        dryRun: false
+        etcdUpgrade: true
+        ignorePreflightErrors:
+        - SystemVerification
+        - CoreDNSUnsupportedPlugins
+        - CoreDNSMigration
+        patches:
+          directory: /etc/kubernetes/kubeadm/patches
+        skipPhases:
+        - kubelet-config
+        - addon
+        imagePullPolicy: Always
+        imagePullSerial: false
+    "templates/phases/snippets/kubeadm/patches/etcd.yaml": |
+      spec:
+        containers:
+        - name: etcd
+          resources:
+            limits:
+              cpu: 20000m
+              memory: 8Gi
+            requests:
+              cpu: 20000m
+              memory: 8Gi
+    "templates/phases/snippets/kubeadm/patches/kube-apiserver.yaml": |
+      metadata:
+        labels:
+          application: kubernetes
+      spec:
+        containers:
+        - name: kube-apiserver
+          resources:
+            limits:
+              cpu: "8"
+              memory: 8Gi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+    "templates/phases/snippets/kubeadm/patches/kube-controller-manager.yaml": |
+      spec:
+        containers:
+        - name: kube-controller-manager
+          resources:
+            limits:
+              cpu: "8"
+              memory: 8Gi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+    "templates/phases/snippets/kubeadm/patches/kube-scheduler.yaml": |
+      spec:
+        containers:
+        - name: kube-scheduler
+          resources:
+            limits:
+              cpu: "8"
+              memory: 8Gi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+    "templates/phases/snippets/kubeadm/apiserver/acconfig.yaml": |
+      apiVersion: apiserver.k8s.io/v1alpha1
+      kind: AdmissionConfiguration
+      plugins:
+      - name: EventRateLimit
+        path: eventconfig.yaml
+    "templates/phases/snippets/kubeadm/apiserver/audit-policy.yaml": |
+      apiVersion: audit.k8s.io/v1
+      kind: Policy
+      rules:
+      - level: None
+        nonResourceURLs:
+        - /livez*
+        - /readyz*
+        - /logs
+        - /metrics
+        - /swagger*
+        - /version
+      - level: None
+        resources:
+        - group: ""
+          resources:
+          - nodes
+          - nodes/status
+        userGroups:
+        - system:nodes
+        verbs:
+        - get
+      - level: None
+        nonResourceURLs:
+        - /api*
+        users:
+        - system:serviceaccount:kube-system:haproxy-anchor
+        verbs:
+        - get
+      - level: None
+        resources:
+        - group: ""
+          resources:
+          - endpoints
+          - services
+          - services/status
+        users:
+        - system:kube-proxy
+        verbs:
+        - watch
+      - level: None
+        resources:
+        - group: ""
+          resources:
+          - namespaces
+          - namespaces/status
+          - namespaces/finalize
+        users:
+        - system:apiserver
+        verbs:
+        - get
+      - level: Request
+        namespaces:
+        - kube-system
+        omitStages:
+        - RequestReceived
+        resources:
+        - group: ""
+          resources:
+          - configmaps
+      - level: Metadata
+        omitStages:
+        - RequestReceived
+        resources:
+        - group: ""
+          resources:
+          - secrets
+          - configmaps
+          - serviceaccounts/token
+        - group: authentication.k8s.io
+          resources:
+          - tokenreviews
+      - level: RequestResponse
+        omitStages:
+        - RequestReceived
+        resources:
+        - group: authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+      - level: RequestResponse
+        omitStages:
+        - RequestReceived
+        resources:
+        - group: ""
+          resources:
+          - pods
+        verbs:
+        - create
+        - patch
+        - update
+        - delete
+      - level: RequestResponse
+        omitStages:
+        - RequestReceived
+        resources:
+        - group: projectcalico.org
+          resources:
+          - globalnetworkpolicies
+          - networkpolicies
+          - globalnetworksets
+          - networksets
+          - hostendpoints
+        verbs:
+        - create
+        - patch
+        - update
+        - delete
+      - level: Metadata
+        omitStages:
+        - RequestReceived
+    "templates/phases/snippets/kubeadm/apiserver/encryption_provider.yaml": |
+      apiVersion: apiserver.config.k8s.io/v1
+      kind: EncryptionConfiguration
+      resources:
+      - providers:
+        - secretbox:
+            keys:
+            - name: key2
+              secret: {{ .Values.kubeadm.settings.encryption_provider.key2 | b64enc }}
+            - name: key1
+              secret: {{ .Values.kubeadm.settings.encryption_provider.key1 | b64enc }}
+        - identity: {}
+        resources:
+        - secrets
+    "templates/phases/snippets/kubeadm/apiserver/eventconfig.yaml": |
+      apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+      kind: Configuration
+      limits:
+      - burst: 1000
+        qps: 100
+        type: Server
+

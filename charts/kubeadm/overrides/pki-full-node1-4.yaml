@@ -1,0 +1,37 @@
+certs:
+  nodes:
+    nodename1:
+      etcd_server:
+        crt: etcd_server_node1-crt-placeholder
+        key: etcd_server_node1-key-placeholder
+
+      etcd_peer:
+        crt: etcd_peer_node1-crt-placeholder
+        key: etcd_peer_node1-key-placeholder
+
+      kubelet:
+        crt: kubelet_node1-crt-placeholder
+        key: kubelet_node1-key-placeholder
+
+    nodename2:
+      etcd_server:
+        crt: etcd_server_node2-crt-placeholder
+        key: etcd_server_node2-key-placeholder
+
+      etcd_peer:
+        crt: etcd_peer_node2-crt-placeholder
+        key: etcd_peer_node2-key-placeholder
+
+      kubelet:
+        crt: kubelet_node2-crt-placeholder
+        key: kubelet_node2-key-placeholder
+
+    nodename3:
+      kubelet:
+        crt: kubelet_node3-crt-placeholder
+        key: kubelet_node3-key-placeholder
+
+    nodename4:
+      kubelet:
+        crt: kubelet_node4-crt-placeholder
+        key: kubelet_node5-key-placeholder
