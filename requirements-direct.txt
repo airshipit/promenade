@@ -1,4 +1,4 @@
-Deckhand @ git+https://opendev.org/airship/deckhand.git@0531c10fd6cd645493210ce730a4bd1b75a7e584#egg=deckhand
+Deckhand @ git+https://opendev.org/airship/deckhand.git@d53c3f955ab9485cc00a2eb64903f017ffd0303a#egg=deckhand
 Beaker
 click
 falcon
