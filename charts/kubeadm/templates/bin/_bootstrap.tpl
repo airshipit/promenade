@@ -63,9 +63,17 @@ if [ -n "$expected_node_name" ]; then
   [ "$NODE_NAME" != "$expected_node_name" ] && echo "WARNING: Config for $expected_node_name is getting applied to $NODE_NAME"
 fi
 ensure_fs() {
-  base64 -d << 'EOF_TAR_DATA' | tar -x -C "${ROOTFS}/tmp"
-{{ $fs | include "tar" | b64enc }}
-EOF_TAR_DATA
+  local teepath="" # for debug
+  [ -n "${ROOTFS}" ] && teepath="${ROOTFS}/tmp/fs.{{ $envAll.Values.bootstrap.compress_fs }}"
+{{ $archive := $fs | include "tar" -}}
+{{- if eq $envAll.Values.bootstrap.compress_fs "tar" -}}
+  base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -x -C "${ROOTFS}/tmp"
+{{ else if eq $envAll.Values.bootstrap.compress_fs "tgz" -}}
+  {{- $archive = (dict "content" $archive "calc_crc32" true ) | include "gzip" -}}
+  base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -xz -C "${ROOTFS}/tmp"
+{{ else -}}{{- fail (printf "Unsupported format %s" $envAll.Values.bootstrap.compress_fs ) -}}{{ end -}}
+{{- $archive | b64enc }}
+EOF_ARCHIVE_DATA
 }
 cleanup_fs() {
 {{- range $path, $_ := $fs }}

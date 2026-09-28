@@ -26,6 +26,7 @@ images:
       - image_repo_sync
 
 bootstrap:
+  compress_fs: tar
   # it's more convenient to debug if it is true
   string_data: false
   # in case there is per-node data the next field can be used to generate only script for 1 node so
