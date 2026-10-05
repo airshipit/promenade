@@ -38,6 +38,7 @@ sync_kubelet_kubeconfig() {
 
   ensure_dir "${ROOTFS}${HOST_DIR}/etc/kubernetes/" "%s" "%s"
   render_kubeconfig "$k_conf" \
+    "%s" \
     "kubelet" \
     "/etc/kubernetes/pki/kubelet-client-ca.pem" \
     "/etc/kubernetes/pki/kubelet.pem" \
@@ -77,6 +78,7 @@ sync_kubelet() {
 
 (tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template")
+($envAll.Values.kubeconfig.controlPlaneEndpoint)
 (tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template")
 

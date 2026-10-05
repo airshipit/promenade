@@ -18,7 +18,7 @@
 apiVersion: v1
 clusters:
 - cluster:
-    server: https://{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}
+    server: https://${CLUSTER_ENDPOINT}
     certificate-authority: ${CERT_AUTH}
   name: {{ $envAll.Values.kubeconfig.clusterName }}
 contexts:

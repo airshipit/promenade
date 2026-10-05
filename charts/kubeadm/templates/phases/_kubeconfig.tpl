@@ -19,8 +19,9 @@
 
 
 render_kubeconfig() {
-  local dst="$1" user="$2" ca="$3" cert="$4" key="$5" mode="$6" owner="$7"
+  local dst="$1" ep="$2" user="$3" ca="$4" cert="$5" key="$6" mode="$7" owner="$8"
   cat << 'EOF_TEMPLATE_DATA' | sed \
+      -e "s|\${CLUSTER_ENDPOINT}|${ep}|g" \
       -e "s|\${USER}|${user}|g" \
       -e "s|\${CERT_AUTH}|${ca}|g" \
       -e "s|\${CLIENT_CERT}|${cert}|g" \
@@ -34,18 +35,21 @@ sync_kubeconfigs() {
   if [[ "$NODE_ROLE" == "master" ]]; then
     ensure_dir "${ROOTFS}${HOST_DIR}/etc/kubernetes/" "{{ $dirMode }}" "{{ $dirOwner }}"
     render_kubeconfig "${ROOTFS}${HOST_DIR}/etc/kubernetes/admin.conf" \
+      "{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "admin" \
       "/etc/kubernetes/admin/pki/cluster-ca.pem"  \
       "/etc/kubernetes/admin/pki/admin.pem" \
       "/etc/kubernetes/admin/pki/admin-key.pem" "{{ $adminMode }}" "{{ $adminOwner }}"
 
     render_kubeconfig "${ROOTFS}${HOST_DIR}/etc/kubernetes/controller-manager.conf" \
+      "{{ $envAll.Values.kubeconfig.controlPlaneLocalEndpoint | default $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "controller-manager" \
       "pki/ca.crt"  \
       "pki/controller-manager.pem" \
       "pki/controller-manager-key.pem" "{{ $ctrlMgrMode }}" "{{ $ctrlMgrOwner }}"
 
     render_kubeconfig "${ROOTFS}${HOST_DIR}/etc/kubernetes/scheduler.conf" \
+      "{{ $envAll.Values.kubeconfig.controlPlaneLocalEndpoint | default $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "scheduler" \
       "pki/ca.crt"  \
       "pki/scheduler.pem" \

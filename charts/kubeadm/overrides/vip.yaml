@@ -1,6 +1,8 @@
 # in order to switch to vip in declarative way we just need to change:
 kubeconfig:
   controlPlaneEndpoint: 127.0.0.1:6553
+  # for scheduler and controller manager
+  controlPlaneLocalEndpoint: 127.0.0.1:6443
 
 # and configure vip (need to know ips of CP)
 vip:
