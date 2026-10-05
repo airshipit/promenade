@@ -180,6 +180,16 @@ if tr -d '\r' < "${file}" | grep -E -q -- "${pattern}"; then
   fi
 }
 
+assert_tgz_is_valid() {
+  local file="$1"
+  if ! gzip --test "$file"; then
+    echo "  ❌ [FAIL] TGZ test failed: $file" >&2
+    return 1
+  else
+    echo "  ✅ [OK] TGZ test passed: $file"
+  fi
+}
+
 ovrds=kubeadm/overrides
 
 # COVERAGE matrix
@@ -380,6 +390,7 @@ uc0_full_haproxy=(
   -f ${ovrds}/kubelet.yaml
   -f ${ovrds}/vip.yaml
   -f ${ovrds}/patch.yaml
+  -f ${ovrds}/tgz.yaml
 )
 export NODE_IP="172.29.0.139"
 export NODE_NAME="nodename1"
@@ -443,6 +454,7 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
 
+assert_tgz_is_valid "${ROOTFS}/tmp/fs.tgz"
 
 # # our case with VIP TBD
 # uc0_full_vip=(
