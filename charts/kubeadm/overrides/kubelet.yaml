@@ -1,0 +1,51 @@
+network:
+  dns:
+    service_ip: 10.96.0.10
+    cluster_domain: cluster.local
+
+
+bundle:
+  tpl:
+    "templates/phases/snippets/kubelet/_kubelet-config.yaml": |
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      authentication:
+        anonymous:
+          enabled: false
+        webhook:
+          enabled: true
+        x509:
+          clientCAFile: "/etc/kubernetes/pki/kubelet-client-ca.pem"
+      authorization:
+        mode: AlwaysAllow
+      clusterDNS:
+        - {{ .Values.network.dns.service_ip }}
+      clusterDomain: {{ .Values.network.dns.cluster_domain }}
+      staticPodPath: "/etc/kubernetes/manifests"
+      tlsCertFile: "/etc/kubernetes/pki/kubelet.pem"
+      tlsPrivateKeyFile: "/etc/kubernetes/pki/kubelet-key.pem"
+      cgroupDriver: systemd
+      cgroupRoot: /kube_whitelist
+      containerLogMaxFiles: 2
+      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+      eventRecordQPS: 50
+      evictionMaxPodGracePeriod: -1
+      kubeAPIBurst: 40
+      kubeAPIQPS: 20
+      maxPods: 250
+      nodeStatusUpdateFrequency: 5s
+      podPidsLimit: 10000
+      podsPerCore: 10
+      readOnlyPort: 0
+      runtimeRequestTimeout: 15m
+      seccompDefault: true
+      tlsCipherSuites:
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+      - TLS_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_RSA_WITH_AES_128_CBC_SHA
+      - TLS_RSA_WITH_AES_256_CBC_SHA

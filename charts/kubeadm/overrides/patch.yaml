@@ -1,0 +1,17 @@
+#this to verify that patches work
+bundle:
+  tpl:
+    "templates/_daemonset-masters.yaml.patch": |
+      spec:
+        template:
+          spec:
+            terminationGracePeriodSeconds: 2400
+    "templates/_daemonset-workers.yaml.patch": |
+      spec:
+        template:
+          spec:
+            terminationGracePeriodSeconds: 1200
+    "templates/phases/snippets/vip/_haproxy.yaml.tpl.patch": |
+      metadata:
+        annotations:
+          test-annotation: test-value

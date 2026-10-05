@@ -1,0 +1,7 @@
+certs:
+  kubelet:
+    nodes:
+      genesis::
+        tls:
+          crt: kubelet_genesis-crt-placeholder
+          key: kubelet_genesis-key-placeholder

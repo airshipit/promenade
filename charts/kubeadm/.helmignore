@@ -1,0 +1,9 @@
+.helmignore
+.gitignore
+overrides/
+# documentation
+*.md
+# everything for testing of day1
+test.sh
+# some common test code and tests
+tests/
