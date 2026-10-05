@@ -628,3 +628,52 @@ manifests:
   daemonset_workers: true
   etcd_service: false
   rbac: true
+
+#### BUNDLE CONFIG #####
+bundle:
+  # Mapping of the manifest to the templates. default is 'override'-templates type
+  # those are equialent:
+  #
+  # <manifest-id>: "<path>"
+  # <manifest-id>:
+  #   - "override"
+  #   - "<path>"
+  #
+  # Override tries to find if there is a template set in
+  # .Values.manifests.tpl.<path>
+  # and if found it uses that. if not it fallbacks to
+  # to chart existing templates by path $dot.Chart.Name/<path>
+  #
+  # instead of override it is also possibe to use: tpl, fs and include
+  # 1. "tpl" value forces to the template from .Values.manifests.tpl.<path>
+  # 2. "fs" value forces to the template accessible by $dot.Chart.Name/<path>
+  #    You can use either local chart temlate e.g. templates/<filename>
+  #    Or even templates from dependencies e.g.  charts/helm-toolkit/templates/<filename>
+  # 3. "include" value is the same as fs, but allows to use path without $dot.Chart.Name prefix
+  #     that allows techincally to use and tempalte create with define.
+  manifests:
+    # ovrd_configmap_apiserver_misc: "templates/_configmap_apiserver_misc.yaml"
+    # ovrd_configmap_bin: "templates/_configmap_bin.yaml"
+    # ovrd_configmap_certs: "templates/_configmap_certs.yaml"
+    # ovrd_configmap_etcd_certs: "templates/_configmap_etcd_certs.yaml"
+    # ovrd_configmap_jobs: "templates/_configmap_jobs.yaml"
+    # ovrd_configmap_kubeadm: "templates/_configmap_kubeadm.yaml"
+    # ovrd_configmap_kubeconfig: "templates/_configmap_kubeconfig.yaml"
+    # ovrd_configmap_kubelet: "templates/_configmap_kubelet.yaml"
+    # ovrd_configmap_patches: "templates/_configmap_patches.yaml"
+    # ovrd_daemonset_masters: "templates/_daemonset_masters.yaml"
+    # ovrd_daemonset_workers: "templates/_daemonset_workers.yaml"
+    # ovrd_etcd_service: "templates/_etcd_service.yaml"
+    # ovrd_rbac: "templates/_rbac.yaml"
+# here you can defind overrides for files
+#  tpl:
+#    <path>: |
+#      <template>
+# here is a flag which will print some extra comments
+#  debug: true
+
+# this is a re-configurable default template - entrypoint of the chart
+entrypoint:
+  "default": |
+    {{ include "kubeadm.bundle.manifests" . }}
+
