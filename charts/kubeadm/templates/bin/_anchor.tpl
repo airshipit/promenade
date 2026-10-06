@@ -301,10 +301,10 @@ sync_kubeadm
 # by default etcd is disabled - but if it was installed - turn this phase onn
 if [[ $KUBERNETES_ETCD == "enabled" ]]; then
   # do not skip etcd related phases
-  [ -f "${KUBERNETES_DIR}/kubeadm/join_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${KUBERNETES_DIR}/kubeadm/join_config.yaml"
-  [ -f "${KUBERNETES_DIR}/kubeadm/init_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${KUBERNETES_DIR}/kubeadm/init_config.yaml" #TODO: to verify
+  [ -f "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/join_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
+  [ -f "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/init_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/init_config.yaml" #TODO: to verify
   # turn on etcd upgrade
-  [ -f "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
+  [ -f "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
 fi
 
 if [[ $NODE_ROLE == "master" ]] && is_action_required; then
