@@ -183,7 +183,11 @@ kubeadm_action() {
       kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName!=$NODE_NAME" -l tier=control-plane --timeout 300s
     fi
     kubeadm upgrade node --config "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
+
+    # kubeadm changes kubelet server address - enforcing it back
+    sync_kubelet_kubeconfig || true
     sync_kubeconfigs
+
     kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 300s
   fi
 }
