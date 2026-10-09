@@ -386,6 +386,7 @@ uc0_full_haproxy=(
   -f ${ovrds}/pki-full-node0.yaml
   -f ${ovrds}/pki-full-node1-4.yaml
   -f ${ovrds}/pki-full-genesis.yaml
+  -f ${ovrds}/pki-admin.yaml
   -f ${ovrds}/kubeadm.yaml
   -f ${ovrds}/kubelet.yaml
   -f ${ovrds}/vip.yaml
@@ -422,6 +423,10 @@ assert_file_exists "${ROOTFS}/etc/kubernetes/pki/etcd/peer.crt"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/etcd/peer.key"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/etcd/server.crt"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/etcd/server.key"
+
+assert_file_exists "${ROOTFS}/etc/kubernetes/admin/pki/cluster-ca.pem"
+assert_file_exists "${ROOTFS}/etc/kubernetes/admin/pki/admin.pem"
+assert_file_exists "${ROOTFS}/etc/kubernetes/admin/pki/admin-key.pem"
 
 assert_file_exists "${ROOTFS}/etc/kubernetes/kubeadm/ClusterConfiguration"
 assert_file_exists "${ROOTFS}/etc/kubernetes/kubeadm/init_config.yaml"

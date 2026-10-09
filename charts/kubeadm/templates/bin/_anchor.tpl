@@ -106,26 +106,28 @@ EOF_DATA
   sleep 60
 }
 
+# sets KUBEADM_ACTION_REQUIRED and KUBELET_RESTART_REQUIRED flags,
+# returns 0 if any action is required
 is_action_required() {
+  local rc=1 # return code 1 means false
+
   if [[ $NODE_ROLE == "master" ]]; then
-    if [ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 ]; then return 0; fi
     current_cluster_config_sha256=$(sha256sum < /tmp/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)
-    if [[ $LAST_APPLIED_KUBEADM_CONFIG_SHA256 != $current_cluster_config_sha256 ]]; then
-      return 0
+    if [[ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 || $LAST_APPLIED_KUBEADM_CONFIG_SHA256 != $current_cluster_config_sha256 ]]; then
+      KUBEADM_ACTION_REQUIRED=true
+      rc=0
     fi
   fi
 
 {{- if $envAll.Values.kubelet.restart  }}
-  if [ -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 ]; then return 0; fi
   current_kubelet_config_sha256=$(sha256sum < /tmp/allnodes/kubelet_config.yaml | cut -d ' ' -f 1)
-
-  if [[ $LAST_APPLIED_KUBELET_CONFIG_SHA256 != $current_kubelet_config_sha256 || $KUBELET_CURRENT_VERSION != $KUBERNETES_VERSION ]]; then
+  if [[ -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 || $LAST_APPLIED_KUBELET_CONFIG_SHA256 != $current_kubelet_config_sha256 || $KUBELET_CURRENT_VERSION != $KUBERNETES_VERSION ]]; then
     KUBELET_RESTART_REQUIRED=true
-    return 0
+    rc=0
   fi
 {{- end }}
 
-  return 1
+  return $rc
 }
 
 annotate_node() {
@@ -272,13 +274,14 @@ fi
 
 cleanup_old_backups
 
+KUBEADM_ACTION_REQUIRED=false
 KUBELET_RESTART_REQUIRED=false
 
 ensure_fs
 
 sync_kubeconfigs
 sync_kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
-sync_binaries && $KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+sync_binaries && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 
 # migration from Airship to kubeadm
 # kubeadm mutates the kubeconfig passed via --kubeconfig if it is a default one
@@ -311,7 +314,9 @@ if [[ $KUBERNETES_ETCD == "enabled" ]]; then
   [ -f "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
 fi
 
-if [[ $NODE_ROLE == "master" ]] && is_action_required; then
+is_action_required || true
+
+if [[ $KUBEADM_ACTION_REQUIRED == true ]]; then
   kubeadm_action
   LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(sha256sum < /tmp/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)"
   annotate_node "$KUBEADM_ANNOTATION" "$LAST_APPLIED_KUBEADM_CONFIG_SHA256"

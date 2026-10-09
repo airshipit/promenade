@@ -30,10 +30,7 @@ spec:
             requests:
               cpu: 100m
               memory: 64Mi
-          securityContext:
-            privileged: true
-            appArmorProfile:
-              type: RuntimeDefault
+{{ .Values.kubelet.restartJobSecurityContext | indent 10 }}
           command:
             - nsenter
             - '--target'

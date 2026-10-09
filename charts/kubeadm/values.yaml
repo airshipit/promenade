@@ -124,16 +124,24 @@ permissions:
       "etcdpub_": # certs,
         owner: "root:root"
         mode: "0600" #"0644"
-  "/etc/default":
+  "/etc/kubernetes/admin/pki":
     owner: "root:root"
     mode: "0700"
+    prefixes:
+      "adminpkipriv_": # keys
+        owner: "root:root"
+        mode: "0600"
+      "adminpkipub_": # certs,
+        owner: "root:root"
+        mode: "0600" #"0644"
+  "/etc/default":
+    owner: "root:root"
     prefixes:
       "kubelet":
         owner: "root:root"
         mode: "0600"
   "/etc/systemd/system":
     owner: "root:root"
-    mode: "0700"
     prefixes:
       "kubelet.service":
         owner: "root:root"
@@ -198,9 +206,11 @@ permissions:
       "kubeadmapiserver_":
         owner: "root:root"
         mode: "0600"
+  # haproxy static pod (vip phase) runs as nobody (65534) and reads its
+  # config from this directory
   "/etc/kubernetes/kubeadm/addons":
     owner: "root:root"
-    mode: "0700"
+    mode: "0755"
   "/etc/kubernetes/manifests":
     prefixes:
       # produced by vip phase
@@ -219,6 +229,12 @@ kubeconfig:
 
 kubelet:
   restart: true
+# if needed add:
+#      appArmorProfile:
+#        type: RuntimeDefault
+  restartJobSecurityContext: |
+    securityContext:
+      privileged: true
 
 containerd:
   version: v3

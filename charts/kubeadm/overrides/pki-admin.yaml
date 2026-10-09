@@ -1,0 +1,4 @@
+certs:
+  admin:
+    crt: admin-crt-placeholder
+    key: admin-key-placeholder

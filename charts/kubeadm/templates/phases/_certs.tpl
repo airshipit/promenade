@@ -13,9 +13,15 @@
   {{- if $envAll.Values.certs.ca -}}
     {{/* Populate pregenerated Kubernetes CA to provision identities for other Kubernetes components */}}
     {{- $_ := set $controlPlaneNodes "pkipub_ca.crt" (dict "content" $envAll.Values.certs.ca.crt "dest_path" "/etc/kubernetes/pki/ca.crt" "file_mode" 0600 ) -}}
+    {{- $_ := set $controlPlaneNodes "adminpkipub_cluster-ca.pem" (dict "content" $envAll.Values.certs.ca.crt "dest_path" "/etc/kubernetes/admin/pki/cluster-ca.pem" "file_mode" 0600 ) -}}
     {{- if $envAll.Values.certs.ca.key -}}
       {{- $_ := set $controlPlaneNodes "pkipriv_ca.key" (dict "content" $envAll.Values.certs.ca.key "dest_path" "/etc/kubernetes/pki/ca.key" "file_mode" 0600 ) -}}
     {{- end -}}
+  {{- end -}}
+
+  {{- if $envAll.Values.certs.admin -}}
+    {{- $_ := set $controlPlaneNodes "adminpkipub_admin.pem" (dict "content" $envAll.Values.certs.admin.crt "dest_path" "/etc/kubernetes/admin/pki/admin.pem" "file_mode" 0600 ) -}}
+    {{- $_ := set $controlPlaneNodes "adminpkipub_admin-key.pem" (dict "content" $envAll.Values.certs.admin.key "dest_path" "/etc/kubernetes/admin/pki/admin-key.pem" "file_mode" 0600 ) -}}
   {{- end -}}
 
   {{- if $envAll.Values.certs.scheduler -}}
@@ -113,6 +119,7 @@
 sync_certs() {
   local pki_dir="${HOST_DIR}/etc/kubernetes/pki"
   local etcd_dir="${pki_dir}/etcd"
+  local admin_dir="${HOST_DIR}/etc/kubernetes/admin/pki"
 
   ensure_dir "${ROOTFS}${pki_dir}" "%s" "%s"
   sync_prefix_based_dir "${ROOTFS}" "${pki_dir}" "pkipub_" "${NODE_ROLE}" false "%s" "%s"
@@ -121,6 +128,11 @@ sync_certs() {
     ensure_dir "${ROOTFS}${etcd_dir}" "%s" "%s"
     sync_prefix_based_dir "${ROOTFS}" "${etcd_dir}" "etcdpub_" "${NODE_ROLE}" false "%s" "%s"
     sync_prefix_based_dir "${ROOTFS}" "${etcd_dir}" "etcdpriv_" "${NODE_ROLE}" false "%s" "%s"
+
+    ensure_dir "${ROOTFS}${admin_dir}" "%s" "%s"
+    sync_prefix_based_dir "${ROOTFS}" "${admin_dir}" "adminpkipub_" "${NODE_ROLE}" false "%s" "%s"
+    sync_prefix_based_dir "${ROOTFS}" "${admin_dir}" "adminpkipriv_" "${NODE_ROLE}" false "%s" "%s"
+
   fi
   echo "certs are synced"
 }
@@ -138,4 +150,12 @@ sync_certs() {
 (tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpub_") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv_") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv_") | include "kubeadm.bundle.template")
+
+(tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub_") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub_") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv_") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv_") | include "kubeadm.bundle.template")
+
 ) -}}
