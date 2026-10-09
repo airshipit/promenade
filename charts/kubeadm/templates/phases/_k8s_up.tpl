@@ -9,10 +9,10 @@
 k8s_up() {
   # turn off swap
   sudo swapoff -a
-  sudo sed -i '/ swap / s/^/#/' "${ROOTFS}${HOST_DIR}/etc/fstab"
+  sudo sed -i '/ swap / s/^/#/' "${ROOTFS}/etc/fstab"
 
   # Configure kernel modules and sysctl for net bridge (Containerd/Docker)
-  cat <<EOF | sudo tee "${ROOTFS}${HOST_DIR}/etc/modules-load.d/k8s.conf"
+  cat <<EOF | sudo tee "${ROOTFS}/etc/modules-load.d/k8s.conf"
 overlay
 br_netfilter
 EOF
@@ -20,7 +20,7 @@ EOF
   sudo modprobe overlay || true
   sudo modprobe br_netfilter || true
 
-  cat <<EOF | sudo tee "${ROOTFS}${HOST_DIR}/etc/sysctl.d/k8s.conf"
+  cat <<EOF | sudo tee "${ROOTFS}/etc/sysctl.d/k8s.conf"
 net.bridge.bridge-netfilter-call-iptables  = 1
 net.bridge.bridge-netfilter-call-ip6tables = 1
 net.ipv4.ip_forward                        = 1

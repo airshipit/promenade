@@ -60,16 +60,18 @@ network:
 
 images:
   tags:
-    # kubeadm, kubelet and kubectl of the anchor image must be of
-    # cluster_config.kubernetesVersion: the anchor syncs them to the nodes
-    # (built with v1.36.3 binaries, day2/upgrade.yaml switches to v1.37.0)
-    anchor: quay.io/airshipit/porthole-kubeadm-utility:d132078763816d5538cf3d7627f6becc14d54cdf-ubuntu_noble
     dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
     haproxy: docker.io/library/haproxy:2.9.7
     containerd_pause: registry.k8s.io/pause:3.10
 
 cluster_config:
   kubernetesVersion: v1.36.3
+
+binaries:
+  # used by the installation procedure override (bundle.tpl), ${ARCH} is the
+  # architecture of the node
+  archive:
+    url: "https://dl.k8s.io/{{ .Values.cluster_config.kubernetesVersion }}/kubernetes-node-linux-${ARCH}.tar.gz"
 
 kubelet:
   # the anchor applies kubelet configuration changes: it drains the node and
@@ -103,6 +105,34 @@ kubeadm:
 
 bundle:
   tpl:
+    # kubeadm, kubelet and kubectl are taken from the node binaries archive of
+    # the release (an example of the installation procedure override)
+    "templates/phases/snippets/binaries/_install.sh.tpl": |
+      install_binary() {
+        local name="$1" dir="${ROOTFS}/var/cache/kubeadm-binaries" url archive tmp
+        [ -n "$(binary_source "$name")" ] || return 1
+        ARCH="${ARCH:-$(node_arch)}" || return 2
+        url={{ tpl .Values.binaries.archive.url . | quote }}
+
+        # downloaded once per url
+        archive="${dir}/$(printf '%s' "${url}" | sha256sum | cut -c1-16).tar.gz"
+        if [ ! -f "${archive}" ]; then
+          mkdir -p -m 0700 "${dir}" && rm -f "${dir}"/* || return 2
+          tmp=$(mktemp "${archive}.XXXXXX") || return 2
+          if ! download_verified "${tmp}" "${url}" || ! mv -f "${tmp}" "${archive}"; then
+            rm -f "${tmp}"
+            return 2
+          fi
+        fi
+
+        tmp=$(binary_tmp "${name}") || return 2
+        if ! tar -xOf "${archive}" "kubernetes/node/bin/${name}" > "${tmp}"; then
+          rm -f "${tmp}"
+          return 2
+        fi
+        replace_binary "${tmp}" "${name}" || return $?
+        echo "${name} is installed from ${url}"
+      }
     "templates/phases/snippets/kubeadm/ClusterConfiguration": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: ClusterConfiguration

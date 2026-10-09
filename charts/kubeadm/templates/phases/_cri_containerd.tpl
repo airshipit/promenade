@@ -15,8 +15,8 @@
 
 sync_cri() {
   # todo - can check sha256 before and after and restart if needed
-  ensure_dir "${ROOTFS}${HOST_DIR}/etc/containerd/" "{{ $dirMode }}" "{{ $dirOwner }}"
-  base64 -d << 'EOF_DATA' | compare_copy_file - "${ROOTFS}${HOST_DIR}/etc/containerd/config.toml" "{{ $configMode }}" "{{ $configOwner }}"
+  ensure_dir "${ROOTFS}/etc/containerd/" "{{ $dirMode }}" "{{ $dirOwner }}"
+  base64 -d << 'EOF_DATA' | compare_copy_file - "${ROOTFS}/etc/containerd/config.toml" "{{ $configMode }}" "{{ $configOwner }}"
 {{ tuple $envAll (printf "templates/phases/snippets/cri/_containerd_%s.tpl" $ver) | include "kubeadm.bundle.template" | b64enc}}
 EOF_DATA
   echo "cri(containerd) is synced"

@@ -27,7 +27,7 @@
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
 {{- $_ := set $sharedLibs $sharedLibName (printf `
 sync_kubeadm() {
-  local kubernetes_dir="${HOST_DIR}/etc/kubernetes"
+  local kubernetes_dir="/etc/kubernetes"
 
   ensure_dir "${ROOTFS}${kubernetes_dir}/kubeadm" "%s" "%s"
   sync_prefix_based_dir "${ROOTFS}" "${kubernetes_dir}/kubeadm" "kubeadm_" "${NODE_ROLE}" true "%s" "%s"

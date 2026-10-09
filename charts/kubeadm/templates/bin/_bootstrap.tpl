@@ -47,10 +47,8 @@ set -euo pipefail
 
 # rootfs path (used to run mock tests. must be "" in real life)
 ROOTFS="${ROOTFS:-}"
-# directory where host fs is mounted if we run in the pod (shold be "" in this script)
-HOST_DIR="${HOST_DIR:-}"
 
-# for envsubst and heredoc, compatible with anchor, where all this is set on daemonsets
+# for envsubst and heredoc, compatible with reconcile, where all this is set on daemonsets
 export NODE_ROLE="${NODE_ROLE:-master}"
 export NODE_NAME="${NODE_NAME:-$(hostname -s)}"
 export NODE_IP="${NODE_IP:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
@@ -62,22 +60,24 @@ expected_node_name="{{ $nodename }}"
 if [ -n "$expected_node_name" ]; then
   [ "$NODE_NAME" != "$expected_node_name" ] && echo "WARNING: Config for $expected_node_name is getting applied to $NODE_NAME"
 fi
+# the files delivered by the chart, the reconcile script finds them there too
 ensure_fs() {
   local teepath="" # for debug
   [ -n "${ROOTFS}" ] && teepath="${ROOTFS}/tmp/fs.{{ $envAll.Values.bootstrap.compress_fs }}"
+  mkdir -p -m 0700 "${ROOTFS}/run/kubeadm"
 {{ $archive := $fs | include "tar" -}}
 {{- if eq $envAll.Values.bootstrap.compress_fs "tar" -}}
-  base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -x -C "${ROOTFS}/tmp"
+  base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -x -C "${ROOTFS}/run/kubeadm"
 {{ else if eq $envAll.Values.bootstrap.compress_fs "tgz" -}}
   {{- $archive = (dict "content" $archive "calc_crc32" true ) | include "gzip" -}}
-  base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -xz -C "${ROOTFS}/tmp"
+  base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -xz -C "${ROOTFS}/run/kubeadm"
 {{ else -}}{{- fail (printf "Unsupported format %s" $envAll.Values.bootstrap.compress_fs ) -}}{{ end -}}
 {{- $archive | b64enc }}
 EOF_ARCHIVE_DATA
 }
 cleanup_fs() {
 {{- range $path, $_ := $fs }}
-  rm -rf $(dirname "${ROOTFS}/tmp/{{ $path }}") || true
+  rm -rf $(dirname "${ROOTFS}/run/kubeadm/{{ $path }}") || true
 {{- end }}
   echo "cleanup_fs is done"
 }
@@ -121,6 +121,8 @@ sync_vip
 
 sync_cri
 sync_kube_cgroup
+
+sync_binaries kubeadm kubectl kubelet || true
 
 k8s_up
 

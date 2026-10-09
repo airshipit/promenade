@@ -31,17 +31,17 @@
 {{- end -}}
 {{- $_ := set $sharedLibs $sharedLibName (printf `
 sync_kubelet_kubeconfig() {
-  local pki_dir="${HOST_DIR}/etc/kubernetes/pki"
+  local pki_dir="/etc/kubernetes/pki"
   local k_crt="${pki_dir}/kubelet.pem"
   local k_key="${pki_dir}/kubelet-key.pem"
-  local k_conf="${ROOTFS}${HOST_DIR}/etc/kubernetes/kubelet.conf"
+  local k_conf="${ROOTFS}/etc/kubernetes/kubelet.conf"
   local sha_before=$(sha256sum "$k_crt" "$k_key" "$k_conf" 2>/dev/null || true)
 
   ensure_dir "${ROOTFS}${pki_dir}" "%s" "%s"
   sync_prefix_based_dir "${ROOTFS}" "${pki_dir}" "kubeletpkipub_" "worker" false "%s" "%s"
   sync_prefix_based_dir "${ROOTFS}" "${pki_dir}" "kubeletpkipriv_" "worker" false "%s" "%s"
 
-  ensure_dir "${ROOTFS}${HOST_DIR}/etc/kubernetes/" "%s" "%s"
+  ensure_dir "${ROOTFS}/etc/kubernetes/" "%s" "%s"
   if [ "%s" == "true" ]; then
     render_kubeconfig "$k_conf" \
       "%s" \
@@ -64,17 +64,17 @@ sync_kubelet() {
 
   sync_kubelet_kubeconfig && c=0
 
-  ensure_dir "${ROOTFS}${HOST_DIR}/etc/default/" "%s" "%s"
-  envsubst < "${ROOTFS}/tmp/allnodes/kubelet" | compare_copy_file - "${ROOTFS}${HOST_DIR}/etc/default/kubelet" && c=0
-  ensure_file "${ROOTFS}${HOST_DIR}/etc/default/kubelet" "%s" "%s"
+  ensure_dir "${ROOTFS}/etc/default/" "%s" "%s"
+  envsubst < "${ROOTFS}/run/kubeadm/allnodes/kubelet" | compare_copy_file - "${ROOTFS}/etc/default/kubelet" && c=0
+  ensure_file "${ROOTFS}/etc/default/kubelet" "%s" "%s"
 
-  ensure_dir "${ROOTFS}${HOST_DIR}/etc/systemd/system/" "%s" "%s"
-  compare_copy_file "${ROOTFS}/tmp/allnodes/kubelet.service" "${ROOTFS}${HOST_DIR}/etc/systemd/system/kubelet.service" && c=0
-  ensure_file "${ROOTFS}${HOST_DIR}/etc/default/kubelet" "%s" "%s"
+  ensure_dir "${ROOTFS}/etc/systemd/system/" "%s" "%s"
+  compare_copy_file "${ROOTFS}/run/kubeadm/allnodes/kubelet.service" "${ROOTFS}/etc/systemd/system/kubelet.service" && c=0
+  ensure_file "${ROOTFS}/etc/default/kubelet" "%s" "%s"
 
-  ensure_dir "${ROOTFS}${HOST_DIR}/var/lib/kubelet/" "%s" "%s"
-  [ -f "${ROOTFS}/tmp/allnodes/kubelet_config.yaml" ] && compare_copy_file "${ROOTFS}/tmp/allnodes/kubelet_config.yaml" "${ROOTFS}${HOST_DIR}/var/lib/kubelet/config.yaml" && c=0
-  ensure_file "${ROOTFS}${HOST_DIR}/var/lib/kubelet/config.yaml" "%s" "%s"
+  ensure_dir "${ROOTFS}/var/lib/kubelet/" "%s" "%s"
+  [ -f "${ROOTFS}/run/kubeadm/allnodes/kubelet_config.yaml" ] && compare_copy_file "${ROOTFS}/run/kubeadm/allnodes/kubelet_config.yaml" "${ROOTFS}/var/lib/kubelet/config.yaml" && c=0
+  ensure_file "${ROOTFS}/var/lib/kubelet/config.yaml" "%s" "%s"
   echo "kubelet is synced"
   return $c
 }

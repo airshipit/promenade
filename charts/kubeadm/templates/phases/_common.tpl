@@ -69,7 +69,7 @@ compare_copy_file() {
 #  it can also do envsubst if needed
 sync_prefix_based_dir() {
   local rootfs="$1"
-  local nodes_dirs_dir="${rootfs}/tmp" dst_dir="${rootfs}$2" prefix="$3" node_role="$4" do_envsubst="$5"
+  local nodes_dirs_dir="${rootfs}/run/kubeadm" dst_dir="${rootfs}$2" prefix="$3" node_role="$4" do_envsubst="$5"
   local mode="${6:-}"
   local owner="${7:-}"
   for dir in "${nodes_dirs_dir}/allnodes" "${nodes_dirs_dir}/ctrlnodes" "${nodes_dirs_dir}/per-node"; do
@@ -94,7 +94,7 @@ sync_prefix_based_dir() {
 {{- if $envAll.Values.files -}}
   {{- range $group,$list := $envAll.Values.files -}}
     {{- $generatedPart = printf `%ssync_%s() {
-  local host_dir="${ROOTFS}${HOST_DIR}"
+  local host_dir="${ROOTFS}"
 ` $generatedPart $group -}}
     {{- range $i,$v := $list -}}
       {{- if not $v.path -}}{{ fail (printf "files item %d doesn't have path" $i) }}{{- end -}}

@@ -15,7 +15,9 @@
 images:
   tags:
     dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
-    anchor: quay.io/airshipit/kubeadm-utility:latest-ubuntu_noble
+    # only starts the reconcile script on the host: needs a shell with mount,
+    # chroot and tar, and nsenter (kubelet restart job); multi-arch
+    anchor: docker.io/library/busybox:1.37
     haproxy: haproxy:1.8.25
     containerd_pause: docker-open-nc.zc1.somedomain.com/google_containers/pause-amd64:latest
   pull_policy: "IfNotPresent"
@@ -24,6 +26,24 @@ images:
     exclude:
       - dep_check
       - image_repo_sync
+
+# kubeadm, kubelet and kubectl are installed on the nodes by the bootstrap
+# script and kept in sync by the anchor if cluster_config.kubernetesVersion is
+# set. urls are tpl strings, ${ARCH} is substituted on the node with its
+# architecture. sha256 is optional, if empty the binary is verified with
+# <url>.sha256. The installation procedure can be redefined in
+# bundle.tpl."templates/phases/snippets/binaries/_install.sh.tpl".
+binaries:
+  install_dir: /usr/local/bin
+  kubeadm:
+    url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${ARCH}/kubeadm"
+    sha256: ""
+  kubelet:
+    url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${ARCH}/kubelet"
+    sha256: ""
+  kubectl:
+    url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${ARCH}/kubectl"
+    sha256: ""
 
 bootstrap:
   compress_fs: tar
@@ -35,8 +55,12 @@ bootstrap:
   # this is because we assume that bootstrap.nodename is used only for manual helm template execution
   # nodename: <some node>
 
+# daemonsets running the reconcile script (day 2) on the nodes
 anchor:
-  period: 15
+  # mounts (tmpfs, service account) on the host paths in the pod, see
+  # templates/bin/_ensure_fs.tpl
+  securityContext:
+    privileged: true
   labels:
     common:
       node_selector_key: kubeadm
@@ -44,6 +68,11 @@ anchor:
     masters:
       node_selector_key: kubernetes-apiserver
       node_selector_value: enabled
+  reconcile:
+    # seconds between the checks of the chart configuration
+    period: 15
+    # its own files (script, service account, state), mounted in the pod only
+    host_dir: /var/lib/kubeadm-reconcile
 
 etcd_service:
   name: kubernetes-etcd

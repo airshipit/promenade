@@ -15,5 +15,8 @@
 
 set -ex
 
-touch /tmp/stop
-sleep {{ .Values.anchor.period }}
+touch /host{{ .Values.anchor.reconcile.host_dir }}/stop
+# the script stops between its passes; terminationGracePeriodSeconds limits the wait
+while pgrep -f "{{ .Values.anchor.reconcile.host_dir }}/bin/reconcile" > /dev/null; do
+  sleep 1
+done

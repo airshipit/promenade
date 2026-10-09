@@ -78,6 +78,7 @@
       then handed over to Armada which deploys Calico (tigera-operator chart)
       and the kubeadm chart in-cluster (day 2), the anchor applies a
       reconfiguration of the control plane.
+    voting: false
     parent: treasuremap-airliner-kubeadm-day2-1node
     required-projects:
       - name: airship/treasuremap
@@ -136,7 +137,7 @@
       generated kustomize catalog (day 2), a configuration change and an
       upgrade to the next Kubernetes minor version are applied by the
       anchor.
-    voting: false
+    voting: true
     timeout: 7200
     nodeset: airship-promenade-5nodes-noble
     roles:

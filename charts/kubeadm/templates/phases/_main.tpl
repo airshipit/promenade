@@ -28,6 +28,7 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{- $_ := tuple $envAll "templates/phases/_cri_containerd.tpl" (tuple $envAll $k8sConfDict "cri") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_vip_haproxy.tpl" (tuple $envAll $k8sConfDict "vip") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_k8s_up.tpl" (tuple $envAll $k8sConfDict "k8s_up") | include "kubeadm.bundle.template" -}}
+{{- $_ := tuple $envAll "templates/phases/_binaries.tpl" (tuple $envAll $k8sConfDict "binaries") | include "kubeadm.bundle.template" -}}
 
 {{/* generate shared part for bash scripts with all phases and put it to our object (they will appear in this order) */}}
 {{/*TODO: can be implemented shorter, but there are some more complex plans - so, good enough for now */}}
@@ -41,6 +42,7 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
       (get $sharedLibs "kube-cgroup")
       (get $sharedLibs "cri")
       (get $sharedLibs "vip")
+      (get $sharedLibs "binaries")
 ) -}}
 {{/* some of the phases also export parts for arg parsing *_cmd. collect all of them */}}
 {{- $cmdHookContent := "" -}}

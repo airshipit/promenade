@@ -33,10 +33,10 @@ EOF_TEMPLATE_DATA
 sync_kubeconfigs() {
 
   if [[ "$NODE_ROLE" == "master" ]]; then
-    ensure_dir "${ROOTFS}${HOST_DIR}/etc/kubernetes/" "{{ $dirMode }}" "{{ $dirOwner }}"
+    ensure_dir "${ROOTFS}/etc/kubernetes/" "{{ $dirMode }}" "{{ $dirOwner }}"
 {{- /* without pregenerated client certs kubeadm generates kubeconfigs itself */}}
 {{- if ($envAll.Values.certs).admin }}
-    render_kubeconfig "${ROOTFS}${HOST_DIR}/etc/kubernetes/admin.conf" \
+    render_kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf" \
       "{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "admin" \
       "/etc/kubernetes/admin/pki/cluster-ca.pem"  \
@@ -45,7 +45,7 @@ sync_kubeconfigs() {
 {{- end }}
 {{- if ($envAll.Values.certs).controller_manager }}
 
-    render_kubeconfig "${ROOTFS}${HOST_DIR}/etc/kubernetes/controller-manager.conf" \
+    render_kubeconfig "${ROOTFS}/etc/kubernetes/controller-manager.conf" \
       "{{ $envAll.Values.kubeconfig.controlPlaneLocalEndpoint | default $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "controller-manager" \
       "pki/ca.crt"  \
@@ -54,7 +54,7 @@ sync_kubeconfigs() {
 {{- end }}
 {{- if ($envAll.Values.certs).scheduler }}
 
-    render_kubeconfig "${ROOTFS}${HOST_DIR}/etc/kubernetes/scheduler.conf" \
+    render_kubeconfig "${ROOTFS}/etc/kubernetes/scheduler.conf" \
       "{{ $envAll.Values.kubeconfig.controlPlaneLocalEndpoint | default $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "scheduler" \
       "pki/ca.crt"  \

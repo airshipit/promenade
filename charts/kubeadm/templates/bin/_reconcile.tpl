@@ -21,15 +21,18 @@ set -xeuo pipefail
 
 # rootfs path (used to run mock tests. must be "" in real life)
 ROOTFS="${ROOTFS:-}"
-# directory where host fs is mounted if we run in the pod
-HOST_DIR="${HOST_DIR:-}"
+# files of the reconcile script only: script, service account, state, see
+# ensure_fs (the files delivered by the chart are in /run/kubeadm)
+RECONCILE_DIR={{ $envAll.Values.anchor.reconcile.host_dir | quote }}
+
+kubectl() {
+  command kubectl --kubeconfig "${RECONCILE_DIR}/kubeconfig" "$@"
+}
 
 # config directories
 KUBERNETES_DIR="/etc/kubernetes"
 
-KUBERNETES_VERSION="$(sed -n 's/^ *kubernetesVersion: *\(.*\)/\1/p' /tmp/allnodes/kubeadm_ClusterConfiguration)"
-# if isn't specified - kubeadm uses the version which corresponds to the binary
-[ -z "$KUBERNETES_VERSION" ] && KUBERNETES_VERSION=$(kubeadm version -o short)
+KUBERNETES_VERSION="$(sed -n 's/^ *kubernetesVersion: *\(.*\)/\1/p' /run/kubeadm/allnodes/kubeadm_ClusterConfiguration)"
 KUBEADM_ANNOTATION="last-applied-kubeadm-cfg-sha256"
 KUBELET_ANNOTATION="last-applied-kubelet-cfg-sha256"
 CRI_SOCKET_ANNOTATION="kubeadm.alpha.kubernetes.io/cri-socket"
@@ -47,25 +50,15 @@ KUBELET_RESTART_IN_PROGRESS=""
 # sleep randomly up to 30 seconds
 sleep $(shuf -i 1-30 -n 1)
 
-NODE_INFO=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.metadata.annotations.$CRI_SOCKET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}|{.metadata.labels.kubernetes-etcd}|{.metadata.annotations.$KUBELET_RESTART_ANNOTATION}")
-IFS='|' read -r LAST_APPLIED_KUBEADM_CONFIG_SHA256 LAST_APPLIED_KUBELET_CONFIG_SHA256 CRI_SOCKET KUBELET_CURRENT_VERSION KUBERNETES_ETCD KUBELET_RESTART_IN_PROGRESS <<<$NODE_INFO
-
-ensure_fs() {
-  if [ -f "${ROOTFS}/tmp/node.tar" ]; then
-    tar -xf "${ROOTFS}/tmp/node.tar" -C "${ROOTFS}/tmp"
-  fi
-}
-cleanup_fs() {
-  [ -d "${ROOTFS}/tmp/per-node" ] && rm -rf "${ROOTFS}/tmp/per-node"
-}
-
 {{/* adding shared bash functions */}}
 {{ $sharedLibsContent }}
 # end of common functions
 
+PATH="${BINARIES_DIR}:${PATH}"
+
 cleanup_old_backups() {
-  if [ -e "${ROOTFS}${HOST_DIR}/etc/kubernetes/tmp/" ]; then
-    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d "${ROOTFS}${HOST_DIR}/etc/kubernetes/tmp/$p-*" 2>/dev/null | sort | sed '$d' | xargs -r rm -rf || true; done
+  if [ -e "${ROOTFS}/etc/kubernetes/tmp/" ]; then
+    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d "${ROOTFS}/etc/kubernetes/tmp/$p-*" 2>/dev/null | sort | sed '$d' | xargs -r rm -rf || true; done
   fi
 }
 
@@ -80,7 +73,7 @@ cleanup_old_backups() {
 #
 {{/*
 #{{- range $file := .Values.const.files_to_delete }}
-#  remove_if_exists "${HOST_DIR}{{ $file }}"
+#  remove_if_exists "${ROOTFS}{{ $file }}"
 #{{- end }}
 */}}
 #  echo "cleanup_old_configs is done"
@@ -105,7 +98,7 @@ EOF_DATA
   sleep 60
 
   KUBELET_CURRENT_VERSION=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.nodeInfo.kubeletVersion}')
-  if [[ $KUBELET_CURRENT_VERSION != $(kubelet --version | awk '{print $2}') ]]; then
+  if [[ $KUBELET_CURRENT_VERSION != $("${BINARIES_DIR}/kubelet" --version | awk '{print $2}') ]]; then
     echo "kubelet version mismatch"
     exit 1
   fi
@@ -119,7 +112,7 @@ is_action_required() {
   local rc=1 # return code 1 means false
 
   if [[ $NODE_ROLE == "master" ]]; then
-    current_cluster_config_sha256=$(sha256sum < /tmp/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)
+    current_cluster_config_sha256=$(sha256sum < /run/kubeadm/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)
     if [[ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 || $LAST_APPLIED_KUBEADM_CONFIG_SHA256 != $current_cluster_config_sha256 ]]; then
       KUBEADM_ACTION_REQUIRED=true
       rc=0
@@ -127,7 +120,7 @@ is_action_required() {
   fi
 
 {{- if $envAll.Values.kubelet.restart  }}
-  current_kubelet_config_sha256=$(sha256sum < /tmp/allnodes/kubelet_config.yaml | cut -d ' ' -f 1)
+  current_kubelet_config_sha256=$(sha256sum < /run/kubeadm/allnodes/kubelet_config.yaml | cut -d ' ' -f 1)
   if [[ -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 || $LAST_APPLIED_KUBELET_CONFIG_SHA256 != $current_kubelet_config_sha256 || $KUBELET_CURRENT_VERSION != $KUBERNETES_VERSION ]]; then
     KUBELET_RESTART_REQUIRED=true
     rc=0
@@ -143,27 +136,27 @@ annotate_node() {
 
 kubeadm() {
   if [[ "$1" == "version" ]]; then
-    command kubeadm $@
+    command "${BINARIES_DIR}/kubeadm" "$@"
   else
-    command kubeadm --rootfs "${ROOTFS}${HOST_DIR}" --v=5 $@
+    command "${BINARIES_DIR}/kubeadm" --v=5 "$@"
   fi
 }
 
 kubeadm_action() {
   if [ -z $CRI_SOCKET ]; then
-    annotate_node "$CRI_SOCKET_ANNOTATION" "$(sed -n 's/^ *containerRuntimeEndpoint: *\(.*\)/\1/p' /tmp/allnodes/kubelet_config.yaml)"
+    annotate_node "$CRI_SOCKET_ANNOTATION" "$(sed -n 's/^ *containerRuntimeEndpoint: *\(.*\)/\1/p' /run/kubeadm/allnodes/kubelet_config.yaml)"
   fi
 
   # switching node to the controller
-  if [[ ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-apiserver.yaml" ||
-       ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-controller-manager.yaml" ||
-       ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-scheduler.yaml"  ]] ||
-       [[ $KUBERNETES_ETCD == "enabled" && ! -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" ]]; then
+  if [[ ! -f "${ROOTFS}${KUBERNETES_DIR}/manifests/kube-apiserver.yaml" ||
+       ! -f "${ROOTFS}${KUBERNETES_DIR}/manifests/kube-controller-manager.yaml" ||
+       ! -f "${ROOTFS}${KUBERNETES_DIR}/manifests/kube-scheduler.yaml"  ]] ||
+       [[ $KUBERNETES_ETCD == "enabled" && ! -f "${ROOTFS}${KUBERNETES_DIR}/manifests/etcd.yaml" ]]; then
     if ! kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"; then
       if [[ $KUBERNETES_ETCD == "enabled" ]]; then
         echo "kubeadm join failed, performing reset to clean up local etcd member"
         kubeadm reset phase remove-etcd-member
-        rm -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" || true
+        rm -f "${ROOTFS}${KUBERNETES_DIR}/manifests/etcd.yaml" || true
         sleep 30
       fi
       exit 1
@@ -175,14 +168,14 @@ kubeadm_action() {
         if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l component=etcd --timeout 10s 2>/dev/null; then
           echo "performing reset to clean up local etcd member"
           kubeadm reset phase remove-etcd-member
-          rm -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/etcd.yaml" || true
+          rm -f "${ROOTFS}${KUBERNETES_DIR}/manifests/etcd.yaml" || true
           sleep 30
         fi
       fi
       for component in kube-apiserver kube-controller-manager kube-scheduler; do
         if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l component=$component --timeout 10s 2>/dev/null; then
           echo "Removing unhealthy static pod manifest for $component"
-          rm -f "${HOST_DIR}${KUBERNETES_DIR}/manifests/${component}.yaml"
+          rm -f "${ROOTFS}${KUBERNETES_DIR}/manifests/${component}.yaml"
           sleep 30
         fi
       done
@@ -201,44 +194,29 @@ kubeadm_action() {
   fi
 }
 
-# this is anchor specific - taking it from the image.
-sync_binary() {
-    local src="$1"
-    local dest="$2"
-
-    # if there is no dest or its hash is different - update
-    if [[ ! -e "$dest" ]] || ! cmp -s "$src" "$dest"; then
-        echo "Updating binary: $dest"
-        install -v -b --suffix=-backup "$src" "$(dirname "$dest")/"
-        return 0 # exit code 0 means true - file was changed
+# kubelet must not be newer than the apiservers
+wait_apiservers_upgraded() {
+  local versions
+  while true; do
+    versions=$(kubectl get pods -n kube-system -l component=kube-apiserver \
+      -o jsonpath='{range .items[*]}{.spec.containers[0].image}{"\n"}{end}' | sed 's/.*://' | sort -u)
+    if [[ -z "$versions" || "$versions" == "$KUBERNETES_VERSION" ]]; then
+      return 0
     fi
-    return 1 # exit code 1 means false
-}
-
-sync_binaries() {
-  local kubelet_restart_needed=1 # exit code 1 means false
-  if sync_binary "${ROOTFS}/usr/bin/kubelet" "${ROOTFS}${HOST_DIR}/usr/local/bin/kubelet"; then
-    kubelet_restart_needed=0 # exit code 0 - true
-    echo "kubelet synced"
-  fi
-
-  # actually bins can be installed everywhere
-  #if [[ $NODE_ROLE == "master" ]]; then
-    sync_binary "${ROOTFS}/usr/bin/kubeadm" "${ROOTFS}${HOST_DIR}/usr/local/bin/kubeadm"
-    sync_binary "${ROOTFS}/usr/bin/kubectl" "${ROOTFS}${HOST_DIR}/usr/local/bin/kubectl"
-  #fi
-  return $kubelet_restart_needed
+    echo "waiting for the apiservers to be upgraded to $KUBERNETES_VERSION: $versions"
+    sleep 30
+  done
 }
 
 # migrate from airship names
 rename_cp_pods() {
   cp_pods="etcd apiserver controller-manager scheduler"
   for cp_pod in $cp_pods; do
-    src_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kubernetes-${cp_pod}.yaml"
-    dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/kube-${cp_pod}.yaml"
+    src_path="${ROOTFS}${KUBERNETES_DIR}/manifests/kubernetes-${cp_pod}.yaml"
+    dst_path="${ROOTFS}${KUBERNETES_DIR}/manifests/kube-${cp_pod}.yaml"
     component="kube-${cp_pod}"
     if [[ $cp_pod == "etcd" ]]; then
-      dst_path="${HOST_DIR}${KUBERNETES_DIR}/manifests/${cp_pod}.yaml"
+      dst_path="${ROOTFS}${KUBERNETES_DIR}/manifests/${cp_pod}.yaml"
       component="${cp_pod}"
     fi
     if [ -e "$src_path" ]; then
@@ -274,8 +252,15 @@ rename_cp_pods() {
   done
 }
 
+sync_binaries kubeadm kubectl || true
+# kubectl may be installed just above
+NODE_INFO=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.metadata.annotations.$CRI_SOCKET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}|{.metadata.labels.kubernetes-etcd}|{.metadata.annotations.$KUBELET_RESTART_ANNOTATION}")
+IFS='|' read -r LAST_APPLIED_KUBEADM_CONFIG_SHA256 LAST_APPLIED_KUBELET_CONFIG_SHA256 CRI_SOCKET KUBELET_CURRENT_VERSION KUBERNETES_ETCD KUBELET_RESTART_IN_PROGRESS <<<$NODE_INFO
+# if isn't specified - kubeadm uses the version which corresponds to the binary
+[ -z "$KUBERNETES_VERSION" ] && KUBERNETES_VERSION=$(kubeadm version -o short)
+
 if [[ $(kubeadm version -o short) != "$KUBERNETES_VERSION" ]]; then
-  echo "Desired kubernetes version mismatch with provided binaries version, please update kubernetes version in values to $(kubeadm version -o short)"
+  echo "kubeadm $(kubeadm version -o short) on the node doesn't match kubernetesVersion $KUBERNETES_VERSION, check binaries.kubeadm in values"
   exit 1
 fi
 
@@ -284,11 +269,10 @@ cleanup_old_backups
 KUBEADM_ACTION_REQUIRED=false
 KUBELET_RESTART_REQUIRED=false
 
-ensure_fs
-
 sync_kubeconfigs
 sync_kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
-sync_binaries && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+[[ $NODE_ROLE == "master" ]] || wait_apiservers_upgraded
+sync_binary kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 
 # migration from Airship to kubeadm
 # kubeadm mutates the kubeconfig passed via --kubeconfig if it is a default one
@@ -297,10 +281,10 @@ sync_binaries && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 # (TODO) move this check prior to kubeadm join command, as well add a check if kubeconfig
 # has been modified due to cert rotation
 if [ $NODE_ROLE == "master" ] && ! kubectl get cm -n kube-public cluster-info; then
-  tmp_admin_conf="$(mktemp -p "$HOST_DIR/tmp/" -t temp-kubeconfig.XXXXXX)"
-  cp "$HOST_DIR/etc/kubernetes/admin.conf" "$tmp_admin_conf"
+  tmp_admin_conf="$(mktemp -p "${RECONCILE_DIR}" -t temp-kubeconfig.XXXXXX)"
+  cp "${ROOTFS}/etc/kubernetes/admin.conf" "$tmp_admin_conf"
   rc=0
-  kubeadm init phase bootstrap-token --kubeconfig "${tmp_admin_conf#$HOST_DIR}" || rc=$?
+  kubeadm init phase bootstrap-token --kubeconfig "${tmp_admin_conf}" || rc=$?
   rm -f "$tmp_admin_conf"
   [ $rc -eq 0 ] || exit $rc
 fi
@@ -315,10 +299,10 @@ sync_kubeadm
 # by default etcd is disabled - but if it was installed - turn this phase onn
 if [[ $KUBERNETES_ETCD == "enabled" ]]; then
   # do not skip etcd related phases
-  [ -f "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/join_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
-  [ -f "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/init_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/init_config.yaml" #TODO: to verify
+  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
+  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" #TODO: to verify
   # turn on etcd upgrade
-  [ -f "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${HOST_DIR}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
+  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
 fi
 
 is_action_required || true
@@ -328,25 +312,25 @@ is_action_required || true
 
 if [[ $KUBEADM_ACTION_REQUIRED == true ]]; then
   kubeadm_action
-  LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(sha256sum < /tmp/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(sha256sum < /run/kubeadm/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)"
   annotate_node "$KUBEADM_ANNOTATION" "$LAST_APPLIED_KUBEADM_CONFIG_SHA256"
 fi
 
 if [[ $KUBELET_RESTART_REQUIRED == true ]]; then
   restart_kubelet
-  LAST_APPLIED_KUBELET_CONFIG_SHA256="$(sha256sum < /tmp/allnodes/kubelet_config.yaml | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBELET_CONFIG_SHA256="$(sha256sum < /run/kubeadm/allnodes/kubelet_config.yaml | cut -d ' ' -f 1)"
   annotate_node "$KUBELET_ANNOTATION" "$LAST_APPLIED_KUBELET_CONFIG_SHA256"
 fi
 
 #cleanup_old_configs
 
-touch /tmp/done
+touch "${RECONCILE_DIR}/done"
 
 # main loop
 while true; do
-  if [ -e /tmp/stop ] || is_action_required; then
+  if [ -e "${RECONCILE_DIR}/stop" ] || is_action_required; then
     echo "Stopping"
     break
   fi
-  sleep 30
+  sleep {{ $envAll.Values.anchor.reconcile.period }}
 done

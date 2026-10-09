@@ -11,8 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Day 2 upgrade to the next Kubernetes minor version: change the version and
-# the anchor image in the chart values, regenerate and apply the catalog, and
+# Day 2 upgrade to the next Kubernetes minor version: change the version in
+# the chart values, regenerate and apply the catalog, and
 # check that the anchor upgrades the control plane (kubeadm upgrade node),
 # the addons and the kubelets.
 

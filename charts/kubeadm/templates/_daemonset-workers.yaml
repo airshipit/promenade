@@ -68,6 +68,8 @@ spec:
         - name: anchor
           image: {{ $envAll.Values.images.tags.anchor }}
           imagePullPolicy: {{ $envAll.Values.images.pull_policy }}
+          securityContext:
+{{ toYaml $envAll.Values.anchor.securityContext | indent 12 }}
           env:
           - name: NODE_IP
             valueFrom:
@@ -79,14 +81,17 @@ spec:
                 fieldPath: spec.nodeName
           - name: NODE_ROLE
             value: "worker"
-          - name: HOST_DIR
-            value: "/host"
           - name: POD_NAME
             valueFrom:
               fieldRef:
                 fieldPath: metadata.name
-          command: ["/bin/bash","-c"]
-          args: ["/tmp/bin/anchor"]
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # account for images that may not have pipefail in sh
+              if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi
+              { /tmp/bin/ensure_fs && exec chroot /host /bin/bash {{ $envAll.Values.anchor.reconcile.host_dir }}/bin/reconcile; } 2>&1 | tee "/host/var/log/kubeadm_output_$(date +%Y%m%d_%H%M%S).log"
           lifecycle:
             preStop:
               exec:
@@ -96,10 +101,8 @@ spec:
           readinessProbe:
             exec:
               command:
-              - /bin/bash
-              - -c
-              - |-
-                cat /tmp/done
+              - cat
+              - /host{{ $envAll.Values.anchor.reconcile.host_dir }}/done
 
           volumeMounts:
             - name: host

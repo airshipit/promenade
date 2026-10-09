@@ -31,7 +31,7 @@
 
 
 sync_vip_config() {
-  local kubernetes_dir="${HOST_DIR}/etc/kubernetes"
+  local kubernetes_dir="/etc/kubernetes"
 
   ensure_dir "${ROOTFS}${kubernetes_dir}/manifests" "{{ $manifestDirMode }}" "{{ $manifestDirOwner }}"
   sync_prefix_based_dir "${ROOTFS}" "${kubernetes_dir}/manifests" "manifests_" "${NODE_ROLE}" false "{{ $manifestMode }}" "{{ $manifestOwner }}"
@@ -61,7 +61,7 @@ sync_{{ $sharedLibName }}() {
     IFS=',' read -r -a SERVICE_ENDPOINTS <<< "$RAW_IPS"
 
     IDENTIFIER="default-kubernetes"
-    NEXT_HAPROXY_CONF="${ROOTFS}${HOST_DIR}{{ $envAll.Values.haproxy.host_config_dir }}/haproxy.cfg"
+    NEXT_HAPROXY_CONF="${ROOTFS}{{ $envAll.Values.haproxy.host_config_dir }}/haproxy.cfg"
     echo "Adding $IDENTIFIER to haproxy config"
     cat << EOF_TEMPLATE_DATA > "$NEXT_HAPROXY_CONF"
 {{ $haproxyHeader }}

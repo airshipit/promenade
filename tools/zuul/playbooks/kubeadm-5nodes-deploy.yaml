@@ -61,10 +61,10 @@
 - hosts: all
   any_errors_fatal: true
   tasks:
-    - name: Install Kubernetes binaries
+    - name: Prepare the nodes
       shell: |
         set -xe;
-        ./tools/deployment/kubeadm/020-install-k8s-binaries.sh
+        ./tools/deployment/kubeadm/020-prepare-nodes.sh
       args:
         chdir: "{{ zuul.project.src_dir }}"
         executable: /bin/bash

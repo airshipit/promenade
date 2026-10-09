@@ -17,12 +17,12 @@
 {{- $serviceOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/systemd/system" "kube-cgroup.service") | include "kubeadm.bundle.template" -}}
 
 sync_kube_cgroup() {
-  ensure_dir "${ROOTFS}${HOST_DIR}/usr/local/sbin/" "{{ $usrDirMode }}" "{{ $usrDirOwner }}"
-  base64 -d << 'EOF_DATA' | compare_copy_file - "${ROOTFS}${HOST_DIR}/usr/local/sbin/kube-cgroup.sh" "{{ $scriptMode }}" "{{ $scriptOwner }}"
+  ensure_dir "${ROOTFS}/usr/local/sbin/" "{{ $usrDirMode }}" "{{ $usrDirOwner }}"
+  base64 -d << 'EOF_DATA' | compare_copy_file - "${ROOTFS}/usr/local/sbin/kube-cgroup.sh" "{{ $scriptMode }}" "{{ $scriptOwner }}"
 {{ tuple $envAll "templates/phases/snippets/kube-cgroup/_kube-cgroup.sh.tpl" | include "kubeadm.bundle.template" | b64enc}}
 EOF_DATA
-  ensure_dir "${ROOTFS}${HOST_DIR}/etc/systemd/system/" "{{ $etcDirMode }}" "{{ $etcDirOwner }}"
-  base64 -d << 'EOF_DATA' | compare_copy_file - "${ROOTFS}${HOST_DIR}/etc/systemd/system/kube-cgroup.service" "{{ $serviceMode }}" "{{ $serviceOwner }}"
+  ensure_dir "${ROOTFS}/etc/systemd/system/" "{{ $etcDirMode }}" "{{ $etcDirOwner }}"
+  base64 -d << 'EOF_DATA' | compare_copy_file - "${ROOTFS}/etc/systemd/system/kube-cgroup.service" "{{ $serviceMode }}" "{{ $serviceOwner }}"
 {{ tuple $envAll "templates/phases/snippets/kube-cgroup/_kube-cgroup.service.tpl" | include "kubeadm.bundle.template" | b64enc}}
 EOF_DATA
   echo "kube-cgroup is synced"

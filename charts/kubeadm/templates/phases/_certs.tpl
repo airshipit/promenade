@@ -120,9 +120,9 @@
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
 {{- $_ := set $sharedLibs $sharedLibName (printf `
 sync_certs() {
-  local pki_dir="${HOST_DIR}/etc/kubernetes/pki"
+  local pki_dir="/etc/kubernetes/pki"
   local etcd_dir="${pki_dir}/etcd"
-  local admin_dir="${HOST_DIR}/etc/kubernetes/admin/pki"
+  local admin_dir="/etc/kubernetes/admin/pki"
 
   ensure_dir "${ROOTFS}${pki_dir}" "%s" "%s"
   sync_prefix_based_dir "${ROOTFS}" "${pki_dir}" "pkipub_" "${NODE_ROLE}" false "%s" "%s"
