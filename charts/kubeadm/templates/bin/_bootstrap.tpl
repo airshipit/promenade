@@ -130,5 +130,9 @@ systemctl restart kubelet
 
 kubeadm ${kubeadm_args[@]+"${kubeadm_args[@]}"}
 
+if sync_kubelet_kubeconfig; then
+  systemctl restart kubelet
+fi
+
 cleanup_fs
 

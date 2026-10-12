@@ -1,0 +1,7 @@
+# Day 2 upgrade (070-day2-upgrade.sh): the next Kubernetes minor version.
+cluster_config:
+  kubernetesVersion: v1.37.0
+images:
+  tags:
+    # built with v1.37.0 binaries
+    anchor: quay.io/airshipit/porthole-kubeadm-utility:f059ba0f3e4cc9f33c0ce20c08f521519549e206-ubuntu_noble

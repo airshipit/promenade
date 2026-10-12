@@ -33,6 +33,8 @@ KUBERNETES_VERSION="$(sed -n 's/^ *kubernetesVersion: *\(.*\)/\1/p' /tmp/allnode
 KUBEADM_ANNOTATION="last-applied-kubeadm-cfg-sha256"
 KUBELET_ANNOTATION="last-applied-kubelet-cfg-sha256"
 CRI_SOCKET_ANNOTATION="kubeadm.alpha.kubernetes.io/cri-socket"
+# set while the anchor keeps the node drained to restart kubelet
+KUBELET_RESTART_ANNOTATION="kubelet-restart-in-progress"
 
 # Node info
 LAST_APPLIED_KUBEADM_CONFIG_SHA256=""
@@ -40,15 +42,18 @@ LAST_APPLIED_KUBELET_CONFIG_SHA256=""
 CRI_SOCKET=""
 KUBELET_CURRENT_VERSION=""
 KUBERNETES_ETCD=""
+KUBELET_RESTART_IN_PROGRESS=""
 
 # sleep randomly up to 30 seconds
 sleep $(shuf -i 1-30 -n 1)
 
-NODE_INFO=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.metadata.annotations.$CRI_SOCKET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}|{.metadata.labels.kubernetes-etcd}")
-IFS='|' read -r LAST_APPLIED_KUBEADM_CONFIG_SHA256 LAST_APPLIED_KUBELET_CONFIG_SHA256 CRI_SOCKET KUBELET_CURRENT_VERSION KUBERNETES_ETCD <<<$NODE_INFO
+NODE_INFO=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.metadata.annotations.$CRI_SOCKET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}|{.metadata.labels.kubernetes-etcd}|{.metadata.annotations.$KUBELET_RESTART_ANNOTATION}")
+IFS='|' read -r LAST_APPLIED_KUBEADM_CONFIG_SHA256 LAST_APPLIED_KUBELET_CONFIG_SHA256 CRI_SOCKET KUBELET_CURRENT_VERSION KUBERNETES_ETCD KUBELET_RESTART_IN_PROGRESS <<<$NODE_INFO
 
 ensure_fs() {
-  [ -f "${ROOTFS}/tmp/node.tar" ] && tar -xf "${ROOTFS}/tmp/node.tar" -C "${ROOTFS}/tmp"
+  if [ -f "${ROOTFS}/tmp/node.tar" ]; then
+    tar -xf "${ROOTFS}/tmp/node.tar" -C "${ROOTFS}/tmp"
+  fi
 }
 cleanup_fs() {
   [ -d "${ROOTFS}/tmp/per-node" ] && rm -rf "${ROOTFS}/tmp/per-node"
@@ -82,6 +87,7 @@ cleanup_old_backups() {
 #}
 
 restart_kubelet() {
+  annotate_node "$KUBELET_RESTART_ANNOTATION" true
   kubectl drain "${NODE_NAME}" --pod-selector '!kubelet-restart' --ignore-daemonsets --delete-emptydir-data
 
   # heredoc will take care of ${NODE_NAME} and etc
@@ -93,6 +99,7 @@ EOF_DATA
   kubectl wait -n kube-system --for=condition=complete $job_name --timeout=600s
 
   kubectl uncordon "${NODE_NAME}"
+  kubectl annotate node "${NODE_NAME}" "${KUBELET_RESTART_ANNOTATION}-"
   kubectl wait node --for=condition=ready "${NODE_NAME}" --timeout=60s
 
   sleep 60
@@ -315,6 +322,9 @@ if [[ $KUBERNETES_ETCD == "enabled" ]]; then
 fi
 
 is_action_required || true
+# the anchor was restarted while the node was drained (e.g. the new kubelet
+# restarts containers): restart kubelet again, it uncordons the node
+[[ -n $KUBELET_RESTART_IN_PROGRESS ]] && KUBELET_RESTART_REQUIRED=true
 
 if [[ $KUBEADM_ACTION_REQUIRED == true ]]; then
   kubeadm_action

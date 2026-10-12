@@ -24,6 +24,11 @@
 {{- end -}}
 
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
+{{/* without pregenerated kubelet certs kubeadm generates kubelet.conf itself */}}
+{{- $kubeletCerts := false -}}
+{{- range $_,$v := ($envAll.Values.certs).nodes -}}
+  {{- if $v.kubelet -}}{{- $kubeletCerts = true -}}{{- end -}}
+{{- end -}}
 {{- $_ := set $sharedLibs $sharedLibName (printf `
 sync_kubelet_kubeconfig() {
   local pki_dir="${HOST_DIR}/etc/kubernetes/pki"
@@ -37,12 +42,17 @@ sync_kubelet_kubeconfig() {
   sync_prefix_based_dir "${ROOTFS}" "${pki_dir}" "kubeletpkipriv_" "worker" false "%s" "%s"
 
   ensure_dir "${ROOTFS}${HOST_DIR}/etc/kubernetes/" "%s" "%s"
-  render_kubeconfig "$k_conf" \
-    "%s" \
-    "kubelet" \
-    "/etc/kubernetes/pki/kubelet-client-ca.pem" \
-    "/etc/kubernetes/pki/kubelet.pem" \
-    "/etc/kubernetes/pki/kubelet-key.pem" "%s" "%s"
+  if [ "%s" == "true" ]; then
+    render_kubeconfig "$k_conf" \
+      "%s" \
+      "kubelet" \
+      "/etc/kubernetes/pki/kubelet-client-ca.pem" \
+      "/etc/kubernetes/pki/kubelet.pem" \
+      "/etc/kubernetes/pki/kubelet-key.pem" "%s" "%s"
+  elif [ -f "$k_conf" ]; then
+    # kubeadm points kubelet to the endpoint the node joined via
+    sed "${SED_INPLACE[@]}" -e "s|^\( *server:\).*|\1 https://%s|" "$k_conf"
+  fi
 
   local sha_after=$(sha256sum "$k_crt" "$k_key" "$k_conf" 2>/dev/null || true)
 
@@ -78,9 +88,11 @@ sync_kubelet() {
 
 (tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template")
+(ternary "true" "false" $kubeletCerts)
 ($envAll.Values.kubeconfig.controlPlaneEndpoint)
 (tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template")
+($envAll.Values.kubeconfig.controlPlaneEndpoint)
 
 (tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/default") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/default") | include "kubeadm.bundle.template")

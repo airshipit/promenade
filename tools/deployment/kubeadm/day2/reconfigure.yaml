@@ -1,0 +1,4 @@
+# Day 2 reconfiguration (060-day2-reconfigure.sh): a change of the
+# cluster configuration applied by the anchor (kubeadm upgrade node).
+network:
+  service_node_port_range: 30000-32700

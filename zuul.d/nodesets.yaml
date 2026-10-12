@@ -31,3 +31,27 @@
         nodes:
           - primary
 
+- nodeset:
+    name: airship-promenade-5nodes-noble
+    nodes:
+      - name: primary
+        label: ubuntu-noble
+      - name: node-1
+        label: ubuntu-noble
+      - name: node-2
+        label: ubuntu-noble
+      - name: node-3
+        label: ubuntu-noble
+      - name: node-4
+        label: ubuntu-noble
+    groups:
+      - name: primary
+        nodes:
+          - primary
+      - name: nodes
+        nodes:
+          - node-1
+          - node-2
+          - node-3
+          - node-4
+

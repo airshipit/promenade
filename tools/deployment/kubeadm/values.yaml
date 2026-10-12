@@ -1,0 +1,283 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# kubeadm chart values of the 5 node gate: 3 control plane nodes with stacked
+# etcd and 2 workers.
+#
+# Only the CAs (Kubernetes, etcd, front proxy) and the service account key are
+# provided (see 010-generate-ca.sh, it adds certs to these values), kubeadm
+# generates the rest of the PKI and all kubeconfigs on every node: the chart
+# delivers neither of them.
+#
+# Join credentials aren't part of the values: the bootstrap token is created
+# once the cluster exists (032-create-join-token.sh) and passed to the
+# bootstrap script as KUBEADM_TOKEN, the chart substitutes it in the kubeadm
+# configuration.
+#
+# Every node runs haproxy (static pod) serving the control plane endpoint
+# 127.0.0.1:6553. kubelet can't start haproxy before it joins (it has no
+# credentials yet), so nodes join directly via the first control plane node:
+# the chart delivers discovery.conf pointing to it (token discovery would
+# switch to the VIP published in the cluster-info ConfigMap). After joining
+# the bootstrap script points kubelet to the VIP.
+
+# Nodes of the gate: names and IPs on the overlay network.
+# Not used by the chart itself, the gate scripts pass them to the bootstrap
+# script as NODE_NAME and NODE_IP. The first node runs kubeadm init.
+nodes:
+  - name: kubeadm-cp-1
+    ip: 10.248.0.11
+    role: control-plane
+  - name: kubeadm-cp-2
+    ip: 10.248.0.12
+    role: control-plane
+  - name: kubeadm-cp-3
+    ip: 10.248.0.13
+    role: control-plane
+  - name: kubeadm-worker-1
+    ip: 10.248.0.21
+    role: worker
+  - name: kubeadm-worker-2
+    ip: 10.248.0.22
+    role: worker
+
+network:
+  pod_cidr: 10.97.0.0/16
+  service_cidr: 10.96.0.0/16
+  service_node_port_range: 30000-32767
+  dns:
+    service_ip: 10.96.0.10
+    cluster_domain: cluster.local
+
+images:
+  tags:
+    # kubeadm, kubelet and kubectl of the anchor image must be of
+    # cluster_config.kubernetesVersion: the anchor syncs them to the nodes
+    # (built with v1.36.3 binaries, day2/upgrade.yaml switches to v1.37.0)
+    anchor: quay.io/airshipit/porthole-kubeadm-utility:d132078763816d5538cf3d7627f6becc14d54cdf-ubuntu_noble
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
+    haproxy: docker.io/library/haproxy:2.9.7
+    containerd_pause: registry.k8s.io/pause:3.10
+
+cluster_config:
+  kubernetesVersion: v1.36.3
+
+kubelet:
+  # the anchor applies kubelet configuration changes: it drains the node and
+  # restarts kubelet (there are other nodes for the workloads)
+  restart: true
+
+kubeconfig:
+  clusterName: kubernetes
+  controlPlaneEndpoint: 127.0.0.1:6553
+
+vip:
+  # haproxy frontend and backends: "<bind>|<apiserver>,<apiserver>,..."
+  init: >-
+    *:6553|{{- $backends := list -}}
+    {{- range .Values.nodes -}}
+    {{- if eq .role "control-plane" -}}
+    {{- $backends = append $backends (printf "%s:6443" .ip) -}}
+    {{- end -}}
+    {{- end -}}
+    {{- join "," $backends -}}
+
+kubeadm:
+  fs:
+    "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
+    "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
+    "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
+    "join_worker_config.yaml": "templates/phases/snippets/kubeadm/join_worker_config.yaml"
+    "discovery.conf": "templates/phases/snippets/kubeadm/discovery.conf"
+    # used by the anchor (day 2): kubeadm upgrade node
+    "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
+
+bundle:
+  tpl:
+    "templates/phases/snippets/kubeadm/ClusterConfiguration": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: ClusterConfiguration
+      kubernetesVersion: {{ .Values.cluster_config.kubernetesVersion }}
+      clusterName: {{ .Values.kubeconfig.clusterName }}
+      controlPlaneEndpoint: {{ .Values.kubeconfig.controlPlaneEndpoint }}
+      certificatesDir: /etc/kubernetes/pki
+      imageRepository: registry.k8s.io
+      encryptionAlgorithm: RSA-2048
+      networking:
+        dnsDomain: {{ .Values.network.dns.cluster_domain }}
+        podSubnet: {{ .Values.network.pod_cidr }}
+        serviceSubnet: {{ .Values.network.service_cidr }}
+      apiServer:
+        extraArgs:
+          - name: service-node-port-range
+            value: {{ .Values.network.service_node_port_range | quote }}
+      controllerManager:
+        extraArgs:
+          - name: terminated-pod-gc-threshold
+            value: "1000"
+      etcd:
+        local:
+          dataDir: /var/lib/etcd
+    "templates/phases/snippets/kubeadm/init_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: InitConfiguration
+      localAPIEndpoint:
+        advertiseAddress: "${NODE_IP}"
+        bindPort: 6443
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///run/containerd/containerd.sock
+        imagePullPolicy: IfNotPresent
+        # anchor daemonsets are scheduled by these labels (see anchor.labels)
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled,kubernetes-apiserver=enabled
+        # anchor daemonsets don't tolerate the control plane taint
+        taints: []
+        ignorePreflightErrors:
+          # kubelet is started by the bootstrap script before kubeadm
+          - Port-10250
+          # the bootstrap script delivers the haproxy static pod
+          - DirAvailable--etc-kubernetes-manifests
+      # kubeadm uses the CAs delivered by the bootstrap script
+      timeouts:
+        controlPlaneComponentHealthCheck: 5m0s
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+      ---
+      {{ tuple . "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template" }}
+    "templates/phases/snippets/kubeadm/discovery.conf": |
+      apiVersion: v1
+      kind: Config
+      clusters:
+        - name: {{ .Values.kubeconfig.clusterName }}
+          cluster:
+            server: https://{{ (index .Values.nodes 0).ip }}:6443
+            certificate-authority-data: {{ .Values.certs.ca.crt | b64enc }}
+      contexts:
+        - name: discovery
+          context:
+            cluster: {{ .Values.kubeconfig.clusterName }}
+            user: discovery
+      current-context: discovery
+      users:
+        - name: discovery
+          user: {}
+    "templates/phases/snippets/kubeadm/join_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      controlPlane:
+        localAPIEndpoint:
+          advertiseAddress: "${NODE_IP}"
+          bindPort: 6443
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/kubeadm/discovery.conf
+        tlsBootstrapToken: "${KUBEADM_TOKEN}"
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///run/containerd/containerd.sock
+        imagePullPolicy: IfNotPresent
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled,kubernetes-apiserver=enabled
+        # anchor daemonsets don't tolerate the control plane taint
+        taints: []
+        ignorePreflightErrors:
+          # kubelet is started by the bootstrap script before kubeadm
+          - Port-10250
+          # the bootstrap script delivers the haproxy static pod and the CAs
+          - DirAvailable--etc-kubernetes-manifests
+          - FileAvailable--etc-kubernetes-pki-ca.crt
+      skipPhases:
+        # runs before kubelet-start and uses admin.conf, i.e. the VIP which
+        # isn't served until kubelet starts haproxy; etcd-join (after
+        # kubelet-start) uses it too, with retries
+        - check-etcd
+      timeouts:
+        controlPlaneComponentHealthCheck: 5m0s
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+        discovery: 5m0s
+    "templates/phases/snippets/kubeadm/join_worker_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/kubeadm/discovery.conf
+        tlsBootstrapToken: "${KUBEADM_TOKEN}"
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///run/containerd/containerd.sock
+        imagePullPolicy: IfNotPresent
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled
+        ignorePreflightErrors:
+          # kubelet is started by the bootstrap script before kubeadm
+          - Port-10250
+          # the bootstrap script delivers the haproxy static pod
+          - DirAvailable--etc-kubernetes-manifests
+      timeouts:
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+        discovery: 5m0s
+    "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: UpgradeConfiguration
+      node:
+        certificateRenewal: false
+        etcdUpgrade: true
+        imagePullPolicy: IfNotPresent
+        ignorePreflightErrors:
+          - SystemVerification
+          - CoreDNSUnsupportedPlugins
+          - CoreDNSMigration
+        skipPhases:
+          # kubelet configuration is delivered by the chart
+          - kubelet-config
+        # addons (CoreDNS, kube-proxy) installed by kubeadm init are upgraded
+        # by the addon phase on the last upgraded control plane node
+      # Must match the init configuration: static pod startup probes are
+      # derived from controlPlaneComponentHealthCheck, a different value
+      # changes the manifests and restarts the control plane.
+      timeouts:
+        controlPlaneComponentHealthCheck: 5m0s
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+    "templates/phases/snippets/kubelet/_kubelet-config.yaml": |
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      authentication:
+        anonymous:
+          enabled: false
+        webhook:
+          enabled: true
+        x509:
+          # delivered by the chart on all nodes before kubeadm writes ca.crt
+          clientCAFile: /etc/kubernetes/pki/kubelet-client-ca.pem
+      authorization:
+        mode: Webhook
+      cgroupDriver: systemd
+      clusterDNS:
+        - {{ .Values.network.dns.service_ip }}
+      clusterDomain: {{ .Values.network.dns.cluster_domain }}
+      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+      staticPodPath: /etc/kubernetes/manifests
+      # local resolvers are disabled on the gate nodes, see
+      # tools/zuul/playbooks/kubeadm-deploy-env.yaml
+      resolvConf: /etc/resolv.conf
+      # kubelet requests its client certificate with the bootstrap token and
+      # starts static pods (haproxy) meanwhile
+      rotateCertificates: true
+      readOnlyPort: 0
+      containerLogMaxFiles: 2

@@ -30,6 +30,7 @@
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
         - airship-promenade-kubeadm-chart-test
+        - airship-promenade-kubeadm-5nodes
 
     gate:
       jobs:

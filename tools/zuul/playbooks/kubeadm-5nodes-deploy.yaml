@@ -1,0 +1,145 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# 5 node gate of the kubeadm chart, no other Airship components involved:
+#   1. the CAs (Kubernetes, etcd, front proxy) and the service account key
+#      are generated as a values override of the chart (the only secrets
+#      provided, kubeadm generates the rest of the PKI)
+#   2. day 0: every node runs the bootstrap script of the chart phase by
+#      phase: the first control plane node (kubeadm init), then, with a
+#      bootstrap token created in the new cluster (as a node provisioner
+#      would do), the rest of the control plane nodes one by one (etcd
+#      members are added one at a time) and the workers
+#   3. a kustomize catalog of Calico and the chart itself is generated and
+#      applied: the anchor daemonsets take over the nodes (day 2)
+#   4. smoke tests, a day 2 reconfiguration and an upgrade to the next
+#      Kubernetes minor version, smoke tests after each of them
+---
+- hosts: primary
+  any_errors_fatal: true
+  tasks:
+    - name: Generate the CAs
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/010-generate-ca.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    # The override contains the CA key: it is passed through the executor
+    # work directory, not the logs.
+    - name: Fetch the CA override
+      fetch:
+        src: "{{ ansible_env.HOME }}/kubeadm-gate/ca-values.yaml"
+        dest: "{{ zuul.executor.work_root }}/kubeadm-ca-values.yaml"
+        flat: true
+
+- hosts: all:!primary
+  any_errors_fatal: true
+  tasks:
+    - name: Create the work directory
+      file:
+        path: "{{ ansible_env.HOME }}/kubeadm-gate"
+        state: directory
+        mode: "0700"
+
+    - name: Distribute the CA override
+      copy:
+        src: "{{ zuul.executor.work_root }}/kubeadm-ca-values.yaml"
+        dest: "{{ ansible_env.HOME }}/kubeadm-gate/ca-values.yaml"
+        mode: "0600"
+
+- hosts: all
+  any_errors_fatal: true
+  tasks:
+    - name: Install Kubernetes binaries
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/020-install-k8s-binaries.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Bootstrap the first control plane node
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/030-kubeadm-bootstrap.sh init
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+- hosts: primary
+  any_errors_fatal: true
+  tasks:
+    - name: Create a join token
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/032-create-join-token.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Fetch the join token
+      fetch:
+        src: "{{ ansible_env.HOME }}/kubeadm-gate/join-token"
+        dest: "{{ zuul.executor.work_root }}/kubeadm-join-token"
+        flat: true
+
+- hosts: all:!primary
+  any_errors_fatal: true
+  tasks:
+    - name: Distribute the join token
+      copy:
+        src: "{{ zuul.executor.work_root }}/kubeadm-join-token"
+        dest: "{{ ansible_env.HOME }}/kubeadm-gate/join-token"
+        mode: "0600"
+
+- hosts: all
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Join the rest of control plane nodes
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/030-kubeadm-bootstrap.sh control-plane
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+- hosts: all
+  any_errors_fatal: true
+  tasks:
+    - name: Join workers
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/030-kubeadm-bootstrap.sh worker
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+- hosts: primary
+  any_errors_fatal: true
+  tasks:
+    - name: Deploy the catalog, test the cluster, reconfigure and upgrade it (day 2)
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/035-generate-catalog.sh
+        ./tools/deployment/kubeadm/040-deploy-catalog.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+        ./tools/deployment/kubeadm/060-day2-reconfigure.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+        ./tools/deployment/kubeadm/070-day2-upgrade.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+...

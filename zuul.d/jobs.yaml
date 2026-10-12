@@ -71,6 +71,50 @@
       - ^Makefile$
 
 - job:
+    name: airship-promenade-kubeadm-5nodes
+    description: |
+      Build a 5 node Kubernetes cluster (3 control plane nodes with stacked
+      etcd, 2 workers) on bare nodes with the bootstrap script of the kubeadm
+      chart, no other Airship components involved. Only the CAs and the
+      service account key are provided to the chart, kubeadm generates the
+      rest of the PKI; nodes join with a bootstrap token created once the
+      cluster exists. Every node runs haproxy (VIP) for the control plane
+      endpoint. Then Calico and the chart itself are deployed from a
+      generated kustomize catalog (day 2), a configuration change and an
+      upgrade to the next Kubernetes minor version are applied by the
+      anchor.
+    voting: false
+    timeout: 7200
+    nodeset: airship-promenade-5nodes-noble
+    roles:
+      - zuul: openstack/openstack-helm
+      - zuul: zuul/zuul-jobs
+    required-projects:
+      - openstack/openstack-helm
+    files:
+      - ^charts/kubeadm/.*$
+      - ^tools/deployment/kubeadm/.*$
+      - ^tools/zuul/playbooks/kubeadm-.*$
+      - ^zuul.d/.*$
+    pre-run:
+      - tools/zuul/playbooks/kubeadm-deploy-env.yaml
+    run:
+      - tools/zuul/playbooks/kubeadm-5nodes-deploy.yaml
+    post-run:
+      - tools/zuul/playbooks/kubeadm-collect-logs.yaml
+    vars:
+      helm_version: "4.1.1"
+      # node IPs of the gate values (tools/deployment/kubeadm/values.yaml)
+      # on the vxlan overlay network, the primary node runs kubeadm init
+      kubeadm_node_ips:
+        primary: 10.248.0.11
+        node-1: 10.248.0.12
+        node-2: 10.248.0.13
+        node-3: 10.248.0.21
+        node-4: 10.248.0.22
+      overlay_network_bridge_ip: "{{ kubeadm_node_ips[inventory_hostname] }}"
+
+- job:
     name: airship-promenade-chart-build-gate
     description: |
       Lints charts using pinned HTK

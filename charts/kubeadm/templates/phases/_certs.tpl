@@ -71,6 +71,9 @@
   {{- if $envAll.Values.certs.etcd_ca -}}
     {{/* Populate pregenerated self-signed CA to provision identities for etcd */}}
     {{- $_ := set $controlPlaneNodes "etcdpub_ca.crt" (dict "content" $envAll.Values.certs.etcd_ca.crt "dest_path" "/etc/kubernetes/pki/etcd/ca.crt" "file_mode" 0600 ) -}}
+    {{- if $envAll.Values.certs.etcd_ca.key -}}
+      {{- $_ := set $controlPlaneNodes "etcdpriv_ca.key" (dict "content" $envAll.Values.certs.etcd_ca.key "dest_path" "/etc/kubernetes/pki/etcd/ca.key" "file_mode" 0600 ) -}}
+    {{- end -}}
   {{- end -}}
   {{- if $envAll.Values.certs.etcd_ca_peer -}}
     {{/* Populate pregenerated self-signed CA to provision identities for etcd (for peers) */}}
