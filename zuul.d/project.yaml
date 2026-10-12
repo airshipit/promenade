@@ -29,6 +29,7 @@
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
+        - airship-promenade-kubeadm-chart-test
 
     gate:
       jobs:
@@ -40,6 +41,7 @@
         - airship-promenade-chart-build-gate
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
+        - airship-promenade-kubeadm-chart-test
 
     post:
       jobs:

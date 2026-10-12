@@ -36,6 +36,10 @@ all: charts lint
 tests: external-deps gate-lint
 	tox
 
+# Mock tests of the kubeadm chart bootstrap script (requires yq, YQ=<path>)
+test-kubeadm-chart: helm-install
+	cd charts && HELM=$(HELM) bash kubeadm/test.sh
+
 tests-security:
 	tox -e bandit
 
@@ -164,4 +168,4 @@ helm-install:
 .PHONY: $(CHARTS) all build_images build_promenade build_kubernetes_registry charts \
   clean docs check-docker dry-run dry-run-% external-deps gate-lint gate-lint-deps \
   helm-init helm-init-% helm-install helm-lint helm-lint-% helm-toolkit images \
-  lint tests tests-pep8 tests-security tests-unit
+  lint test-kubeadm-chart tests tests-pep8 tests-security tests-unit

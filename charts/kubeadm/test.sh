@@ -1,6 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 #set -euo pipefail
+
+# number of failed checks, the script fails if there are any
+FAILURES=0
 
 _rootfs_mock() {
   local test_bin="${ROOTFS}/bin"
@@ -44,6 +47,7 @@ assert_logged() {
     echo "  ✅ [OK] ${msg}"
   else
     echo "  ❌ [FAIL] Missing execution: ${msg} (pattern: '${pattern}')" >&2
+    FAILURES=$((FAILURES + 1))
     return 1
   fi
 }
@@ -62,6 +66,7 @@ assert_before() {
     echo "  ✅ [OK] Order verified: ${msg}"
   else
     echo "  ❌ [FAIL] Order violation: expected '${first_pattern}' line($line_a) before '${second_pattern}' line($line_b)" >&2
+    FAILURES=$((FAILURES + 1))
     return 1
   fi
 }
@@ -99,6 +104,7 @@ run_bootstrap() {
         ;;
       *)
         echo "Unknown option: $1" >&2
+        FAILURES=$((FAILURES + 1))
         return 1
         ;;
     esac
@@ -135,6 +141,33 @@ run_bootstrap() {
   # 2. check that yq returned non empty and non "null" data
   if [[ -z "${bootstrap_code}" || "${bootstrap_code}" == "null" ]]; then
     echo "Error: Script '${script}' in Secret '${target_secret}' was not found in rendered Helm output." >&2
+    FAILURES=$((FAILURES + 1))
+    return 1
+  fi
+
+  # 2.1. check that the script can be taken with sed + base64 (see README.md):
+  # with bootstrap.nodename the only Secret is rendered, without the node
+  # suffix. Both tools read the same output: embedded tarballs have the
+  # render time as mtime, so two renders are never identical.
+  local nodename_args=""
+  if [ -n "$nodename" ]; then
+    nodename_args="--set bootstrap.nodename=${nodename}"
+  fi
+  local rendered yq_code sed_code
+  rendered=$("${helm}" template kubeadm \
+    ${overrides} \
+    --set manifests.secret_bootstrap=true \
+    ${extra_helm_args} \
+    ${nodename_args})
+  yq_code=$(echo "${rendered}" | \
+    "${yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-bootstrap\") | .data[\"${script}\"] | @base64d" 2>/dev/null)
+  sed_code=$(echo "${rendered}" | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d)
+
+  if [[ -n "${sed_code}" && "${sed_code}" == "${yq_code}" ]]; then
+    echo "  ✅ [OK] Script taken with sed + base64 matches the one taken with yq"
+  else
+    echo "  ❌ [FAIL] Script taken with sed + base64 differs from the one taken with yq" >&2
+    FAILURES=$((FAILURES + 1))
     return 1
   fi
 
@@ -152,6 +185,7 @@ assert_file_exists() {
   local file="$1"
   if [[ ! -f "$file" ]]; then
     echo "  ❌ [FAIL] Missing file: $file" >&2
+    FAILURES=$((FAILURES + 1))
     return 1
   else
     echo "  ✅ [OK] Found: $file"
@@ -162,6 +196,7 @@ assert_file_absent() {
   local file="$1"
   if [[ -f "$file" ]]; then
     echo "  ❌ [FAIL] Unexpected file found on worker: $file" >&2
+    FAILURES=$((FAILURES + 1))
     return 1
   fi
 }
@@ -176,6 +211,7 @@ if tr -d '\r' < "${file}" | grep -E -q -- "${pattern}"; then
     echo "  ✅ [OK] ${msg}"
   else
     echo "  ❌ [FAIL] Content check failed for ${file}: ${msg} (pattern: '${pattern}')" >&2
+    FAILURES=$((FAILURES + 1))
     return 1
   fi
 }
@@ -184,6 +220,7 @@ assert_tgz_is_valid() {
   local file="$1"
   if ! gzip --test "$file"; then
     echo "  ❌ [FAIL] TGZ test failed: $file" >&2
+    FAILURES=$((FAILURES + 1))
     return 1
   else
     echo "  ✅ [OK] TGZ test passed: $file"
@@ -461,6 +498,61 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 
 
 assert_tgz_is_valid "${ROOTFS}/tmp/fs.tgz"
 
+# FULL mode, single node control plane without vip
+uc0_full_1node=(
+  -f ${ovrds}/uc0.yaml
+  -f ${ovrds}/pki-ca.yaml
+  -f ${ovrds}/pki-full-node0.yaml
+  -f ${ovrds}/pki-full-node1-4.yaml
+  -f ${ovrds}/pki-full-genesis.yaml
+  -f ${ovrds}/pki-admin.yaml
+  -f ${ovrds}/kubeadm.yaml
+  -f ${ovrds}/kubelet.yaml
+)
+export NODE_IP="172.29.0.139"
+export NODE_NAME="nodename0"
+run_bootstrap "nodename0" "${uc0_full_1node[@]}" -- -- init --skip-phases certs,kubeconfig
+assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
+assert_file_exists "${ROOTFS}/etc/default/kubelet"
+assert_file_exists "${ROOTFS}/var/lib/kubelet/config.yaml"
+
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/ca.key"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/ca.crt"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/apiserver.crt"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/apiserver.key"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/kubelet.pem"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/kubelet-key.pem"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/sa.key"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/sa.pub"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/etcd/ca.crt"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/etcd/server.crt"
+assert_file_exists "${ROOTFS}/etc/kubernetes/pki/etcd/server.key"
+
+assert_file_exists "${ROOTFS}/etc/kubernetes/admin/pki/cluster-ca.pem"
+assert_file_exists "${ROOTFS}/etc/kubernetes/admin/pki/admin.pem"
+assert_file_exists "${ROOTFS}/etc/kubernetes/admin/pki/admin-key.pem"
+
+assert_file_exists "${ROOTFS}/etc/kubernetes/kubeadm/ClusterConfiguration"
+assert_file_exists "${ROOTFS}/etc/kubernetes/kubeadm/init_config.yaml"
+
+# no vip: haproxy isn't configured
+assert_file_absent "${ROOTFS}/etc/kubernetes/kubeadm/addons/haproxy.cfg"
+
+assert_content_matches "${ROOTFS}/etc/default/kubelet" "--hostname-override=${NODE_NAME}" \
+                       "Kubelet env contains correct hostname-override"
+assert_content_matches "${ROOTFS}/etc/default/kubelet" "--node-ip=${NODE_IP}" \
+                       "Kubelet env contains correct node-ip"
+
+assert_logged "modprobe (br_netfilter|overlay)" "Kernel modules loaded"
+assert_logged "sysctl --system"                 "Network sysctl applied"
+assert_logged "swapoff"                         "Swap disabled"
+assert_logged "kubeadm init .*--skip-phases certs,kubeconfig" \
+              "Kubeadm init called with certs and kubeconfig phases skipped"
+
+assert_before "swapoff"            "kubeadm init" "Swap disabled BEFORE kubeadm init"
+assert_before "sysctl"             "kubeadm init" "Sysctl applied BEFORE kubeadm init"
+assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet pre-started BEFORE kubeadm init"
+
 # # our case with VIP TBD
 # uc0_full_vip=(
 #   -f ${ovrds}/uc0.yaml
@@ -493,3 +585,10 @@ assert_tgz_is_valid "${ROOTFS}/tmp/fs.tgz"
 # # Full per-node init. use case is - we start not from genesis, but from any controller
 # # Full per-node join with extra params
 # run_bootstrap "nodename1" "${uc0_full_haproxy[@]}" -- -- --pod-network-cidr=10.244.0.0/16
+
+echo
+if [[ "${FAILURES}" -gt 0 ]]; then
+  echo "❌ ${FAILURES} check(s) failed" >&2
+  exit 1
+fi
+echo "✅ All checks passed"

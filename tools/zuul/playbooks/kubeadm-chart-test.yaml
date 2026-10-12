@@ -1,0 +1,42 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Mock tests of the kubeadm chart (charts/kubeadm/test.sh): the bootstrap
+# script is rendered for different values and executed against a mock root
+# filesystem, no Kubernetes cluster is needed.
+
+- hosts: primary
+  vars:
+    yq_version: v4.44.3
+    yq_sha256: a2c097180dd884a8d50c956ee16a9cec070f30a7947cf4ebf87d5f36213e9ed7
+  tasks:
+    - name: Install packages used by the bootstrap script
+      apt:
+        name:
+          - gettext-base  # envsubst
+        state: present
+        update_cache: true
+      become: true
+
+    - name: Install yq
+      get_url:
+        url: "https://github.com/mikefarah/yq/releases/download/{{ yq_version }}/yq_linux_amd64"
+        dest: /usr/local/bin/yq
+        checksum: "sha256:{{ yq_sha256 }}"
+        mode: "0755"
+      become: true
+
+    - name: Run kubeadm chart tests
+      make:
+        chdir: "{{ zuul.project.src_dir }}"
+        target: test-kubeadm-chart
+...

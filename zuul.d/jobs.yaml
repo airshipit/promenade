@@ -54,6 +54,23 @@
       distro: ubuntu_noble
 
 - job:
+    name: airship-promenade-kubeadm-chart-test
+    description: |
+      Mock tests of the kubeadm chart (charts/kubeadm/test.sh): the
+      bootstrap script is rendered for different values and executed
+      against a mock root filesystem.
+    run:
+      - tools/zuul/playbooks/kubeadm-chart-test.yaml
+    timeout: 1800
+    nodeset: airship-promenade-single-node-noble
+    files:
+      - ^charts/kubeadm/.*$
+      - ^tools/helm_install.sh$
+      - ^tools/zuul/playbooks/kubeadm-chart-test.yaml$
+      - ^zuul.d/.*$
+      - ^Makefile$
+
+- job:
     name: airship-promenade-chart-build-gate
     description: |
       Lints charts using pinned HTK
