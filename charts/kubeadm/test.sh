@@ -586,6 +586,96 @@ assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet pre-started BEFORE ku
 # # Full per-node join with extra params
 # run_bootstrap "nodename1" "${uc0_full_haproxy[@]}" -- -- --pod-network-cidr=10.244.0.0/16
 
+# tar: a hardlink target sorted after the link is written once, '%' in a path,
+# a long path (USTAR prefix), root owner, reproducible with an explicit mtime
+
+echo "[tar] links, '%' in a path, long path, owner, reproducibility"
+tar_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] tar: ${msg}"
+  else
+    echo "  ❌ [FAIL] tar: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+tar_chart=$(mktemp -d)
+mkdir -p "${tar_chart}/templates" "${tar_chart}/out"
+cp kubeadm/templates/lib/_tar.tpl "${tar_chart}/templates/"
+printf 'apiVersion: v2\nname: tar-test\nversion: 0.1.0\n' > "${tar_chart}/Chart.yaml"
+cat > "${tar_chart}/templates/configmap.yaml" << 'EOF'
+{{- $long := print (repeat 12 "longdir/") (repeat 8 "longname") -}}
+{{- $files := dict
+    "a.link" (dict "type" "1" "link_path" "z" "mod_timestamp" 0)
+    "z" (dict "content" "z\n" "mod_timestamp" 0)
+    "x/100%done" (dict "content" "pct\n" "mod_timestamp" 0)
+    $long (dict "content" "long\n" "mod_timestamp" 0) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tar-test
+data:
+  tar: {{ $files | include "tar" | b64enc }}
+EOF
+tar_long="$(printf 'longdir/%.0s' {1..12})$(printf 'longname%.0s' {1..8})"
+"${HELM:-helm}" template tar-test "${tar_chart}" | sed -n 's/^  tar: //p' | base64 -d > "${tar_chart}/1.tar"
+# another second: the archive would differ with the default mtime (now)
+sleep 1
+"${HELM:-helm}" template tar-test "${tar_chart}" | sed -n 's/^  tar: //p' | base64 -d > "${tar_chart}/2.tar"
+tar_check "the same archive on every render" cmp -s "${tar_chart}/1.tar" "${tar_chart}/2.tar"
+tar_check "every entry is written once" test \
+  "$(tar -tf "${tar_chart}/1.tar" | sort)" = "$(printf '%s\n' a.link "${tar_long}" 'x/100%done' z | sort)"
+tar_check "hardlink" grep -q 'a\.link link to z$' <(tar -tvf "${tar_chart}/1.tar")
+# read from the first header: the listing format differs between GNU tar and bsdtar
+tar_owner=$(for f in 108:6 116:6 265:4 297:4; do
+  dd if="${tar_chart}/1.tar" bs=1 skip="${f%:*}" count="${f#*:}" 2>/dev/null; echo
+done)
+tar_check "root owner" test "$(echo ${tar_owner})" = "000000 000000 root root"
+tar_check "extraction" tar -xf "${tar_chart}/1.tar" -C "${tar_chart}/out"
+tar_check "'%' in a path" test "$(cat "${tar_chart}/out/x/100%done")" = pct
+tar_check "long path" test "$(cat "${tar_chart}/out/${tar_long}")" = long
+rm -rf "${tar_chart}"
+
+# gzip of incompressible data: STORED blocks, also after a compressed one, and
+# without compression (text_random and stored have 2 blocks, the max block size
+# is 65535)
+
+echo "[gzip] incompressible data and no compression"
+gzip_chart=$(mktemp -d)
+mkdir -p "${gzip_chart}/templates"
+cp kubeadm/templates/lib/_gzip.tpl "${gzip_chart}/templates/"
+printf 'apiVersion: v2\nname: gzip-test\nversion: 0.1.0\n' > "${gzip_chart}/Chart.yaml"
+cat > "${gzip_chart}/templates/configmap.yaml" << 'EOF'
+{{- $random := randBytes 3000 | b64dec -}}
+{{- $textRandom := print (repeat 5500 "hello world ") $random -}}
+{{- $cases := dict
+    "random" (dict "content" $random)
+    "text_random" (dict "content" $textRandom)
+    "stored" (dict "content" $textRandom "compress" false) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gzip-test
+data:
+{{- range $name, $case := $cases }}
+  {{ $name }}: {{ $case.content | b64enc }}
+  {{ $name }}_gz: {{ $case | include "gzip" | b64enc }}
+{{- end }}
+EOF
+gzip_rendered=$("${HELM:-helm}" template gzip-test "${gzip_chart}")
+for name in random text_random stored; do
+  echo "${gzip_rendered}" | sed -n "s/^  ${name}: //p" | base64 -d > "${gzip_chart}/${name}"
+  echo "${gzip_rendered}" | sed -n "s/^  ${name}_gz: //p" | base64 -d > "${gzip_chart}/${name}.gz"
+  if gzip -dc "${gzip_chart}/${name}.gz" | cmp -s - "${gzip_chart}/${name}"; then
+    echo "  ✅ [OK] gzip round trip: ${name}"
+  else
+    echo "  ❌ [FAIL] gzip round trip: ${name}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+done
+rm -rf "${gzip_chart}"
+
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then
   echo "❌ ${FAILURES} check(s) failed" >&2

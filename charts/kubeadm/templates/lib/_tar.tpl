@@ -7,11 +7,12 @@ Input: map of path -> file info dict:
     content:          "string"   # File payload (default: "")
     link_path:        "path"     # Target path for links (default: "")
     file_mode:        0644       # Octal file permissions (default: 0644)
-    owner_uid:        0765       # Owner UID octal (default: 0765)
-    group_uid:        024        # Group GID octal (default: 024)
-    owner_user_name:  "user"     # Owner name, max 32 bytes (default: "user")
-    owner_group_name: "group"    # Group name, max 32 bytes (default: "group")
-    mod_timestamp:    12345678   # Unix modification timestamp (default: now)
+    owner_uid:        0          # Owner UID octal (default: 0)
+    group_uid:        0          # Group GID octal (default: 0)
+    owner_user_name:  "root"     # Owner name, max 32 bytes (default: "root")
+    owner_group_name: "root"     # Group name, max 32 bytes (default: "root")
+    mod_timestamp:    12345678   # Unix modification timestamp (default: now, set it for a reproducible archive)
+
     filename_prefix:  ""         # Manual USTAR prefix override (max 155 bytes)
 
 Features:
@@ -115,20 +116,20 @@ data:
   {{ fail (printf "file_mode '%v' is invalid. Expected octal range 0000-0777 (0-511 dec)" $file_mode) }}
 {{- end -}}
 
-{{- $owner_uid := get $info "owner_uid" | default 0765 -}}
+{{- $owner_uid := get $info "owner_uid" | default 0 -}}
 {{- if or (lt $owner_uid 0) (gt $owner_uid 262143) -}}
   {{ fail (printf "owner_uid '%v' exceeds 6-octal digits limit (max 262143)" $owner_uid) }}
 {{- end -}}
 
-{{- $group_uid := get $info "group_uid" | default 024 -}}
+{{- $group_uid := get $info "group_uid" | default 0 -}}
 {{- if or (lt $group_uid 0) (gt $group_uid 262143) -}}
   {{ fail (printf "group_uid '%v' exceeds 6-octal digits limit (max 262143)" $group_uid) }}
 {{- end -}}
 
-{{- $owner_user_name := get $info "owner_user_name" | default "user" -}}
+{{- $owner_user_name := get $info "owner_user_name" | default "root" -}}
 {{- if gt (len $owner_user_name) 32 -}}{{ fail "Owner user name length exceeds 32 bytes limit" }}{{- end -}}
 
-{{- $owner_group_name := get $info "owner_group_name" | default "group" -}}
+{{- $owner_group_name := get $info "owner_group_name" | default "root" -}}
 {{- if gt (len $owner_group_name) 32 -}}{{ fail "Owner group name length exceeds 32 bytes limit" }}{{- end -}}
 
 {{- $device_major := get $info "device_major" | default 0 -}}
@@ -141,10 +142,11 @@ data:
   {{ fail (printf "device_minor '%v' exceeds 6-octal digits limit (max 262143 dec / 0777777 oct)" $device_minor) }}
 {{- end -}}
 
-{{- $mod_timestamp := get $info "mod_timestamp" | default (get $tarContextDict "mod_timestamp") -}}
+{{/* hasKey: 0 is a valid timestamp */}}
+{{- $mod_timestamp := hasKey $info "mod_timestamp" | ternary (get $info "mod_timestamp") (get $tarContextDict "mod_timestamp") | int -}}
 
-{{/* populate data */}}
-{{- printf $file_path_and_name -}}
+{{/* populate data, print (not printf): the values aren't format strings */}}
+{{- print $file_path_and_name -}}
 {{- $paddingLen := sub 100 (len $file_path_and_name) -}}
 {{- repeat (int $paddingLen) (printf "%c" 0) -}}
 {{- printf "%06o " $file_mode -}}
@@ -156,13 +158,13 @@ data:
 {{- printf "%011o " (len $content) -}}
 {{- printf "%011o " $mod_timestamp -}}
 
-{{- printf $checksum -}}
+{{- print $checksum -}}
 {{- $paddingLen := sub 8 (len $checksum) -}}
 {{- repeat (int $paddingLen) (printf "%c" 0) -}}
 
 {{/* link indicator */}}
-{{- printf $type -}}
-{{- printf $link_path -}}
+{{- print $type -}}
+{{- print $link_path -}}
 {{- $paddingLen := sub 100 (len $link_path) -}}
 {{- repeat (int $paddingLen) (printf "%c" 0) -}}
 
@@ -171,11 +173,11 @@ data:
 {{- printf "%c" 0 -}}
 {{- printf "00" -}}
 
-{{- printf $owner_user_name -}}
+{{- print $owner_user_name -}}
 {{- $paddingLen := sub 32 (len $owner_user_name) -}}
 {{- repeat (int $paddingLen) (printf "%c" 0) -}}
 
-{{- printf $owner_group_name -}}
+{{- print $owner_group_name -}}
 {{- $paddingLen := sub 32 (len $owner_group_name) -}}
 {{- repeat (int $paddingLen) (printf "%c" 0) -}}
 
@@ -184,7 +186,7 @@ data:
 {{- printf "%06o " $device_minor -}}
 {{- printf "%c" 0 -}}
 
-{{- printf $filename_prefix -}}
+{{- print $filename_prefix -}}
 {{- $paddingLen := sub 155 (len $filename_prefix) -}}
 {{- repeat (int $paddingLen) (printf "%c" 0) -}}
 
@@ -281,8 +283,10 @@ data:
 
 {{- define "tar" -}}
 {{- $files := . -}}
+{{/* shared by all the files: a hardlink target is written once */}}
+{{- $tarContextDict := dict "files" $files -}}
 {{- range $name, $info := $files -}}
-  {{- include "_tar_section_ensure_content" (tuple (dict "files" $files) $name $info) -}}
+  {{- include "_tar_section_ensure_content" (tuple $tarContextDict $name $info) -}}
 {{- end -}}
 {{/* ustar end of everything */}}
 {{- repeat 1024 (printf "%c" 0) -}}
