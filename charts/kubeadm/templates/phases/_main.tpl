@@ -72,14 +72,6 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
   {{ tuple $envAll "templates/_configmap-bin.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
   {{ tuple $envAll "templates/_secret-daemonset-fs.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
 
-  {{/* TODO:
-  this is a WA and
-  this is an incorrect way to do this. Helm isn't supposed to own this object
-  it will delete it if we delete the chart. Also it will complain if object created by normal kubadm already exists.
-  it's necessary to do this using kubectl if it doesn't exist
-  */}}
-  {{ tuple $envAll "templates/_configmap-for-kubeadm.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
-
   {{/* those 2 support patching (because of that it's necesary to add gates and --- here)  */}}
   {{- if $envAll.Values.manifests.daemonset_masters }}
 ---

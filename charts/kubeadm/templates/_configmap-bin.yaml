@@ -30,6 +30,7 @@ data:
 {{ tuple $envAll "templates/bin/_ensure_fs.tpl" | include "kubeadm.bundle.template" | indent 4 }}
   reconcile: |+
 {{ tuple $envAll "templates/bin/_reconcile.tpl" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | indent 4 }}
+  # run by the pods of the previous chart versions, the new ones have it inline
   pre_stop: |+
 {{ tuple $envAll "templates/bin/_pre_stop.tpl" | include "kubeadm.bundle.template" | indent 4 }}
 {{- end }}

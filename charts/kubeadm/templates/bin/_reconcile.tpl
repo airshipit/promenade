@@ -142,6 +142,31 @@ kubeadm() {
   fi
 }
 
+# kubeadm join and upgrade node take the ClusterConfiguration from the
+# kubeadm-config ConfigMap:
+# kubeadm creates or updates it and kubelet-config
+upload_kubeadm_config() {
+  local dir rc=0
+  dir="$(mktemp -d -p "${RECONCILE_DIR}")"
+  # kubeadm may rewrite the kubeconfig passed to it
+  cp "${ROOTFS}${KUBERNETES_DIR}/admin.conf" "${dir}/admin.conf"
+  # the node name isn't always the hostname kubeadm defaults to
+  cat > "${dir}/config.yaml" << EOF_CONFIG
+apiVersion: $(sed -n 's/^apiVersion: *//p' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/ClusterConfiguration" | head -n 1)
+kind: InitConfiguration
+nodeRegistration:
+  name: ${NODE_NAME}
+  criSocket: $(sed -n 's/^ *containerRuntimeEndpoint: *\(.*\)/\1/p' "${ROOTFS}/var/lib/kubelet/config.yaml")
+---
+$(cat "${ROOTFS}${KUBERNETES_DIR}/kubeadm/ClusterConfiguration")
+---
+$(cat "${ROOTFS}/var/lib/kubelet/config.yaml")
+EOF_CONFIG
+  kubeadm init phase upload-config all --config "${dir}/config.yaml" --kubeconfig "${dir}/admin.conf" || rc=$?
+  rm -rf "${dir}"
+  return $rc
+}
+
 kubeadm_action() {
   if [ -z $CRI_SOCKET ]; then
     annotate_node "$CRI_SOCKET_ANNOTATION" "$(sed -n 's/^ *containerRuntimeEndpoint: *\(.*\)/\1/p' /run/kubeadm/allnodes/kubelet_config.yaml)"
@@ -162,7 +187,8 @@ kubeadm_action() {
       exit 1
     fi
   else
-    if ! kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 30s; then
+    # the other masters may restart their control plane at the same time
+    if ! kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 300s; then
       echo "control plane pods are not healthy, resetting the node"
       if [[ $KUBERNETES_ETCD == "enabled" ]]; then
         if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l component=etcd --timeout 10s 2>/dev/null; then
@@ -173,7 +199,9 @@ kubeadm_action() {
         fi
       fi
       for component in kube-apiserver kube-controller-manager kube-scheduler; do
-        if ! kubectl wait --for=condition=ready pod -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l component=$component --timeout 10s 2>/dev/null; then
+        # an API error isn't a reason to remove the manifest
+        ready=$(kubectl get pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l component=$component -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}') || continue
+        if [[ $ready != True ]]; then
           echo "Removing unhealthy static pod manifest for $component"
           rm -f "${ROOTFS}${KUBERNETES_DIR}/manifests/${component}.yaml"
           sleep 30
@@ -274,6 +302,24 @@ sync_kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 [[ $NODE_ROLE == "master" ]] || wait_apiservers_upgraded
 sync_binary kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 
+sync_certs
+sync_kubeadm
+
+# by default etcd is disabled - but if it was installed - turn this phase onn
+if [[ $KUBERNETES_ETCD == "enabled" ]]; then
+  # do not skip etcd related phases
+  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
+  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" #TODO: to verify
+  # turn on etcd upgrade
+  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
+fi
+
+# kubeadm config has to be up-to-date with what we have in values.
+# It is needed only on controllers (is_action_required works on controllers only)
+if [[ $NODE_ROLE == "master" && -f "${ROOTFS}${KUBERNETES_DIR}/admin.conf" ]]; then
+  upload_kubeadm_config
+fi
+
 # migration from Airship to kubeadm
 # kubeadm mutates the kubeconfig passed via --kubeconfig if it is a default one
 # (/etc/kubernetes/admin.conf). Operate on a throwaway copy of admin.conf so the
@@ -292,18 +338,6 @@ fi
 # migration from Airship to kubeadm
 [[ $NODE_ROLE == "master" ]] && rename_cp_pods
 
-# stranged but original script had this after
-sync_certs
-sync_kubeadm
-
-# by default etcd is disabled - but if it was installed - turn this phase onn
-if [[ $KUBERNETES_ETCD == "enabled" ]]; then
-  # do not skip etcd related phases
-  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
-  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" #TODO: to verify
-  # turn on etcd upgrade
-  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
-fi
 
 is_action_required || true
 # the anchor was restarted while the node was drained (e.g. the new kubelet

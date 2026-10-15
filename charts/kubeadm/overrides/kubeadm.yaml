@@ -99,8 +99,6 @@ bundle:
             value: "1000"
           - name: configure-cloud-routes
             value: "false"
-      featureGates:
-        NodeLocalCRISocket: false
       dns:
         disabled: true
       encryptionAlgorithm: RSA-2048
@@ -254,7 +252,10 @@ bundle:
         patches:
           directory: /etc/kubernetes/kubeadm/patches
         skipPhases:
+        # the chart will use its means to handle kubelet-config by itself
         - kubelet-config
+        # rewrites kubelet.conf to the local apiserver and restarts kubelet
+        - kubeconfig
         - addon
         imagePullPolicy: Always
         imagePullSerial: false

@@ -49,7 +49,17 @@ rules:
       - "*"
   - apiGroups: [ "batch" ]
     resources: [ "jobs" ]
-    verbs: [ "*" ]
+    verbs:
+      # note:
+      # - "*" causes kubectl wait command to return forbidden:
+      # User \"system:serviceaccount:kube-system:kubeadm\" cannot watch resource \"jobs\" in API group \"batch\" in the namespace \"kube-system\"" reflector="k8s.io/client-go/tools/watch/informerwatcher.go:162" type="*unstructured.Unstructured"
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

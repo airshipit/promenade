@@ -344,7 +344,6 @@ fullnameOverride: kubeadm-service
 
 manifests:
   configmap_bin: true
-  configmap_for_kubeadm: true
   secret_daemonset_fs_common: true
   secret_daemonset_fs_masters: true
   secret_daemonset_fs_per_node: true

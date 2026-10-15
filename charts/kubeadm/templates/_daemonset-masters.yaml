@@ -97,8 +97,16 @@ spec:
           lifecycle:
             preStop:
               exec:
+                # inline: a running pod keeps the hook of its own reconcile
                 command:
-                  - /tmp/bin/pre_stop
+                  - /bin/sh
+                  - -c
+                  - |
+                    touch /host{{ $envAll.Values.anchor.reconcile.host_dir }}/stop
+                    # the script stops between its passes; terminationGracePeriodSeconds limits the wait
+                    while pgrep -f "{{ $envAll.Values.anchor.reconcile.host_dir }}/bin/reconcile" > /dev/null; do
+                      sleep 1
+                    done
 
           readinessProbe:
             exec:

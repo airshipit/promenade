@@ -275,6 +275,8 @@ bundle:
         skipPhases:
           # kubelet configuration is delivered by the chart
           - kubelet-config
+          # rewrites kubelet.conf to the local apiserver and restarts kubelet
+          - kubeconfig
         # addons (CoreDNS, kube-proxy) installed by kubeadm init are upgraded
         # by the addon phase on the last upgraded control plane node
       # Must match the init configuration: static pod startup probes are
