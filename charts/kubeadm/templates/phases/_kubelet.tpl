@@ -2,23 +2,23 @@
 {{- $k8sConfDict := index . 1 -}}
 {{- $sharedLibName := index . 2 -}}
 
-{{- $allNodes := get $k8sConfDict "allNodes" -}}
-{{- $perNode := get $k8sConfDict "perNode" -}}
-{{- $_ := set $allNodes "kubelet" (dict "content" (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-service-default.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/default/kubelet" "file_mode" 0600 ) -}}
-{{- $_ := set $allNodes "kubelet.service" (dict "content"  (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-service.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/systemd/system/kubelet.service" "file_mode" 0600 ) -}}
+{{- $allNodes := get $k8sConfDict.fs "all" -}}
+{{- $perNode := get $k8sConfDict.fs "all-pernode" -}}
+{{- $_ := set $allNodes "_kubelet/kubelet" (dict "content" (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-service-default.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/default/kubelet" "file_mode" 0600 ) -}}
+{{- $_ := set $allNodes "_kubelet/kubelet.service" (dict "content"  (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-service.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/systemd/system/kubelet.service" "file_mode" 0600 ) -}}
 {{- if eq "tpl" (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.templateActualMode") -}}
-  {{- $_ := set $allNodes "kubelet_config.yaml" (dict "content"  (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template") "dest_path" "var/lib/kubelet/config.yaml" "file_mode" 0600 ) -}}
+  {{- $_ := set $allNodes "_kubelet/kubelet_config.yaml" (dict "content"  (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template") "dest_path" "var/lib/kubelet/config.yaml" "file_mode" 0600 ) -}}
 {{- end -}}
 
 {{- if $envAll.Values.certs -}}
 
   {{- if $envAll.Values.certs.ca -}}
-    {{- $_ := set $allNodes "kubeletpkipub_kubelet-client-ca.pem" (dict "content" $envAll.Values.certs.ca.crt "dest_path" "/etc/kubernetes/pki/kubelet-client-ca.pem" "file_mode" 0600 ) -}}
+    {{- $_ := set $allNodes "_kubeletpkipub/kubelet-client-ca.pem" (dict "content" $envAll.Values.certs.ca.crt "dest_path" "/etc/kubernetes/pki/kubelet-client-ca.pem" "file_mode" 0600 ) -}}
     {{- range $k,$v := $envAll.Values.certs.nodes -}}
       {{- $perNodeEntry := get $perNode $k | default (dict) -}}
       {{- $_ := set $perNode $k $perNodeEntry -}}
-      {{- $_ := set $perNodeEntry "kubeletpkipub_kubelet.pem" (dict "content" $v.kubelet.crt "dest_path" "/etc/kubernetes/pki/kubelet.pem" "file_mode" 0600) -}}
-      {{- $_ := set $perNodeEntry "kubeletpkipriv_kubelet-key.pem" (dict "content" $v.kubelet.key "dest_path" "/etc/kubernetes/pki/kubelet-key.pem" "file_mode" 0600) -}}
+      {{- $_ := set $perNodeEntry "_kubeletpkipub/kubelet.pem" (dict "content" $v.kubelet.crt "dest_path" "/etc/kubernetes/pki/kubelet.pem" "file_mode" 0600) -}}
+      {{- $_ := set $perNodeEntry "_kubeletpkipriv/kubelet-key.pem" (dict "content" $v.kubelet.key "dest_path" "/etc/kubernetes/pki/kubelet-key.pem" "file_mode" 0600) -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
@@ -38,8 +38,8 @@ sync_kubelet_kubeconfig() {
   local sha_before=$(sha256sum "$k_crt" "$k_key" "$k_conf" 2>/dev/null || true)
 
   ensure_dir "${ROOTFS}${pki_dir}" "%s" "%s"
-  sync_prefix_based_dir "${ROOTFS}" "${pki_dir}" "kubeletpkipub_" "worker" false "%s" "%s"
-  sync_prefix_based_dir "${ROOTFS}" "${pki_dir}" "kubeletpkipriv_" "worker" false "%s" "%s"
+  sync_group_dir "${ROOTFS}" "_kubeletpkipub" "${pki_dir}" "worker" false "%s" "%s"
+  sync_group_dir "${ROOTFS}" "_kubeletpkipriv" "${pki_dir}" "worker" false "%s" "%s"
 
   ensure_dir "${ROOTFS}/etc/kubernetes/" "%s" "%s"
   if [ "%s" == "true" ]; then
@@ -65,15 +65,15 @@ sync_kubelet() {
   sync_kubelet_kubeconfig && c=0
 
   ensure_dir "${ROOTFS}/etc/default/" "%s" "%s"
-  envsubst < "${ROOTFS}/run/kubeadm/allnodes/kubelet" | compare_copy_file - "${ROOTFS}/etc/default/kubelet" && c=0
+  envsubst < "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet" | compare_copy_file - "${ROOTFS}/etc/default/kubelet" && c=0
   ensure_file "${ROOTFS}/etc/default/kubelet" "%s" "%s"
 
   ensure_dir "${ROOTFS}/etc/systemd/system/" "%s" "%s"
-  compare_copy_file "${ROOTFS}/run/kubeadm/allnodes/kubelet.service" "${ROOTFS}/etc/systemd/system/kubelet.service" && c=0
+  compare_copy_file "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet.service" "${ROOTFS}/etc/systemd/system/kubelet.service" && c=0
   ensure_file "${ROOTFS}/etc/default/kubelet" "%s" "%s"
 
   ensure_dir "${ROOTFS}/var/lib/kubelet/" "%s" "%s"
-  [ -f "${ROOTFS}/run/kubeadm/allnodes/kubelet_config.yaml" ] && compare_copy_file "${ROOTFS}/run/kubeadm/allnodes/kubelet_config.yaml" "${ROOTFS}/var/lib/kubelet/config.yaml" && c=0
+  [ -f "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" ] && compare_copy_file "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" "${ROOTFS}/var/lib/kubelet/config.yaml" && c=0
   ensure_file "${ROOTFS}/var/lib/kubelet/config.yaml" "%s" "%s"
   echo "kubelet is synced"
   return $c
@@ -81,10 +81,10 @@ sync_kubelet() {
 `
 (tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipub_") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipub_") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipriv_") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipriv_") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipub") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipub") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipriv") | include "kubeadm.bundle.template")
+(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipriv") | include "kubeadm.bundle.template")
 
 (tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template")
 (tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template")

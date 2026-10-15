@@ -12,8 +12,9 @@
 # limitations under the License.
 
 # The bootstrap script of the kubeadm chart installs kubeadm, kubelet and
-# kubectl itself (binaries.* of the chart values), the nodes need the CNI
-# plugins and envsubst only.
+# kubectl itself (binaries.* of the chart values) and the container runtime
+# (install_cri of the gate values), the nodes need the CNI plugins and
+# envsubst only.
 
 set -ex
 

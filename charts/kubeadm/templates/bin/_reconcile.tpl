@@ -32,7 +32,7 @@ kubectl() {
 # config directories
 KUBERNETES_DIR="/etc/kubernetes"
 
-KUBERNETES_VERSION="$(sed -n 's/^ *kubernetesVersion: *\(.*\)/\1/p' /run/kubeadm/allnodes/kubeadm_ClusterConfiguration)"
+KUBERNETES_VERSION="$(sed -n 's/^ *kubernetesVersion: *\(.*\)/\1/p' /run/kubeadm/all/_kubeadm/ClusterConfiguration)"
 KUBEADM_ANNOTATION="last-applied-kubeadm-cfg-sha256"
 KUBELET_ANNOTATION="last-applied-kubelet-cfg-sha256"
 CRI_SOCKET_ANNOTATION="kubeadm.alpha.kubernetes.io/cri-socket"
@@ -81,7 +81,9 @@ cleanup_old_backups() {
 
 restart_kubelet() {
   annotate_node "$KUBELET_RESTART_ANNOTATION" true
+{{- if $envAll.Values.kubelet.drain }}
   kubectl drain "${NODE_NAME}" --pod-selector '!kubelet-restart' --ignore-daemonsets --delete-emptydir-data
+{{- end }}
 
   # heredoc will take care of ${NODE_NAME} and etc
   job_name=$(kubectl create -f - -o name <<EOF_DATA
@@ -91,7 +93,9 @@ EOF_DATA
 
   kubectl wait -n kube-system --for=condition=complete $job_name --timeout=600s
 
+{{- if $envAll.Values.kubelet.drain }}
   kubectl uncordon "${NODE_NAME}"
+{{- end }}
   kubectl annotate node "${NODE_NAME}" "${KUBELET_RESTART_ANNOTATION}-"
   kubectl wait node --for=condition=ready "${NODE_NAME}" --timeout=60s
 
@@ -112,7 +116,7 @@ is_action_required() {
   local rc=1 # return code 1 means false
 
   if [[ $NODE_ROLE == "master" ]]; then
-    current_cluster_config_sha256=$(sha256sum < /run/kubeadm/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)
+    current_cluster_config_sha256=$(sha256sum < /run/kubeadm/all/_kubeadm/ClusterConfiguration | cut -d ' ' -f 1)
     if [[ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 || $LAST_APPLIED_KUBEADM_CONFIG_SHA256 != $current_cluster_config_sha256 ]]; then
       KUBEADM_ACTION_REQUIRED=true
       rc=0
@@ -120,7 +124,7 @@ is_action_required() {
   fi
 
 {{- if $envAll.Values.kubelet.restart  }}
-  current_kubelet_config_sha256=$(sha256sum < /run/kubeadm/allnodes/kubelet_config.yaml | cut -d ' ' -f 1)
+  current_kubelet_config_sha256=$(sha256sum < /run/kubeadm/all/_kubelet/kubelet_config.yaml | cut -d ' ' -f 1)
   if [[ -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 || $LAST_APPLIED_KUBELET_CONFIG_SHA256 != $current_kubelet_config_sha256 || $KUBELET_CURRENT_VERSION != $KUBERNETES_VERSION ]]; then
     KUBELET_RESTART_REQUIRED=true
     rc=0
@@ -169,7 +173,7 @@ EOF_CONFIG
 
 kubeadm_action() {
   if [ -z $CRI_SOCKET ]; then
-    annotate_node "$CRI_SOCKET_ANNOTATION" "$(sed -n 's/^ *containerRuntimeEndpoint: *\(.*\)/\1/p' /run/kubeadm/allnodes/kubelet_config.yaml)"
+    annotate_node "$CRI_SOCKET_ANNOTATION" "$(sed -n 's/^ *containerRuntimeEndpoint: *\(.*\)/\1/p' /run/kubeadm/all/_kubelet/kubelet_config.yaml)"
   fi
 
   # switching node to the controller
@@ -297,6 +301,14 @@ cleanup_old_backups
 KUBEADM_ACTION_REQUIRED=false
 KUBELET_RESTART_REQUIRED=false
 
+CRI_RESTART_REQUIRED=false
+{{- if $envAll.Values.cri.reconcile_install }}
+sync_cri_install && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+{{- end }}
+sync_cri && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+if [[ $CRI_RESTART_REQUIRED == true ]]; then
+  restart_cri
+fi
 sync_kubeconfigs
 sync_kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 [[ $NODE_ROLE == "master" ]] || wait_apiservers_upgraded
@@ -346,13 +358,13 @@ is_action_required || true
 
 if [[ $KUBEADM_ACTION_REQUIRED == true ]]; then
   kubeadm_action
-  LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(sha256sum < /run/kubeadm/allnodes/kubeadm_ClusterConfiguration | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(sha256sum < /run/kubeadm/all/_kubeadm/ClusterConfiguration | cut -d ' ' -f 1)"
   annotate_node "$KUBEADM_ANNOTATION" "$LAST_APPLIED_KUBEADM_CONFIG_SHA256"
 fi
 
 if [[ $KUBELET_RESTART_REQUIRED == true ]]; then
   restart_kubelet
-  LAST_APPLIED_KUBELET_CONFIG_SHA256="$(sha256sum < /run/kubeadm/allnodes/kubelet_config.yaml | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBELET_CONFIG_SHA256="$(sha256sum < /run/kubeadm/all/_kubelet/kubelet_config.yaml | cut -d ' ' -f 1)"
   annotate_node "$KUBELET_ANNOTATION" "$LAST_APPLIED_KUBELET_CONFIG_SHA256"
 fi
 

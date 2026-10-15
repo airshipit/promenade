@@ -13,8 +13,8 @@
 # Prepare bare nodes for the kubeadm chart gate. Kubernetes is NOT deployed
 # here: only the parts of the openstack-helm deploy-env role which the
 # bootstrap script of the chart expects to be present on the node are used
-# (packages, containerd, the overlay network carrying the node IPs of the
-# gate values).
+# (packages, the overlay network carrying the node IPs of the gate values).
+# CRI-O is installed by tools/deployment/kubeadm/020-prepare-nodes.sh.
 ---
 - hosts: all
   become: true
@@ -31,10 +31,27 @@
         name: deploy-env
         tasks_from: prerequisites.yaml
 
-    - name: Deploy containerd
-      include_role:
-        name: deploy-env
-        tasks_from: containerd.yaml
+    - name: Docker Hub mirror for CRI-O
+      when: zuul_site_mirror_fqdn is defined
+      block:
+        - name: Create the registries configuration directory
+          file:
+            path: /etc/containers/registries.conf.d
+            state: directory
+            mode: "0755"
+
+        - name: Configure the mirror
+          copy:
+            dest: /etc/containers/registries.conf.d/50-zuul-mirror.conf
+            content: |
+              [[registry]]
+              prefix = "docker.io"
+              location = "docker.io"
+
+              [[registry.mirror]]
+              location = "{{ zuul_site_mirror_fqdn }}:8082"
+              insecure = true
+            mode: "0644"
 
     - name: Overlay network
       include_role:

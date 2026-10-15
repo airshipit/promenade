@@ -44,14 +44,13 @@ bind() {
 }
 
 private_dir "${HOST}/run/kubeadm"
-for d in allnodes ctrlnodes; do
-  if [ -d "/tmp/${d}" ]; then
-    bind "/tmp/${d}" "${HOST}/run/kubeadm/${d}"
+# the archives mounted to the pod (the daemonset of the workers has no ctrl ones)
+for archive in all ctrl all-pernode ctrl-pernode; do
+  if [ -s "/tmp/fs/${archive}.tar" ]; then
+    mkdir -p "${HOST}/run/kubeadm/${archive}"
+    tar -xf "/tmp/fs/${archive}.tar" -C "${HOST}/run/kubeadm/${archive}"
   fi
 done
-if [ -f /tmp/node.tar ]; then
-  tar -xf /tmp/node.tar -C "${HOST}/run/kubeadm"
-fi
 
 private_dir "${HOST}${RECONCILE_DIR}"
 bind /tmp/bin "${HOST}${RECONCILE_DIR}/bin"

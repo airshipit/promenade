@@ -7,21 +7,17 @@
 {{- $nodename := index . 2 -}}
 {{- $fs := dict -}}
 
-{{- $allNodes := get $k8sConfDict "allNodes" -}}
-{{- range $k,$v := $allNodes -}}
-{{- $_ := set $fs (print "allnodes/" $k) $v -}}
+{{/* all the archives of the node in one, unpacked to /run/kubeadm/<archive> */}}
+{{- range $archive := list "all" "ctrl" -}}
+{{- range $k,$v := get $k8sConfDict.fs $archive -}}
+{{- $_ := set $fs (print $archive "/" $k) $v -}}
 {{- end -}}
-{{- $controlPlaneNodes := get $k8sConfDict "controlPlaneNodes" -}}
-{{- range $k,$v := $controlPlaneNodes -}}
-{{- $_ := set $fs (print "ctrlnodes/" $k) $v -}}
 {{- end -}}
-
 {{- if ne $nodename "" -}}
-{{/* per node is mentioned only in fs-pki, and in this case we'll need to know */}}
-{{- $perNode := get $k8sConfDict "perNode" -}}
-{{- $node := get $perNode $nodename -}}
-{{- range $k,$v := $node -}}
-{{- $_ := set $fs (print "per-node/" $k) $v -}}
+{{- range $archive := list "all-pernode" "ctrl-pernode" -}}
+{{- range $k,$v := get (get $k8sConfDict.fs $archive) $nodename -}}
+{{- $_ := set $fs (print $archive "/" $k) $v -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
@@ -76,8 +72,12 @@ ensure_fs() {
 EOF_ARCHIVE_DATA
 }
 cleanup_fs() {
-{{- range $path, $_ := $fs }}
-  rm -rf $(dirname "${ROOTFS}/run/kubeadm/{{ $path }}") || true
+{{- $dirs := dict -}}
+{{- range $path, $_ := $fs -}}
+{{- $_ := set $dirs (index (splitList "/" $path) 0) true -}}
+{{- end -}}
+{{- range $dir, $_ := $dirs }}
+  rm -rf "${ROOTFS}/run/kubeadm/{{ $dir }}" || true
 {{- end }}
   echo "cleanup_fs is done"
 }
@@ -119,7 +119,12 @@ sync_kubeadm
 
 sync_vip
 
-sync_cri
+cri_changed=false
+sync_cri_install && cri_changed=true
+sync_cri && cri_changed=true
+if [[ $cri_changed == true ]]; then
+  restart_cri
+fi
 sync_kube_cgroup
 
 sync_binaries kubeadm kubectl kubelet || true

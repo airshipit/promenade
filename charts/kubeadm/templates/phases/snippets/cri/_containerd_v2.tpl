@@ -4,11 +4,11 @@ version = 2
   level = "warn"
 
 [plugins."io.containerd.grpc.v1.cri"]
-  sandbox_image = {{ .Values.images.tags.containerd_pause | quote }}
+  sandbox_image = {{ .Values.images.tags.pause | quote }}
 
-{{ if .Values.containerd.auths }}
+{{ if .Values.cri.auths }}
 [plugins."io.containerd.cri.v1.images".registry.auths]
-{{- range $_,$v := .Values.containerd.auths }}
+{{- range $_,$v := .Values.cri.auths }}
     [plugins."io.containerd.cri.v1.images".registry.auths.{{ $v.repo | quote }}]
         auth = {{ $v.auth | b64enc | quote }}
 {{- end }}

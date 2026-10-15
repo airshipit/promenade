@@ -25,6 +25,10 @@ binary_source() {
 
 {{ tuple $envAll "templates/phases/snippets/binaries/_install.sh.tpl" | include "kubeadm.bundle.template" }}
 
+{{ tuple $envAll "templates/phases/snippets/cri/_install.sh.tpl" | include "kubeadm.bundle.template" }}
+
+{{ tuple $envAll "templates/phases/snippets/cri/_restart.sh.tpl" | include "kubeadm.bundle.template" }}
+
 # returns 0 if the binary was changed, 1 if not, exits on errors
 sync_binary() {
   local rc=0
@@ -43,6 +47,17 @@ sync_binaries() {
     sync_binary "$name" && changed=0
   done
   return "$changed"
+}
+
+# returns 0 if the container runtime was changed, 1 if not, exits on errors
+sync_cri_install() {
+  local rc=0
+  install_cri || rc=$?
+  if [ "$rc" -gt 1 ]; then
+    echo "Failed to install the container runtime" >&2
+    exit "$rc"
+  fi
+  return "$rc"
 }
 {{- end -}}
 

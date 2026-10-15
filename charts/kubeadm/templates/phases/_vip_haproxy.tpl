@@ -2,14 +2,14 @@
 {{- $k8sConfDict := index . 1 -}}
 {{- $sharedLibName := index . 2 -}}
 
-{{- $allNodes := get $k8sConfDict "allNodes" -}}
+{{- $allNodes := get $k8sConfDict.fs "all" -}}
 {{/* populate static pod anyway so user could use bootstrap command line to enable it */}}
 {{ $patch := dict -}}
 {{- if hasKey $envAll.Values.bundle.tpl "templates/phases/snippets/vip/_haproxy.yaml.tpl.patch" -}}
   {{- $patch = tuple $envAll "templates/phases/snippets/vip/_haproxy.yaml.tpl.patch" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | fromYaml -}}
 {{- end -}}
 {{- $staticPod := $patch | mergeOverwrite (tuple $envAll "templates/phases/snippets/vip/_haproxy.yaml.tpl" | include "kubeadm.bundle.template" | fromYaml) | toYaml -}}
-{{- $_ := set $allNodes "manifests_haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
+{{- $_ := set $allNodes "_manifests/haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
 
 
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
@@ -23,8 +23,8 @@
 
 {{- $manifestDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/manifests") | include "kubeadm.bundle.template" -}}
 {{- $manifestDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/manifests") | include "kubeadm.bundle.template" -}}
-{{- $manifestMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests_") | include "kubeadm.bundle.template" -}}
-{{- $manifestOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests_") | include "kubeadm.bundle.template" -}}
+{{- $manifestMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests") | include "kubeadm.bundle.template" -}}
+{{- $manifestOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests") | include "kubeadm.bundle.template" -}}
 
 {{- $addonsDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/addons") | include "kubeadm.bundle.template" -}}
 {{- $addonsDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/addons") | include "kubeadm.bundle.template" -}}
@@ -34,7 +34,7 @@ sync_vip_config() {
   local kubernetes_dir="/etc/kubernetes"
 
   ensure_dir "${ROOTFS}${kubernetes_dir}/manifests" "{{ $manifestDirMode }}" "{{ $manifestDirOwner }}"
-  sync_prefix_based_dir "${ROOTFS}" "${kubernetes_dir}/manifests" "manifests_" "${NODE_ROLE}" false "{{ $manifestMode }}" "{{ $manifestOwner }}"
+  sync_group_dir "${ROOTFS}" "_manifests" "${kubernetes_dir}/manifests" "${NODE_ROLE}" false "{{ $manifestMode }}" "{{ $manifestOwner }}"
 
   ensure_dir "${ROOTFS}${kubernetes_dir}/kubeadm/addons" "{{ $addonsDirMode }}" "{{ $addonsDirOwner }}"
 }

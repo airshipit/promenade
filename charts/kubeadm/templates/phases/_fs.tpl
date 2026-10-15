@@ -3,6 +3,7 @@
 {{- $sharedLibName := index . 2 -}}
 
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
+{{- $all := get (get $k8sConfDict "fs") "all" -}}
 
 {{/* we put here some common code which is used by most of the modules */}}
 
@@ -64,73 +65,82 @@ compare_copy_file() {
   return $changed
 }
 
-#  universal configurable unpacker for dirs
-#  takes actual folder path and unique files prefix for it
-#  it can also do envsubst if needed
-sync_prefix_based_dir() {
-  local rootfs="$1"
-  local nodes_dirs_dir="${rootfs}/run/kubeadm" dst_dir="${rootfs}$2" prefix="$3" node_role="$4" do_envsubst="$5"
+# The chart delivers its files in 4 archives unpacked to /run/kubeadm/<archive>:
+# all, ctrl (control plane nodes only), all-pernode and ctrl-pernode (the files
+# of the node). Each archive contains <group>/<files of the group>.
+
+# copies the files of the group from all the archives to the directory, with
+# envsubst if needed (the ctrl archives are skipped on the workers)
+sync_group_dir() {
+  local rootfs="$1" group="$2"
+  local dst_dir="${rootfs}$3" node_role="$4" do_envsubst="$5"
   local mode="${6:-}"
   local owner="${7:-}"
-  for dir in "${nodes_dirs_dir}/allnodes" "${nodes_dirs_dir}/ctrlnodes" "${nodes_dirs_dir}/per-node"; do
-    [ -d "$dir" ] || continue
-    [ "$dir" = "${nodes_dirs_dir}/ctrlnodes" ] && [ "$node_role" != "master" ] && continue
-    for file in "$dir"/${prefix}*; do
-      [ -e "$file" ] || continue
-      local src_name="${file##*/}" # basename
+  local archive file
+  for archive in all ctrl all-pernode ctrl-pernode; do
+    case "${archive}" in
+      ctrl*) [ "$node_role" = "master" ] || continue ;;
+    esac
+    for file in "${rootfs}/run/kubeadm/${archive}/${group}"/*; do
+      [ -f "$file" ] || continue
       if [ "$do_envsubst" != "true" ]; then
-        compare_copy_file "$file" "${dst_dir}/${src_name#$prefix}" "$mode" "$owner" || true
+        compare_copy_file "$file" "${dst_dir}/${file##*/}" "$mode" "$owner" || true
       else
-        envsubst < "$file" | compare_copy_file - "${dst_dir}/${src_name#$prefix}" "$mode" "$owner" || true
+        envsubst < "$file" | compare_copy_file - "${dst_dir}/${file##*/}" "$mode" "$owner" || true
       fi
     done
   done
 }
 
+
 %s
 ` -}}
 
+{{/* files groups go to the "all" archive as <group>/<path>, "_" groups are the phases ones */}}
 {{- $generatedPart := "" -}}
 {{- if $envAll.Values.files -}}
   {{- range $group,$list := $envAll.Values.files -}}
+    {{- if hasPrefix "_" $group -}}{{ fail (printf "files group %s: groups starting with _ are reserved for the phases" $group) }}{{- end -}}
     {{- $generatedPart = printf `%ssync_%s() {
   local host_dir="${ROOTFS}"
+  local changed=1 # return code 1 means false
 ` $generatedPart $group -}}
     {{- range $i,$v := $list -}}
       {{- if not $v.path -}}{{ fail (printf "files item %d doesn't have path" $i) }}{{- end -}}
       {{- if or (eq $v.state "rm") (eq $v.state "remove") -}}
-        {{- $generatedPart = printf `%s  rm "${host_dir}%s"
+        {{- $generatedPart = printf `%s  rm -f "${host_dir}%s"
 ` $generatedPart $v.path -}}
       {{- else -}}
         {{- $owner := $v.owner | default "" -}}
         {{- $mode := $v.mode | default "" -}}
         {{- if eq $v.state "dir" -}}
           {{- $generatedPart = printf `%s  ensure_dir "${host_dir}%s" "%s" "%s"
-` $generatedPart $v.path $owner $mode -}}
+` $generatedPart $v.path $mode $owner -}}
           {{- else if eq $v.state "touch" -}}
           {{- $generatedPart = printf `%s  ensure_file "${host_dir}%s" "%s" "%s"
-` $generatedPart $v.path $owner $mode -}}
+` $generatedPart $v.path $mode $owner -}}
           {{- else -}}
             {{- if not $v.from -}}{{ fail (printf "files item %d doesn't have \"from\" field" $i) }}{{- end -}}
+            {{/* compare_copy_file returns 1 when the file is unchanged */}}
             {{- if or (eq $v.state "cp") (eq $v.state "copy") -}}
-              {{- $generatedPart = printf `%s  compare_copy_file "${host_dir}%s" "${host_dir}%s" "%s" "%s"
-` $generatedPart $v.from $v.path $owner $mode -}}
-            {{- else if eq $v.state "content" -}}
-              {{- $generatedPart = printf `%s  base64 -d << 'EOF_DATA' | compare_copy_file "-" "${host_dir}%s" "%s" "%s"
-%s
-EOF_DATA
-` $generatedPart $v.path $owner $mode ($v.from | b64enc) -}}
-            {{- else if eq $v.state "tpl" -}}
-            {{- $generatedPart = printf `%s  base64 -d << 'EOF_DATA' | compare_copy_file "-" "${host_dir}%s" "%s" "%s"
-%s
-EOF_DATA
-` $generatedPart $v.path $owner $mode (tuple $envAll $v.from | include "kubeadm.bundle.template" | b64enc) -}}
+              {{- $generatedPart = printf `%s  compare_copy_file "${host_dir}%s" "${host_dir}%s" "%s" "%s" && changed=0
+` $generatedPart $v.from $v.path $mode $owner -}}
+            {{- else if or (eq $v.state "content") (eq $v.state "tpl") -}}
+              {{- $data := $v.from -}}
+              {{- if eq $v.state "tpl" -}}
+                {{- $data = tuple $envAll $v.from | include "kubeadm.bundle.template" -}}
+              {{- end -}}
+              {{- $file := printf "%s/%s" $group (trimPrefix "/" $v.path) -}}
+              {{- $_ := set $all $file (dict "content" $data "file_mode" 384) -}}
+              {{- $generatedPart = printf `%s  compare_copy_file "${host_dir}/run/kubeadm/all/%s" "${host_dir}%s" "%s" "%s" && changed=0
+` $generatedPart $file $v.path $mode $owner -}}
             {{- end -}}
           {{- end -}}
         {{- end -}}
       {{- end -}}
       {{/* bash doesn't like empty functions */}}
       {{- $generatedPart = printf `%s  echo "%s is synced"
+  return $changed
 }
 ` $generatedPart $group -}}
     {{- end -}}

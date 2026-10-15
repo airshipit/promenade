@@ -2,13 +2,9 @@
 {{- $k8sConfDict := dict -}}
 {{/* populates k8sConfDict TODO: rename to phasesConfDict? when we finish */}}
 
-{{/* FS */}}
-{{- $allNodes := get $k8sConfDict "allNodes" | default (dict) -}}
-{{- $_ := set $k8sConfDict "allNodes" $allNodes -}}
-{{- $controlPlaneNodes := get $k8sConfDict "controlPlaneNodes" | default (dict) -}}
-{{- $_ := set $k8sConfDict "controlPlaneNodes" $controlPlaneNodes -}}
-{{- $perNode := get $k8sConfDict "perNode" | default (dict) -}}
-{{- $_ := set $k8sConfDict "perNode" $perNode -}}
+{{/* the archives with the files of the chart, see templates/phases/_fs.tpl:
+     all/ctrl: "<group>/<file>" -> file, *-pernode: node -> "<group>/<file>" -> file */}}
+{{- $_ := set $k8sConfDict "fs" (dict "all" (dict) "ctrl" (dict) "all-pernode" (dict) "ctrl-pernode" (dict)) -}}
 
 {{/* shared script helpers (will go to all scripts)*/}}
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" | default (dict) -}}
@@ -17,15 +13,14 @@
 {{/* we're making an alternative implementation for the phases: e.g.
 https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 
-{{- $_ := tuple $envAll "templates/phases/_common.tpl" (tuple $envAll $k8sConfDict "common") | include "kubeadm.bundle.template" -}}
+{{- $_ := tuple $envAll "templates/phases/_fs.tpl" (tuple $envAll $k8sConfDict "fs") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_certs.tpl" (tuple $envAll $k8sConfDict "certs") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_kubeconfig.tpl" (tuple $envAll $k8sConfDict "kubeconfig") | include "kubeadm.bundle.template" -}}
 {{/* kubelet needs certs and kubeconfig generator to create everything */}}
 {{- $_ := tuple $envAll "templates/phases/_kubelet.tpl" (tuple $envAll $k8sConfDict "kubelet") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_kubeadm.tpl" (tuple $envAll $k8sConfDict "kubeadm") | include "kubeadm.bundle.template" -}}
-{{/* use containerd as cri and haproxy as vip */}}
+{{/* use haproxy as vip */}}
 {{- $_ := tuple $envAll "templates/phases/_kube-cgroup.tpl" (tuple $envAll $k8sConfDict "kube-cgroup") | include "kubeadm.bundle.template" -}}
-{{- $_ := tuple $envAll "templates/phases/_cri_containerd.tpl" (tuple $envAll $k8sConfDict "cri") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_vip_haproxy.tpl" (tuple $envAll $k8sConfDict "vip") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_k8s_up.tpl" (tuple $envAll $k8sConfDict "k8s_up") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_binaries.tpl" (tuple $envAll $k8sConfDict "binaries") | include "kubeadm.bundle.template" -}}
@@ -33,14 +28,13 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{/* generate shared part for bash scripts with all phases and put it to our object (they will appear in this order) */}}
 {{/*TODO: can be implemented shorter, but there are some more complex plans - so, good enough for now */}}
 {{- $_ := set $k8sConfDict "sharedLibsContent" (print
-      (get $sharedLibs "common")
+      (get $sharedLibs "fs")
       (get $sharedLibs "certs")
       (get $sharedLibs "kubeconfig")
       (get $sharedLibs "kubelet")
       (get $sharedLibs "kubeadm")
       (get $sharedLibs "k8s_up")
       (get $sharedLibs "kube-cgroup")
-      (get $sharedLibs "cri")
       (get $sharedLibs "vip")
       (get $sharedLibs "binaries")
 ) -}}
@@ -53,16 +47,15 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{- end -}}
 {{- $_ := set $k8sConfDict "cmdHookContent" $cmdHookContent -}}
 
-{{/* let's understand if we need perNodeMode based on our situation */}}
-{{- $perNode := get $k8sConfDict "perNode" -}}
-{{- $perNodeFileCount := 0 -}}
-{{- range $nodeName,$nodeFs := $perNode -}}
-  {{- $perNodeFileCount = add $perNodeFileCount (len $nodeFs) -}}
+{{/* the nodes with their own files get their own bootstrap scripts */}}
+{{- $perNode := dict -}}
+{{- range $archive := list "all-pernode" "ctrl-pernode" -}}
+  {{- range $nodeName,$nodeFs := get $k8sConfDict.fs $archive -}}
+    {{- if $nodeFs -}}{{- $_ := set $perNode $nodeName true -}}{{- end -}}
+  {{- end -}}
 {{- end -}}
-
-{{- if eq $perNodeFileCount 0 -}}
-{{/* it was empty - use it as a flag that we don't need perNode mode */}}
-{{- $_ := unset $k8sConfDict "perNode" -}}
+{{- if $perNode -}}
+{{- $_ := set $k8sConfDict "perNode" $perNode -}}
 {{- end -}}
 
 {{/* now generate everything with all this data */}}

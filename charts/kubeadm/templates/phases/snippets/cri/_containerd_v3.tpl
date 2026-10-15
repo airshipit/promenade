@@ -7,14 +7,14 @@ version = 3
     use_local_image_pull = true
 
 [plugins."io.containerd.cri.v1.images".pinned_images]
-    sandbox = {{ .Values.images.tags.containerd_pause | quote }}
+    sandbox = {{ .Values.images.tags.pause | quote }}
 
     [plugins."io.containerd.cri.v1.images".registry]
     config_path = "/etc/containerd/certs.d"
 
-{{ if .Values.containerd.auths }}
+{{ if .Values.cri.auths }}
 [plugins."io.containerd.cri.v1.images".registry.auths]
-{{- range $_,$v := .Values.containerd.auths }}
+{{- range $_,$v := .Values.cri.auths }}
     [plugins."io.containerd.cri.v1.images".registry.auths.{{ $v.repo | quote }}]
         auth = {{ $v.auth | b64enc | quote }}
 {{- end }}

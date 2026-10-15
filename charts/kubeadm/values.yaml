@@ -19,7 +19,7 @@ images:
     # chroot and tar, and nsenter (kubelet restart job); multi-arch
     anchor: docker.io/library/busybox:1.37
     haproxy: haproxy:1.8.25
-    containerd_pause: docker-open-nc.zc1.somedomain.com/google_containers/pause-amd64:latest
+    pause: registry.k8s.io/pause:3.10
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -102,6 +102,18 @@ haproxy:
       - option tcp-check
       - option redispatch
 
+files:
+  # todo - can check sha256 before and after and restart containerd if needed
+  cri:
+    - path: /etc/containerd
+      state: dir
+      owner: "root:root"
+    - path: /etc/containerd/config.toml
+      state: tpl
+      from: templates/phases/snippets/cri/_containerd_v3.tpl
+      owner: "root:root"
+      mode: "0600"
+# working examples (can be moved to test.sh):
 # files:
 #   rm_files: #groupname
 #     - path: /usr/local/share/ca/certain/dosntexist
@@ -117,61 +129,59 @@ haproxy:
 #       owner: "root:root" #optional
 #       mode: "0600" #optional
 
-# we're storing all files to the 3 'flat' folders:
-# "${nodes_dirs_dir}/allnodes" "${nodes_dirs_dir}/ctrlnodes" "${nodes_dirs_dir}/per-node"
-# each folder may have several unique prefixes depending on which
-# fs we're setting permissions. if there is no data, empty owner and mode are passed
-# and setting of permissions is skept in that case.
-# the approach with 3 folder allows to deliver files to nodes in a compact way wihtout duplication.
+# the permissions on the node of the files of the phases: a group is delivered
+# in _<group>/ of the archives (pkipub -> _pkipub/<file>) or is a file itself.
+# if there is no data, empty owner and mode are passed and setting of
+# permissions is skipped in that case.
 permissions:
   # certs/kubelet
   "/etc/kubernetes/pki":
     owner: "root:root"
     mode: "0700"
-    prefixes:
+    groups:
       # produced by certs phase
-      "pkipriv_": # keys
+      "pkipriv": # keys
         owner: "root:root"
         mode: "0600"
-      "pkipub_": # certs,
+      "pkipub": # certs,
         owner: "root:root"
         mode: "0644"
       # produced by kubelet phase
-      "kubeletpkipriv_": # keys
+      "kubeletpkipriv": # keys
         owner: "root:root"
         mode: "0600"
-      "kubeletpkipub_": # certs
+      "kubeletpkipub": # certs
         owner: "root:root"
         mode: "0644"
   "/etc/kubernetes/pki/etcd":
     owner: "root:root"
     mode: "0700"
-    prefixes:
-      "etcdpriv_": # keys
+    groups:
+      "etcdpriv": # keys
         owner: "root:root"
         mode: "0600"
-      "etcdpub_": # certs,
+      "etcdpub": # certs,
         owner: "root:root"
         mode: "0600" #"0644"
   "/etc/kubernetes/admin/pki":
     owner: "root:root"
     mode: "0700"
-    prefixes:
-      "adminpkipriv_": # keys
+    groups:
+      "adminpkipriv": # keys
         owner: "root:root"
         mode: "0600"
-      "adminpkipub_": # certs,
+      "adminpkipub": # certs,
         owner: "root:root"
         mode: "0600" #"0644"
   "/etc/default":
     owner: "root:root"
-    prefixes:
+    groups:
       "kubelet":
         owner: "root:root"
         mode: "0600"
   "/etc/systemd/system":
     owner: "root:root"
-    prefixes:
+    groups:
       "kubelet.service":
         owner: "root:root"
         mode: "0600"
@@ -181,13 +191,13 @@ permissions:
   "/var/lib/kubelet":
     owner: "root:root"
     mode: "0700"
-    prefixes:
+    groups:
       "config.yaml":
         owner: "root:root"
         mode: "0600"
   "/etc/kubernetes":
     owner: "root:root"
-    prefixes:
+    groups:
       # produced by kubeconfig phase
       "admin.conf":
         owner: "root:root"
@@ -202,37 +212,31 @@ permissions:
       "kubelet.conf":
         owner: "root:root"
         mode: "0600"
-  "/etc/containerd":
-    owner: "root:root"
-    prefixes:
-      "config.toml":
-        owner: "root:root"
-        mode: "0600"
   "/usr/local/sbin":
     owner: "root:root"
-    prefixes:
+    groups:
       "kube-cgroup.sh":
         owner: "root:root"
         mode: "0600"
   "/etc/kubernetes/kubeadm":
     owner: "root:root"
     mode: "0700"
-    prefixes:
-      "kubeadm_":
+    groups:
+      "kubeadm":
         owner: "root:root"
         mode: "0600"
   "/etc/kubernetes/kubeadm/patches":
     owner: "root:root"
     mode: "0700"
-    prefixes:
-      kubeadmpatch_:
+    groups:
+      "kubeadmpatch":
         owner: "root:root"
         mode: "0600"
   "/etc/kubernetes/apiserver":
     owner: "root:root"
     mode: "0700"
-    prefixes:
-      "kubeadmapiserver_":
+    groups:
+      "kubeadmapiserver":
         owner: "root:root"
         mode: "0600"
   # haproxy static pod (vip phase) runs as nobody (65534) and reads its
@@ -241,9 +245,9 @@ permissions:
     owner: "root:root"
     mode: "0755"
   "/etc/kubernetes/manifests":
-    prefixes:
+    groups:
       # produced by vip phase
-      "manifests_":
+      "manifests":
         owner: "root:root"
         mode: "0600"
 
@@ -258,6 +262,8 @@ kubeconfig:
 
 kubelet:
   restart: true
+  # the node is drained before the restart and uncordoned after it
+  drain: true
 # if needed add:
 #      appArmorProfile:
 #        type: RuntimeDefault
@@ -265,8 +271,16 @@ kubelet:
     securityContext:
       privileged: true
 
-containerd:
-  version: v3
+cri:
+  # kubelet starts after it, restart_cri restarts it
+  service: containerd.service
+  # the bootstrap script always runs install_cri, the reconcile script with this
+  # flag. The installation procedure can be redefined in
+  # bundle.tpl."templates/phases/snippets/cri/_install.sh.tpl".
+  reconcile_install: false
+  # the reconcile script restarts the runtime when install_cri or files.cri
+  # changed it, the bootstrap script always does
+  restart: false
   # auths:
   #   - repo: docker-open-nc.zc1.somedomain.com
   #     auth: user:password
@@ -340,13 +354,14 @@ fullnameOverride: kubeadm-service
 #            bootstrap scipt can be up to ~150Kb (in case of perNode is used), that's why the script separated onto
 #            dedicated secret for each node, since Secrets have limit 1 - 2Mb and
 #            we definetly will go beyond this limit in case of 10-20 nodes.
-# for day 2: daemonset perform it bin/bin_helpers/fs_common/fs_masters_fs/fs_per_node/etc/rbac needed for daemonsets
+# for day 2: daemonset perform it bin/bin_helpers/fs_all/fs_ctrl/fs_all_pernode/fs_ctrl_pernode/etc/rbac needed for daemonsets
 
 manifests:
   configmap_bin: true
-  secret_daemonset_fs_common: true
-  secret_daemonset_fs_masters: true
-  secret_daemonset_fs_per_node: true
+  secret_daemonset_fs_all: true
+  secret_daemonset_fs_ctrl: true
+  secret_daemonset_fs_all_pernode: true
+  secret_daemonset_fs_ctrl_pernode: true
   secret_bootstrap: false
   daemonset_masters: true
   daemonset_workers: true

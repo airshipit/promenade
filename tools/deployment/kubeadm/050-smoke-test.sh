@@ -57,12 +57,13 @@ done <<< "${NODES}"
 
 # Workloads: scheduling, pod network, cluster DNS, apiserver -> kubelet.
 # The test pod runs on the last node (a worker), its peer on the first one:
-# pod to pod traffic crosses the nodes.
+# pod to pod traffic crosses the nodes. ping needs NET_RAW, CRI-O doesn't grant
+# it by default.
 run_pod() {
   local pod="$1" node="$2"
   kubectl delete pod "${pod}" --ignore-not-found --wait
-  kubectl run "${pod}" --image="${SMOKE_TEST_IMAGE}" --restart=Never \
-    --overrides="{\"apiVersion\": \"v1\", \"spec\": {\"nodeSelector\": {\"kubernetes.io/hostname\": \"${node}\"}}}"
+  kubectl run "${pod}" --image="${SMOKE_TEST_IMAGE}" --restart=Never --override-type=strategic \
+    --overrides="{\"apiVersion\": \"v1\", \"spec\": {\"nodeSelector\": {\"kubernetes.io/hostname\": \"${node}\"}, \"containers\": [{\"name\": \"${pod}\", \"securityContext\": {\"capabilities\": {\"add\": [\"NET_RAW\"]}}}]}}"
 }
 TEST_NODE=$(tail -n 1 <<< "${NODES}" | cut -d ' ' -f 1)
 PEER_NODE=$(head -n 1 <<< "${NODES}" | cut -d ' ' -f 1)

@@ -38,27 +38,17 @@ kubectl -n kube-system rollout status daemonset/calico-node --timeout=600s
 kubectl -n kube-system rollout status deployment/calico-kube-controllers --timeout=600s
 kubectl wait --for=condition=Ready nodes --all --timeout=300s
 
-# The anchor annotates nodes with checksums of the configuration it has
-# applied: wait until they match the configuration of the catalog.
-fs_file() {
-  kubectl -n "${NAMESPACE}" get secret kubeadm-service-fs-allnodes \
-    -o jsonpath="{.data.${1//./\\.}}" | base64 -d
-}
-EXPECTED_KUBEADM_SHA256=$(fs_file kubeadm_ClusterConfiguration | sha256sum | cut -d ' ' -f 1)
-EXPECTED_KUBELET_SHA256=$(fs_file kubelet_config.yaml | sha256sum | cut -d ' ' -f 1)
-EXPECTED_VERSION=$(fs_file kubeadm_ClusterConfiguration | sed -n 's/^ *kubernetesVersion: *//p')
-
 anchor_applied() {
-  local name
-  for name in $(kubectl get nodes -l kubernetes-apiserver=enabled -o name); do
-    [[ "$(kubectl get "${name}" -o jsonpath='{.metadata.annotations.last-applied-kubeadm-cfg-sha256}')" \
-      == "${EXPECTED_KUBEADM_SHA256}" ]] || return 1
-  done
-  # an upgrade keeps the kubelet config checksum: wait for the kubelet
-  # version too and for the end of the anchor drain
-  for name in $(kubectl get nodes -o name); do
-    [[ "$(kubectl get "${name}" -o jsonpath='{.metadata.annotations.last-applied-kubelet-cfg-sha256}|{.status.nodeInfo.kubeletVersion}|{.spec.unschedulable}')" \
-      == "${EXPECTED_KUBELET_SHA256}|${EXPECTED_VERSION}|" ]] || return 1
+  local ds_name
+  for ds_name in kubeadm-service-masters-anchor kubeadm-service-workers-anchor; do
+    # Если DS не существует или еще не имеет желаемых подов — ждем
+    local desired updated ready
+    read -r desired updated ready < <(kubectl -n kube-system get daemonset "${ds_name}" \
+      -o jsonpath='{.status.desiredNumberScheduled} {.status.updatedNumberScheduled} {.status.numberReady}' 2>/dev/null || echo "0 0 0")
+
+    if [[ "${desired}" -eq 0 ]] || [[ "${updated}" -ne "${desired}" ]] || [[ "${ready}" -ne "${desired}" ]]; then
+      return 1
+    fi
   done
 }
 

@@ -15,7 +15,7 @@
 [Unit]
 Description=Kubernetes Worker Process
 Requires=network-online.target
-After=network-online.target containerd.service
+After=network-online.target {{ .Values.cri.service }}
 
 [Service]
 Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"

@@ -676,6 +676,101 @@ for name in random text_random stored; do
 done
 rm -rf "${gzip_chart}"
 
+# files: every state, the mode is applied, the second sync with nothing to
+# change (unchanged files, an absent file to remove) doesn't stop the script
+
+echo "[files] states, mode, second sync"
+files_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] files: ${msg}"
+  else
+    echo "  ❌ [FAIL] files: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+files_mode() {
+  stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"
+}
+files_chart=$(mktemp -d)
+mkdir -p "${files_chart}/templates" "${files_chart}/rootfs"
+cp kubeadm/templates/phases/_fs.tpl kubeadm/templates/lib/bundle/_template.tpl kubeadm/templates/lib/_tar.tpl "${files_chart}/templates/"
+printf 'apiVersion: v2\nname: files-test\nversion: 0.1.0\n' > "${files_chart}/Chart.yaml"
+cat > "${files_chart}/values.yaml" << 'EOF'
+word: rendered
+bundle:
+  tpl:
+    file.tpl: "{{ .Values.word }}\n"
+files:
+  test:
+    - path: /d
+      state: dir
+      mode: "0750"
+    - path: /d/content
+      state: content
+      from: "content\n"
+      mode: "0640"
+    - path: /d/tpl
+      state: tpl
+      from: file.tpl
+    - path: /d/copy
+      state: copy
+      from: /d/content
+    - path: /d/touched
+      state: touch
+    - path: /d/removed
+      state: touch
+    - path: /d/removed
+      state: rm
+    - path: /d/absent
+      state: rm
+EOF
+cat > "${files_chart}/templates/configmap.yaml" << 'EOF'
+{{- $conf := dict "sharedLibs" (dict) "fs" (dict "all" (dict)) -}}
+{{- $_ := include "files-test/templates/_fs.tpl" (tuple . $conf "fs") -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: files-test
+data:
+  lib: {{ $conf.sharedLibs.fs | b64enc }}
+  tar: {{ $conf.fs.all | include "tar" | b64enc }}
+EOF
+files_rendered=$("${HELM:-helm}" template files-test "${files_chart}")
+echo "${files_rendered}" | sed -n 's/^  lib: //p' | base64 -d > "${files_chart}/lib.sh"
+# the files of the chart are in /run/kubeadm on the node (ensure_fs)
+mkdir -p "${files_chart}/rootfs/run/kubeadm/all"
+echo "${files_rendered}" | sed -n 's/^  tar: //p' | base64 -d | tar -x -C "${files_chart}/rootfs/run/kubeadm/all"
+# returns the status of sync_test: 0 changed, 1 unchanged, 2 if it didn't finish
+files_sync() {
+  local rc=0
+  ROOTFS="${files_chart}/rootfs" SKIPPERM= bash -c 'set -euo pipefail; source "$1"; sync_test' _ "${files_chart}/lib.sh" > "${files_chart}/out" || rc=$?
+  grep -qx "test is synced" "${files_chart}/out" || return 2
+  return "${rc}"
+}
+files_unchanged() {
+  local rc=0
+  files_sync || rc=$?
+  [ "${rc}" -eq 1 ]
+}
+files_d="${files_chart}/rootfs/d"
+files_check "first sync changes files" files_sync
+files_check "dir mode" test "$(files_mode "${files_d}")" = 750
+files_check "content" test "$(cat "${files_d}/content")" = content
+files_check "content mode" test "$(files_mode "${files_d}/content")" = 640
+files_check "tpl" test "$(cat "${files_d}/tpl")" = rendered
+files_check "copy" cmp -s "${files_d}/content" "${files_d}/copy"
+files_check "touch" test -f "${files_d}/touched"
+files_check "rm" test ! -e "${files_d}/removed"
+# base64 of the content and tpl files: they come from the fs, not the script
+files_not_inlined() {
+  ! grep -q -e Y29udGVudAo= -e cmVuZGVyZWQK "${files_chart}/lib.sh"
+}
+files_check "content isn't in the script" files_not_inlined
+files_check "second sync changes nothing" files_unchanged
+rm -rf "${files_chart}"
+
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then
   echo "❌ ${FAILURES} check(s) failed" >&2

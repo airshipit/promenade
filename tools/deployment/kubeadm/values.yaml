@@ -62,7 +62,24 @@ images:
   tags:
     dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
     haproxy: docker.io/library/haproxy:2.9.7
-    containerd_pause: registry.k8s.io/pause:3.10
+    pause: registry.k8s.io/pause:3.10
+
+# CRI-O is installed by install_cri, see bundle.tpl below
+cri:
+  service: crio.service
+  reconcile_install: true
+  restart: true
+
+files:
+  cri:
+    - path: /etc/crio/crio.conf.d
+      state: dir
+      owner: "root:root"
+    - path: /etc/crio/crio.conf.d/20-kubeadm.conf
+      state: tpl
+      from: templates/phases/snippets/cri/_crio.tpl
+      owner: "root:root"
+      mode: "0644"
 
 cluster_config:
   kubernetesVersion: v1.36.3
@@ -105,6 +122,28 @@ kubeadm:
 
 bundle:
   tpl:
+    # CRI-O from the static bundle of the release: crio, conmon, the OCI
+    # runtimes, crictl and the systemd unit
+    "templates/phases/snippets/cri/_install.sh.tpl": |
+      install_cri() {
+        local version=v1.36.7 url sha256 dir
+        crio --version 2>/dev/null | grep -qw "${version#v}" && return 1
+        ARCH="${ARCH:-$(node_arch)}" || return 2
+        url="https://storage.googleapis.com/cri-o/artifacts/cri-o.${ARCH}.${version}.tar.gz"
+        sha256=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || return 2
+        dir=$(mktemp -d) || return 2
+        # the CNI plugins of the bundle aren't installed, the node has its own
+        if ! download_verified "${dir}/cri-o.tar.gz" "${url}" "${sha256}" ||
+          ! tar -xzf "${dir}/cri-o.tar.gz" -C "${dir}" ||
+          ! (cd "${dir}/cri-o" && OPT_CNI_BIN_DIR="${dir}/cni" bash ./install); then
+          rm -rf "${dir}"
+          return 2
+        fi
+        rm -rf "${dir}"
+        modprobe overlay
+        systemctl daemon-reload
+        systemctl enable crio
+      }
     # kubeadm, kubelet and kubectl are taken from the node binaries archive of
     # the release (an example of the installation procedure override)
     "templates/phases/snippets/binaries/_install.sh.tpl": |
@@ -165,7 +204,7 @@ bundle:
         bindPort: 6443
       nodeRegistration:
         name: "${NODE_NAME}"
-        criSocket: unix:///run/containerd/containerd.sock
+        criSocket: unix:///var/run/crio/crio.sock
         imagePullPolicy: IfNotPresent
         # anchor daemonsets are scheduled by these labels (see anchor.labels)
         kubeletExtraArgs:
@@ -215,7 +254,7 @@ bundle:
         tlsBootstrapToken: "${KUBEADM_TOKEN}"
       nodeRegistration:
         name: "${NODE_NAME}"
-        criSocket: unix:///run/containerd/containerd.sock
+        criSocket: unix:///var/run/crio/crio.sock
         imagePullPolicy: IfNotPresent
         kubeletExtraArgs:
           - name: node-labels
@@ -247,7 +286,7 @@ bundle:
         tlsBootstrapToken: "${KUBEADM_TOKEN}"
       nodeRegistration:
         name: "${NODE_NAME}"
-        criSocket: unix:///run/containerd/containerd.sock
+        criSocket: unix:///var/run/crio/crio.sock
         imagePullPolicy: IfNotPresent
         kubeletExtraArgs:
           - name: node-labels
@@ -303,7 +342,7 @@ bundle:
       clusterDNS:
         - {{ .Values.network.dns.service_ip }}
       clusterDomain: {{ .Values.network.dns.cluster_domain }}
-      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+      containerRuntimeEndpoint: unix:///var/run/crio/crio.sock
       staticPodPath: /etc/kubernetes/manifests
       # local resolvers are disabled on the gate nodes, see
       # tools/zuul/playbooks/kubeadm-deploy-env.yaml

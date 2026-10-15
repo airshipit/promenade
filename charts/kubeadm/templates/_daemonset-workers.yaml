@@ -120,15 +120,18 @@ spec:
             - name: bin
               mountPath: /tmp/bin
 
-            - name: allnodes
-              mountPath: /tmp/allnodes
-
-{{ if hasKey $k8sConfDict "perNode" }}
-            - name: node
-              mountPath: /tmp/node.tar
+{{- range $archive := list "all" "all-pernode" }}
+{{- if include "kubeadm.fs.hasFiles" (tuple $k8sConfDict.fs $archive) }}
+            - name: fs-{{ $archive }}
+              mountPath: /tmp/fs/{{ $archive }}.tar
+{{- if hasSuffix "-pernode" $archive }}
               subPathExpr: $(NODE_NAME).tar
+{{- else }}
+              subPath: {{ $archive }}.tar
+{{- end }}
+{{- end }}
+{{- end }}
 
-{{ end }}
             - name: pod-tmp
               mountPath: /tmp
       volumes:
@@ -139,15 +142,14 @@ spec:
           configMap:
             name: {{ include "kubeadm.fullname" $envAll }}-bin
             defaultMode: 0555
-        - name: allnodes
+{{- range $archive := list "all" "all-pernode" }}
+{{- if include "kubeadm.fs.hasFiles" (tuple $k8sConfDict.fs $archive) }}
+        - name: fs-{{ $archive }}
           secret:
-            secretName: {{ include "kubeadm.fullname" $envAll }}-fs-allnodes
+            secretName: {{ include "kubeadm.fullname" $envAll }}-fs-{{ $archive }}
             defaultMode: 0600
-{{ if hasKey $k8sConfDict "perNode" }}
-        - name: node
-          secret:
-            secretName: {{ include "kubeadm.fullname" $envAll }}-fs-pernode
-            defaultMode: 0600
-{{ end }}
+{{- end }}
+{{- end }}
+
         - name: pod-tmp
           emptyDir: {}
