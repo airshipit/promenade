@@ -19,14 +19,6 @@
     yq_version: v4.44.3
     yq_sha256: a2c097180dd884a8d50c956ee16a9cec070f30a7947cf4ebf87d5f36213e9ed7
   tasks:
-    - name: Install packages used by the bootstrap script
-      apt:
-        name:
-          - gettext-base  # envsubst
-        state: present
-        update_cache: true
-      become: true
-
     - name: Install yq
       get_url:
         url: "https://github.com/mikefarah/yq/releases/download/{{ yq_version }}/yq_linux_amd64"

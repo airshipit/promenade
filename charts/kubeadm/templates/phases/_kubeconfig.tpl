@@ -17,15 +17,14 @@
 {{- $schdlrMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
 {{- $schdlrOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
 
-
 render_kubeconfig() {
   local dst="$1" ep="$2" user="$3" ca="$4" cert="$5" key="$6" mode="$7" owner="$8"
-  cat << 'EOF_TEMPLATE_DATA' | sed \
+  cat << 'EOF_TEMPLATE_DATA' | subst_node_env \
       -e "s|\${CLUSTER_ENDPOINT}|${ep}|g" \
       -e "s|\${USER}|${user}|g" \
       -e "s|\${CERT_AUTH}|${ca}|g" \
       -e "s|\${CLIENT_CERT}|${cert}|g" \
-      -e "s|\${CLIENT_KEY}|${key}|g" | envsubst | compare_copy_file - "$dst" "$mode" "$owner" || true
+      -e "s|\${CLIENT_KEY}|${key}|g" | compare_copy_file - "$dst" "$mode" "$owner" || true
 {{ $tpl }}
 EOF_TEMPLATE_DATA
 }

@@ -65,15 +65,23 @@ compare_copy_file() {
   return $changed
 }
 
+subst_node_env() {
+  sed \
+    -e "s|\${KUBEADM_TOKEN}|${KUBEADM_TOKEN:-}|g" \
+    -e "s|\${NODE_ROLE}|${NODE_ROLE:-}|g" \
+    -e "s|\${NODE_NAME}|${NODE_NAME:-}|g" \
+    -e "s|\${NODE_IP}|${NODE_IP:-}|g" "$@"
+}
+
 # The chart delivers its files in 4 archives unpacked to /run/kubeadm/<archive>:
 # all, ctrl (control plane nodes only), all-pernode and ctrl-pernode (the files
 # of the node). Each archive contains <group>/<files of the group>.
 
 # copies the files of the group from all the archives to the directory, with
-# envsubst if needed (the ctrl archives are skipped on the workers)
+# subst if needed (the ctrl archives are skipped on the workers)
 sync_group_dir() {
   local rootfs="$1" group="$2"
-  local dst_dir="${rootfs}$3" node_role="$4" do_envsubst="$5"
+  local dst_dir="${rootfs}$3" node_role="$4" do_subst="$5"
   local mode="${6:-}"
   local owner="${7:-}"
   local archive file
@@ -83,10 +91,10 @@ sync_group_dir() {
     esac
     for file in "${rootfs}/run/kubeadm/${archive}/${group}"/*; do
       [ -f "$file" ] || continue
-      if [ "$do_envsubst" != "true" ]; then
+      if [ "$do_subst" != "true" ]; then
         compare_copy_file "$file" "${dst_dir}/${file##*/}" "$mode" "$owner" || true
       else
-        envsubst < "$file" | compare_copy_file - "${dst_dir}/${file##*/}" "$mode" "$owner" || true
+        subst_node_env "$file" | compare_copy_file - "${dst_dir}/${file##*/}" "$mode" "$owner" || true
       fi
     done
   done

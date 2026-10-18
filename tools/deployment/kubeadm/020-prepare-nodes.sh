@@ -13,8 +13,7 @@
 
 # The bootstrap script of the kubeadm chart installs kubeadm, kubelet and
 # kubectl itself (binaries.* of the chart values) and the container runtime
-# (install_cri of the gate values), the nodes need the CNI plugins and
-# envsubst only.
+# (install_cri of the gate values), the nodes need the CNI plugins
 
 set -ex
 
@@ -23,6 +22,3 @@ set -ex
 
 sudo mkdir -p /opt/cni/bin
 curl -fsSL --retry 5 "${CNI_PLUGINS_URL}" | sudo tar -xz -C /opt/cni/bin
-
-# envsubst is used by the bootstrap script
-sudo apt-get install -y gettext-base

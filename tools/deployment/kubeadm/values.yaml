@@ -80,6 +80,13 @@ files:
       from: templates/phases/snippets/cri/_crio.tpl
       owner: "root:root"
       mode: "0644"
+  bootstrapcleanup:
+    - path: /etc/kubernetes/kubeadm/join_config.yaml
+      state: remove
+    - path: /etc/kubernetes/kubeadm/join_worker_config.yaml
+      state: remove
+    - path: /etc/kubernetes/kubeadm/discovery.conf
+      state: remove
 
 cluster_config:
   kubernetesVersion: v1.36.3

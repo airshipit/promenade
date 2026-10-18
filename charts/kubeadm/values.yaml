@@ -113,6 +113,8 @@ files:
       from: templates/phases/snippets/cri/_containerd_v3.tpl
       owner: "root:root"
       mode: "0600"
+  # placholder for cleanup after bootstrap
+  bootstrapcleanup: []
 # working examples (can be moved to test.sh):
 # files:
 #   rm_files: #groupname

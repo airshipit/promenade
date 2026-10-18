@@ -65,7 +65,7 @@ sync_kubelet() {
   sync_kubelet_kubeconfig && c=0
 
   ensure_dir "${ROOTFS}/etc/default/" "%s" "%s"
-  envsubst < "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet" | compare_copy_file - "${ROOTFS}/etc/default/kubelet" && c=0
+  subst_node_env "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet" | compare_copy_file - "${ROOTFS}/etc/default/kubelet" && c=0
   ensure_file "${ROOTFS}/etc/default/kubelet" "%s" "%s"
 
   ensure_dir "${ROOTFS}/etc/systemd/system/" "%s" "%s"

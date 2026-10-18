@@ -10,7 +10,7 @@ install_binary() {
     return 1
   fi
   ARCH="${ARCH:-$(node_arch)}" || return 2
-  url=$(ARCH="${ARCH}" envsubst '${ARCH}' <<< "${url}")
+  url="${url//\$\{ARCH\}/$ARCH}"
 
   tmp=$(binary_tmp "${name}") || return 2
   if ! download_verified "${tmp}" "${url}" "${sha256}"; then

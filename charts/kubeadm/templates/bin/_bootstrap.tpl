@@ -44,7 +44,7 @@ set -euo pipefail
 # rootfs path (used to run mock tests. must be "" in real life)
 ROOTFS="${ROOTFS:-}"
 
-# for envsubst and heredoc, compatible with reconcile, where all this is set on daemonsets
+# for heredoc and subst_node_env, compatible with reconcile, where all this is set on daemonsets
 export NODE_ROLE="${NODE_ROLE:-master}"
 export NODE_NAME="${NODE_NAME:-$(hostname -s)}"
 export NODE_IP="${NODE_IP:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
@@ -140,6 +140,8 @@ kubeadm ${kubeadm_args[@]+"${kubeadm_args[@]}"}
 if sync_kubelet_kubeconfig; then
   systemctl restart kubelet
 fi
+
+sync_bootstrapcleanup || true
 
 cleanup_fs
 
