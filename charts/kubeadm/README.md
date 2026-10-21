@@ -38,7 +38,7 @@ helm template kubeadm -f values.yaml --set manifests.secret_bootstrap=true --set
   | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d
 ```
 
-More examples are here [5].
+More examples are here [1].
 
 Thanks to the `templates/lib/bundle` module, all charts outputs can be fully re-defined/overriden via modification of values.yaml. That gives ability to adjust it without chart code modfication to many different scenarios, but at the same time keep alignment between day 1(cluster bootstrapping) and day 2(re-configuration/upgrade) and prevent the configuration drift.
 
@@ -46,67 +46,57 @@ Since the goal is to bootstrap k8s precisely from the point where there is nothi
 
 ## Roadmap
 
-It's in development yet. Here are the remaining potential items (can be changed):
-* kubeadm phase: make sure its config aligns with other phases. validate certain cli args and warn user if the config contradicts to the config of other phases
-* Make dynamic linking mechanism of modules
-* Based on dynamic linking make imperative commandline support
-* Allow generation of not only init/join/anchor, but generalize this.
-* Anchor daemonsets can be more flexible, e.g. upgrade can go as initContainer or even a separate job, anchor is needed to run as an addition container vip_haproxy or some other 'supporting' actions periodically.
-* Vip_haproxy is not the only implementation. Potenitally we can support e.g. [kube_vip](https://kube-vip.io/docs/installation/static/), or ipvs/iptables as a backend for VIP (see [1] and [2] below). Those 4 are the most popular, but the implementation is really similar and can be done in anchorContainer
-* Think if we want to also support alternative day2 (kube-proxy/core-dns).. probably not. kubadm is flexible enough.
-* Try to support operations like cert rotation (with the same CA. Create a cronjob to rotate CA. If it is with invalid date it can be used for manual cert roation (create job from cronjob).
-* There are also 2 scenarios when k8s switches from 1 to another CA: seamless (intermittent 2 CA) and abrupt, when we change everything and syncroniously restart all kubelets (e.g. using a special OS service))
-* Try to get rid of kubeadm image. use some image with ncenter as a placeholder and chroot directly to the host. mount everything there (mount is unidirectial by default, so it's safe). use standerd k8s artifacts (gz with bins or rely on distro packages as alternative). if it's not the case we can support also extraction of the bins from the image. e.g. [3][4]
-* Etcd periodic local/remote backup?... maybe not in this chart day2 part, but definetly we need to support restoration from backup somewhere on init phase it backup is available.
+The project is under development. Below is the planned roadmap and feature wishlist (subject to iteration):
 
-Tests:
-* Split test into test library and number for files with tests.
-* Make it similar with go test maybe
+### Kubeadm & Lifecycle Engine
+- **Phase Validation & Cross-Alignment:** Validate CLI arguments against `kubeadm` phase configurations to warn if parameters contradict each other across phases.
+- **Etcd Disaster Recovery:** Support `etcd` restoration from backup during the `init` phase if backup artifacts are available (enabling full cluster state restoration from zero).
+- **Bootstrap-to-Reconcile Handoff:** Implement node annotation markers during `bootstrap.sh` execution so the `reconcile.sh` anchor skips redundant initialization steps and picks up live state safely.
+- **Idempotent Reconcile State Machine:** Ensure step-level idempotency in `reconcile.sh` so that upon a crash loop, execution resumes exactly from the failed step.
+- **Pre-CNI Deployment Readiness:** Relax and tune pod tolerations so the chart and its anchor pods can be applied cleanly before a CNI plugin is present on the cluster.
+- **No-Pivot Mode:** Support external control-plane orchestration where management remains on the parent cluster (sending `kubeconfig` back) instead of pivoting to self-hosted child management.
+- **Addon Patching References:** Provide standard patterns and examples for patching core add-ons (`kube-proxy`, `CoreDNS`) directly via `kubeadm` phase overrides.
+
+### Extensibility & Modular Architecture
+- **Dynamic Module Linking:** Implement a dynamic linking mechanism for chart modules to support imperative CLI extensions and phase-skipping for chart-provided phases.
+- **Custom Payload Overrides:** Allow users to completely replace the main execution script body (beyond shared library functions) via `values.yaml`.
+- **Modular CLI Helpers (`tools/`):** Embed non-interactive Bash tools (such as `gen-pki.sh`) to pre-generate complex, isolated `values-*.yaml` fragments (e.g., full PKI catalogs and SAN matrices) without manual YAML manipulation.
+- **Self-Bootstrapping Demo Profile (`values.demo.yaml`):** An optional onboarding pattern designed for rapid evaluation and reference architectures. Without adding any code bloat to the core chart, this demo override embeds an interactive setup workflow into the initial rendered script (`helm template -f values.demo.yaml | bash`) to guide node parameters, invoke `gen-pki.sh`, apply targets, and even launch `k9s` upon readiness.
+
+### Anchor Evolution & VIP Backends
+- **VIP reconsiliation:** support calling vip evaluation/update code called in the reconsile sleep loop.
+- **Expanded VIP Implementation:** Extend the anchor container beyond HAProxy to support alternative VIP backends via a unified interface:
+  - **`kube-vip`:** Static pod or in-cluster daemon support.
+  - **IPVS-based VIP:**
+    ```bash
+    # Adding VIP Frontend
+    ipvsadm -A -t 127.0.0.1:6443 -s rr
+
+    # Adding VIP backends (Control Plane nodes)
+    ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.11:6443 -m
+    ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.12:6443 -m
+    ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.13:6443 -m
+    ```
+  - **IPTables-based VIP:**
+    ```bash
+    # Example for 1-of-3 backends using statistical probability
+    iptables -t nat -A OUTPUT -p tcp -d 127.0.0.1 --dport 6443 \
+      -m statistic --mode random --probability 0.33333 \
+      -j DNAT --to-destination 192.168.1.11:6443
+    ```
+
+### PKI Lifecycle & Certificate Management
+- **Automated & Manual Cert Rotation:** Support certificate rotation using the existing CA via scheduled `CronJob` instances or manual `Job` triggers.
+- **CA Migration Strategies:** Handle CA transitions across two distinct operational models:
+  - *Seamless:* Intermittent dual-CA trust period with dual-signed / fallback verification.
+  - *Abrupt:* Synchronous node-wide replacement with coordinated `kubelet` restarts via host service triggers.
+
+### Testing & Verification
+- **Modular Test Library:** Refactor test suites into a structured Bash test library with individual test specs (matching Go-like test signatures and execution flows).
+- **Helm Test & Gate Verification:** Integrate `helm test` targets leveraging lightweight sanity checks extracted from CI gates.
 
 
-[1] ipvs based vip
-```
-# Adding VIP Frontend
-ipvsadm -A -t 127.0.0.1:6443 -s rr
-
-# Adding VIP backends (Control Plane nodes)
-ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.11:6443 -m
-ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.12:6443 -m
-ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.13:6443 -m
-```
-
-[2] iptables based vip
-```
-# example of 1 of 3 backends (see probability)
-iptables -t nat -A OUTPUT -p tcp -d 127.0.0.1 --dport 6443 \
-  -m statistic --mode random --probability 0.33333 \
-  -j DNAT --to-destination 192.168.1.11:6443
-```
-
-[3] containderd-native bins extraction
-```
-mkdir -p /tmp/img_mount
-sudo ctr image mount <image_reference> /tmp/img_mount
-cp /tmp/img_mount/path/to/file /path/on/host/
-sudo ctr image unmount /tmp/img_mount
-```
-(there are some other ways for this)
-
-[4] cri-o -native bins extraction
-```
-# from running container
-PID=$(sudo crictl inspect --output json <container_id> | jq '.status.pid')
-sudo cp /proc/$PID/root/path/to/file /host/path/
-
-# or
-sudo crictl exec <container_id> cat /path/to/file > /host/path/file
-
-# or
-ROOTFS=$(sudo crictl inspect --output json <container_id> | jq -r '.info.runtimeSpec.root.path')
-sudo cp "$ROOTFS/path/to/file" /host/path/
-```
-
-[5] other snippets for bootstrap:
+[1] other snippets for bootstrap:
 
 if you want to pass HELM/YQ env vars into the cloudinit script
 
