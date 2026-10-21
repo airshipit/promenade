@@ -1042,6 +1042,71 @@ smp_check "fails if the gvk isn't a string" smp_fails gvk "the gvk must be a str
 smp_check "fails if the schema isn't a dict" smp_fails schema "the schema must be a dict"
 rm -rf "${smp_chart}"
 
+# tools: gen-pki.sh extracted from the chart (manifests.secret_tools) generates
+# the CAs and the service account key as a values override the chart takes,
+# the errors of openssl are shown
+
+echo "[tools] gen-pki.sh"
+tools_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] tools: ${msg}"
+  else
+    echo "  ❌ [FAIL] tools: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+tools_dir=$(mktemp -d)
+"${HELM:-helm}" template kubeadm kubeadm --set manifests.secret_tools=true \
+  | sed -n 's/^ *gen-pki.sh: *\(.*\)/\1/p' | base64 -d > "${tools_dir}/gen-pki.sh"
+tools_values="${tools_dir}/out/values-pki.yaml"
+tools_check "generates the values" bash "${tools_dir}/gen-pki.sh" --out-file "${tools_values}" --days 30
+tools_check "the values aren't readable by others" test "$(stat -c %a "${tools_values}" 2>/dev/null || stat -f %Lp "${tools_values}")" = 600
+tools_check "the certs" test "$("${YQ:-yq}" '.certs | keys | join(" ")' "${tools_values}")" = "ca etcd_ca front_proxy_ca sa"
+# the pem of the values to a file
+tools_pem() {
+  "${YQ:-yq}" ".certs.$1" "${tools_values}" > "${tools_dir}/$2"
+}
+tools_ca() {
+  local name="$1" cn="$2"
+  tools_pem "${name}.crt" "${name}.crt" && tools_pem "${name}.key" "${name}.key" &&
+    openssl verify -CAfile "${tools_dir}/${name}.crt" "${tools_dir}/${name}.crt" > /dev/null &&
+    openssl x509 -in "${tools_dir}/${name}.crt" -noout -subject | grep -q "CN *= *${cn}$" &&
+    openssl x509 -in "${tools_dir}/${name}.crt" -noout -text | grep -q "CA:TRUE" &&
+    # --days 30: valid in 29 days, not in 31
+    openssl x509 -in "${tools_dir}/${name}.crt" -noout -checkend $((29 * 86400)) > /dev/null &&
+    ! openssl x509 -in "${tools_dir}/${name}.crt" -noout -checkend $((31 * 86400)) > /dev/null &&
+    test "$(openssl x509 -in "${tools_dir}/${name}.crt" -noout -pubkey)" = \
+      "$(openssl pkey -in "${tools_dir}/${name}.key" -pubout)"
+}
+tools_check "ca: self-signed CA with its key" tools_ca ca kubernetes
+tools_check "etcd_ca: self-signed CA with its key" tools_ca etcd_ca etcd-ca
+tools_check "front_proxy_ca: self-signed CA with its key" tools_ca front_proxy_ca front-proxy-ca
+tools_sa() {
+  tools_pem sa.key sa.key && tools_pem sa.pub sa.pub &&
+    test "$(openssl pkey -in "${tools_dir}/sa.key" -pubout)" = "$(cat "${tools_dir}/sa.pub")"
+}
+tools_check "sa: the key pair" tools_sa
+# the chart with the generated values: the CA goes to the control plane nodes
+# (fingerprints: yq adds a newline to the pem)
+tools_chart() {
+  local crt
+  crt=$("${HELM:-helm}" template kubeadm kubeadm -f "${tools_values}" \
+    | "${YQ:-yq}" 'select(.kind == "Secret" and .metadata.name == "kubeadm-service-fs-ctrl") | .data["ctrl.tar"]' \
+    | base64 -d | tar -xO -f - _pkipub/ca.crt) || return 1
+  test "$(openssl x509 -noout -fingerprint <<< "${crt}")" = \
+    "$(openssl x509 -in "${tools_dir}/ca.crt" -noout -fingerprint)"
+}
+tools_check "the chart takes the values" tools_chart
+tools_error() {
+  local out
+  out=$(bash "${tools_dir}/gen-pki.sh" --out-file "${tools_dir}/error.yaml" --days invalid 2>&1) && return 1
+  grep -q "openssl req failed" <<< "${out}"
+}
+tools_check "the error of openssl is shown" tools_error
+rm -rf "${tools_dir}"
+
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then
   echo "❌ ${FAILURES} check(s) failed" >&2

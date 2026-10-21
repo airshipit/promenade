@@ -417,4 +417,15 @@ entrypoint:
   "default": |
     {{ tuple . "templates/phases/_main.tpl" | include "kubeadm.bundle.template" }}
     {{ include "kubeadm.bundle.manifests" . }}
+  "tools": |
+    {{ if .Values.manifests.secret_tools }}
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: {{ include "kubeadm.fullname" . }}-tools
+    type: Opaque
+    data:
+      gen-pki.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+    {{ end }}
 

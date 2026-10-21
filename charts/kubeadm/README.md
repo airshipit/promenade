@@ -15,6 +15,28 @@ Thanks to the `templates/lib/bundle` module, all chart outputs can be fully rede
 
 Since the primary goal is to bootstrap Kubernetes precisely from zero (bare OS with no prior configuration) up to a fully functional Kubernetes API, and to maintain this configuration over time, the chart is intentionally kept as minimalistic as possible: its sole purpose is to solve the chicken-and-egg bootstrapping problem cleanly.
 
+## Tools
+
+The chart carries its own helper tools, so a deployment needs nothing but `helm` and the chart. They are rendered into the `kubeadm-service-tools` Secret with `--set manifests.secret_tools=true` and can be redefined in `bundle.tpl` like any other template.
+
+### `gen-pki.sh`
+
+Generates the Kubernetes, etcd and front proxy CAs and the service account key as a values override (`values-pki.yaml`), kubeadm generates the rest of the PKI on the nodes. Requires `openssl`.
+
+```bash
+helm template kubeadm --set manifests.secret_tools=true \
+  | sed -n 's/^ *gen-pki.sh: *\(.*\)/\1/p' | base64 -d \
+  | bash -s -- --out-file ./secrets/values-pki.yaml --days 3650
+```
+
+The tool is rendered with the defaults of the chart: the PKI doesn't depend on the other values. The deployment then takes the generated values together with your own ones:
+
+```bash
+helm template kubeadm -f values.yaml -f ./secrets/values-pki.yaml ...
+```
+
+This is how the gate deploys the cluster (`tools/deployment/kubeadm/010-generate-ca.sh`).
+
 ## Extracting Bootstrap Scripts
 
 Because the chart generates standalone bootstrap scripts, you can use it for both manual and automated declarative cluster provisioning. The generated scripts accept command-line arguments to override configuration parameters derived from `values.yaml`.
