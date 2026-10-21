@@ -71,15 +71,15 @@
       - ^Makefile$
 
 - job:
-    name: airship-promenade-airliner-kubeadm-1node
+    name: airship-promenade-aircat-kubeadm-1node
     description: |
-      Deploy the treasuremap airliner site (single node) with the charts of
+      Deploy the treasuremap aircat site (single node) with the charts of
       the change: the cluster is bootstrapped with the kubeadm chart (day 0),
       then handed over to Armada which deploys Calico (tigera-operator chart)
       and the kubeadm chart in-cluster (day 2), the anchor applies a
       reconfiguration of the control plane.
     voting: false
-    parent: treasuremap-airliner-kubeadm-day2-1node
+    parent: treasuremap-aircat-kubeadm-day2-1node
     required-projects:
       - name: airship/treasuremap
         override-checkout: v1.9
@@ -98,15 +98,15 @@
       gate_scripts_relative_path: ../../airship/treasuremap
 
 - job:
-    name: airship-promenade-jumbojet-kubeadm-5nodes
+    name: airship-promenade-aircruiser-kubeadm-5nodes
     description: |
-      Deploy the treasuremap jumbojet site (3 control plane nodes, 2 workers)
+      Deploy the treasuremap aircruiser site (3 control plane nodes, 2 workers)
       with the charts of the change: the cluster is bootstrapped with the
       kubeadm chart (day 0), then handed over to Armada which deploys Calico
       (tigera-operator chart) and the kubeadm chart in-cluster (day 2). Day 2
       scenarios: certificate rotation, reconfiguration with and without
       eviction, Kubernetes upgrade.
-    parent: treasuremap-jumbojet-kubeadm-5nodes
+    parent: treasuremap-aircruiser-kubeadm-5nodes
     required-projects:
       - name: airship/treasuremap
         override-checkout: v1.9
