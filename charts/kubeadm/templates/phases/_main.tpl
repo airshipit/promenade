@@ -65,22 +65,14 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
   {{ tuple $envAll "templates/_configmap-bin.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
   {{ tuple $envAll "templates/_secret-daemonset-fs.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
 
-  {{/* those 2 support patching (because of that it's necesary to add gates and --- here)  */}}
+  {{/* those 2 support patching: bundle.tpl."<template>.patch" (strategic merge patch) */}}
   {{- if $envAll.Values.manifests.daemonset_masters }}
 ---
-    {{ $patch := dict -}}
-    {{- if hasKey $envAll.Values.bundle.tpl "templates/_daemonset-masters.yaml.patch" -}}
-      {{- $patch = tuple $envAll "templates/_daemonset-masters.yaml.patch" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | fromYaml -}}
-    {{- end -}}
-    {{- $patch | mergeOverwrite (tuple $envAll "templates/_daemonset-masters.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | fromYaml) | toYaml }}
+{{ tuple $envAll "templates/_daemonset-masters.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" }}
   {{ end -}}
 
   {{- if $envAll.Values.manifests.daemonset_workers }}
 ---
-    {{ $patch := dict -}}
-    {{- if hasKey $envAll.Values.bundle.tpl "templates/_daemonset-workers.yaml.patch" -}}
-      {{- $patch = tuple $envAll "templates/_daemonset-workers.yaml.patch" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | fromYaml -}}
-    {{- end -}}
-    {{ $patch | mergeOverwrite (tuple $envAll "templates/_daemonset-workers.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | fromYaml) | toYaml }}
+{{ tuple $envAll "templates/_daemonset-workers.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" }}
   {{ end -}}
 {{- end -}}

@@ -68,8 +68,10 @@ spec:
         - name: anchor
           image: {{ $envAll.Values.images.tags.anchor }}
           imagePullPolicy: {{ $envAll.Values.images.pull_policy }}
+          # mounts (tmpfs, service account) on the host paths in the pod, see
+          # templates/bin/_ensure_fs.tpl
           securityContext:
-{{ toYaml $envAll.Values.anchor.securityContext | indent 12 }}
+            privileged: true
           env:
           - name: NODE_IP
             valueFrom:

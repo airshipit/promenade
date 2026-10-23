@@ -586,6 +586,52 @@ assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet pre-started BEFORE ku
 # # Full per-node join with extra params
 # run_bootstrap "nodename1" "${uc0_full_haproxy[@]}" -- -- --pod-network-cidr=10.244.0.0/16
 
+# patches of the templates (bundle.tpl."<template>.patch", overrides/patch.yaml):
+# the patch is applied, the lists are merged (the rest of the template stays)
+
+echo "[patches] daemonsets, kubelet restart job, haproxy static pod"
+patches_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] patches: ${msg}"
+  else
+    echo "  ❌ [FAIL] patches: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+patches_dir=$(mktemp -d)
+"${HELM:-helm}" template kubeadm kubeadm -f kubeadm/overrides/patch.yaml > "${patches_dir}/rendered.yaml"
+# the value of the yq expression in the file is the expected one
+patches_eq() {
+  [ "$("${YQ:-yq}" "$2" "$1")" = "$3" ]
+}
+patches_ds='select(.kind == "DaemonSet" and .metadata.name == "kubeadm-service-'
+patches_check "masters: the field is patched" patches_eq "${patches_dir}/rendered.yaml" \
+  "${patches_ds}masters-anchor\") | .spec.template.spec.terminationGracePeriodSeconds" 2400
+patches_check "workers: the field is patched" patches_eq "${patches_dir}/rendered.yaml" \
+  "${patches_ds}workers-anchor\") | .spec.template.spec.terminationGracePeriodSeconds" 1200
+patches_check "masters: env is merged" patches_eq "${patches_dir}/rendered.yaml" \
+  "${patches_ds}masters-anchor\") | .spec.template.spec.containers[0].env[] | select(.name == \"NODE_NAME\" or .name == \"TEST_ENV\") | .name" \
+  "$(printf 'NODE_NAME\nTEST_ENV')"
+# the job is in the reconcile script
+"${YQ:-yq}" 'select(.kind == "ConfigMap" and .metadata.name == "kubeadm-service-bin") | .data.reconcile' "${patches_dir}/rendered.yaml" \
+  | awk '/^EOF_DATA/ { f = 0 } f; /job_name=\$\(kubectl create/ { f = 1 }' > "${patches_dir}/job.yaml"
+patches_check "job: the container is patched" patches_eq "${patches_dir}/job.yaml" \
+  '.spec.template.spec.containers[0].securityContext.appArmorProfile.type' RuntimeDefault
+patches_check "job: the container keeps its fields" patches_eq "${patches_dir}/job.yaml" \
+  '.spec.template.spec.containers[0].securityContext.privileged' true
+patches_check "job: images.pull_policy" patches_eq "${patches_dir}/job.yaml" \
+  '.spec.template.spec.containers[0].imagePullPolicy' IfNotPresent
+# the static pod is in the archive of the files of all the nodes
+"${YQ:-yq}" 'select(.kind == "Secret" and .metadata.name == "kubeadm-service-fs-all") | .data["all.tar"]' "${patches_dir}/rendered.yaml" \
+  | base64 -d | tar -xO -f - _manifests/haproxy.yaml > "${patches_dir}/haproxy.yaml"
+patches_check "haproxy: the annotation is added" patches_eq "${patches_dir}/haproxy.yaml" \
+  '.metadata.annotations["test-annotation"]' test-value
+patches_check "haproxy: the container stays" patches_eq "${patches_dir}/haproxy.yaml" \
+  '.spec.containers[0].name' haproxy
+rm -rf "${patches_dir}"
+
 # tar: a hardlink target sorted after the link is written once, '%' in a path,
 # a long path (USTAR prefix), root owner, reproducible with an explicit mtime
 
@@ -770,6 +816,231 @@ files_not_inlined() {
 files_check "content isn't in the script" files_not_inlined
 files_check "second sync changes nothing" files_unchanged
 rm -rf "${files_chart}"
+
+# strategic merge patch: maps, null, $patch directives, lists merged by the
+# key in the order of the base, other lists replaced, an own schema
+# (the one of the chart extended), the base isn't modified, the errors
+
+echo "[smp] strategic merge patch"
+smp_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] smp: ${msg}"
+  else
+    echo "  ❌ [FAIL] smp: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+smp_chart=$(mktemp -d)
+mkdir -p "${smp_chart}/templates"
+cp kubeadm/templates/lib/_smp_lt.tpl "${smp_chart}/templates/"
+printf 'apiVersion: v2\nname: smp-test\nversion: 0.1.0\n' > "${smp_chart}/Chart.yaml"
+cat > "${smp_chart}/values.yaml" << 'EOF'
+# a string parsed by fromYaml: helm drops the null values of the values (and
+# YAML 1.1 booleans like y or n are avoided in the keys)
+cases: |
+    maps:
+      base: {a: 1, b: keep, m: {x: 1, w: 2}}
+      patch: {a: 2, m: {w: 3, z: 4}, p: {new: true}}
+      expected: {a: 2, b: keep, m: {x: 1, w: 3, z: 4}, p: {new: true}}
+    null_field:
+      base: {a: 1, b: 2, m: {x: 1, w: 2}}
+      patch: {a: null, m: {x: null}}
+      expected: {b: 2, m: {w: 2}}
+    map_replace:
+      base: {m: {x: 1, w: 2}}
+      patch: {m: {$patch: replace, z: 3}}
+      expected: {m: {z: 3}}
+    map_delete:
+      base: {m: {x: 1}, k: 1}
+      patch: {m: {$patch: delete}}
+      expected: {k: 1}
+    list_replace:
+      base: {args: [a, b], items: [{name: x}]}
+      patch: {args: [c], items: [{name: q}]}
+      expected: {args: [c], items: [{name: q}]}
+    daemonset:
+      gvk: apps/v1/DaemonSet
+      base:
+        apiVersion: apps/v1
+        kind: DaemonSet
+        spec:
+          template:
+            spec:
+              initContainers: [{name: i2, image: i2}, {name: i1, image: i1}]
+              containers:
+                - name: b
+                  image: b:1
+                  env: [{name: Z, value: z}, {name: A, value: a}]
+                  volumeMounts: [{name: v, mountPath: /v}]
+                  args: [x, q]
+                - name: a
+                  image: a:1
+                - name: c
+                  image: c:1
+              tolerations: [{key: k1}]
+      patch:
+        spec:
+          template:
+            spec:
+              initContainers: [{name: i1, image: i1:2}]
+              containers:
+                - name: new
+                  image: new:1
+                  env: [{name: N, value: nv, valueFrom: null}]
+                - name: b
+                  image: b:2
+                  env: [{name: A, value: a2}, {name: M, value: m}, {name: Z, $patch: delete}]
+                  volumeMounts: [{name: w, mountPath: /w}]
+                  args: [z]
+                - name: c
+                  $patch: delete
+                - name: gone
+                  $patch: delete
+              tolerations: [{key: k2}]
+      expected:
+        apiVersion: apps/v1
+        kind: DaemonSet
+        spec:
+          template:
+            spec:
+              initContainers: [{name: i2, image: i2}, {name: i1, image: i1:2}]
+              containers:
+                - name: b
+                  image: b:2
+                  env: [{name: A, value: a2}, {name: M, value: m}]
+                  volumeMounts: [{name: v, mountPath: /v}, {name: w, mountPath: /w}]
+                  args: [z]
+                - name: a
+                  image: a:1
+                - name: new
+                  image: new:1
+                  env: [{name: N, value: nv}]
+              tolerations: [{key: k2}]
+    list_replace_directive:
+      gvk: v1/Pod
+      base: {apiVersion: v1, kind: Pod, spec: {volumes: [{name: a}, {name: b}]}}
+      patch: {spec: {volumes: [{$patch: replace}, {name: c}]}}
+      expected: {apiVersion: v1, kind: Pod, spec: {volumes: [{name: c}]}}
+    podspec:
+      gvk: v1/PodSpec
+      base: {containers: [{name: a, image: a:1}, {name: b, image: b:1}]}
+      patch: {containers: [{name: b, image: b:2}]}
+      expected: {containers: [{name: a, image: a:1}, {name: b, image: b:2}]}
+    service_ports:
+      gvk: v1/Service
+      base: {apiVersion: v1, kind: Service, spec: {ports: [{port: 80, name: http}, {port: 443, name: https}]}}
+      patch: {spec: {ports: [{port: 443, targetPort: 8443}, {port: 8080}]}}
+      expected: {apiVersion: v1, kind: Service, spec: {ports: [{port: 80, name: http}, {port: 443, name: https, targetPort: 8443}, {port: 8080}]}}
+    # the schema of the chart extended with an own type
+    custom_schema:
+      gvk: example/v1/Thing
+      schema:
+        example/v1/Thing:
+          items: {strategy: merge, key: id}
+          pod: {$ref: v1/PodSpec}
+      base: {items: [{id: 1, v: a}, {id: 2, v: b}], pod: {containers: [{name: a, image: a:1}]}}
+      patch: {items: [{id: 2, v: c}], pod: {containers: [{name: b, image: b:1}]}}
+      expected: {items: [{id: 1, v: a}, {id: 2, v: c}], pod: {containers: [{name: a, image: a:1}, {name: b, image: b:1}]}}
+    # the pod spec deep in the cronjob, the lists of the pod spec and the container
+    cronjob:
+      gvk: batch/v1/CronJob
+      base:
+        spec:
+          jobTemplate:
+            spec:
+              template:
+                spec:
+                  containers: [{name: a, image: a:1, resizePolicy: [{resourceName: cpu, restartPolicy: NotRequired}]}]
+                  schedulingGates: [{name: g1}]
+                  resourceClaims: [{name: r1}]
+      patch:
+        spec:
+          jobTemplate:
+            spec:
+              template:
+                spec:
+                  containers: [{name: a, resizePolicy: [{resourceName: memory, restartPolicy: RestartContainer}]}]
+                  ephemeralContainers: [{name: debug, image: busybox}]
+                  schedulingGates: [{name: g2}]
+                  resourceClaims: [{name: r1, resourceClaimName: claim}]
+      expected:
+        spec:
+          jobTemplate:
+            spec:
+              template:
+                spec:
+                  containers: [{name: a, image: a:1, resizePolicy: [{resourceName: cpu, restartPolicy: NotRequired}, {resourceName: memory, restartPolicy: RestartContainer}]}]
+                  ephemeralContainers: [{name: debug, image: busybox}]
+                  schedulingGates: [{name: g1}, {name: g2}]
+                  resourceClaims: [{name: r1, resourceClaimName: claim}]
+    podtemplate:
+      gvk: v1/PodTemplate
+      base: {template: {spec: {containers: [{name: a, image: a:1}]}}}
+      patch: {template: {spec: {containers: [{name: b, image: b:1}]}}}
+      expected: {template: {spec: {containers: [{name: a, image: a:1}, {name: b, image: b:1}]}}}
+    # a rule added to the daemonset doesn't change the deployment
+    extend_isolated:
+      gvk: apps/v1/Deployment
+      extend:
+        apps/v1/DaemonSet:
+          spec.items: {strategy: merge, key: id}
+      base: {spec: {items: [{id: 1}]}}
+      patch: {spec: {items: [{id: 2}]}}
+      expected: {spec: {items: [{id: 2}]}}
+EOF
+cat > "${smp_chart}/templates/configmap.yaml" << 'EOF'
+{{- $error := .Values.error | default "" -}}
+{{- if eq $error "not_empty" -}}
+{{- $_ := include "strategic_merge_patch" (tuple (dict) "" (dict) (dict) (dict "x" 1)) -}}
+{{- else if eq $error "directive" -}}
+{{- $_ := include "strategic_merge_patch" (tuple (dict) "" (dict) (dict "$retainKeys" (list "a")) (dict)) -}}
+{{- else if eq $error "gvk" -}}
+{{- $_ := include "strategic_merge_patch" (tuple (dict) nil (dict) (dict) (dict)) -}}
+{{- else if eq $error "schema" -}}
+{{- $_ := include "strategic_merge_patch" (tuple (list) "" (dict) (dict) (dict)) -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smp-test
+data:
+{{- range $name, $c := fromYaml .Values.cases }}
+  {{- $before := toJson $c.base }}
+  {{- $out := dict }}
+  {{- $schema := dict }}
+  {{- $_ := include "strategic_merge_patch_schema" $schema }}
+  {{- range $k, $v := $c.schema }}{{ $_ := set $schema $k $v }}{{ end }}
+  {{- range $gvk, $rules := $c.extend }}{{ range $path, $rule := $rules }}{{ $_ := set (index $schema $gvk) $path $rule }}{{ end }}{{ end }}
+  {{- $_ := include "strategic_merge_patch" (tuple $schema ($c.gvk | default "") $c.base $c.patch $out) }}
+  {{ $name }}: {{ if eq (toJson $out) (toJson $c.expected) }}OK{{ else }}{{ toJson $out | quote }}{{ end }}
+  {{ $name }}_base: {{ if eq (toJson $c.base) $before }}OK{{ else }}{{ toJson $c.base | quote }}{{ end }}
+{{- end }}
+EOF
+smp_rendered=$("${HELM:-helm}" template smp-test "${smp_chart}" 2>&1)
+smp_result() {
+  local line
+  line=$(echo "${smp_rendered}" | sed -n "s/^  $1: //p")
+  [ "${line}" = OK ] && return 0
+  echo "    got: ${line:-${smp_rendered}}" >&2
+  return 1
+}
+for name in maps null_field map_replace map_delete list_replace daemonset list_replace_directive podspec service_ports custom_schema cronjob podtemplate extend_isolated; do
+  smp_check "${name}" smp_result "${name}"
+  smp_check "${name}: the base isn't modified" smp_result "${name}_base"
+done
+# the rendering fails with the message
+smp_fails() {
+  local out
+  out=$("${HELM:-helm}" template smp-test "${smp_chart}" --set "error=$1" 2>&1) && return 1
+  grep -q "$2" <<< "${out}"
+}
+smp_check "fails if the dict for the result isn't empty" smp_fails not_empty "must be empty"
+smp_check "fails on an unsupported directive" smp_fails directive 'unsupported directive \$retainKeys'
+smp_check "fails if the gvk isn't a string" smp_fails gvk "the gvk must be a string"
+smp_check "fails if the schema isn't a dict" smp_fails schema "the schema must be a dict"
+rm -rf "${smp_chart}"
 
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then

@@ -4,11 +4,8 @@
 
 {{- $allNodes := get $k8sConfDict.fs "all" -}}
 {{/* populate static pod anyway so user could use bootstrap command line to enable it */}}
-{{ $patch := dict -}}
-{{- if hasKey $envAll.Values.bundle.tpl "templates/phases/snippets/vip/_haproxy.yaml.tpl.patch" -}}
-  {{- $patch = tuple $envAll "templates/phases/snippets/vip/_haproxy.yaml.tpl.patch" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | fromYaml -}}
-{{- end -}}
-{{- $staticPod := $patch | mergeOverwrite (tuple $envAll "templates/phases/snippets/vip/_haproxy.yaml.tpl" | include "kubeadm.bundle.template" | fromYaml) | toYaml -}}
+{{/* can be patched with bundle.tpl."templates/phases/snippets/vip/_haproxy.yaml.tpl.patch" */}}
+{{- $staticPod := tuple $envAll "templates/phases/snippets/vip/_haproxy.yaml.tpl" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
 {{- $_ := set $allNodes "_manifests/haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
 
 

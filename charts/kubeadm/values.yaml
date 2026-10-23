@@ -55,12 +55,10 @@ bootstrap:
   # this is because we assume that bootstrap.nodename is used only for manual helm template execution
   # nodename: <some node>
 
-# daemonsets running the reconcile script (day 2) on the nodes
+# daemonsets running the reconcile script (day 2) on the nodes, they can be
+# patched with bundle.tpl."templates/_daemonset-masters.yaml.patch" and
+# bundle.tpl."templates/_daemonset-workers.yaml.patch" (strategic merge patch)
 anchor:
-  # mounts (tmpfs, service account) on the host paths in the pod, see
-  # templates/bin/_ensure_fs.tpl
-  securityContext:
-    privileged: true
   # service account of the anchor pods and the kubelet restart jobs, created
   # in the release namespace
   service_account: kubeadm
@@ -269,12 +267,8 @@ kubelet:
   restart: true
   # the node is drained before the restart and uncordoned after it
   drain: true
-# if needed add:
-#      appArmorProfile:
-#        type: RuntimeDefault
-  restartJobSecurityContext: |
-    securityContext:
-      privileged: true
+  # the job restarting kubelet can be patched with
+  # bundle.tpl."templates/bin/helpers/_kubelet_restart.yaml.tpl.patch"
 
 cri:
   # kubelet starts after it, restart_cri restarts it

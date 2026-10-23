@@ -6,6 +6,11 @@ bundle:
         template:
           spec:
             terminationGracePeriodSeconds: 2400
+            containers:
+              - name: anchor
+                env:
+                  - name: TEST_ENV
+                    value: test
     "templates/_daemonset-workers.yaml.patch": |
       spec:
         template:
@@ -15,3 +20,12 @@ bundle:
       metadata:
         annotations:
           test-annotation: test-value
+    "templates/bin/helpers/_kubelet_restart.yaml.tpl.patch": |
+      spec:
+        template:
+          spec:
+            containers:
+              - name: kubelet-restart
+                securityContext:
+                  appArmorProfile:
+                    type: RuntimeDefault

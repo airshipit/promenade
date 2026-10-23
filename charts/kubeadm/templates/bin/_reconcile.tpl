@@ -89,7 +89,7 @@ restart_kubelet() {
 
   # heredoc will take care of ${NODE_NAME} and etc
   job_name=$(kubectl create -n "${NAMESPACE}" -f - -o name <<EOF_DATA
-{{ tuple $envAll "templates/bin/helpers/_kubelet_restart.yaml.tpl" | include "kubeadm.bundle.template" }}
+{{ tuple $envAll "templates/bin/helpers/_kubelet_restart.yaml.tpl" $envAll | include "kubeadm.bundle.patched_template" }}
 EOF_DATA
 )
 

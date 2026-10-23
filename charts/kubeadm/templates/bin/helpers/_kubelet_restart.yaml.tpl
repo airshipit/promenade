@@ -22,7 +22,7 @@ spec:
       containers:
         - name: kubelet-restart
           image: {{ .Values.images.tags.anchor }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.images.pull_policy }}
           resources:
             limits:
               cpu: '8'
@@ -30,7 +30,8 @@ spec:
             requests:
               cpu: 100m
               memory: 64Mi
-{{ .Values.kubelet.restartJobSecurityContext | indent 10 }}
+          securityContext:
+            privileged: true
           command:
             - nsenter
             - '--target'
