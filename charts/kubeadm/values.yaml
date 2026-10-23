@@ -61,6 +61,9 @@ anchor:
   # templates/bin/_ensure_fs.tpl
   securityContext:
     privileged: true
+  # service account of the anchor pods and the kubelet restart jobs, created
+  # in the release namespace
+  service_account: kubeadm
   labels:
     common:
       node_selector_key: kubeadm

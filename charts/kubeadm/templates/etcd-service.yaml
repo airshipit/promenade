@@ -21,6 +21,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ $envAll.Values.etcd_service.name }}
+  # selects the etcd static pods, kubeadm creates them in kube-system
+  namespace: kube-system
 spec:
   ports:
     {{ if .Values.etcd_service.service_client.enable_node_port }}

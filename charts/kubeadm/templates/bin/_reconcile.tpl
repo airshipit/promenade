@@ -28,6 +28,8 @@ RECONCILE_DIR={{ $envAll.Values.anchor.reconcile.host_dir | quote }}
 kubectl() {
   command kubectl --kubeconfig "${RECONCILE_DIR}/kubeconfig" "$@"
 }
+# namespace of the anchor pod: its service account runs the kubelet restart job
+NAMESPACE="$(cat "${RECONCILE_DIR}/sa/namespace")"
 
 # config directories
 KUBERNETES_DIR="/etc/kubernetes"
@@ -86,12 +88,12 @@ restart_kubelet() {
 {{- end }}
 
   # heredoc will take care of ${NODE_NAME} and etc
-  job_name=$(kubectl create -f - -o name <<EOF_DATA
+  job_name=$(kubectl create -n "${NAMESPACE}" -f - -o name <<EOF_DATA
 {{ tuple $envAll "templates/bin/helpers/_kubelet_restart.yaml.tpl" | include "kubeadm.bundle.template" }}
 EOF_DATA
 )
 
-  kubectl wait -n kube-system --for=condition=complete $job_name --timeout=600s
+  kubectl wait -n "${NAMESPACE}" --for=condition=complete $job_name --timeout=600s
 
 {{- if $envAll.Values.kubelet.drain }}
   kubectl uncordon "${NODE_NAME}"

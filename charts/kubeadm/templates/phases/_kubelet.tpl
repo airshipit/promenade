@@ -70,7 +70,7 @@ sync_kubelet() {
 
   ensure_dir "${ROOTFS}/etc/systemd/system/" "%s" "%s"
   compare_copy_file "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet.service" "${ROOTFS}/etc/systemd/system/kubelet.service" && c=0
-  ensure_file "${ROOTFS}/etc/default/kubelet" "%s" "%s"
+  ensure_file "${ROOTFS}/etc/systemd/system/kubelet.service" "%s" "%s"
 
   ensure_dir "${ROOTFS}/var/lib/kubelet/" "%s" "%s"
   [ -f "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" ] && compare_copy_file "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" "${ROOTFS}/var/lib/kubelet/config.yaml" && c=0

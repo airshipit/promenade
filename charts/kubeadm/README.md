@@ -40,10 +40,6 @@ helm template kubeadm -f values.yaml --set manifests.secret_bootstrap=true --set
 
 More examples are here [1].
 
-Thanks to the `templates/lib/bundle` module, all charts outputs can be fully re-defined/overriden via modification of values.yaml. That gives ability to adjust it without chart code modfication to many different scenarios, but at the same time keep alignment between day 1(cluster bootstrapping) and day 2(re-configuration/upgrade) and prevent the configuration drift.
-
-Since the goal is to bootstrap k8s precisely from the point where there is nothing configured on the nodes till the time k8s API is accessible and to be able to maintain/upgrade this configuration later, it's important to keep this chart as minimalistic as possible: it just has to be able to resolve chicken-and-egg bootstrapping problem.
-
 ## Roadmap
 
 The project is under development. Below is the planned roadmap and feature wishlist (subject to iteration):

@@ -12,8 +12,8 @@ spec:
         "kubelet-restart": "true"
     spec:
       restartPolicy: Never
-      serviceAccountName: kubeadm
-      serviceAccount: kubeadm
+      serviceAccountName: {{ .Values.anchor.service_account }}
+      serviceAccount: {{ .Values.anchor.service_account }}
       hostNetwork: true
       enableServiceLinks: true
       hostPID: true

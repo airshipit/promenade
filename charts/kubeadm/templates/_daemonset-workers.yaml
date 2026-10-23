@@ -55,7 +55,7 @@ spec:
                   - key: {{ $envAll.Values.anchor.labels.masters.node_selector_key }}
                     operator: DoesNotExist
       dnsPolicy: Default
-      serviceAccountName: kubeadm
+      serviceAccountName: {{ $envAll.Values.anchor.service_account }}
       hostNetwork: true
       priorityClassName: system-node-critical
       tolerations:

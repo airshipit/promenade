@@ -41,7 +41,7 @@ kubectl wait --for=condition=Ready nodes --all --timeout=300s
 anchor_applied() {
   local ds_name
   for ds_name in kubeadm-service-masters-anchor kubeadm-service-workers-anchor; do
-    # Если DS не существует или еще не имеет желаемых подов — ждем
+    # wait while the DS doesn't exist or doesn't have all its pods updated and ready
     local desired updated ready
     read -r desired updated ready < <(kubectl -n kube-system get daemonset "${ds_name}" \
       -o jsonpath='{.status.desiredNumberScheduled} {.status.updatedNumberScheduled} {.status.numberReady}' 2>/dev/null || echo "0 0 0")

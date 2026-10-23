@@ -25,7 +25,7 @@
 
   {{- if $envAll.Values.certs.scheduler -}}
     {{/* Populate pregenerated certificate for serving the Kubernetes API */}}
-    {{- $_ := set $controlPlaneNodes "_pkipub/scheduler.pem" (dict "content" $envAll.Values.certs.scheduler.crt "dest_path" "/etc/kubernetes/pki/sscheduler.pem" "file_mode" 0600 ) -}}
+    {{- $_ := set $controlPlaneNodes "_pkipub/scheduler.pem" (dict "content" $envAll.Values.certs.scheduler.crt "dest_path" "/etc/kubernetes/pki/scheduler.pem" "file_mode" 0600 ) -}}
     {{- $_ := set $controlPlaneNodes "_pkipriv/scheduler-key.pem" (dict "content" $envAll.Values.certs.scheduler.key "dest_path" "/etc/kubernetes/pki/scheduler-key.pem" "file_mode" 0600 ) -}}
   {{- end -}}
 
@@ -41,7 +41,6 @@
     {{- $_ := set $controlPlaneNodes "_pkipriv/apiserver.key" (dict "content" $envAll.Values.certs.apiserver.key "dest_path" "/etc/kubernetes/pki/apiserver.key" "file_mode" 0600 ) -}}
   {{- end -}}
 
-
   {{- if $envAll.Values.certs.apiserver_kubelet_client -}}
     {{/* Populate pregenerated certificate for the API server to connect to kubelet */}}
     {{- $_ := set $controlPlaneNodes "_pkipub/apiserver-kubelet-client.crt" (dict "content" $envAll.Values.certs.apiserver_kubelet_client.crt "dest_path" "/etc/kubernetes/pki/apiserver-kubelet-client.crt" "file_mode" 0600 ) -}}
@@ -53,7 +52,6 @@
     {{- $_ := set $controlPlaneNodes "_pkipub/apiserver-etcd-client.crt" (dict "content" $envAll.Values.certs.apiserver_etcd_client.crt "dest_path" "/etc/kubernetes/pki/apiserver-etcd-client.crt" "file_mode" 0600 ) -}}
     {{- $_ := set $controlPlaneNodes "_pkipriv/apiserver-etcd-client.key" (dict "content" $envAll.Values.certs.apiserver_etcd_client.key "dest_path" "/etc/kubernetes/pki/apiserver-etcd-client.key" "file_mode" 0600 ) -}}
   {{- end -}}
-
 
   {{- if $envAll.Values.certs.front_proxy_ca -}}
     {{/* Populate pregenerated self-signed CA to provision identities for front proxy */}}
@@ -83,12 +81,6 @@
     {{/* Populate pregenerated certificate for liveness probes to healthcheck etcd */}}
     {{- $_ := set $controlPlaneNodes "_etcdpub/healthcheck-client.crt" (dict "content" $envAll.Values.certs.etcd_healthcheck_client.crt "dest_path" "/etc/kubernetes/pki/etcd/healthcheck-client.crt" "file_mode" 0600 ) -}}
     {{- $_ := set $controlPlaneNodes "_etcdpriv/healthcheck-client.key" (dict "content" $envAll.Values.certs.etcd_healthcheck_client.key  "dest_path" "/etc/kubernetes/pki/etcd/healthcheck-client.key" "file_mode" 0600 ) -}}
-  {{- end -}}
-
-  {{- if $envAll.Values.certs.apiserver_kubelet_client -}}
-    {{/* Populate pregenerated certificate for the API server to connect to kubelet */}}
-    {{- $_ := set $controlPlaneNodes "_pkipub/apiserver-kubelet-client.crt" (dict "content" $envAll.Values.certs.apiserver_kubelet_client.crt "dest_path" "/etc/kubernetes/pki/apiserver-kubelet-client.crt" "file_mode" 0600 ) -}}
-    {{- $_ := set $controlPlaneNodes "_pkipriv/apiserver-kubelet-client.key" (dict "content" $envAll.Values.certs.apiserver_kubelet_client.key "dest_path" "/etc/kubernetes/pki/apiserver-kubelet-client.key" "file_mode" 0600 ) -}}
   {{- end -}}
 
   {{- if $envAll.Values.certs.sa -}}

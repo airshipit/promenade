@@ -19,14 +19,13 @@ limitations under the License.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: kubeadm
-  namespace: kube-system
+  name: {{ .Values.anchor.service_account }}
+  namespace: {{ .Release.Namespace }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: kubeadm
-  namespace: kube-system
+  name: {{ include "kubeadm.fullname" . }}
 rules:
   - apiGroups: [""]
     resources:
@@ -64,14 +63,13 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: kubeadm
-  namespace: kube-system
+  name: {{ include "kubeadm.fullname" . }}
 subjects:
   - kind: ServiceAccount
-    name: kubeadm
-    namespace: kube-system
+    name: {{ .Values.anchor.service_account }}
+    namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: kubeadm
+  name: {{ include "kubeadm.fullname" . }}
   apiGroup: rbac.authorization.k8s.io
 {{- end }}
