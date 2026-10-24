@@ -64,6 +64,10 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{- if eq $nodenameFilter "" }}
   {{ tuple $envAll "templates/_configmap-bin.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
   {{ tuple $envAll "templates/_secret-daemonset-fs.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
+  {{/* for a parent cluster: the CA and the admin client certificate as tls Secrets */}}
+  {{ tuple $envAll "templates/_secret-ca-tls.yaml" | include "kubeadm.bundle.template" }}
+  {{ tuple $envAll "templates/_secret-admin-tls.yaml" | include "kubeadm.bundle.template" }}
+  {{ tuple $envAll "templates/_cert-manager-admin.yaml" | include "kubeadm.bundle.template" }}
 
   {{/* those 2 support patching: bundle.tpl."<template>.patch" (strategic merge patch) */}}
   {{- if $envAll.Values.manifests.daemonset_masters }}

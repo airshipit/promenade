@@ -18,7 +18,7 @@ images:
     # only starts the reconcile script on the host: needs a shell with mount,
     # chroot and tar, and nsenter (kubelet restart job); multi-arch
     anchor: docker.io/library/busybox:1.37
-    haproxy: haproxy:1.8.25
+    haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
   pull_policy: "IfNotPresent"
   local_registry:
@@ -263,6 +263,15 @@ kubeconfig:
   clusterName: kubernetes
   controlPlaneEndpoint: 127.0.0.1:6443
 
+# the admin client certificate issued by cert-manager (manifests.cert_manager_admin),
+# kubeadm binds the group kubeadm:cluster-admins to cluster-admin
+admin_credentials:
+  common_name: kubeadm-parent-admin
+  organizations:
+    - kubeadm:cluster-admins
+  duration: 8760h
+  renew_before: 720h
+
 kubelet:
   restart: true
   # the node is drained before the restart and uncordoned after it
@@ -362,6 +371,16 @@ manifests:
   secret_daemonset_fs_all_pernode: true
   secret_daemonset_fs_ctrl_pernode: true
   secret_bootstrap: false
+  # for the release managing the cluster from a parent cluster: the CA as a
+  # kubernetes.io/tls Secret <fullname>-ca (e.g. for a cert-manager CA Issuer)
+  secret_ca_tls: false
+  # the admin client certificate as a kubernetes.io/tls Secret <fullname>-admin
+  # (tls.crt, tls.key, ca.crt) the kubeconfig of the parent is built from, one of:
+  # - secret_admin_tls: from certs.admin
+  # - cert_manager_admin: issued and renewed by cert-manager with the CA of
+  #   <fullname>-ca (needs secret_ca_tls or that Secret), see admin_credentials
+  secret_admin_tls: false
+  cert_manager_admin: false
   daemonset_masters: true
   daemonset_workers: true
   etcd_service: false

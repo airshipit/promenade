@@ -83,35 +83,32 @@ The project is under development. Below is the planned roadmap and feature wishl
 
 ### Anchor Evolution & VIP Backends
 - **VIP reconsiliation:** support calling vip evaluation/update code called in the reconsile sleep loop.
-- **Expanded VIP Implementation:** Extend the anchor container beyond HAProxy to support alternative VIP backends via a unified interface:
-  - **`kube-vip`:** Static pod or in-cluster daemon support.
-  - **IPVS-based VIP:**
-    ```bash
-    # Adding VIP Frontend
-    ipvsadm -A -t 127.0.0.1:6443 -s rr
-
-    # Adding VIP backends (Control Plane nodes)
-    ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.11:6443 -m
-    ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.12:6443 -m
-    ipvsadm -a -t 127.0.0.1:6443 -r 192.168.1.13:6443 -m
-    ```
-  - **IPTables-based VIP:**
-    ```bash
-    # Example for 1-of-3 backends using statistical probability
-    iptables -t nat -A OUTPUT -p tcp -d 127.0.0.1 --dport 6443 \
-      -m statistic --mode random --probability 0.33333 \
-      -j DNAT --to-destination 192.168.1.11:6443
-    ```
+- **Node-local API load balancer:** HAProxy stays the only built-in implementation: proven in Airship, and the control plane endpoints change rarely, so dynamically reconfigured proxies (Envoy, Traefik) bring nothing. Kernel-space variants (iptables, IPVS, nftables) are not planned: they have no health checks of their own and need extra care for a `127.0.0.1` VIP (SNAT, `route_localnet`); whoever needs one can provide it through `bundle.tpl`.
+- **External control plane VIP (`kube-vip`):** a different task than the node-local balancer: a floating VIP for clients outside the cluster (admin kubeconfigs, a parent cluster, Armada), as a static pod on control plane nodes.
 
 ### PKI Lifecycle & Certificate Management
 - **Automated & Manual Cert Rotation:** Support certificate rotation using the existing CA via scheduled `CronJob` instances or manual `Job` triggers.
 - **CA Migration Strategies:** Handle CA transitions across two distinct operational models:
   - *Seamless:* Intermittent dual-CA trust period with dual-signed / fallback verification.
   - *Abrupt:* Synchronous node-wide replacement with coordinated `kubelet` restarts via host service triggers.
+- **Expiry Warnings:** The reconcile loop checks the certificates (`kubeadm certs check-expiration` on control plane nodes, `openssl` for the kubelet certificates) and logs a warning in a stable one-line format (e.g. `WARNING cert-expiry file=... not_after=... days_left=...`) when one expires sooner than a threshold from `values.yaml`, so a log collector such as fluentd can pick it up. A warning, not a failure: it doesn't block the reconcile.
+
+### Hosted Control Plane (low priority)
+A k0smotron/Kamaji-style cluster: the control plane runs as pods on the parent cluster, the target cluster has worker nodes only. A moderate amount of work assembled from standard pieces, without changes to the core of the chart:
+- **Profile, not core code:** the control plane templates ship as files in the chart, disabled by default, and a profile values file (e.g. `profiles/hosted-control-plane.yaml`) wires them in through `bundle.manifests` and disables what isn't needed (masters anchor, VIP).
+- **Control plane on the parent:** `kube-apiserver`, `kube-controller-manager` and `kube-scheduler` Deployments, the API exposed through a LoadBalancer, NodePort or Ingress with SNI passthrough. Upgrades become rollouts on the parent instead of `kubeadm upgrade node`.
+- **Datastore:** `kine` (SQL backend, lighter, fits small and edge clusters) or an etcd StatefulSet for bigger ones.
+- **Konnectivity:** the server as a sidecar of the apiserver (`EgressSelectorConfiguration`), the agents as static pods on the workers, like the HAProxy one, authenticated with mTLS certificates delivered by the chart. Needed for `logs`, `exec`, webhooks and metrics from the parent to the nodes.
+- **PKI:** all certificates pregenerated or issued by cert-manager (CA `Issuer`), the apiserver certificate covering the external endpoint.
+- **Cluster-side kubeadm phases:** `upload-config`, `bootstrap-token` and the `coredns`/`kube-proxy` addons run by a Job on the parent against the hosted API, so the workers join with the usual `kubeadm join` and are reconciled by the workers anchor.
 
 ### Testing & Verification
 - **Modular Test Library:** Refactor test suites into a structured Bash test library with individual test specs (matching Go-like test signatures and execution flows).
-- **Helm Test & Gate Verification:** Integrate `helm test` targets leveraging lightweight sanity checks extracted from CI gates.
+- **Helm Test & Gate Verification:** Move the sanity checks of the CI gates into the chart:
+  - **Node checks as a phase:** a `sharedLibs` phase, switchable in `values.yaml`, checks the node itself: files with their owners and permissions, the `kubeadm`, `kubelet` and `kubectl` versions on the host, `/livez` and etcd on control plane nodes. The bootstrap script runs it at the end, the reconcile runs it before creating the `done` file, so a ready anchor means a reconciled and verified node and a failing node stops the rolling update.
+  - **Thin `helm test`:** a `busybox` pod on a control plane node (same node selector as the masters anchor, control plane toleration) runs the host `kubectl` with `/etc/kubernetes/admin.conf` through `chroot`, as the anchor does: `kubectl rollout status` of both anchor DaemonSets collects the node checks of the whole cluster, then cluster-wide checks through the API (the `kubeadm-config` ConfigMap matches the rendered `ClusterConfiguration`, the etcd member count matches the control plane nodes). No new images, no extra service account.
+  - **Gate:** the catalog is rendered with `--skip-tests` (`kubectl` ignores the hook annotations and would create the test pods at once). The anchor wait of `040-deploy-catalog.sh` then covers the node checks, and `050`-`070` keep only what isn't the chart's: CNI and DNS checks and the day 2 scenarios.
+  - **Hosted control plane:** the profile replaces the control plane test (Deployments on the parent cluster, kubeconfig from a Secret, datastore and konnectivity checks), the worker checks stay as is.
 
 
 [1] other snippets for bootstrap:

@@ -61,7 +61,7 @@ network:
 images:
   tags:
     dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
-    haproxy: docker.io/library/haproxy:2.9.7
+    haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
 
 # CRI-O is installed by install_cri, see bundle.tpl below

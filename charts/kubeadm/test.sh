@@ -1107,6 +1107,63 @@ tools_error() {
 tools_check "the error of openssl is shown" tools_error
 rm -rf "${tools_dir}"
 
+# for a parent cluster: the CA and the admin client certificate as tls
+# Secrets, the admin one either from certs.admin or by cert-manager
+
+echo "[parent] tls secrets, cert-manager"
+parent_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] parent: ${msg}"
+  else
+    echo "  ❌ [FAIL] parent: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+parent_dir=$(mktemp -d)
+parent_pki=(-f kubeadm/overrides/pki-ca.yaml -f kubeadm/overrides/pki-admin.yaml)
+"${HELM:-helm}" template kubeadm kubeadm > "${parent_dir}/default.yaml"
+"${HELM:-helm}" template kubeadm kubeadm "${parent_pki[@]}" \
+  --set manifests.secret_ca_tls=true --set manifests.secret_admin_tls=true > "${parent_dir}/values.yaml"
+"${HELM:-helm}" template kubeadm kubeadm "${parent_pki[@]}" \
+  --set manifests.secret_ca_tls=true --set manifests.cert_manager_admin=true > "${parent_dir}/cert-manager.yaml"
+# the value of the yq expression on the object of the file is the expected one
+parent_eq() {
+  [ "$("${YQ:-yq}" "select(.kind == \"$2\" and .metadata.name == \"$3\") | $4" "${parent_dir}/$1")" = "$5" ]
+}
+parent_absent() {
+  [ -z "$("${YQ:-yq}" 'select(.metadata.name == "kubeadm-service-ca" or .metadata.name == "kubeadm-service-admin") | .kind' "${parent_dir}/default.yaml")" ]
+}
+parent_check "nothing by default" parent_absent
+parent_check "ca: tls secret" parent_eq values.yaml Secret kubeadm-service-ca .type kubernetes.io/tls
+parent_check "ca: certificate" parent_eq values.yaml Secret kubeadm-service-ca '.data["tls.crt"] | @base64d' ca-crt-placeholder
+parent_check "ca: key" parent_eq values.yaml Secret kubeadm-service-ca '.data["tls.key"] | @base64d' ca-key-placeholder
+parent_check "admin from values: tls secret" parent_eq values.yaml Secret kubeadm-service-admin .type kubernetes.io/tls
+parent_check "admin from values: certificate" parent_eq values.yaml Secret kubeadm-service-admin '.data["tls.crt"] | @base64d' admin-crt-placeholder
+parent_check "admin from values: key" parent_eq values.yaml Secret kubeadm-service-admin '.data["tls.key"] | @base64d' admin-key-placeholder
+parent_check "admin from values: ca" parent_eq values.yaml Secret kubeadm-service-admin '.data["ca.crt"] | @base64d' ca-crt-placeholder
+parent_check "cert-manager: issuer on the ca secret" parent_eq cert-manager.yaml Issuer kubeadm-service-ca .spec.ca.secretName kubeadm-service-ca
+parent_check "cert-manager: the same admin secret" parent_eq cert-manager.yaml Certificate kubeadm-service-admin .spec.secretName kubeadm-service-admin
+parent_check "cert-manager: issued by the issuer" parent_eq cert-manager.yaml Certificate kubeadm-service-admin .spec.issuerRef.name kubeadm-service-ca
+parent_check "cert-manager: group" parent_eq cert-manager.yaml Certificate kubeadm-service-admin '.spec.subject.organizations[0]' kubeadm:cluster-admins
+parent_check "cert-manager: client certificate" parent_eq cert-manager.yaml Certificate kubeadm-service-admin '.spec.usages[0]' "client auth"
+parent_check "cert-manager: no admin secret rendered" parent_eq cert-manager.yaml Secret kubeadm-service-admin .kind ""
+# the rendering fails with the message
+parent_fails() {
+  local msg="$1" out
+  shift
+  out=$("${HELM:-helm}" template kubeadm kubeadm "$@" 2>&1) && return 1
+  grep -q "${msg}" <<< "${out}"
+}
+parent_check "both admin secrets fail" parent_fails "enable one of them" "${parent_pki[@]}" \
+  --set manifests.secret_admin_tls=true --set manifests.cert_manager_admin=true
+parent_check "ca without certs fails" parent_fails "needs certs.ca.crt and certs.ca.key" \
+  --set manifests.secret_ca_tls=true
+parent_check "admin without certs fails" parent_fails "needs certs.admin.crt" -f kubeadm/overrides/pki-ca.yaml \
+  --set manifests.secret_admin_tls=true
+rm -rf "${parent_dir}"
+
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then
   echo "❌ ${FAILURES} check(s) failed" >&2
