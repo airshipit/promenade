@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2026 AT&T Intellectual Property.  All other rights reserved.
+# Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
