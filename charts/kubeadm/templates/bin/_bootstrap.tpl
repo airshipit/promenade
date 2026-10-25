@@ -84,6 +84,9 @@ cleanup_fs() {
 
 {{/* adding shared bash functions */}}
 {{ $sharedLibsContent }}
+{{- if $envAll.Values.checks.bootstrap }}
+{{ get $k8sConfDict.sharedLibs "checks" }}
+{{- end }}
 # end of common functions
 
 cmd_hook () {
@@ -142,6 +145,10 @@ if sync_kubelet_kubeconfig; then
 fi
 
 sync_bootstrapcleanup || true
+{{- if $envAll.Values.checks.bootstrap }}
+
+run_checks check_api
+{{- end }}
 
 cleanup_fs
 

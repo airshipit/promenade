@@ -91,12 +91,24 @@ generatorOptions:
   disableNameSuffixHash: true
 EOF
 
+# the test pod (a helm test hook) isn't part of the catalog: kubectl ignores
+# hook annotations and would create it at once. 045-helm-test.sh runs it.
 ( umask 077
   ${HELM} template kubeadm "${KUBEADM_CHART}" \
     --namespace "${NAMESPACE}" \
     -f "${VALUES}" \
     -f "${WORK_DIR}/ca-values.yaml" \
-    "$@" > "${CATALOG}/kubeadm/kubeadm.yaml" )
+    --skip-tests \
+    "$@" > "${CATALOG}/kubeadm/kubeadm.yaml"
+  ${HELM} template kubeadm "${KUBEADM_CHART}" \
+    --namespace "${NAMESPACE}" \
+    -f "${VALUES}" \
+    -f "${WORK_DIR}/ca-values.yaml" \
+    "$@" | python3 -c '
+import sys, yaml
+tests = [d for d in yaml.safe_load_all(sys.stdin)
+         if d and "test" in ((d.get("metadata") or {}).get("annotations") or {}).get("helm.sh/hook", "").split(",")]
+yaml.safe_dump_all(tests, sys.stdout)' > "${WORK_DIR}/helm-test.yaml" )
 cat > "${CATALOG}/kubeadm/kustomization.yaml" << EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

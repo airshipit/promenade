@@ -1,0 +1,83 @@
+{{/*
+Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+{{/* helm test: runs templates/bin/_test.tpl on a control plane node with
+     the host kubectl and /etc/kubernetes/admin.conf, like the anchor runs the
+     reconcile script. Called from templates/phases/_main.tpl, can be patched
+     with bundle.tpl."templates/_pod-test.yaml.patch" (strategic merge patch) */}}
+{{- $envAll := index . 0 -}}
+{{- $fullname := include "kubeadm.fullname" $envAll -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ $fullname }}-test
+  labels:
+{{ tuple $envAll "kubernetes" "kubernetes-kubeadm-test" | include "kubeadm.labels" | indent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  restartPolicy: Never
+  hostNetwork: true
+  automountServiceAccountToken: false
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: {{ $envAll.Values.anchor.labels.common.node_selector_key }}
+                operator: In
+                values:
+                  - {{ $envAll.Values.anchor.labels.common.node_selector_value }}
+              - key: {{ $envAll.Values.anchor.labels.masters.node_selector_key }}
+                operator: In
+                values:
+                  - {{ $envAll.Values.anchor.labels.masters.node_selector_value }}
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+    - key: CriticalAddonsOnly
+      operator: Exists
+  containers:
+    - name: test
+      image: {{ $envAll.Values.images.tags.anchor }}
+      imagePullPolicy: {{ $envAll.Values.images.pull_policy }}
+      # chroot to the host
+      securityContext:
+        privileged: true
+      env:
+        # kubectl cache
+        - name: HOME
+          value: /root
+      command:
+        - /bin/sh
+        - -c
+        - chroot /host /bin/bash -s < /tmp/bin/test
+      volumeMounts:
+        - name: host
+          mountPath: /host
+        - name: bin
+          mountPath: /tmp/bin
+  volumes:
+    - name: host
+      hostPath:
+        path: /
+    - name: bin
+      configMap:
+        name: {{ $fullname }}-bin
+        defaultMode: 0444

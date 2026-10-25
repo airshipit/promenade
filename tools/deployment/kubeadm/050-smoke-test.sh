@@ -28,6 +28,10 @@ import sys, yaml
 for node in yaml.safe_load(open(sys.argv[1]))["nodes"]:
     print(node["name"], node["ip"], node["role"])' "${VALUES}")
 
+# the checks of the chart itself: the node checks are part of the anchor
+# readiness, helm test checks the cluster
+./tools/deployment/kubeadm/045-helm-test.sh
+
 kubectl get nodes -o wide
 while read -r name ip role; do
   kubectl get node "${name}" -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}' | grep -qx "${ip}"

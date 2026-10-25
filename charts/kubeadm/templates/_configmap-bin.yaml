@@ -33,4 +33,7 @@ data:
   # run by the pods of the previous chart versions, the new ones have it inline
   pre_stop: |+
 {{ tuple $envAll "templates/bin/_pre_stop.tpl" | include "kubeadm.bundle.template" | indent 4 }}
+  # run by the pod of helm test (templates/_pod-test.yaml)
+  test: |+
+{{ tuple $envAll "templates/bin/_test.tpl" | include "kubeadm.bundle.template" | indent 4 }}
 {{- end }}

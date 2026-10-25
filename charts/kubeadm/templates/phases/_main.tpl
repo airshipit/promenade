@@ -24,6 +24,8 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{- $_ := tuple $envAll "templates/phases/_vip_haproxy.tpl" (tuple $envAll $k8sConfDict "vip") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_k8s_up.tpl" (tuple $envAll $k8sConfDict "k8s_up") | include "kubeadm.bundle.template" -}}
 {{- $_ := tuple $envAll "templates/phases/_binaries.tpl" (tuple $envAll $k8sConfDict "binaries") | include "kubeadm.bundle.template" -}}
+{{/* the node checks, run by the bootstrap and reconcile scripts after the other phases */}}
+{{- $_ := tuple $envAll "templates/phases/_checks.tpl" (tuple $envAll $k8sConfDict "checks") | include "kubeadm.bundle.template" -}}
 
 {{/* generate shared part for bash scripts with all phases and put it to our object (they will appear in this order) */}}
 {{/*TODO: can be implemented shorter, but there are some more complex plans - so, good enough for now */}}
@@ -38,6 +40,8 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
       (get $sharedLibs "vip")
       (get $sharedLibs "binaries")
 ) -}}
+{{/* the checks go only to the scripts running them (checks.bootstrap, checks.reconcile):
+     the bootstrap script is cloud-init user data, limited in size */}}
 {{/* some of the phases also export parts for arg parsing *_cmd. collect all of them */}}
 {{- $cmdHookContent := "" -}}
 {{- range $name,$content := $sharedLibs -}}
@@ -78,5 +82,10 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
   {{- if $envAll.Values.manifests.daemonset_workers }}
 ---
 {{ tuple $envAll "templates/_daemonset-workers.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" }}
+  {{ end -}}
+
+  {{- if $envAll.Values.manifests.helm_test }}
+---
+{{ tuple $envAll "templates/_pod-test.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" }}
   {{ end -}}
 {{- end -}}

@@ -37,6 +37,26 @@ helm template kubeadm -f values.yaml -f ./secrets/values-pki.yaml ...
 
 This is how the gate deploys the cluster (`tools/deployment/kubeadm/010-generate-ca.sh`).
 
+## Checks
+
+The checks are a sanity check of the cluster: Kubernetes works and runs the version of the values.
+
+On the node, the `checks` phase checks what the node itself needs: at the end of the bootstrap script (`checks.bootstrap`) that the API is reachable through `kubeconfig.controlPlaneEndpoint`, and in the reconcile before the anchor becomes ready (`checks.reconcile`) the first pass of the haproxy VIP reconcile. A failing node fails its bootstrap, or its anchor doesn't become ready and stops the rolling update. The static pods check their own liveness. One line per check:
+
+```
+check OK api https://127.0.0.1:6553/livez
+check FAIL vip the haproxy config can't follow the apiservers (see above)
+check SKIP vip the node has no haproxy VIP
+```
+
+`helm test` (`manifests.helm_test`) checks the whole cluster from a control plane node, with the host `kubectl` and `/etc/kubernetes/admin.conf` through `chroot` as the anchor does: the anchors are rolled out (so the node checks passed everywhere), the nodes are ready, the control plane static pods are ready, the kubelets and the control plane run `cluster_config.kubernetesVersion`, and etcd has a member for every etcd pod.
+
+```bash
+helm test kubeadm --logs
+```
+
+When the chart is applied with `kubectl` (e.g. `helm template | kubectl apply`), render it with `--skip-tests`: `kubectl` ignores the hook annotations and would create the test pod at once. The gate runs the test pod separately, see `tools/deployment/kubeadm/045-helm-test.sh`.
+
 ## Extracting Bootstrap Scripts
 
 Because the chart generates standalone bootstrap scripts, you can use it for both manual and automated declarative cluster provisioning. The generated scripts accept command-line arguments to override configuration parameters derived from `values.yaml`.
@@ -105,12 +125,9 @@ A k0smotron/Kamaji-style cluster: the control plane runs as pods on the parent c
 
 ### Testing & Verification
 - **Modular Test Library:** Refactor test suites into a structured Bash test library with individual test specs (matching Go-like test signatures and execution flows).
-- **Helm Test & Gate Verification:** Move the sanity checks of the CI gates into the chart:
-  - **Node checks as a phase:** a `sharedLibs` phase, switchable in `values.yaml`, checks the node itself: files with their owners and permissions, the `kubeadm`, `kubelet` and `kubectl` versions on the host, `/livez` and etcd on control plane nodes. The bootstrap script runs it at the end, the reconcile runs it before creating the `done` file, so a ready anchor means a reconciled and verified node and a failing node stops the rolling update.
-  - **Output of the phase:** one line per check in a stable format (e.g. `check OK file-perms /etc/kubernetes/pki/ca.key 0600 root:root`, `check FAIL file-perms /etc/kubernetes/admin.conf: mode 0644, expected 0600`, `check SKIP versions: disabled in values`). The phase runs all the checks without stopping at the first failure and fails if any of them failed. The same lines show up in the cloud-init output, the anchor logs and the test pod log, and a log collector picks them up with the same rule as the certificate expiry warnings.
-  - **Mock tests:** like every phase it works on `${ROOTFS}`, so `test.sh` runs it on the mock rootfs after the bootstrap: it must pass, then the test breaks a file or its permissions and expects the `check FAIL` line of that very check, not just a non-zero exit code. The checks that need real binaries or a live cluster (versions, `/livez`, etcd) are switched off there with the same values switches.
-  - **Thin `helm test`:** a `busybox` pod on a control plane node (same node selector as the masters anchor, control plane toleration) runs the host `kubectl` with `/etc/kubernetes/admin.conf` through `chroot`, as the anchor does: `kubectl rollout status` of both anchor DaemonSets collects the node checks of the whole cluster, then cluster-wide checks through the API (the `kubeadm-config` ConfigMap matches the rendered `ClusterConfiguration`, the etcd member count matches the control plane nodes). No new images, no extra service account.
-  - **Gate:** the catalog is rendered with `--skip-tests` (`kubectl` ignores the hook annotations and would create the test pods at once). The anchor wait of `040-deploy-catalog.sh` then covers the node checks, and `050`-`070` keep only what isn't the chart's: CNI and DNS checks and the day 2 scenarios.
+- **Helm Test & Gate Verification:** done, see [Checks](#checks). Left:
+  - **Switching phases:** the checks are switched with flags in `checks` for now; switching them like the other phases once phases can be switched on and off (see Dynamic Module Linking).
+  - **Armada based gates:** `test.enabled` of the `ArmadaChart` in the aircat and aircruiser gates.
   - **Hosted control plane:** the profile replaces the control plane test (Deployments on the parent cluster, kubeconfig from a Secret, datastore and konnectivity checks), the worker checks stay as is.
 
 

@@ -83,7 +83,8 @@ run_bootstrap() {
   shift 1
 
   local overrides=""
-  local extra_helm_args=""
+  # the node checks need a running node
+  local extra_helm_args="--set checks.bootstrap=false"
   local script_args=()
 
   # Parsing named args
@@ -227,7 +228,7 @@ assert_tgz_is_valid() {
   fi
 }
 
-ovrds=kubeadm/overrides
+ovrds=kubeadm/overrides/test
 
 # COVERAGE matrix
 #################
@@ -586,7 +587,7 @@ assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet pre-started BEFORE ku
 # # Full per-node join with extra params
 # run_bootstrap "nodename1" "${uc0_full_haproxy[@]}" -- -- --pod-network-cidr=10.244.0.0/16
 
-# patches of the templates (bundle.tpl."<template>.patch", overrides/patch.yaml):
+# patches of the templates (bundle.tpl."<template>.patch", overrides/test/patch.yaml):
 # the patch is applied, the lists are merged (the rest of the template stays)
 
 echo "[patches] daemonsets, kubelet restart job, haproxy static pod"
@@ -601,7 +602,7 @@ patches_check() {
   fi
 }
 patches_dir=$(mktemp -d)
-"${HELM:-helm}" template kubeadm kubeadm -f kubeadm/overrides/patch.yaml > "${patches_dir}/rendered.yaml"
+"${HELM:-helm}" template kubeadm kubeadm -f kubeadm/overrides/test/patch.yaml > "${patches_dir}/rendered.yaml"
 # the value of the yq expression in the file is the expected one
 patches_eq() {
   [ "$("${YQ:-yq}" "$2" "$1")" = "$3" ]
@@ -1122,7 +1123,7 @@ parent_check() {
   fi
 }
 parent_dir=$(mktemp -d)
-parent_pki=(-f kubeadm/overrides/pki-ca.yaml -f kubeadm/overrides/pki-admin.yaml)
+parent_pki=(-f kubeadm/overrides/test/pki-ca.yaml -f kubeadm/overrides/test/pki-admin.yaml)
 "${HELM:-helm}" template kubeadm kubeadm > "${parent_dir}/default.yaml"
 "${HELM:-helm}" template kubeadm kubeadm "${parent_pki[@]}" \
   --set manifests.secret_ca_tls=true --set manifests.secret_admin_tls=true > "${parent_dir}/values.yaml"
@@ -1160,7 +1161,7 @@ parent_check "both admin secrets fail" parent_fails "enable one of them" "${pare
   --set manifests.secret_admin_tls=true --set manifests.cert_manager_admin=true
 parent_check "ca without certs fails" parent_fails "needs certs.ca.crt and certs.ca.key" \
   --set manifests.secret_ca_tls=true
-parent_check "admin without certs fails" parent_fails "needs certs.admin.crt" -f kubeadm/overrides/pki-ca.yaml \
+parent_check "admin without certs fails" parent_fails "needs certs.admin.crt" -f kubeadm/overrides/test/pki-ca.yaml \
   --set manifests.secret_admin_tls=true
 rm -rf "${parent_dir}"
 

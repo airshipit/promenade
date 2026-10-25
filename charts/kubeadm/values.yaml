@@ -75,6 +75,25 @@ anchor:
     # its own files (script, service account, state), mounted in the pod only
     host_dir: /var/lib/kubeadm-reconcile
 
+# node checks (the checks phase): one line per check
+# "check OK|FAIL|SKIP <check> <details>", the phase fails if any check failed
+checks:
+  # day 0/1, at the end of the bootstrap script (it fails): /livez through
+  # kubeconfig.controlPlaneEndpoint
+  bootstrap: true
+  # day 2, by the reconcile before the anchor becomes ready (it restarts): the
+  # first pass of the haproxy VIP reconcile (vip.reconcile), the reconcile loop
+  # ignores its errors
+  reconcile: true
+  # attempts 2 seconds apart of the api check (about 5 minutes, as the kubeadm
+  # timeouts): on a joining node kubelet pulls the images and starts the haproxy
+  # static pod of the VIP first
+  attempts: 150
+  # helm test (manifests.helm_test): a pod on a control plane node waits for the
+  # anchors and checks the cluster through the API
+  helm_test:
+    rollout_timeout: 1800s
+
 etcd_service:
   name: kubernetes-etcd
   ip: "10.96.0.2"
@@ -356,7 +375,7 @@ certs:
   #   key: placeholder
   #   pub: placeholder
   # ...
-  # see overrides/pki-*.yaml
+  # see overrides/test/pki-*.yaml
 
 
 # resources prefix
@@ -389,6 +408,8 @@ manifests:
   cert_manager_admin: false
   daemonset_masters: true
   daemonset_workers: true
+  # the test pod of helm test (see checks.helm_test), its script is in the bin ConfigMap
+  helm_test: true
   etcd_service: false
   rbac: true
 

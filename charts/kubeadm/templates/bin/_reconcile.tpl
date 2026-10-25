@@ -54,6 +54,9 @@ sleep $(shuf -i 1-30 -n 1)
 
 {{/* adding shared bash functions */}}
 {{ $sharedLibsContent }}
+{{- if $envAll.Values.checks.reconcile }}
+{{ get $k8sConfDict.sharedLibs "checks" }}
+{{- end }}
 # end of common functions
 
 PATH="${BINARIES_DIR}:${PATH}"
@@ -371,6 +374,11 @@ if [[ $KUBELET_RESTART_REQUIRED == true ]]; then
 fi
 
 #cleanup_old_configs
+{{- if $envAll.Values.checks.reconcile }}
+
+# the anchor becomes ready only if the node checks pass
+run_checks check_vip
+{{- end }}
 
 touch "${RECONCILE_DIR}/done"
 
