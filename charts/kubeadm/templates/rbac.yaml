@@ -46,6 +46,10 @@ rules:
       - daemonsets
     verbs:
       - "*"
+  # the haproxy VIP follows the apiservers (vip_anchor)
+  - apiGroups: [ "discovery.k8s.io" ]
+    resources: [ "endpointslices" ]
+    verbs: [ "get", "list" ]
   - apiGroups: [ "batch" ]
     resources: [ "jobs" ]
     verbs:

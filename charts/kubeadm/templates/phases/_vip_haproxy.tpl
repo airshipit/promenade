@@ -38,10 +38,7 @@ sync_vip_config() {
 
 # we actually can build default value if we have access to control_plane structures
 # here is the example of arg: "*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443,172.29.0.1154:6443"
-{{ $vip_init := "" -}}
-{{- if $envAll.Values.vip -}}
-{{- $vip_init = tpl ($envAll.Values.vip.init | default "") $envAll }}
-{{- end -}}
+{{ $vip_init := tpl ($envAll.Values.vip.init | default "") $envAll -}}
 {{ $sharedLibName }}_arg="{{ $vip_init }}"
 sync_{{ $sharedLibName }}() {
   local arg=${{ $sharedLibName }}_arg
@@ -58,7 +55,11 @@ sync_{{ $sharedLibName }}() {
     IFS=',' read -r -a SERVICE_ENDPOINTS <<< "$RAW_IPS"
 
     IDENTIFIER="default-kubernetes"
-    NEXT_HAPROXY_CONF="${ROOTFS}{{ $envAll.Values.haproxy.host_config_dir }}/haproxy.cfg"
+    # the haproxy static pod polls haproxy.cfg: it's built aside and moved in
+    # place, a partially written file (e.g. the header only) is a valid config
+    # without frontends
+    HAPROXY_CONF="${ROOTFS}{{ $envAll.Values.haproxy.host_config_dir }}/haproxy.cfg"
+    NEXT_HAPROXY_CONF="${HAPROXY_CONF}.next"
     echo "Adding $IDENTIFIER to haproxy config"
     cat << EOF_TEMPLATE_DATA > "$NEXT_HAPROXY_CONF"
 {{ $haproxyHeader }}
@@ -84,35 +85,51 @@ EOF_TEMPLATE_DATA
         echo "Adding backend $IP:$PORT"
         echo "  server s$IP $IP:$PORT check port $PORT" >> "$NEXT_HAPROXY_CONF"
     done
+
+    if ! grep -q '^frontend ' "$NEXT_HAPROXY_CONF" || ! grep -q '^  server ' "$NEXT_HAPROXY_CONF"; then
+      echo "haproxy config has no frontend or backend servers, keeping the current one"
+      rm -f "$NEXT_HAPROXY_CONF"
+      return 1
+    fi
+    if [ -f "$HAPROXY_CONF" ] && cmp -s "$NEXT_HAPROXY_CONF" "$HAPROXY_CONF"; then
+      rm -f "$NEXT_HAPROXY_CONF"
+    else
+      mv "$NEXT_HAPROXY_CONF" "$HAPROXY_CONF"
+    fi
   fi
   echo "vip(haproxy) is synced"
 }
 
-# detect config from service endpointslices
+# called by the reconcile loop: the backends of the values (vip.init) plus the
+# apiservers of the kubernetes endpointslices. All of them, ready or not:
+# haproxy health checks pick the live ones, the list shouldn't flap while the
+# control plane restarts. Keeps the current config if the API isn't available.
 {{ $sharedLibName }}_anchor() {
-    local hostroot="$1"
-    local node_role="$2"
+    local init_arg="{{ $vip_init }}"
+    local bind init_backends service_endpoints backends
 
-    local SERVICE_IPS
-    SERVICE_IPS=$(set -o pipefail; kubectl \
-        --server "$KUBE_URL" \
-        --certificate-authority "$KUBE_CA" \
-        --token "$(cat "$KUBE_TOKEN")" \
-        --namespace default \
-            get endpointslices kubernetes \
-                -o jsonpath='{range .ports[*]}{$port:=.port}{range $.endpoints[?(@.conditions.ready==true)]}{range .addresses}{.}:{$port}{","}{end}{end}{end}' | sed 's/,$//')
+    IFS='|' read -r bind init_backends <<< "$init_arg"
+    if [[ -z "$bind" ]]; then
+      bind="*:{{ splitList ":" $envAll.Values.kubeconfig.controlPlaneEndpoint | last }}"
+    fi
 
-    if [ $? -ne 0 ]; then
-      echo "Unable to retrieve service IPs for kubernetes, will retry configuration render."
+    # "<port> <address> <address> ..." per endpointslice
+    if ! service_endpoints=$(kubectl --namespace default get endpointslices \
+        -l kubernetes.io/service-name=kubernetes \
+        -o jsonpath='{range .items[*]}{.ports[0].port}{" "}{.endpoints[*].addresses[*]}{"\n"}{end}'); then
+      echo "Unable to retrieve the kubernetes endpointslices, keeping the current haproxy config"
+      return 1
+    fi
+    service_endpoints=$(awk '{ for (i = 2; i <= NF; i++) print $i ":" $1 }' <<< "$service_endpoints")
+
+    backends=$(printf '%s\n%s\n' "${init_backends//,/$'\n'}" "$service_endpoints" | sed '/^$/d' | sort -u | paste -sd, -)
+    if [[ -z "$backends" ]]; then
+      echo "No apiservers found, keeping the current haproxy config"
       return 1
     fi
 
-    IFS=':' read -r BIND_IP BIND_PORT <<< "{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}"
-
-    if [ -n "${SERVICE_IPS}" ]; then
-      {{ $sharedLibName }}_arg="*:${BIND_PORT}|${SERVICE_IPS}"
-      sync_{{ $sharedLibName }}
-    fi
+    {{ $sharedLibName }}_arg="${bind}|${backends}"
+    sync_{{ $sharedLibName }}
 }
 
 {{- end -}}

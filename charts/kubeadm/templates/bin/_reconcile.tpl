@@ -380,5 +380,12 @@ while true; do
     echo "Stopping"
     break
   fi
+{{- if dig "reconcile" false ($envAll.Values.vip | default dict) }}
+  # the node uses the haproxy VIP (configured by the bootstrap): follow the
+  # control plane endpoints
+  if [ -f "${ROOTFS}{{ $envAll.Values.haproxy.host_config_dir }}/haproxy.cfg" ]; then
+    vip_anchor || true
+  fi
+{{- end }}
   sleep {{ $envAll.Values.anchor.reconcile.period }}
 done

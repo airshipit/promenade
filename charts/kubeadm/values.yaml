@@ -85,6 +85,12 @@ etcd_service:
     # TODO: must match with kubeadm.settings.etcd_servers ports
     target_port: 2379
 
+vip:
+  # day 2: on the nodes bootstrapped with the haproxy VIP the reconcile loop
+  # keeps its config and static pod in sync with the control plane endpoints.
+  # Disable it when the VIP is managed by something else (e.g. the haproxy chart)
+  reconcile: true
+
 haproxy:
   container_config_dir: /usr/local/etc/haproxy
   host_config_dir: /etc/kubernetes/kubeadm/addons
