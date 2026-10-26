@@ -1,0 +1,30 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Runs the demo of the kubeadm chart exactly as its README says
+# (charts/kubeadm/overrides/demo/1node-cilium-upgrade.yaml): without a
+# terminal it doesn't start k9s and runs to the end, helm test included.
+---
+- hosts: primary
+  become: true
+  tasks:
+    - name: Run the demo
+      shell: |
+        set -o pipefail
+        helm template kubeadm ./charts/kubeadm \
+          -f ./charts/kubeadm/overrides/demo/1node-cilium-upgrade.yaml \
+          --set manifests.secret_tools=true \
+          | sed -n 's/^ *demo.sh: *\(.*\)/\1/p' | base64 -d | bash -s -- --yes
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+...

@@ -32,6 +32,7 @@
         - airship-promenade-kubeadm-chart-test
         - airship-promenade-kubeadm-5nodes
         - airship-promenade-airliner-kubeadm-1node
+        - airship-promenade-kubeadm-demo-1node
         # commented out because it takes 55 minutes to complete
         # you can enable it if you want it here for your tests
         # - airship-promenade-jumbojet-kubeadm-5nodes
@@ -47,6 +48,11 @@
         - airship-promenade-chart-build-latest-htk
         - airship-promenade-genesis-containerd-gate
         - airship-promenade-kubeadm-chart-test
+
+    # the demo depends on external downloads
+    periodic-weekly:
+      jobs:
+        - airship-promenade-kubeadm-demo-1node
 
     post:
       jobs:

@@ -1,0 +1,457 @@
+# Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Make your own Kubernetes distribution — in under 500 lines.
+#
+# Demo: a single node cluster on a bare Ubuntu VM with Cilium, then the day 2
+# upgrade of Kubernetes by the chart. Everything is in this file: the demo
+# script itself is one more tool of the chart, next to gen-pki.sh.
+#
+# From the root of the repository, as root, on a throwaway VM:
+#
+#   helm template kubeadm ./charts/kubeadm \
+#     -f ./charts/kubeadm/overrides/demo/1node-cilium-upgrade.yaml \
+#     --set manifests.secret_tools=true \
+#     | sed -n 's/^ *demo.sh: *\(.*\)/\1/p' | base64 -d | bash -s -- --yes
+#
+# The demo calls helm again with the same chart and values: set HELM and
+# CHART_ARGS ("<release> <chart> -f <values>...") if they differ.
+#
+# More nodes: the demo prints the command to join them at the end. Copy
+# values-pki.yaml (the CA keys) of the first node to WORK_DIR of the new node
+# and run the demo there with --join <first node IP> --token <token>, and
+# --control-plane for one more control plane node. The haproxy VIP of every
+# node follows the apiservers.
+
+demo:
+  # day 2: the chart upgrades the cluster to this version
+  upgrade_version: v1.37.0
+  containerd_version: v2.4.2
+  runc_version: v1.5.2
+  # Helm chart of https://helm.cilium.io
+  cilium_version: 1.20.4
+  k9s_version: v0.51.0
+  # chosen by demo.sh on the node, see pick_resolv_conf
+  resolv_conf: /run/systemd/resolve/resolv.conf
+  # demo.sh --join: the IP of the first node
+  join_server: ""
+
+network:
+  pod_cidr: 10.244.0.0/16
+  service_cidr: 10.96.0.0/12
+  dns:
+    service_ip: 10.96.0.10
+    cluster_domain: cluster.local
+
+cluster_config:
+  kubernetesVersion: v1.36.3
+
+kubelet:
+  # a single node: there is nowhere to drain the workloads to
+  drain: false
+
+# haproxy on every node: the first node is its own backend, a joining node
+# starts with the first one (demo.sh --join), vip.reconcile adds the others
+kubeconfig:
+  controlPlaneEndpoint: 127.0.0.1:6553
+vip:
+  init: "*:6553|${NODE_IP}:6443"
+
+# the tools Secret of the chart with the demo script next to gen-pki.sh
+entrypoint:
+  "tools": |
+    {{ if .Values.manifests.secret_tools }}
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: {{ include "kubeadm.fullname" . }}-tools
+    type: Opaque
+    data:
+      gen-pki.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      demo.sh: {{ tuple . "templates/phases/snippets/tools/_demo.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+    {{ end }}
+
+kubeadm:
+  fs:
+    "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
+    "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
+    # demo.sh --join
+    "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
+    "join_worker_config.yaml": "templates/phases/snippets/kubeadm/join_worker_config.yaml"
+    "discovery.conf": "templates/phases/snippets/kubeadm/discovery.conf"
+    # used by the anchor (day 2): kubeadm upgrade node
+    "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
+
+bundle:
+  tpl:
+    # Here we define where containerd comes from: every distribution has its
+    # own way (packages, its own versions). The demo takes the upstream static
+    # release, the same on any distribution: containerd, runc and the systemd
+    # unit. The configuration is the chart default (files.cri).
+    "templates/phases/snippets/cri/_install.sh.tpl": |
+      install_cri() {
+        local version={{ .Values.demo.containerd_version }} runc={{ .Values.demo.runc_version }} dir sha256
+        containerd --version 2>/dev/null | grep -qw "${version}" && return 1
+        ARCH="${ARCH:-$(node_arch)}" || return 2
+        dir=$(mktemp -d) || return 2
+        local url="https://github.com/containerd/containerd/releases/download/${version}/containerd-static-${version#v}-linux-${ARCH}.tar.gz"
+        local runc_url="https://github.com/opencontainers/runc/releases/download/${runc}"
+        if ! sha256=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) ||
+          ! download_verified "${dir}/containerd.tar.gz" "${url}" "${sha256}" ||
+          ! tar -xzf "${dir}/containerd.tar.gz" -C /usr/local ||
+          ! sha256=$(curl -fsSL --retry 5 "${runc_url}/runc.sha256sum" | awk -v f="runc.${ARCH}" '$2 == f {print $1}') ||
+          ! download_verified "${dir}/runc" "${runc_url}/runc.${ARCH}" "${sha256}" ||
+          ! install -m 0755 "${dir}/runc" /usr/local/sbin/runc ||
+          ! curl -fsSL --retry 5 -o /etc/systemd/system/containerd.service \
+            "https://raw.githubusercontent.com/containerd/containerd/${version}/containerd.service"; then
+          rm -rf "${dir}"
+          return 2
+        fi
+        rm -rf "${dir}"
+        systemctl daemon-reload
+        systemctl enable containerd
+      }
+    "templates/phases/snippets/kubeadm/ClusterConfiguration": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: ClusterConfiguration
+      kubernetesVersion: {{ .Values.cluster_config.kubernetesVersion }}
+      clusterName: {{ .Values.kubeconfig.clusterName }}
+      controlPlaneEndpoint: {{ .Values.kubeconfig.controlPlaneEndpoint }}
+      certificatesDir: /etc/kubernetes/pki
+      networking:
+        dnsDomain: {{ .Values.network.dns.cluster_domain }}
+        podSubnet: {{ .Values.network.pod_cidr }}
+        serviceSubnet: {{ .Values.network.service_cidr }}
+      etcd:
+        local:
+          dataDir: /var/lib/etcd
+    "templates/phases/snippets/kubeadm/init_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: InitConfiguration
+      localAPIEndpoint:
+        advertiseAddress: "${NODE_IP}"
+        bindPort: 6443
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///run/containerd/containerd.sock
+        imagePullPolicy: IfNotPresent
+        # the anchor daemonsets are scheduled by these labels (anchor.labels)
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled,kubernetes-apiserver=enabled
+        # a single node runs the workloads too
+        taints: []
+        ignorePreflightErrors:
+          # kubelet is started by the bootstrap script before kubeadm
+          - Port-10250
+          # the bootstrap script delivers the haproxy static pod
+          - DirAvailable--etc-kubernetes-manifests
+      ---
+      {{ tuple . "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template" }}
+    # joining nodes find the first node with the CA of the values, the token
+    # comes from the environment (KUBEADM_TOKEN)
+    "templates/phases/snippets/kubeadm/discovery.conf": |
+      apiVersion: v1
+      kind: Config
+      clusters:
+        - name: {{ .Values.kubeconfig.clusterName }}
+          cluster:
+            server: https://{{ .Values.demo.join_server }}:6443
+            certificate-authority-data: {{ ((.Values.certs).ca).crt | default "" | b64enc }}
+      contexts:
+        - name: discovery
+          context: {cluster: {{ .Values.kubeconfig.clusterName }}, user: discovery}
+      current-context: discovery
+      users:
+        - name: discovery
+          user: {}
+    "templates/phases/snippets/kubeadm/join_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      controlPlane:
+        localAPIEndpoint:
+          advertiseAddress: "${NODE_IP}"
+          bindPort: 6443
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/kubeadm/discovery.conf
+        tlsBootstrapToken: "${KUBEADM_TOKEN}"
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///run/containerd/containerd.sock
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled,kubernetes-apiserver=enabled
+        taints: []
+        ignorePreflightErrors:
+          - Port-10250
+          - DirAvailable--etc-kubernetes-manifests
+          # the bootstrap script delivers the CAs
+          - FileAvailable--etc-kubernetes-pki-ca.crt
+      skipPhases:
+        # uses the VIP before kubelet starts haproxy
+        - check-etcd
+    "templates/phases/snippets/kubeadm/join_worker_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/kubeadm/discovery.conf
+        tlsBootstrapToken: "${KUBEADM_TOKEN}"
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///run/containerd/containerd.sock
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled
+        ignorePreflightErrors:
+          - Port-10250
+          - DirAvailable--etc-kubernetes-manifests
+    "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: UpgradeConfiguration
+      node:
+        certificateRenewal: false
+        etcdUpgrade: true
+        imagePullPolicy: IfNotPresent
+        skipPhases:
+          # kubelet configuration is delivered by the chart
+          - kubelet-config
+    # the anchor restarts kubelet when it changes (kubelet.restart)
+    "templates/phases/snippets/kubelet/_kubelet-config.yaml": |
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      authentication:
+        anonymous:
+          enabled: false
+        webhook:
+          enabled: true
+        x509:
+          # delivered by the chart (the CA of gen-pki.sh)
+          clientCAFile: /etc/kubernetes/pki/kubelet-client-ca.pem
+      authorization:
+        mode: Webhook
+      cgroupDriver: systemd
+      clusterDNS:
+        - {{ .Values.network.dns.service_ip }}
+      clusterDomain: {{ .Values.network.dns.cluster_domain }}
+      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+      staticPodPath: /etc/kubernetes/manifests
+      # resolvers of the pods (CoreDNS): chosen by demo.sh on the node
+      resolvConf: {{ .Values.demo.resolv_conf }}
+      rotateCertificates: true
+      readOnlyPort: 0
+    "templates/phases/snippets/tools/_demo.sh.tpl": |
+      #!/bin/bash
+      # The demo of the kubeadm chart: a single node cluster on a bare VM, then
+      # the day 2 upgrade by the chart. Run it as root on a throwaway VM: it
+      # installs containerd and Kubernetes and changes the host (swap, sysctl).
+      set -euo pipefail
+
+      HELM="${HELM:-helm}"
+      CHART_ARGS="${CHART_ARGS:-kubeadm ./charts/kubeadm -f ./charts/kubeadm/overrides/demo/1node-cilium-upgrade.yaml}"
+      RELEASE="${CHART_ARGS%% *}"
+      NAMESPACE="${NAMESPACE:-kube-system}"
+      WORK_DIR="${WORK_DIR:-/root/kubeadm-demo}"
+      UPGRADE_VERSION="${UPGRADE_VERSION:-{{ .Values.demo.upgrade_version }}}"
+      CILIUM_VERSION="${CILIUM_VERSION:-{{ .Values.demo.cilium_version }}}"
+      K9S_VERSION="${K9S_VERSION:-{{ .Values.demo.k9s_version }}}"
+      ANCHORS="{{ include "kubeadm.fullname" . }}-masters-anchor"
+      export KUBECONFIG=/etc/kubernetes/admin.conf
+
+      usage() {
+        cat << EOF
+      Usage: demo.sh --yes [--no-k9s] [--join <IP> --token <token> [--control-plane]]
+
+        --yes      confirm: the host is changed, use a throwaway VM
+        --no-k9s   don't start k9s at the end (it isn't started without a terminal)
+        --join     join the cluster of the first node (its values-pki.yaml in WORK_DIR)
+
+      Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), WORK_DIR,
+      UPGRADE_VERSION, CILIUM_VERSION, K9S_VERSION
+      EOF
+        exit "${1:-0}"
+      }
+
+      YES=false
+      K9S=true
+      JOIN=""
+      TOKEN=""
+      JOIN_ROLE=worker
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --yes) YES=true ;;
+          --no-k9s) K9S=false ;;
+          --join) JOIN="$2"; shift ;;
+          --token) TOKEN="$2"; shift ;;
+          --control-plane) JOIN_ROLE=master ;;
+          -h|--help) usage ;;
+          *) echo "Unknown option: $1" >&2; usage 1 ;;
+        esac
+        shift
+      done
+      # the script itself comes through stdin: k9s uses the terminal directly
+      { [ -t 1 ] && : < /dev/tty; } 2> /dev/null || K9S=false
+
+      STEP=0
+      STEPS=8
+      [ -z "${JOIN}" ] || STEPS=2
+      step() {
+        STEP=$((STEP + 1))
+        echo
+        echo "=== demo step ${STEP}/${STEPS}: $*"
+      }
+
+      # the anchor applies the chart on the node: ready when its reconcile is
+      # done, the API may restart meanwhile (kubeadm upgrade node)
+      wait_anchors() {
+        local end=$((SECONDS + 2400))
+        until kubectl -n "${NAMESPACE}" rollout status "daemonset/${ANCHORS}" --timeout=60s; do
+          [ "${SECONDS}" -lt "${end}" ] || return 1
+          sleep 10
+        done
+      }
+
+      # kubelet gives its resolv.conf to the pods (CoreDNS forwards to it): a
+      # resolver on the loopback interface isn't reachable from them, e.g. the
+      # stub of systemd-resolved in /etc/resolv.conf (Ubuntu) or unbound on the
+      # CI nodes. Prints the first file with other resolvers, writes one with a
+      # public resolver if there is none.
+      pick_resolv_conf() {
+        local file
+        for file in /run/systemd/resolve/resolv.conf /etc/resolv.conf; do
+          # not grep -q: with pipefail an early exit fails the pipe
+          if [ -f "${file}" ] && [ -n "$(grep '^nameserver' "${file}" | grep -vE ' (127\.|::1$)' || true)" ]; then
+            echo "${file}"
+            return
+          fi
+        done
+        echo "nameserver 8.8.8.8" > /etc/kubernetes-demo-resolv.conf
+        echo /etc/kubernetes-demo-resolv.conf
+      }
+
+      prepare_node() {
+        # here: Ubuntu, every distribution has its own way
+        apt-get update -q
+        apt-get install -q -y conntrack socat ethtool iptables
+        echo "demo: {resolv_conf: $(pick_resolv_conf)}" > "${WORK_DIR}/values-node.yaml"
+        cat "${WORK_DIR}/values-node.yaml"
+      }
+
+      join_hint() {
+        echo
+        echo "More nodes: copy ${WORK_DIR}/values-pki.yaml to WORK_DIR of the node and run the demo there with"
+        echo "  --yes --join ${NODE_IP:-$(hostname -I | awk '{print $1}')} --token $(kubeadm token create) [--control-plane]"
+      }
+
+      chart() {
+        # shellcheck disable=SC2086 # CHART_ARGS is a list of arguments
+        "${HELM}" "$1" ${CHART_ARGS} -f "${WORK_DIR}/values-pki.yaml" -f "${WORK_DIR}/values-node.yaml" "${@:2}"
+      }
+
+      upgrade() {
+        step "day 2: the chart upgrades Kubernetes to ${UPGRADE_VERSION}"
+        chart upgrade --namespace "${NAMESPACE}" --reuse-values \
+          --set cluster_config.kubernetesVersion="${UPGRADE_VERSION}"
+        wait_anchors
+        step "helm test after the upgrade"
+        "${HELM}" test "${RELEASE}" --namespace "${NAMESPACE}" --logs
+      }
+
+      if [ "$(id -u)" -ne 0 ] || [ "${YES}" != true ]; then
+        echo "The demo changes the host: run it as root on a throwaway VM with --yes" >&2
+        usage 1
+      fi
+      for cmd in "${HELM}" curl tar sed base64 openssl; do
+        command -v "${cmd}" > /dev/null || { echo "${cmd} is required" >&2; exit 1; }
+      done
+      mkdir -p -m 0700 "${WORK_DIR}"
+
+      if [ -n "${JOIN}" ]; then
+        [ -s "${WORK_DIR}/values-pki.yaml" ] && [ -n "${TOKEN}" ] || usage 1
+        step "packages and resolvers of the node"
+        prepare_node
+        step "bootstrap of the node: kubeadm join ${JOIN}"
+        CONFIG=join_worker_config.yaml
+        [ "${JOIN_ROLE}" = master ] && CONFIG=join_config.yaml
+        chart template --set manifests.secret_bootstrap=true --set demo.join_server="${JOIN}" \
+          | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d > "${WORK_DIR}/bootstrap.sh"
+        KUBEADM_TOKEN="${TOKEN}" NODE_ROLE="${JOIN_ROLE}" bash "${WORK_DIR}/bootstrap.sh" \
+          --vip_haproxy "*:6553|${JOIN}:6443" -- join --config "/etc/kubernetes/kubeadm/${CONFIG}"
+        echo "The node joined: the anchor of the chart keeps it in sync"
+        exit 0
+      fi
+
+      step "the PKI (gen-pki.sh of the chart)"
+      # shellcheck disable=SC2086
+      "${HELM}" template ${CHART_ARGS} --set manifests.secret_tools=true \
+        | sed -n 's/^ *gen-pki.sh: *\(.*\)/\1/p' | base64 -d \
+        | bash -s -- --out-file "${WORK_DIR}/values-pki.yaml"
+
+      step "packages and resolvers of the node"
+      prepare_node
+
+      step "bootstrap of the node: kubeadm init"
+      # the script contains the CA key: kept in the private WORK_DIR
+      chart template --set manifests.secret_bootstrap=true \
+        | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d > "${WORK_DIR}/bootstrap.sh"
+      NODE_ROLE=master bash "${WORK_DIR}/bootstrap.sh" -- init --config /etc/kubernetes/kubeadm/init_config.yaml
+
+      step "Cilium ${CILIUM_VERSION}"
+      # a single node: the replicas of the operator are on different nodes
+      "${HELM}" upgrade --install cilium cilium --repo https://helm.cilium.io \
+        --version "${CILIUM_VERSION}" --namespace kube-system \
+        --set ipam.mode=kubernetes \
+        --set operator.replicas=1 --wait --timeout 10m
+      kubectl wait --for=condition=Ready nodes --all --timeout=300s
+
+      step "the kubeadm chart in the cluster: the anchor keeps the node in sync"
+      chart upgrade --install --namespace "${NAMESPACE}"
+      wait_anchors
+
+      step "helm test"
+      "${HELM}" test "${RELEASE}" --namespace "${NAMESPACE}" --logs
+
+      if [ "${K9S}" != true ]; then
+        upgrade
+        join_hint
+        echo
+        echo "The demo is done: kubectl and helm use ${KUBECONFIG}"
+        exit 0
+      fi
+
+      # k9s: the upgrade runs in the background, k9s shows the anchor at work
+      ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
+      K9S_URL="https://github.com/derailed/k9s/releases/download/${K9S_VERSION}"
+      curl -fsSL --retry 5 -o "${WORK_DIR}/k9s.tar.gz" "${K9S_URL}/k9s_Linux_${ARCH}.tar.gz"
+      K9S_SHA256=$(curl -fsSL --retry 5 "${K9S_URL}/checksums.sha256" \
+        | awk -v f="k9s_Linux_${ARCH}.tar.gz" '$2 == f {print $1}')
+      echo "${K9S_SHA256}  ${WORK_DIR}/k9s.tar.gz" | sha256sum -c --quiet -
+      tar -xzf "${WORK_DIR}/k9s.tar.gz" -C "${WORK_DIR}" k9s
+
+      upgrade > "${WORK_DIR}/upgrade.log" 2>&1 &
+      UPGRADE_PID=$!
+      echo "The upgrade runs in the background (${WORK_DIR}/upgrade.log), k9s starts in 10 seconds: quit it with :q"
+      sleep 10
+      "${WORK_DIR}/k9s" --namespace "${NAMESPACE}" < /dev/tty || true
+      echo "Waiting for the upgrade..."
+      if ! wait "${UPGRADE_PID}"; then
+        cat "${WORK_DIR}/upgrade.log"
+        exit 1
+      fi
+      cat "${WORK_DIR}/upgrade.log"
+      join_hint
+      echo
+      echo "The demo is done: kubectl and helm use ${KUBECONFIG}"

@@ -169,6 +169,39 @@
       overlay_network_bridge_ip: "{{ kubeadm_node_ips[inventory_hostname] }}"
 
 - job:
+    name: airship-promenade-kubeadm-demo-1node
+    description: |
+      The demo of the kubeadm chart (overrides/demo/1node-cilium-upgrade.yaml)
+      on a single bare node: the demo script of the chart installs
+      containerd, bootstraps the node with kubeadm init, installs Cilium and
+      the chart itself, runs helm test, upgrades Kubernetes with the chart and
+      runs helm test again. It depends on external downloads (containerd,
+      Cilium, Kubernetes releases): non-voting, also run weekly to notice them
+      breaking.
+    voting: false
+    timeout: 3600
+    nodeset: airship-promenade-single-node-noble
+    # the log collection roles of kubeadm-collect-logs.yaml
+    roles:
+      - zuul: openstack/openstack-helm
+      - zuul: zuul/zuul-jobs
+    required-projects:
+      - openstack/openstack-helm
+    files:
+      - ^charts/kubeadm/.*$
+      - ^tools/zuul/playbooks/kubeadm-demo.*$
+      - ^tools/zuul/playbooks/kubeadm-collect-logs.yaml$
+      - ^zuul.d/.*$
+    pre-run:
+      - tools/zuul/playbooks/kubeadm-demo-env.yaml
+    run:
+      - tools/zuul/playbooks/kubeadm-demo.yaml
+    post-run:
+      - tools/zuul/playbooks/kubeadm-collect-logs.yaml
+    vars:
+      helm_version: "4.1.1"
+
+- job:
     name: airship-promenade-chart-build-gate
     description: |
       Lints charts using pinned HTK
