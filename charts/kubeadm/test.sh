@@ -73,6 +73,12 @@ assert_before() {
 
 
 RUN_COUNTER=0
+clean_bootstrap() {
+  local run_rootfs="kubeadm-test-rootfs-${RUN_COUNTER}"
+  # delete if not set overwise
+  [ -n "${KEEP_ROOTFS:-}" ] || rm -rf "${run_rootfs}" || true
+}
+
 run_bootstrap() {
   RUN_COUNTER=$((RUN_COUNTER + 1))
   local run_rootfs="kubeadm-test-rootfs-${RUN_COUNTER}"
@@ -249,6 +255,8 @@ assert_before "swapoff"          "kubeadm init" "Swap disabled BEFORE kubeadm in
 assert_before "sysctl"           "kubeadm init" "Sysctl applied BEFORE kubeadm init"
 assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet service pre-started BEFORE kubeadm init"
 
+clean_bootstrap
+
 # token has to be taken from controller.
 # we're running without vip, so we assume that join runs as worker
 run_bootstrap "" -- -- join
@@ -265,6 +273,8 @@ assert_logged "kubeadm join"                    "Kubeadm join executed"
 assert_before "swapoff"            "kubeadm join" "Swap disabled BEFORE kubeadm join"
 assert_before "sysctl"             "kubeadm join" "Sysctl applied BEFORE kubeadm join"
 assert_before "systemctl.*kubelet" "kubeadm join" "Kubelet service pre-started BEFORE kubeadm join"
+
+clean_bootstrap
 
 # 3 nodes: with parameter
 export NODE_IP="172.29.0.139"
@@ -304,6 +314,8 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
 
+clean_bootstrap
+
 # 2nd controller
 export NODE_IP="172.29.0.144"
 export NODE_NAME="test-node-1"
@@ -341,6 +353,7 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
                        "HAProxy cfg contains backend node .144"
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
+clean_bootstrap
 #################
 # CA certs
 uc0_ca=(
@@ -377,7 +390,7 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
                        "HAProxy cfg contains backend node .144"
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
-
+clean_bootstrap
 
 # the same but with declarative kubeadm config
 uc1_ca=(
@@ -416,6 +429,7 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
 
+clean_bootstrap
 
 # FULL mode with vip
 uc0_full_haproxy=(
@@ -499,6 +513,8 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 
 
 assert_tgz_is_valid "${ROOTFS}/tmp/fs.tgz"
 
+clean_bootstrap
+
 # FULL mode, single node control plane without vip
 uc0_full_1node=(
   -f ${ovrds}/uc0.yaml
@@ -554,38 +570,41 @@ assert_before "swapoff"            "kubeadm init" "Swap disabled BEFORE kubeadm 
 assert_before "sysctl"             "kubeadm init" "Sysctl applied BEFORE kubeadm init"
 assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet pre-started BEFORE kubeadm init"
 
-# # our case with VIP TBD
-# uc0_full_vip=(
-#   -f ${ovrds}/uc0.yaml
-#   -f ${ovrds}/pki-ca.yaml
-#   -f ${ovrds}/pki-full-node0.yaml
-#   -f ${ovrds}/pki-full-node1-4.yaml
-#   -f ${ovrds}/pki-full-genesis.yaml
-# )
-# # Full with HAproxy
-# # Full normal init: must put all certs, add haproxy static pod, configure it and bootstrap k8s
-# run_bootstrap "" "${uc0_full_haproxy[@]}"
-# # Full normal join: must put all certs, add haproxy static pod, configure it and just run kubelet (it should join)
-# run_bootstrap "nodename1" "${uc0_full_haproxy[@]}"
-# # Full with manual haproxy override. the use-case is - limit haproxy list to 3
-# run_bootstrap "" "${uc0_full_haproxy[@]}" -- vip_haproxy='*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443'
-# # + some extra params to kubeadm to make sure it passes
-# run_bootstrap "" "${uc0_full_haproxy[@]}" -- vip_haproxy='*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- join --pod-network-cidr=10.244.0.0/16
-# # Full per-node init. use case is - we start not from genesis, but from any controller
-# run_bootstrap "nodename0" "${uc0_full_haproxy[@]}" -- vip_haproxy='*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443'
-# # Full per-node join with extra params
-# run_bootstrap "nodename1" "${uc0_full_haproxy[@]}" -- vip_haproxy='*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443'
-# run_bootstrap "nodename1" "${uc0_full_haproxy[@]}" -- vip_haproxy='*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- join --pod-network-cidr=10.244.0.0/16
+clean_bootstrap
 
-# # Full with external VIP (haproxy isn't enabled)
-# run_bootstrap "" "${uc0_full_vip[@]}"
-# # Full normal join: must put all certs, add haproxy static pod, configure it and just run kubelet (it should join)
-# run_bootstrap "nodename1" "${uc0_full_vip[@]}"
-# # + some extra params to kubeadm to make sure it passes
-# run_bootstrap "" "${uc0_full_haproxy[@]}" -- -- --pod-network-cidr=10.244.0.0/16
-# # Full per-node init. use case is - we start not from genesis, but from any controller
-# # Full per-node join with extra params
-# run_bootstrap "nodename1" "${uc0_full_haproxy[@]}" -- -- --pod-network-cidr=10.244.0.0/16
+echo "[ca_guard] the keys of the node aren't replaced"
+ca_guard_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] ca_guard: ${msg}"
+  else
+    echo "  ❌ [FAIL] ca_guard: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+run_bootstrap "" -f ${ovrds}/uc0.yaml -f ${ovrds}/pki-ca.yaml
+ca_guard_pki="${ROOTFS}/etc/kubernetes/pki"
+# the bootstrap script of the node runs again on it (it fails later in the mock
+# rootfs: no container runtime)
+ca_guard_rerun() {
+  bash "${ROOTFS}/tmp/script.sh" > "${ROOTFS}/tmp/ca-guard.log" 2>&1 || true
+}
+ca_guard_log() {
+  grep -q -- "$1" "${ROOTFS}/tmp/ca-guard.log"
+}
+ca_guard_check "the CA is on the node" test -f "${ca_guard_pki}/ca.crt"
+ca_guard_rerun
+ca_guard_check "the same keys: the bootstrap goes on" ca_guard_log "ca_guard: the keys of the node match the values"
+ca_guard_check "the same keys: the certs are synced" ca_guard_log "certs are synced"
+echo "other-ca-crt" > "${ca_guard_pki}/ca.crt"
+ca_guard_rerun
+ca_guard_check "another CA on the node: reported" \
+  ca_guard_log "ca_guard: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
+ca_guard_check "another CA on the node: the bootstrap stops" eval '! ca_guard_log "certs are synced"'
+ca_guard_check "another CA on the node: not replaced" grep -qx "other-ca-crt" "${ca_guard_pki}/ca.crt"
+
+clean_bootstrap
 
 # patches of the templates (bundle.tpl."<template>.patch", overrides/test/patch.yaml):
 # the patch is applied, the lists are merged (the rest of the template stays)
@@ -1164,38 +1183,6 @@ parent_check "ca without certs fails" parent_fails "needs certs.ca.crt and certs
 parent_check "admin without certs fails" parent_fails "needs certs.admin.crt" -f kubeadm/overrides/test/pki-ca.yaml \
   --set manifests.secret_admin_tls=true
 rm -rf "${parent_dir}"
-
-echo "[ca_guard] the keys of the node aren't replaced"
-ca_guard_check() {
-  local msg="$1"
-  shift
-  if "$@"; then
-    echo "  ✅ [OK] ca_guard: ${msg}"
-  else
-    echo "  ❌ [FAIL] ca_guard: ${msg}" >&2
-    FAILURES=$((FAILURES + 1))
-  fi
-}
-run_bootstrap "" -f ${ovrds}/uc0.yaml -f ${ovrds}/pki-ca.yaml
-ca_guard_pki="${ROOTFS}/etc/kubernetes/pki"
-# the bootstrap script of the node runs again on it (it fails later in the mock
-# rootfs: no container runtime)
-ca_guard_rerun() {
-  bash "${ROOTFS}/tmp/script.sh" > "${ROOTFS}/tmp/ca-guard.log" 2>&1 || true
-}
-ca_guard_log() {
-  grep -q -- "$1" "${ROOTFS}/tmp/ca-guard.log"
-}
-ca_guard_check "the CA is on the node" test -f "${ca_guard_pki}/ca.crt"
-ca_guard_rerun
-ca_guard_check "the same keys: the bootstrap goes on" ca_guard_log "ca_guard: the keys of the node match the values"
-ca_guard_check "the same keys: the certs are synced" ca_guard_log "certs are synced"
-echo "other-ca-crt" > "${ca_guard_pki}/ca.crt"
-ca_guard_rerun
-ca_guard_check "another CA on the node: reported" \
-  ca_guard_log "ca_guard: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
-ca_guard_check "another CA on the node: the bootstrap stops" eval '! ca_guard_log "certs are synced"'
-ca_guard_check "another CA on the node: not replaced" grep -qx "other-ca-crt" "${ca_guard_pki}/ca.crt"
 
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then
