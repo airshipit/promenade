@@ -301,6 +301,11 @@ if [[ $(kubeadm version -o short) != "$KUBERNETES_VERSION" ]]; then
   exit 1
 fi
 
+{{- if $envAll.Values.ca_guard }}
+# before any sync: the files of the node are left as they are
+guard_ca
+{{- end }}
+
 cleanup_old_backups
 
 KUBEADM_ACTION_REQUIRED=false

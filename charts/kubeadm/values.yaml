@@ -351,6 +351,11 @@ cri:
 # NOTE: at the moment we don't support external etcd
 # see templates/utils/_k8s_pki_val_extract.tpl for implementation details
 # to use a different structure - override it in tpl section
+# refuse to replace the CA keys (Kubernetes, etcd, front proxy) and the
+# service account key on a node which already has different ones: the
+# certificates of the node are signed with them. Bootstrap and reconcile.
+ca_guard: true
+
 certs:
   # expected structure:
   # perms:

@@ -114,6 +114,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 ensure_fs
+{{- if $envAll.Values.ca_guard }}
+guard_ca
+{{- end }}
 
 sync_certs
 sync_kubelet || true

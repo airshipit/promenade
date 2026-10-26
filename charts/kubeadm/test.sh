@@ -1165,6 +1165,38 @@ parent_check "admin without certs fails" parent_fails "needs certs.admin.crt" -f
   --set manifests.secret_admin_tls=true
 rm -rf "${parent_dir}"
 
+echo "[ca_guard] the keys of the node aren't replaced"
+ca_guard_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] ca_guard: ${msg}"
+  else
+    echo "  ❌ [FAIL] ca_guard: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+run_bootstrap "" -f ${ovrds}/uc0.yaml -f ${ovrds}/pki-ca.yaml
+ca_guard_pki="${ROOTFS}/etc/kubernetes/pki"
+# the bootstrap script of the node runs again on it (it fails later in the mock
+# rootfs: no container runtime)
+ca_guard_rerun() {
+  bash "${ROOTFS}/tmp/script.sh" > "${ROOTFS}/tmp/ca-guard.log" 2>&1 || true
+}
+ca_guard_log() {
+  grep -q -- "$1" "${ROOTFS}/tmp/ca-guard.log"
+}
+ca_guard_check "the CA is on the node" test -f "${ca_guard_pki}/ca.crt"
+ca_guard_rerun
+ca_guard_check "the same keys: the bootstrap goes on" ca_guard_log "ca_guard: the keys of the node match the values"
+ca_guard_check "the same keys: the certs are synced" ca_guard_log "certs are synced"
+echo "other-ca-crt" > "${ca_guard_pki}/ca.crt"
+ca_guard_rerun
+ca_guard_check "another CA on the node: reported" \
+  ca_guard_log "ca_guard: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
+ca_guard_check "another CA on the node: the bootstrap stops" eval '! ca_guard_log "certs are synced"'
+ca_guard_check "another CA on the node: not replaced" grep -qx "other-ca-crt" "${ca_guard_pki}/ca.crt"
+
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then
   echo "❌ ${FAILURES} check(s) failed" >&2

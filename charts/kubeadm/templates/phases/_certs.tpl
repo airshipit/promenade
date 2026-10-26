@@ -153,3 +153,41 @@ sync_certs() {
 (tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv") | include "kubeadm.bundle.template")
 
 ) -}}
+{{- $_ := set $sharedLibs $sharedLibName (print (get $sharedLibs $sharedLibName) (include "__certs_ca_guard" $envAll)) -}}
+
+{{/* ca_guard: called by the bootstrap and reconcile scripts before any sync */}}
+{{- define "__certs_ca_guard" }}
+# prints the public key of a certificate or a public key, the content if it is
+# neither of them
+public_key() {
+  openssl x509 -noout -pubkey -in "$1" 2>/dev/null || openssl pkey -pubin -in "$1" 2>/dev/null || cat "$1"
+}
+
+# the CA and service account keys of the node sign its certificates and tokens:
+# refuses to go on if the values deliver other ones. A CA certificate renewed
+# with the same key is fine, CA rotation isn't supported.
+guard_ca() {
+  local src dst changed=""
+  while read -r src dst; do
+    [ -f "${ROOTFS}/run/kubeadm/${src}" ] && [ -f "${ROOTFS}${dst}" ] || continue
+    if [ "$(public_key "${ROOTFS}/run/kubeadm/${src}")" != "$(public_key "${ROOTFS}${dst}")" ]; then
+      case "${changed} " in
+        *" ${dst} "*) ;;
+        *) changed="${changed} ${dst}" ;;
+      esac
+    fi
+  done << EOF_CA_GUARD
+ctrl/_pkipub/ca.crt /etc/kubernetes/pki/ca.crt
+all/_kubeletpkipub/kubelet-client-ca.pem /etc/kubernetes/pki/ca.crt
+ctrl/_pkipub/front-proxy-ca.crt /etc/kubernetes/pki/front-proxy-ca.crt
+ctrl/_etcdpub/ca.crt /etc/kubernetes/pki/etcd/ca.crt
+ctrl/_pkipub/sa.pub /etc/kubernetes/pki/sa.pub
+EOF_CA_GUARD
+  if [ -n "${changed}" ]; then
+    echo "ca_guard: the values deliver other keys than the ones of the node:${changed}" >&2
+    echo "ca_guard: CA rotation isn't supported, revert certs in the values (or disable ca_guard)" >&2
+    return 1
+  fi
+  echo "ca_guard: the keys of the node match the values"
+}
+{{ end }}
