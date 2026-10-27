@@ -102,7 +102,7 @@ check_versions() {
 
 # a member for every etcd pod: no members left of removed nodes
 check_etcd_members() {
-  local pods pod members
+  local pods pod members endpoint env flag name flags=()
   pods=$(kubectl -n kube-system get pods -l component=etcd --field-selector status.phase=Running \
     -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}') || pods=""
   if [ -z "${pods}" ]; then
@@ -110,12 +110,22 @@ check_etcd_members() {
     return 0
   fi
   pod=$(head -n 1 <<< "${pods}")
-  if ! members=$(kubectl -n kube-system exec "${pod}" -- etcdctl \
-      --endpoints=https://127.0.0.1:2379 \
-      --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
-      --key=/etc/kubernetes/pki/etcd/healthcheck-client.key \
-      member list); then
+  # the endpoint kubeadm itself finds etcd by (the annotation of its static pod),
+  # the certs are the ones the chart delivers (see phases/_certs.tpl)
+  endpoint=$(kubectl -n kube-system get pod "${pod}" \
+    -o jsonpath='{.metadata.annotations.kubeadm\.kubernetes\.io/etcd\.advertise-client-urls}')
+  # etcdctl fails on a flag shadowing its ETCDCTL_<FLAG> env: skip the flags the
+  # etcd pod sets with env
+  env=" $(kubectl -n kube-system get pod "${pod}" -o jsonpath='{.spec.containers[0].env[*].name}') "
+  for flag in \
+      endpoints="${endpoint:-https://127.0.0.1:2379}" \
+      cacert=/etc/kubernetes/pki/etcd/ca.crt \
+      cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+      key=/etc/kubernetes/pki/etcd/healthcheck-client.key; do
+    name="ETCDCTL_${flag%%=*}"
+    [[ "${env}" == *" ${name^^} "* ]] || flags+=("--${flag}")
+  done
+  if ! members=$(kubectl -n kube-system exec "${pod}" -- etcdctl "${flags[@]}" member list); then
     check_result FAIL etcd-members "etcdctl member list failed in ${pod}"
     return 0
   fi
