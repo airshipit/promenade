@@ -139,6 +139,8 @@
         ./tools/deployment/kubeadm/050-smoke-test.sh
         ./tools/deployment/kubeadm/070-day2-upgrade.sh
         ./tools/deployment/kubeadm/050-smoke-test.sh
+      environment:
+        KUBEADM_BEFORE_CNI: "{{ kubeadm_before_cni | default(false) | bool | lower }}"
       args:
         chdir: "{{ zuul.project.src_dir }}"
         executable: /bin/bash

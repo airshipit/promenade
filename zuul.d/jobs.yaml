@@ -167,6 +167,9 @@
         node-3: 10.248.0.21
         node-4: 10.248.0.22
       overlay_network_bridge_ip: "{{ kubeadm_node_ips[inventory_hostname] }}"
+      # the kubeadm chart is deployed before Calico, on NotReady nodes
+      # (040-deploy-catalog.sh)
+      kubeadm_before_cni: true
 
 - job:
     name: airship-promenade-kubeadm-demo-1node

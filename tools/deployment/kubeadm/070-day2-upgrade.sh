@@ -50,7 +50,7 @@ END=$(($(date +%s) + UPGRADE_TIMEOUT))
 until upgraded; do
   if [[ "$(date +%s)" -gt "${END}" ]]; then
     echo "Timed out waiting for the upgrade to ${VERSION}" >&2
-    kubectl -n kube-system logs -l release_group=kubeadm,application=kubernetes \
+    kubectl -n kube-system logs -l release_group=kubeadm,application=kubernetes,component!=kubernetes-kubeadm-test \
       --tail=200 --prefix --max-log-requests=10 || true
     exit 1
   fi

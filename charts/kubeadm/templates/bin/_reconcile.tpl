@@ -85,6 +85,8 @@ cleanup_old_backups() {
 #}
 
 restart_kubelet() {
+  local was_ready
+  was_ready=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
   annotate_node "$KUBELET_RESTART_ANNOTATION" true
 {{- if $envAll.Values.kubelet.drain }}
   kubectl drain "${NODE_NAME}" --pod-selector '!kubelet-restart' --ignore-daemonsets --delete-emptydir-data
@@ -102,7 +104,11 @@ EOF_DATA
   kubectl uncordon "${NODE_NAME}"
 {{- end }}
   kubectl annotate node "${NODE_NAME}" "${KUBELET_RESTART_ANNOTATION}-"
-  kubectl wait node --for=condition=ready "${NODE_NAME}" --timeout=60s
+  # a NotReady node (e.g. no CNI yet) doesn't become ready by the restart: the
+  # kubelet version check below makes sure kubelet is back
+  if [[ $was_ready == True ]]; then
+    kubectl wait node --for=condition=ready "${NODE_NAME}" --timeout=60s
+  fi
 
   sleep 60
 

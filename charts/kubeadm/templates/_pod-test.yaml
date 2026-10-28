@@ -51,6 +51,10 @@ spec:
       effect: NoSchedule
     - key: node-role.kubernetes.io/control-plane
       effect: NoSchedule
+    # the api through admin.conf, no need for the CNI: report NotReady nodes
+    - key: node.kubernetes.io/not-ready
+      operator: Exists
+      effect: NoSchedule
     - key: CriticalAddonsOnly
       operator: Exists
   containers:

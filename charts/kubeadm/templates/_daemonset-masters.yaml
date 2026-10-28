@@ -63,6 +63,12 @@ spec:
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+        # hostNetwork: no need to wait for the CNI, reconcile can fix a NotReady node
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoSchedule
         - key: CriticalAddonsOnly
           operator: Exists
       terminationGracePeriodSeconds: 3600
