@@ -26,12 +26,41 @@ EOF
   cat << 'EOF' > "${test_bin}/kubeadm"
 #!/usr/bin/env bash
 echo "[MOCK kubeadm] kubeadm $@" >> "${ROOTFS}/mock_calls.log"
+# the configuration kubeadm got
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --config) cp "$2" "${ROOTFS}/kubeadm-config.yaml"; shift ;;
+    --config=*) cp "${1#--config=}" "${ROOTFS}/kubeadm-config.yaml" ;;
+  esac
+  shift
+done
 
 # if called with init/join, simulate activity
 # if [[ "$1" == "init" ]]; then
 #   mkdir -p "${ROOTFS}/etc/kubernetes/pki"
 #   touch "${ROOTFS}/etc/kubernetes/admin.conf"
 # fi
+exit 0
+EOF
+
+  # kubectl
+  cat << 'EOF' > "${test_bin}/kubectl"
+#!/usr/bin/env bash
+echo "[MOCK kubectl] kubectl $@" >> "${ROOTFS}/mock_calls.log"
+# the controller-manager has published the CA of the node
+case "$*" in
+  *" get namespaces -o name") echo "namespace/kube-system" ;;
+  *" get configmap kube-root-ca.crt "*) cat "${ROOTFS}/etc/kubernetes/pki/ca.crt" ;;
+esac
+exit 0
+EOF
+
+  # crictl: the static pods of the control plane, one per component
+  cat << 'EOF' > "${test_bin}/crictl"
+#!/usr/bin/env bash
+echo "[MOCK crictl] crictl $@" >> "${ROOTFS}/mock_calls.log"
+last="${!#}"
+[ "$1" = "pods" ] && echo "pod-${last#component=}"
 exit 0
 EOF
 
@@ -188,6 +217,39 @@ run_bootstrap() {
   echo "${bootstrap_code}" > "${run_rootfs}/tmp/script.sh"
 }
 
+# run_rebootstrap <nodename> [-f <values>] [--set <value>] [-- <args>]: the
+# rebootstrap script on the rootfs of the previous run_bootstrap, its output is
+# in ${ROOTFS}/tmp/rebootstrap.log, returns its status. An empty nodename: the
+# values without the files of the nodes (one Secret)
+run_rebootstrap() {
+  local nodename="$1"
+  shift 1
+  local postfix=""
+  [ -z "${nodename}" ] || postfix="-${nodename}"
+  local helm_args=() script_args=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --)
+        shift
+        script_args=("$@")
+        break
+        ;;
+      *)
+        helm_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+  echo "[Run #${RUN_COUNTER}] rebootstrap: ${script_args[*]+${script_args[*]}}"
+  "${HELM:-helm}" template kubeadm "${helm_args[@]}" \
+    --set manifests.secret_bootstrap=true \
+    --set checks.bootstrap=false \
+    --set bootstrap.action=rebootstrap | \
+    "${YQ:-yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-bootstrap${postfix}\") | .data.script | @base64d" \
+    > "${ROOTFS}/tmp/rebootstrap.sh"
+  bash "${ROOTFS}/tmp/rebootstrap.sh" ${script_args[@]+"${script_args[@]}"} > "${ROOTFS}/tmp/rebootstrap.log" 2>&1
+}
+
 assert_file_exists() {
   local file="$1"
   if [[ ! -f "$file" ]]; then
@@ -307,6 +369,8 @@ assert_content_matches "${haproxy_cfg}" "bind \*:6553" \
                        "HAProxy cfg binds to *:6553"
 assert_content_matches "${haproxy_cfg}" "stats socket /tmp/haproxy.sock" \
                        "HAProxy cfg has stats socket for zero-downtime reload"
+assert_content_matches "${haproxy_cfg}" "http-check send meth GET uri /readyz" \
+                       "HAProxy cfg checks the readiness of the apiservers"
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.139 172.29.0.139:6443 check port 6443" \
                        "HAProxy cfg contains backend node .139"
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 check port 6443" \
@@ -431,6 +495,20 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 
 
 clean_bootstrap
 
+# the join: the token is in the configuration kubeadm gets only
+export KUBEADM_TOKEN="abcdef.0123456789abcdef"
+run_bootstrap "" "${uc1_ca[@]}" -- -- join --config /etc/kubernetes/kubeadm/join_worker_config.yaml
+unset KUBEADM_TOKEN
+assert_content_matches "${ROOTFS}/kubeadm-config.yaml" 'tlsBootstrapToken: "abcdef.0123456789abcdef"' \
+                       "kubeadm gets the token of the join"
+assert_content_matches "${ROOTFS}/etc/kubernetes/kubeadm/join_worker_config.yaml" 'tlsBootstrapToken: "\${KUBEADM_TOKEN}"' \
+                       "the join configuration of the node doesn't have the token"
+assert_content_matches "${ROOTFS}/mock_calls.log" "kubeadm join --config [^ ]*/config.yaml$" \
+                       "kubeadm gets a copy of the configuration"
+assert_file_absent "$(sed -n 's/.*kubeadm join --config \([^ ]*\)$/\1/p' "${ROOTFS}/mock_calls.log")"
+
+clean_bootstrap
+
 # FULL mode with vip
 uc0_full_haproxy=(
   -f ${ovrds}/uc0.yaml
@@ -528,6 +606,17 @@ uc0_full_1node=(
 )
 export NODE_IP="172.29.0.139"
 export NODE_NAME="nodename0"
+
+# the certificate of the API of the node (certs.nodes.<node>.apiserver) instead
+# of the one shared by the control plane nodes (certs.apiserver)
+run_bootstrap "nodename0" "${uc0_full_1node[@]}" -f ${ovrds}/pki-apiserver-pernode.yaml \
+  --set certs.apiserver=null -- -- init --skip-phases certs,kubeconfig
+assert_content_matches "${ROOTFS}/etc/kubernetes/pki/apiserver.crt" "^apiserver_node0-crt-placeholder$" \
+                       "The certificate of the API of the node"
+assert_content_matches "${ROOTFS}/etc/kubernetes/pki/apiserver.key" "^apiserver_node0-key-placeholder$" \
+                       "The key of the API of the node"
+clean_bootstrap
+
 run_bootstrap "nodename0" "${uc0_full_1node[@]}" -- -- init --skip-phases certs,kubeconfig
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
@@ -537,6 +626,8 @@ assert_file_exists "${ROOTFS}/etc/kubernetes/pki/ca.key"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/ca.crt"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/apiserver.crt"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/apiserver.key"
+assert_content_matches "${ROOTFS}/etc/kubernetes/pki/apiserver.crt" "^apiserver-crt-placeholder$" \
+                       "The certificate of the API shared by the control plane nodes"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/kubelet.pem"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/kubelet-key.pem"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/sa.key"
@@ -565,12 +656,218 @@ assert_logged "sysctl --system"                 "Network sysctl applied"
 assert_logged "swapoff"                         "Swap disabled"
 assert_logged "kubeadm init .*--skip-phases certs,kubeconfig" \
               "Kubeadm init called with certs and kubeconfig phases skipped"
+assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/kubelet.conf annotate node --overwrite ${NODE_NAME} last-applied-kubelet-cfg-sha256=[0-9a-f]{64} last-applied-kubeadm-cfg-sha256=[0-9a-f]{64}" \
+              "The node is annotated with the applied configurations (as the node)"
+assert_before "kubeadm init" "kubectl .* annotate node" "Annotated AFTER kubeadm init"
 
 assert_before "swapoff"            "kubeadm init" "Swap disabled BEFORE kubeadm init"
 assert_before "sysctl"             "kubeadm init" "Sysctl applied BEFORE kubeadm init"
 assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet pre-started BEFORE kubeadm init"
 
+echo "[rebootstrap] the certificates of the values again on the bootstrapped node"
+rebootstrap_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] rebootstrap: ${msg}"
+  else
+    echo "  ❌ [FAIL] rebootstrap: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+# the rebootstrap script of the node: the values with the rotated certificates
+rebootstrap_run() {
+  run_rebootstrap "nodename0" "${uc0_full_1node[@]}" -f ${ovrds}/pki-rotated.yaml -- "$@"
+}
+rebootstrap_log() {
+  grep -q -- "$1" "${ROOTFS}/tmp/rebootstrap.log"
+}
+rebootstrap_pki="${ROOTFS}/etc/kubernetes/pki"
+rebootstrap_backups="${ROOTFS}/var/lib/kubeadm-backup"
+
+rebootstrap_check "--list-phases: the explicit phases are marked" eval \
+  'rebootstrap_run --list-phases && rebootstrap_log "restore (only with --phases)"'
+rebootstrap_check "--list-phases: kubeadm generates the certificates only with --phases" eval \
+  'rebootstrap_log "kubeadm-certs (only with --phases)"'
+rebootstrap_check "an unknown phase fails" eval '! rebootstrap_run --phases nope'
+rebootstrap_check "an unknown phase is reported" rebootstrap_log "Unknown phase: nope"
+
+: > "${ROOTFS}/mock_calls.log"
+rebootstrap_check "the default phases pass" rebootstrap_run
+rebootstrap_check "restore is skipped by default" rebootstrap_log "phase restore: skipped"
+rebootstrap_check "backup-remove is skipped by default" rebootstrap_log "phase backup-remove: skipped"
+rebootstrap_backup="${rebootstrap_backups}/$(ls -1 "${rebootstrap_backups}" | tail -n 1)"
+rebootstrap_check "backup: the CA of the node" \
+  grep -qx "ca-crt-placeholder" "${rebootstrap_backup}/etc/kubernetes/pki/ca.crt"
+rebootstrap_check "backup: the etcd certificate of the node" \
+  grep -qx "etcd_client_node0-crt-placeholder" "${rebootstrap_backup}/etc/kubernetes/pki/etcd/server.crt"
+rebootstrap_check "backup: the kubelet certificate of the node" \
+  grep -qx "kubelet_node0-crt-placeholder" "${rebootstrap_backup}/etc/kubernetes/pki/kubelet.pem"
+rebootstrap_check "backup: the admin certificate of the node" \
+  grep -qx "admin-crt-placeholder" "${rebootstrap_backup}/etc/kubernetes/admin/pki/admin.pem"
+rebootstrap_check "backup: not the etcd CA key the node didn't have" \
+  test ! -e "${rebootstrap_backup}/etc/kubernetes/pki/etcd/ca.key"
+rebootstrap_check "certs: the rotated CA" grep -qx "ca-crt-rotated" "${rebootstrap_pki}/ca.crt"
+rebootstrap_check "certs: the rotated etcd certificate" \
+  grep -qx "etcd_client_node0-crt-rotated" "${rebootstrap_pki}/etcd/server.crt"
+rebootstrap_check "kubelet: the rotated kubelet certificate" \
+  grep -qx "kubelet_node0-crt-rotated" "${rebootstrap_pki}/kubelet.pem"
+rebootstrap_check "certs: the rotated admin certificate" \
+  grep -qx "admin-crt-rotated" "${ROOTFS}/etc/kubernetes/admin/pki/admin.pem"
+rebootstrap_check "certs: the new etcd CA key" grep -qx "etcd_ca-key-rotated" "${rebootstrap_pki}/etcd/ca.key"
+rebootstrap_check "certs: the certificates the rotation keeps" \
+  grep -qx "etcd_peer_node0-crt-placeholder" "${rebootstrap_pki}/etcd/peer.crt"
+rebootstrap_check "the backups lock the reconcile" test -d "${rebootstrap_backups}"
+assert_logged "crictl stopp pod-kube-apiserver" "rebootstrap: the apiserver is stopped"
+assert_logged "crictl stopp pod-etcd" "rebootstrap: etcd is stopped"
+assert_before "crictl stopp pod-kube-apiserver" "crictl stopp pod-etcd" "rebootstrap: etcd after the others"
+assert_before "crictl stopp" "systemctl stop kubelet" "rebootstrap: the static pods, then kubelet"
+assert_before "systemctl stop kubelet" "systemctl restart containerd" "rebootstrap: kubelet, then the runtime is restarted"
+assert_before "systemctl restart containerd" "systemctl restart kubelet" "rebootstrap: the runtime, then kubelet"
+
+rebootstrap_check "restore passes" rebootstrap_run --phases restore
+rebootstrap_check "restore: the CA of the node" grep -qx "ca-crt-placeholder" "${rebootstrap_pki}/ca.crt"
+rebootstrap_check "restore: the etcd certificate of the node" \
+  grep -qx "etcd_client_node0-crt-placeholder" "${rebootstrap_pki}/etcd/server.crt"
+rebootstrap_check "restore: the kubelet certificate of the node" \
+  grep -qx "kubelet_node0-crt-placeholder" "${rebootstrap_pki}/kubelet.pem"
+rebootstrap_check "restore: the admin certificate of the node" \
+  grep -qx "admin-crt-placeholder" "${ROOTFS}/etc/kubernetes/admin/pki/admin.pem"
+rebootstrap_check "restore: the etcd CA key the node didn't have is removed" \
+  test ! -e "${rebootstrap_pki}/etcd/ca.key"
+
+rebootstrap_check "backup-remove passes" rebootstrap_run --phases backup-remove
+rebootstrap_check "backup-remove: no backups, no lock" test ! -e "${rebootstrap_backups}"
+
+# an anchor of the node without the lock (an older chart)
+rebootstrap_anchor="${ROOTFS}/var/lib/kubelet/pods/old/volumes/kubernetes.io~configmap/bin"
+mkdir -p "${rebootstrap_anchor}"
+echo "echo reconcile" > "${rebootstrap_anchor}/reconcile"
+rebootstrap_check "an anchor without the lock: fails" eval '! rebootstrap_run'
+rebootstrap_check "an anchor without the lock: reported" rebootstrap_log "doesn't wait for the rebootstrap"
+rebootstrap_check "an anchor without the lock: no backups" test ! -e "${rebootstrap_backups}"
+rebootstrap_check "an anchor without the lock: the node isn't touched" \
+  grep -qx "ca-crt-placeholder" "${rebootstrap_pki}/ca.crt"
+
 clean_bootstrap
+
+echo "[rebootstrap] the CAs only: kubeadm generates the rest again"
+export NODE_IP="172.29.0.139"
+export NODE_NAME="test-node-0"
+export NODE_ROLE="master"
+run_bootstrap "" "${uc1_ca[@]}" -- -- init
+# the files kubeadm generated from the old CA
+ca_kubernetes="${ROOTFS}/etc/kubernetes"
+ca_kubelet_pki="${ROOTFS}/var/lib/kubelet/pki"
+mkdir -p "${ca_kubernetes}/pki/etcd" "${ca_kubelet_pki}"
+for f in pki/apiserver.crt pki/apiserver.key pki/etcd/server.crt admin.conf super-admin.conf kubelet.conf; do
+  echo "old" > "${ca_kubernetes}/${f}"
+done
+echo "old" > "${ca_kubelet_pki}/kubelet-client-2025.pem"
+ln -sf "kubelet-client-2025.pem" "${ca_kubelet_pki}/kubelet-client-current.pem"
+echo "old" > "${ca_kubelet_pki}/kubelet.crt"
+ca_rebootstrap_run() {
+  run_rebootstrap "" "${uc1_ca[@]}" -f ${ovrds}/kubelet.yaml -f ${ovrds}/pki-ca-rotated.yaml -- "$@"
+}
+ca_backups="${ROOTFS}/var/lib/kubeadm-backup"
+
+
+: > "${ROOTFS}/mock_calls.log"
+# the phases of the orchestration on a control plane node
+rebootstrap_check "the CAs only: the phases of a control plane node pass" ca_rebootstrap_run \
+  --phases reconcile-guard,backup,certs,kubeconfigs,kubelet,kubeadm-certs,static-pods-stop,kubelet-stop,cri-restart,kubelet-start,annotate
+ca_backup="${ca_backups}/$(ls -1 "${ca_backups}" | tail -n 1)"
+rebootstrap_check "the CAs only, backup: the certificates kubeadm generated" \
+  grep -qx "old" "${ca_backup}/etc/kubernetes/pki/apiserver.crt"
+rebootstrap_check "the CAs only, backup: the kubeconfigs kubeadm generated" \
+  grep -qx "old" "${ca_backup}/etc/kubernetes/super-admin.conf"
+rebootstrap_check "the CAs only, backup: the client certificate of kubelet" \
+  test -L "${ca_backup}/var/lib/kubelet/pki/kubelet-client-current.pem"
+rebootstrap_check "the CAs only, certs: the new CA" grep -qx "ca-crt-rotated" "${ca_kubernetes}/pki/ca.crt"
+rebootstrap_check "the CAs only: the old certificates are removed" \
+  test ! -e "${ca_kubernetes}/pki/apiserver.crt" -a ! -e "${ca_kubernetes}/pki/etcd/server.crt"
+rebootstrap_check "the CAs only: the old kubeconfigs are removed" \
+  test ! -e "${ca_kubernetes}/admin.conf" -a ! -e "${ca_kubernetes}/kubelet.conf"
+rebootstrap_check "the CAs only: the old client certificates of kubelet are removed" \
+  test ! -e "${ca_kubelet_pki}/kubelet-client-2025.pem" -a ! -L "${ca_kubelet_pki}/kubelet-client-current.pem"
+rebootstrap_check "the CAs only: the serving certificate of kubelet is kept" grep -qx "old" "${ca_kubelet_pki}/kubelet.crt"
+assert_logged "kubeadm init phase certs all --config" "rebootstrap: kubeadm generates the certificates"
+for k in admin controller-manager scheduler kubelet super-admin; do
+  assert_logged "kubeadm init phase kubeconfig ${k} --config" "rebootstrap: kubeadm generates the ${k} kubeconfig"
+done
+assert_before "kubeadm init phase certs all" "crictl stopp" "rebootstrap: the certificates, then the restart"
+assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/kubelet.conf annotate node --overwrite [^ ]+ last-applied-kubelet-cfg-sha256=[0-9a-f]{64}$" \
+              "rebootstrap: the node is annotated with the configuration of kubelet only (as the node)"
+assert_before "systemctl restart kubelet" "kubectl .* annotate node" "rebootstrap: annotated AFTER kubelet-start"
+
+rebootstrap_check "the CAs only: restore passes" ca_rebootstrap_run --phases restore
+rebootstrap_check "the CAs only, restore: the certificates kubeadm generated" \
+  grep -qx "old" "${ca_kubernetes}/pki/apiserver.crt"
+rebootstrap_check "the CAs only, restore: the kubeconfigs kubeadm generated" \
+  grep -qx "old" "${ca_kubernetes}/kubelet.conf"
+rebootstrap_check "the CAs only, restore: the client certificate of kubelet" \
+  grep -qx "old" "${ca_kubelet_pki}/kubelet-client-current.pem"
+rebootstrap_check "the CAs only, restore: the CA" grep -qx "ca-crt-placeholder" "${ca_kubernetes}/pki/ca.crt"
+
+# a worker: the TLS bootstrap of kubelet again
+: > "${ROOTFS}/mock_calls.log"
+export NODE_ROLE="worker"
+rebootstrap_check "the CAs only: kubeadm-certs on a worker needs the token" eval \
+  '! ca_rebootstrap_run --phases kubeadm-certs'
+rebootstrap_check "the CAs only: the missing token is reported" rebootstrap_log "the bootstrap token of the cluster"
+# kubelet goes through the TLS bootstrap: it writes the new kubeconfig, then
+# the client certificate once the CSR is approved
+cp "${ROOTFS}/bin/systemctl" "${ROOTFS}/tmp/systemctl"
+cat << 'EOF' > "${ROOTFS}/bin/systemctl"
+#!/usr/bin/env bash
+echo "[MOCK systemctl] systemctl $@" >> "${ROOTFS}/mock_calls.log"
+if [ "$*" = "restart kubelet" ]; then
+  echo "new" > "${ROOTFS}/etc/kubernetes/kubelet.conf"
+  echo "new" > "${ROOTFS}/var/lib/kubelet/pki/kubelet-client-2026.pem"
+  ln -sf kubelet-client-2026.pem "${ROOTFS}/var/lib/kubelet/pki/kubelet-client-current.pem"
+fi
+exit 0
+EOF
+export KUBEADM_TOKEN="abcdef.0123456789abcdef"
+rebootstrap_check "the CAs only: kubeadm-certs passes on a worker" \
+  ca_rebootstrap_run --phases kubeadm-certs
+unset KUBEADM_TOKEN
+export NODE_ROLE="master"
+mv "${ROOTFS}/tmp/systemctl" "${ROOTFS}/bin/systemctl"
+rebootstrap_check "the CAs only, kubeadm-certs on a worker: the old client certificates are removed" \
+  test ! -e "${ca_kubelet_pki}/kubelet-client-2025.pem"
+rebootstrap_check "the CAs only, kubeadm-certs on a worker: the client certificate after the TLS bootstrap" \
+  grep -qx "new" "${ca_kubelet_pki}/kubelet-client-current.pem"
+rebootstrap_check "the CAs only, kubeadm-certs on a worker: the kubeconfig of kubelet after the TLS bootstrap" \
+  grep -qx "new" "${ca_kubernetes}/kubelet.conf"
+rebootstrap_check "the CAs only, kubeadm-certs on a worker: the bootstrap kubeconfig is removed" \
+  test ! -e "${ca_kubernetes}/bootstrap-kubelet.conf"
+assert_logged "kubectl config --kubeconfig ${ROOTFS}/etc/kubernetes/bootstrap-kubelet.conf set-credentials tls-bootstrap-token-user --token abcdef.0123456789abcdef" \
+  "rebootstrap: the bootstrap kubeconfig with the token"
+assert_logged "kubectl config --kubeconfig ${ROOTFS}/etc/kubernetes/bootstrap-kubelet.conf set-cluster kubernetes --server https://.* --certificate-authority ${ROOTFS}/etc/kubernetes/pki/kubelet-client-ca.pem --embed-certs" \
+  "rebootstrap: the bootstrap kubeconfig with the new CA"
+assert_before "set-credentials" "systemctl restart kubelet" "rebootstrap: the bootstrap kubeconfig, then kubelet"
+
+# the cluster: the CAs of the cluster wide objects, the restart of the clients
+: > "${ROOTFS}/mock_calls.log"
+rebootstrap_check "kubeadm-cluster-info passes" ca_rebootstrap_run --phases kubeadm-cluster-info
+assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf -n kube-public create configmap cluster-info" \
+  "rebootstrap: the CA of cluster-info"
+assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf apply --server-side" \
+  "rebootstrap: cluster-info keeps the signatures of the tokens"
+assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf -n kube-system delete configmap extension-apiserver-authentication" \
+  "rebootstrap: the apiserver creates extension-apiserver-authentication again"
+: > "${ROOTFS}/mock_calls.log"
+rebootstrap_check "restart-clients passes" ca_rebootstrap_run --phases restart-clients
+assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf delete pods --all-namespaces -l k8s-app=kube-dns --grace-period=0 --force" \
+  "rebootstrap: the pods of the selectors are deleted"
+assert_before "pods --all-namespaces -l k8s-app=kube-dns" "pods --all-namespaces -l component=kubernetes-kubeadm-anchor" \
+  "rebootstrap: the pods in the order of the selectors"
+assert_before "kube-system get configmap kube-root-ca.crt" "delete pods" \
+  "rebootstrap: the pods are deleted once the new CA is published"
+
+clean_bootstrap
+unset NODE_ROLE
 
 echo "[ca_guard] the keys of the node aren't replaced"
 ca_guard_check() {
@@ -1183,6 +1480,16 @@ parent_check "ca without certs fails" parent_fails "needs certs.ca.crt and certs
 parent_check "admin without certs fails" parent_fails "needs certs.admin.crt" -f kubeadm/overrides/test/pki-ca.yaml \
   --set manifests.secret_admin_tls=true
 rm -rf "${parent_dir}"
+
+echo "[appVersion] the version the upgrade gate ends with"
+app_version=$("${YQ:-yq}" .appVersion kubeadm/Chart.yaml)
+upgrade_version=$("${YQ:-yq}" .cluster_config.kubernetesVersion ../tools/deployment/kubeadm/day2/upgrade.yaml)
+if [ -n "${app_version}" ] && [ "${app_version}" = "${upgrade_version}" ]; then
+  echo "  ✅ [OK] appVersion ${app_version}"
+else
+  echo "  ❌ [FAIL] Release mgmt: appVersion ${app_version} isn't the upgrade target ${upgrade_version}. Please align kubeadm/Chart.yaml with the day 2 target (tools/deployment/kubeadm/day2/upgrade.yaml)" >&2
+  FAILURES=$((FAILURES + 1))
+fi
 
 echo
 if [[ "${FAILURES}" -gt 0 ]]; then

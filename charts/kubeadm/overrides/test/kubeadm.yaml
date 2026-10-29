@@ -9,6 +9,8 @@ kubeadm:
     "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
     "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
     "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
+    # test.sh: the bootstrap token of the join
+    "join_worker_config.yaml": "templates/phases/snippets/kubeadm/join_worker_config.yaml"
     "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
     # patches dir which is referenced in init/join configs
     "patches/etcd.yaml": "templates/phases/snippets/kubeadm/patches/etcd.yaml"
@@ -238,6 +240,15 @@ bundle:
       - wait-control-plane
       patches:
         directory: /etc/kubernetes/kubeadm/patches
+    "templates/phases/snippets/kubeadm/join_worker_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/kubeadm/discovery.conf
+        tlsBootstrapToken: "${KUBEADM_TOKEN}"
+      nodeRegistration:
+        name: "${NODE_NAME}"
     "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: UpgradeConfiguration

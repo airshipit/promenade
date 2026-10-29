@@ -1,0 +1,5 @@
+# Day 0 and day 1 of the gate (030-ssh-bootstrap.sh till the rotations): the
+# previous Kubernetes minor version, day 2 upgrades it (day2/upgrade.yaml). The
+# reference overrides of the chart have the latest one (appVersion).
+cluster_config:
+  kubernetesVersion: v1.36.3

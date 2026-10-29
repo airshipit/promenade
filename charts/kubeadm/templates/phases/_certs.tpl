@@ -102,6 +102,13 @@
       {{- $_ := set $perNodeEntry "_etcdpub/peer.crt" (dict "content" $v.etcd_peer.crt "dest_path" "/etc/kubernetes/pki/etcd/peer.crt" "file_mode" 0600) -}}
       {{- $_ := set $perNodeEntry "_etcdpriv/peer.key" (dict "content" $v.etcd_peer.key "dest_path" "/etc/kubernetes/pki/etcd/peer.key" "file_mode" 0600) -}}
     {{- end -}}
+    {{/* Populate certificate for serving the Kubernetes API of the node (the
+         SANs of the node, as kubeadm issues it), instead of certs.apiserver
+         shared by all the control plane nodes */}}
+    {{- if $v.apiserver -}}
+      {{- $_ := set $perNodeEntry "_pkipub/apiserver.crt" (dict "content" $v.apiserver.crt "dest_path" "/etc/kubernetes/pki/apiserver.crt" "file_mode" 0600) -}}
+      {{- $_ := set $perNodeEntry "_pkipriv/apiserver.key" (dict "content" $v.apiserver.key "dest_path" "/etc/kubernetes/pki/apiserver.key" "file_mode" 0600) -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
 
@@ -178,16 +185,52 @@ guard_ca() {
     fi
   done << EOF_CA_GUARD
 ctrl/_pkipub/ca.crt /etc/kubernetes/pki/ca.crt
-all/_kubeletpkipub/kubelet-client-ca.pem /etc/kubernetes/pki/ca.crt
+all/_kubeletpkipub/kubelet-client-ca.pem /etc/kubernetes/pki/kubelet-client-ca.pem
 ctrl/_pkipub/front-proxy-ca.crt /etc/kubernetes/pki/front-proxy-ca.crt
 ctrl/_etcdpub/ca.crt /etc/kubernetes/pki/etcd/ca.crt
 ctrl/_pkipub/sa.pub /etc/kubernetes/pki/sa.pub
 EOF_CA_GUARD
   if [ -n "${changed}" ]; then
     echo "ca_guard: the values deliver other keys than the ones of the node:${changed}" >&2
-    echo "ca_guard: CA rotation isn't supported, revert certs in the values (or disable ca_guard)" >&2
+    echo "ca_guard: the CAs are rotated by the rebootstrap, revert certs in the values" >&2
     return 1
   fi
   echo "ca_guard: the keys of the node match the values"
 }
 {{ end }}
+
+{{/* certs_rebootstrap_lib: the functions of the rebootstrap script
+     (templates/bin/_rebootstrap.tpl), the groups of sync_certs */}}
+{{- $_ := set $sharedLibs (printf "%s_rebootstrap_lib" $sharedLibName) `
+# copies the certificates of the node to the backup $1
+cert_backup() {
+  local pki_dir="/etc/kubernetes/pki"
+  local etcd_dir="${pki_dir}/etcd"
+  local admin_dir="/etc/kubernetes/admin/pki"
+
+  backup_group_dir "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" "$1"
+  backup_group_dir "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" "$1"
+  if [ "${NODE_ROLE}" == "master" ]; then
+    backup_group_dir "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    backup_group_dir "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    backup_group_dir "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" "$1"
+    backup_group_dir "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
+  fi
+}
+
+# puts the certificates of the backup $1 back
+cert_restore() {
+  local pki_dir="/etc/kubernetes/pki"
+  local etcd_dir="${pki_dir}/etcd"
+  local admin_dir="/etc/kubernetes/admin/pki"
+
+  restore_group_dir "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" "$1"
+  restore_group_dir "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" "$1"
+  if [ "${NODE_ROLE}" == "master" ]; then
+    restore_group_dir "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    restore_group_dir "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    restore_group_dir "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" "$1"
+    restore_group_dir "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
+  fi
+}
+` -}}

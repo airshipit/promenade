@@ -1,0 +1,6 @@
+# the CA after a rotation (test.sh, rebootstrap with the CAs only): another one
+# than in pki-ca.yaml
+certs:
+  ca:
+    crt: ca-crt-rotated
+    key: ca-key-rotated

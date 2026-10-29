@@ -35,7 +35,11 @@
         set -e
         test -f /etc/kubernetes/admin.conf || exit 0
         install -d -o zuul -g zuul -m 0700 ~zuul/.kube
-        install -o zuul -g zuul -m 0600 /etc/kubernetes/admin.conf ~zuul/.kube/config
+        # the credentials embedded (admin.conf may refer to files of root)
+        umask 077
+        kubectl --kubeconfig /etc/kubernetes/admin.conf config view --raw --flatten > ~zuul/.kube/config
+        chown zuul:zuul ~zuul/.kube/config
+        chmod 0600 ~zuul/.kube/config
       args:
         executable: /bin/bash
   roles:

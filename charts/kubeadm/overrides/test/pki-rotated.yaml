@@ -1,0 +1,21 @@
+# the certificates after a rotation (test.sh, rebootstrap): other ones than in
+# pki-ca.yaml, pki-full-node0.yaml and pki-admin.yaml, and the etcd CA key the
+# node didn't have
+certs:
+  ca:
+    crt: ca-crt-rotated
+    key: ca-key-rotated
+  etcd_ca:
+    crt: etcd_ca-crt-rotated
+    key: etcd_ca-key-rotated
+  admin:
+    crt: admin-crt-rotated
+    key: admin-key-rotated
+  nodes:
+    nodename0:
+      etcd_server:
+        crt: etcd_client_node0-crt-rotated
+        key: etcd_client_node0-key-rotated
+      kubelet:
+        crt: kubelet_node0-crt-rotated
+        key: kubelet_node0-key-rotated

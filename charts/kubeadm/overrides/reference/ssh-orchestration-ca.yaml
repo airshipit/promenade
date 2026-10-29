@@ -1,0 +1,762 @@
+# Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Make your own Kubernetes distribution — values.yaml is all you need.
+#
+# Reference orchestration over ssh with the CAs only in the values (kubeadm
+# generates the rest of the PKI) and the cluster it deploys: control plane
+# nodes with stacked etcd and workers, CRI-O, haproxy on every node. The CNI
+# isn't part of the chart (the gate deploys Calico).
+#
+# Only the CAs (Kubernetes, etcd, front proxy) and the service account key are
+# provided (gen-pki.sh of the chart, run by ssh-bootstrap.sh, adds certs to the
+# values), kubeadm generates the rest of the PKI and all kubeconfigs on every
+# node: the chart delivers neither of them.
+#
+# Join credentials aren't part of the values: the bootstrap token is created
+# once the cluster exists (by ssh-bootstrap.sh) and passed to the bootstrap
+# script as KUBEADM_TOKEN, the script substitutes it in the kubeadm join
+# configuration.
+#
+# Every node runs haproxy (static pod) serving the control plane endpoint
+# 127.0.0.1:6553. kubelet can't start haproxy before it joins (it has no
+# credentials yet), so nodes join directly via the first control plane node:
+# the chart delivers discovery.conf pointing to it (token discovery would
+# switch to the VIP published in the cluster-info ConfigMap). After joining
+# the bootstrap script points kubelet to the VIP.
+#
+# Two tools of the chart, next to gen-pki.sh, run the phases of the node
+# scripts on all the nodes of the cluster:
+#
+#   ssh-bootstrap.sh    the PKI by gen-pki.sh of the chart (if there is none
+#                       yet), the prep phases on all the nodes at once,
+#                       kubeadm init on the first control plane node, then
+#                       kubeadm join of the rest at once. With --join <node>...:
+#                       these nodes join the existing cluster
+#   ssh-rebootstrap.sh  the lock of the reconcile and the backups on all the
+#                       nodes (the cluster is untouched), then the new files
+#                       and the restart of the components on all the nodes at
+#                       once. With the CAs only in the values: kubeadm
+#                       generates its certificates on the control plane nodes
+#                       again, then the workers go through the TLS bootstrap
+#                       of kubelet again
+#
+# The nodes come from templates/phases/snippets/tools/_nodes.tpl: it fills the
+# list of the nodes (hostname, ip, role) from the values. The default one reads
+# `nodes:` of the values (name, ip, role control-plane or worker), override it
+# for another format (bundle.tpl). The tools get the nodes as their own data.
+#
+# Requirements:
+# - the host running the tools: helm, openssl, ssh to every node by its ip
+# - the nodes: Ubuntu, sudo without a password, reach each other by the ips of
+#   the nodes, the internet (the binaries, the CRI-O bundle), no local DNS
+#   resolver in /etc/resolv.conf (CoreDNS can't reach the loopback)
+# To change: nodes (required); cri and install_cri (CRI-O), vip and
+# kubeconfig.controlPlaneEndpoint (haproxy on 127.0.0.1:6553), network,
+# cluster_config.kubernetesVersion.
+#
+# nodes: in a file of their own (nodes.yaml of the gate, generated from the job
+# variables) passed with this one, or uncomment and put yours:
+# nodes:
+#   - name: kubeadm-cp-1
+#     ip: 10.248.0.11
+#     role: control-plane
+#   - name: kubeadm-worker-1
+#     ip: 10.248.0.21
+#     role: worker
+#
+# Render the tools with this file, run them with the same values in
+# CHART_ARGS: they render the script of every node with them
+# (bootstrap.action, bootstrap.nodename).
+#
+#   helm template kubeadm ./charts/kubeadm -f nodes.yaml \
+#     -f ./charts/kubeadm/overrides/reference/ssh-orchestration-ca.yaml \
+#     --set manifests.secret_tools=true \
+#     | sed -n 's/^ *ssh-bootstrap.sh: *\(.*\)/\1/p' | base64 -d > ssh-bootstrap.sh
+#   CHART_ARGS="kubeadm ./charts/kubeadm -f nodes.yaml -f ./charts/kubeadm/overrides/reference/ssh-orchestration-ca.yaml" \
+#     bash ssh-bootstrap.sh
+#
+# Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH (the
+# command, the nodes are addressed by their ip), SUDO (empty for root),
+# PKI_VALUES (ssh-bootstrap.sh: the values file of the PKI, generated if it
+# doesn't exist, default values-pki.yaml).
+
+network:
+  pod_cidr: 10.97.0.0/16
+  service_cidr: 10.96.0.0/16
+  service_node_port_range: 30000-32767
+  dns:
+    service_ip: 10.96.0.10
+    cluster_domain: cluster.local
+
+images:
+  tags:
+    haproxy: docker.io/library/haproxy:3.4.7
+    pause: registry.k8s.io/pause:3.10
+
+# CRI-O is installed by install_cri, see bundle.tpl below
+cri:
+  service: crio.service
+  reconcile_install: true
+  restart: true
+
+files:
+  cri:
+    - path: /etc/crio/crio.conf.d
+      state: dir
+      owner: "root:root"
+    - path: /etc/crio/crio.conf.d/20-kubeadm.conf
+      state: tpl
+      from: templates/phases/snippets/cri/_crio.tpl
+      owner: "root:root"
+      mode: "0644"
+
+cluster_config:
+  kubernetesVersion: v1.37.0
+
+binaries:
+  # used by the installation procedure override (bundle.tpl), ${ARCH} is the
+  # architecture of the node
+  archive:
+    url: "https://dl.k8s.io/{{ .Values.cluster_config.kubernetesVersion }}/kubernetes-node-linux-${ARCH}.tar.gz"
+
+kubelet:
+  # the anchor applies kubelet configuration changes: it drains the node and
+  # restarts kubelet (there are other nodes for the workloads)
+  restart: true
+
+kubeconfig:
+  clusterName: kubernetes
+  controlPlaneEndpoint: 127.0.0.1:6553
+
+bootstrap:
+  # ssh-rebootstrap.sh --restart-clients: the ones of the chart and Calico
+  rebootstrap_restart_selectors:
+    - k8s-app=calico-node
+    - k8s-app=calico-kube-controllers
+    - k8s-app=kube-dns
+    - k8s-app=kube-proxy
+    - component=kubernetes-kubeadm-anchor
+    - component=kubernetes-kubeadm-workers-anchor
+
+vip:
+  # haproxy frontend and backends: "<bind>|<apiserver>,<apiserver>,..."
+  init: >-
+    *:6553|{{- $nodesOut := dict -}}
+    {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+    {{- $backends := list -}}
+    {{- range $nodesOut.nodes -}}
+    {{- if eq .role "master" -}}
+    {{- $backends = append $backends (printf "%s:6443" .ip) -}}
+    {{- end -}}
+    {{- end -}}
+    {{- join "," $backends -}}
+
+kubeadm:
+  fs:
+    "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
+    "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
+    "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
+    "join_worker_config.yaml": "templates/phases/snippets/kubeadm/join_worker_config.yaml"
+    "discovery.conf": "templates/phases/snippets/kubeadm/discovery.conf"
+    # used by the anchor (day 2): kubeadm upgrade node
+    "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
+
+orchestration:
+  ssh: ssh -o BatchMode=yes
+  sudo: sudo
+  # ssh-bootstrap.sh: the arguments of kubeadm of the nodes
+  kubeadm:
+    init: init --config /etc/kubernetes/kubeadm/init_config.yaml
+    join_master: join --config /etc/kubernetes/kubeadm/join_config.yaml
+    join_worker: join --config /etc/kubernetes/kubeadm/join_worker_config.yaml
+  # ssh-bootstrap.sh: the bootstrap token of the joining nodes
+  token_ttl: 2h
+
+# the tools Secret of the chart with the orchestration next to gen-pki.sh
+entrypoint:
+  "tools": |
+    {{ if .Values.manifests.secret_tools }}
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: {{ include "kubeadm.fullname" . }}-tools
+    type: Opaque
+    data:
+      gen-pki.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-bootstrap.sh: {{ tuple . "templates/phases/snippets/tools/_ssh-bootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-rebootstrap.sh: {{ tuple . "templates/phases/snippets/tools/_ssh-rebootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+    {{ end }}
+
+bundle:
+  tpl:
+    # CRI-O from the static bundle of the release: crio, conmon, the OCI
+    # runtimes, crictl and the systemd unit
+    "templates/phases/snippets/cri/_install.sh.tpl": |
+      install_cri() {
+        local version=v1.36.7 url sha256 dir
+        crio --version 2>/dev/null | grep -qw "${version#v}" && return 1
+        ARCH="${ARCH:-$(node_arch)}" || return 2
+        url="https://storage.googleapis.com/cri-o/artifacts/cri-o.${ARCH}.${version}.tar.gz"
+        sha256=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || return 2
+        dir=$(mktemp -d) || return 2
+        # the CNI plugins of the bundle go to /opt/cni/bin too
+        if ! download_verified "${dir}/cri-o.tar.gz" "${url}" "${sha256}" ||
+          ! tar -xzf "${dir}/cri-o.tar.gz" -C "${dir}" ||
+          ! (cd "${dir}/cri-o" && bash ./install); then
+          rm -rf "${dir}"
+          return 2
+        fi
+        rm -rf "${dir}"
+        modprobe overlay
+        systemctl daemon-reload
+        systemctl enable crio
+      }
+    # kubeadm, kubelet and kubectl are taken from the node binaries archive of
+    # the release (an example of the installation procedure override)
+    "templates/phases/snippets/binaries/_install.sh.tpl": |
+      install_binary() {
+        local name="$1" dir="${ROOTFS}/var/cache/kubeadm-binaries" url archive tmp
+        [ -n "$(binary_source "$name")" ] || return 1
+        ARCH="${ARCH:-$(node_arch)}" || return 2
+        url={{ tpl .Values.binaries.archive.url . | quote }}
+
+        # downloaded once per url
+        archive="${dir}/$(printf '%s' "${url}" | sha256sum | cut -c1-16).tar.gz"
+        if [ ! -f "${archive}" ]; then
+          mkdir -p -m 0700 "${dir}" && rm -f "${dir}"/* || return 2
+          tmp=$(mktemp "${archive}.XXXXXX") || return 2
+          if ! download_verified "${tmp}" "${url}" || ! mv -f "${tmp}" "${archive}"; then
+            rm -f "${tmp}"
+            return 2
+          fi
+        fi
+
+        tmp=$(binary_tmp "${name}") || return 2
+        if ! tar -xOf "${archive}" "kubernetes/node/bin/${name}" > "${tmp}"; then
+          rm -f "${tmp}"
+          return 2
+        fi
+        replace_binary "${tmp}" "${name}" || return $?
+        echo "${name} is installed from ${url}"
+      }
+    "templates/phases/snippets/kubeadm/ClusterConfiguration": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: ClusterConfiguration
+      kubernetesVersion: {{ .Values.cluster_config.kubernetesVersion }}
+      clusterName: {{ .Values.kubeconfig.clusterName }}
+      controlPlaneEndpoint: {{ .Values.kubeconfig.controlPlaneEndpoint }}
+      certificatesDir: /etc/kubernetes/pki
+      imageRepository: registry.k8s.io
+      encryptionAlgorithm: RSA-2048
+      networking:
+        dnsDomain: {{ .Values.network.dns.cluster_domain }}
+        podSubnet: {{ .Values.network.pod_cidr }}
+        serviceSubnet: {{ .Values.network.service_cidr }}
+      apiServer:
+        extraArgs:
+          - name: service-node-port-range
+            value: {{ .Values.network.service_node_port_range | quote }}
+      controllerManager:
+        extraArgs:
+          - name: terminated-pod-gc-threshold
+            value: "1000"
+      etcd:
+        local:
+          dataDir: /var/lib/etcd
+    "templates/phases/snippets/kubeadm/init_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: InitConfiguration
+      localAPIEndpoint:
+        advertiseAddress: "${NODE_IP}"
+        bindPort: 6443
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///var/run/crio/crio.sock
+        imagePullPolicy: IfNotPresent
+        # anchor daemonsets are scheduled by these labels (see anchor.labels),
+        # kubernetes-etcd: the stacked etcd member of the node (the reconcile)
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled,kubernetes-apiserver=enabled,kubernetes-etcd=enabled
+        # anchor daemonsets don't tolerate the control plane taint
+        taints: []
+        ignorePreflightErrors:
+          # kubelet is started by the bootstrap script before kubeadm
+          - Port-10250
+          # the bootstrap script delivers the haproxy static pod
+          - DirAvailable--etc-kubernetes-manifests
+      # kubeadm uses the CAs delivered by the bootstrap script
+      timeouts:
+        controlPlaneComponentHealthCheck: 5m0s
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+      ---
+      {{ tuple . "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template" }}
+    "templates/phases/snippets/kubeadm/discovery.conf": |
+      {{- $nodesOut := dict -}}
+      {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+      {{- $masters := list -}}
+      {{- range $nodesOut.nodes -}}
+      {{- if eq .role "master" -}}
+      {{- $masters = append $masters .ip -}}
+      {{- end -}}
+      {{- end -}}
+      apiVersion: v1
+      kind: Config
+      clusters:
+        - name: {{ .Values.kubeconfig.clusterName }}
+          cluster:
+            server: https://{{ first $masters }}:6443
+            certificate-authority-data: {{ .Values.certs.ca.crt | b64enc }}
+      contexts:
+        - name: discovery
+          context:
+            cluster: {{ .Values.kubeconfig.clusterName }}
+            user: discovery
+      current-context: discovery
+      users:
+        - name: discovery
+          user: {}
+    "templates/phases/snippets/kubeadm/join_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      controlPlane:
+        localAPIEndpoint:
+          advertiseAddress: "${NODE_IP}"
+          bindPort: 6443
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/kubeadm/discovery.conf
+        tlsBootstrapToken: "${KUBEADM_TOKEN}"
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///var/run/crio/crio.sock
+        imagePullPolicy: IfNotPresent
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled,kubernetes-apiserver=enabled,kubernetes-etcd=enabled
+        # anchor daemonsets don't tolerate the control plane taint
+        taints: []
+        ignorePreflightErrors:
+          # kubelet is started by the bootstrap script before kubeadm
+          - Port-10250
+          # the bootstrap script delivers the haproxy static pod and the CAs
+          - DirAvailable--etc-kubernetes-manifests
+          - FileAvailable--etc-kubernetes-pki-ca.crt
+      skipPhases:
+        # runs before kubelet-start and uses admin.conf, i.e. the VIP which
+        # isn't served until kubelet starts haproxy; etcd-join (after
+        # kubelet-start) uses it too, with retries
+        - check-etcd
+      timeouts:
+        controlPlaneComponentHealthCheck: 5m0s
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+        discovery: 5m0s
+    "templates/phases/snippets/kubeadm/join_worker_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: JoinConfiguration
+      discovery:
+        file:
+          kubeConfigPath: /etc/kubernetes/kubeadm/discovery.conf
+        tlsBootstrapToken: "${KUBEADM_TOKEN}"
+      nodeRegistration:
+        name: "${NODE_NAME}"
+        criSocket: unix:///var/run/crio/crio.sock
+        imagePullPolicy: IfNotPresent
+        kubeletExtraArgs:
+          - name: node-labels
+            value: kubeadm=enabled
+        ignorePreflightErrors:
+          # kubelet is started by the bootstrap script before kubeadm
+          - Port-10250
+          # the bootstrap script delivers the haproxy static pod
+          - DirAvailable--etc-kubernetes-manifests
+      timeouts:
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+        discovery: 5m0s
+    "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
+      apiVersion: kubeadm.k8s.io/v1beta4
+      kind: UpgradeConfiguration
+      node:
+        certificateRenewal: false
+        etcdUpgrade: true
+        imagePullPolicy: IfNotPresent
+        ignorePreflightErrors:
+          - SystemVerification
+          - CoreDNSUnsupportedPlugins
+          - CoreDNSMigration
+        skipPhases:
+          # kubelet configuration is delivered by the chart
+          - kubelet-config
+          # rewrites kubelet.conf to the local apiserver and restarts kubelet
+          - kubeconfig
+        # addons (CoreDNS, kube-proxy) installed by kubeadm init are upgraded
+        # by the addon phase on the last upgraded control plane node
+      # Must match the init configuration: static pod startup probes are
+      # derived from controlPlaneComponentHealthCheck, a different value
+      # changes the manifests and restarts the control plane.
+      timeouts:
+        controlPlaneComponentHealthCheck: 5m0s
+        kubeletHealthCheck: 5m0s
+        kubernetesAPICall: 3m0s
+    "templates/phases/snippets/kubelet/_kubelet-config.yaml": |
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      authentication:
+        anonymous:
+          enabled: false
+        webhook:
+          enabled: true
+        x509:
+          # delivered by the chart on all nodes before kubeadm writes ca.crt
+          clientCAFile: /etc/kubernetes/pki/kubelet-client-ca.pem
+      authorization:
+        mode: Webhook
+      cgroupDriver: systemd
+      clusterDNS:
+        - {{ .Values.network.dns.service_ip }}
+      clusterDomain: {{ .Values.network.dns.cluster_domain }}
+      containerRuntimeEndpoint: unix:///var/run/crio/crio.sock
+      staticPodPath: /etc/kubernetes/manifests
+      # tested on the gate nodes with local resolvers disabled, see
+      # tools/zuul/playbooks/kubeadm-deploy-env.yaml
+      resolvConf: /etc/resolv.conf
+      # kubelet requests its client certificate with the bootstrap token and
+      # starts static pods (haproxy) meanwhile
+      rotateCertificates: true
+      readOnlyPort: 0
+      containerLogMaxFiles: 2
+
+    # the nodes of the cluster: gets (tuple <root> <dict>), sets "nodes" of
+    # the dict to the list of the nodes, each one a dict:
+    #   hostname  the name of the node (bootstrap.nodename, NODE_NAME)
+    #   ip        the address of the node (NODE_IP), ssh goes to it
+    #   role      master or worker (NODE_ROLE)
+    # The order matters: the first master runs kubeadm init.
+    "templates/phases/snippets/tools/_nodes.tpl": |
+      {{- $envAll := index . 0 -}}
+      {{- $out := index . 1 -}}
+      {{- $roles := dict "control-plane" "master" "worker" "worker" -}}
+      {{- $nodes := list -}}
+      {{- range $node := $envAll.Values.nodes -}}
+        {{- $nodes = append $nodes (dict "hostname" $node.name "ip" $node.ip "role" (get $roles (toString $node.role))) -}}
+      {{- end -}}
+      {{- $_ := set $out "nodes" $nodes -}}
+
+    # the common part of the tools: the nodes and running the node scripts
+    "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl": |
+      {{- $nodesOut := dict -}}
+      {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+      {{- if not $nodesOut.nodes -}}
+      {{- fail "ssh orchestration: no nodes (templates/phases/snippets/tools/_nodes.tpl)" -}}
+      {{- end -}}
+      {{- $firstMaster := "" -}}
+      {{- range $node := $nodesOut.nodes -}}
+      {{- if not (and $node.hostname $node.ip (has $node.role (list "master" "worker"))) -}}
+      {{- fail (printf "ssh orchestration: a node needs hostname, ip and role master or worker: %v" $node) -}}
+      {{- end -}}
+      {{- if and (not $firstMaster) (eq $node.role "master") -}}
+      {{- $firstMaster = $node.hostname -}}
+      {{- end -}}
+      {{- end -}}
+      {{- if not $firstMaster -}}
+      {{- fail "ssh orchestration: no control plane node (templates/phases/snippets/tools/_nodes.tpl)" -}}
+      {{- end -}}
+      HELM="${HELM:-helm}"
+      CHART_ARGS="${CHART_ARGS:?the values of the cluster: \"<release> <chart> -f <values>...\"}"
+      SSH="${SSH:-{{ .Values.orchestration.ssh }}}"
+      SUDO="${SUDO-{{ .Values.orchestration.sudo }}}"
+
+      # the nodes: templates/phases/snippets/tools/_nodes.tpl
+      NODES=({{ range $nodesOut.nodes }} {{ .hostname | quote }}{{ end }} )
+      declare -A NODE_IP=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .ip | quote }}{{ end }} )
+      declare -A NODE_ROLE=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .role | quote }}{{ end }} )
+      # kubeadm init, the cluster wide steps
+      FIRST_MASTER={{ $firstMaster | quote }}
+
+      # the scripts of the nodes contain the keys: a private directory
+      WORK_DIR=$(mktemp -d)
+      trap 'rm -rf "${WORK_DIR}"' EXIT
+
+      # the argument quoted for the shell of the node
+      squote() {
+        printf "'%s'" "${1//\'/\'\\\'\'}"
+      }
+
+      # renders the script of the node: render_node <action> <node>
+      render_node() {
+        local action="$1" node="$2"
+        # shellcheck disable=SC2086 # CHART_ARGS is a list of arguments
+        "${HELM}" template ${CHART_ARGS} \
+          --set manifests.secret_bootstrap=true --set bootstrap.string_data=false \
+          --set bootstrap.action="${action}" --set bootstrap.nodename="${node}" \
+          | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d > "${WORK_DIR}/${node}.sh"
+        if [ ! -s "${WORK_DIR}/${node}.sh" ]; then
+          echo "${node}: the chart has no ${action} script for the node" >&2
+          exit 1
+        fi
+      }
+
+      # runs the script of the node with the arguments: it goes through stdin
+      # to a private directory of the node (mktemp -d) with the environment of
+      # the node (and KUBEADM_TOKEN) on top, the directory is removed at the
+      # end. No umask: the script creates the files of the node with it.
+      run_node() {
+        local node="$1" arg args=""
+        shift
+        for arg in "$@"; do
+          args="${args} $(squote "${arg}")"
+        done
+        local remote='d=$(mktemp -d) || exit 1; trap "rm -rf \"$d\"" EXIT; cat > "$d/script" && bash "$d/script" "$@"'
+        {
+          echo "export NODE_NAME=$(squote "${node}") NODE_IP=$(squote "${NODE_IP[${node}]}")" \
+            "NODE_ROLE=$(squote "${NODE_ROLE[${node}]}") KUBEADM_TOKEN=$(squote "${KUBEADM_TOKEN:-}")"
+          cat "${WORK_DIR}/${node}.sh"
+        } | ${SSH} "${NODE_IP[${node}]}" "${SUDO} bash -c $(squote "${remote}") bash${args}"
+      }
+
+      # run_node in the background, the output prefixed with the node
+      declare -A PID_NODE=()
+      start_node() {
+        local node="$1"
+        ( run_node "$@" 2>&1 | while IFS= read -r line; do printf '[%s] %s\n' "${node}" "${line}"; done ) &
+        PID_NODE[$!]="${node}"
+      }
+
+      # waits for the nodes started by start_node, fails if any of them failed
+      wait_nodes() {
+        local pid failed=""
+        for pid in "${!PID_NODE[@]}"; do
+          wait "${pid}" || failed="${failed} ${PID_NODE[${pid}]}"
+        done
+        PID_NODE=()
+        if [ -n "${failed}" ]; then
+          echo "Failed:${failed}" >&2
+          return 1
+        fi
+      }
+
+    "templates/phases/snippets/tools/_ssh-bootstrap.sh.tpl": |
+      #!/bin/bash
+      # Bootstrap of the cluster over ssh: the reference orchestration of the
+      # bootstrap scripts of the nodes (overrides/reference/ssh-orchestration-ca.yaml)
+      set -euo pipefail
+
+      {{ tuple . "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+
+      KUBEADM_INIT=({{ .Values.orchestration.kubeadm.init }})
+      declare -A KUBEADM_JOIN=(
+        [master]={{ .Values.orchestration.kubeadm.join_master | quote }}
+        [worker]={{ .Values.orchestration.kubeadm.join_worker | quote }}
+      )
+      # the phases after the prep ones
+      KUBEADM_PHASES="kubeadm,annotate{{ if .Values.checks.bootstrap }},checks{{ end }}"
+
+      usage() {
+        cat << EOF
+      Usage: ssh-bootstrap.sh [--join <node>...]
+
+        without options: all the nodes, kubeadm init on the first control
+        plane node, kubeadm join of the rest
+        --join: these nodes join the existing cluster (the prep phases, then
+        kubeadm join), the other nodes are untouched
+
+      Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH, SUDO, PKI_VALUES
+      EOF
+        exit "${1:-0}"
+      }
+
+      # the nodes the tool bootstraps
+      TARGETS=("${NODES[@]}")
+      JOIN=false
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --join)
+            JOIN=true
+            TARGETS=()
+            while [ $# -gt 1 ] && [[ "$2" != -* ]]; do
+              [ -n "${NODE_IP[$2]+x}" ] || { echo "--join: $2 isn't a node of the cluster" >&2; exit 1; }
+              [ "$2" != "${FIRST_MASTER}" ] || { echo "--join: ${FIRST_MASTER} runs kubeadm init" >&2; exit 1; }
+              TARGETS+=("$2")
+              shift
+            done
+            [ "${#TARGETS[@]}" -gt 0 ] || { echo "--join needs the nodes" >&2; usage 1; }
+            ;;
+          -h|--help) usage ;;
+          *) echo "Unknown option: $1" >&2; usage 1 ;;
+        esac
+        shift
+      done
+
+      # the PKI of the cluster: gen-pki.sh of the chart if there is none yet,
+      # the scripts of the nodes are rendered with it. Only the tools are
+      # rendered (entrypoint.default is off): the values may need the PKI.
+      PKI_VALUES="${PKI_VALUES:-values-pki.yaml}"
+      if [ ! -s "${PKI_VALUES}" ]; then
+        echo "=== the PKI: gen-pki.sh of the chart to ${PKI_VALUES}"
+        # shellcheck disable=SC2086 # CHART_ARGS is a list of arguments
+        "${HELM}" template ${CHART_ARGS} --set manifests.secret_tools=true --set entrypoint.default=null \
+          | sed -n 's/^ *gen-pki.sh: *\(.*\)/\1/p' | base64 -d \
+          | bash -s -- --out-file "${PKI_VALUES}"
+        test -s "${PKI_VALUES}"
+      fi
+      CHART_ARGS="${CHART_ARGS} -f ${PKI_VALUES}"
+
+      for node in "${TARGETS[@]}"; do
+        render_node bootstrap "${node}"
+      done
+
+      echo "=== the prep phases on ${TARGETS[*]}"
+      for node in "${TARGETS[@]}"; do
+        start_node "${node}" --skip-phases "${KUBEADM_PHASES}"
+      done
+      wait_nodes
+
+      if [ "${JOIN}" = false ]; then
+        echo "=== kubeadm init on ${FIRST_MASTER}"
+        start_node "${FIRST_MASTER}" --phases "${KUBEADM_PHASES}" -- "${KUBEADM_INIT[@]}"
+        wait_nodes
+
+        if [ "${#NODES[@]}" -eq 1 ]; then
+          echo "The cluster is bootstrapped"
+          exit 0
+        fi
+      fi
+
+      # the token must not get to the output
+      KUBEADM_TOKEN=$(${SSH} "${NODE_IP[${FIRST_MASTER}]}" \
+        "${SUDO} kubeadm token create --ttl {{ .Values.orchestration.token_ttl }}")
+
+      echo "=== kubeadm join of the rest of the nodes"
+      for node in "${TARGETS[@]}"; do
+        [ "${node}" != "${FIRST_MASTER}" ] || continue
+        # shellcheck disable=SC2086 # the arguments of kubeadm
+        start_node "${node}" --phases "${KUBEADM_PHASES}" -- ${KUBEADM_JOIN[${NODE_ROLE[${node}]}]}
+      done
+      wait_nodes
+      echo "The cluster is bootstrapped"
+
+    "templates/phases/snippets/tools/_ssh-rebootstrap.sh.tpl": |
+      #!/bin/bash
+      # Rebootstrap of the cluster over ssh: the reference orchestration of the
+      # rebootstrap scripts of the nodes (overrides/reference/ssh-orchestration-ca.yaml)
+      set -euo pipefail
+
+      {{ tuple . "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{- /* the CAs only: kubeadm generates the rest */}}
+      {{- if ((.Values.certs).apiserver).crt }}
+      {{- fail "ssh-rebootstrap.sh: the values must have the CAs only, kubeadm generates the rest" }}
+      {{- end }}
+
+      usage() {
+        cat << EOF
+      Usage: ssh-rebootstrap.sh [--restart-clients] | [--phases a,b | --skip-phases a,b]
+
+        without options: the lock and the backups on all the nodes, then the
+        rest of the default phases on all the nodes at once
+        --restart-clients: then the pods of bootstrap.rebootstrap_restart_selectors
+        are deleted (they keep the CA and the service account tokens of the
+        old ones)
+        --phases, --skip-phases: these phases of the rebootstrap script on all
+        the nodes at once (restore, backup-remove)
+
+      Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH, SUDO
+      EOF
+        exit "${1:-0}"
+      }
+
+      PHASE_ARGS=()
+      RESTART_CLIENTS=false
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --phases|--skip-phases) PHASE_ARGS=("$1" "${2:?$1 needs a comma separated list of phases}"); shift ;;
+          --restart-clients) RESTART_CLIENTS=true ;;
+          -h|--help) usage ;;
+          *) echo "Unknown option: $1" >&2; usage 1 ;;
+        esac
+        shift
+      done
+
+      for node in "${NODES[@]}"; do
+        render_node rebootstrap "${node}"
+      done
+
+      if [ "${#PHASE_ARGS[@]}" -gt 0 ]; then
+        for node in "${NODES[@]}"; do
+          start_node "${node}" "${PHASE_ARGS[@]}"
+        done
+        wait_nodes
+        exit 0
+      fi
+
+      echo "=== the lock of the reconcile and the backups on all the nodes"
+      for node in "${NODES[@]}"; do
+        start_node "${node}" --phases reconcile-guard,backup
+      done
+      if ! wait_nodes; then
+        echo "The nodes aren't changed: ssh-rebootstrap.sh --phases backup-remove releases the lock" >&2
+        exit 1
+      fi
+
+      # the control plane nodes first, kubeadm generates its certificates and
+      # kubeconfigs from the new CAs
+      echo "=== the new files, the certificates of kubeadm and the restart of the components on the control plane nodes"
+      for node in "${NODES[@]}"; do
+        [ "${NODE_ROLE[${node}]}" = master ] || continue
+        start_node "${node}" --phases "certs,kubeconfigs,kubelet,kubeadm-certs,static-pods-stop,kubelet-stop,cri-restart,kubelet-start,annotate{{ if .Values.checks.bootstrap }},checks{{ end }}"
+      done
+      if ! wait_nodes; then
+        echo "Back to the backups: ssh-rebootstrap.sh --phases restore,static-pods-stop,kubelet-stop,cri-restart,kubelet-start" >&2
+        exit 1
+      fi
+
+      # then the workers through the TLS bootstrap of kubelet with the new CA
+      WORKERS=()
+      for node in "${NODES[@]}"; do
+        [ "${NODE_ROLE[${node}]}" = master ] || WORKERS+=("${node}")
+      done
+      if [ "${#WORKERS[@]}" -gt 0 ]; then
+        # the token must not get to the output
+        KUBEADM_TOKEN=$(${SSH} "${NODE_IP[${FIRST_MASTER}]}" \
+          "${SUDO} kubeadm token create --ttl {{ .Values.orchestration.token_ttl }}")
+        echo "=== the TLS bootstrap of kubelet on the workers"
+        for node in "${WORKERS[@]}"; do
+          start_node "${node}" --phases "certs,kubeconfigs,kubelet,kubeadm-certs,annotate{{ if .Values.checks.bootstrap }},checks{{ end }}"
+        done
+        if ! wait_nodes; then
+          echo "Back to the backups: ssh-rebootstrap.sh --phases restore,static-pods-stop,kubelet-stop,cri-restart,kubelet-start" >&2
+          exit 1
+        fi
+      fi
+
+      echo "=== the CAs of the cluster wide objects from ${FIRST_MASTER}"
+      start_node "${FIRST_MASTER}" --phases kubeadm-cluster-info
+      wait_nodes
+
+      if [ "${RESTART_CLIENTS}" = true ]; then
+        echo "=== the pods of bootstrap.rebootstrap_restart_selectors from ${FIRST_MASTER}"
+        start_node "${FIRST_MASTER}" --phases restart-clients
+        wait_nodes
+      fi
+
+      cat << EOF
+      The nodes are rebootstrapped, the reconcile waits for the lock. Next:
+        1. helm upgrade the release with the new values: the anchors bring
+           the files of the release back once the lock is released
+        2. ssh-rebootstrap.sh --phases backup-remove: releases the lock
+      EOF

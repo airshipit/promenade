@@ -1,0 +1,138 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# 5 node gates of the kubeadm chart over the ssh orchestration of the chart
+# (charts/kubeadm/overrides/reference/ssh-orchestration-<kubeadm_orchestration>.yaml:
+# ca, the CAs only in the values, or full, the full PKI, the values of the
+# cluster too; kubeadm_cni: calico or cilium), no other Airship components
+# involved. The steps for the CAs only:
+#   1. the primary node gets ssh to all the nodes (itself included), the
+#      nodes of the orchestration are generated from the job variables
+#   2. day 0: the ssh-bootstrap.sh tool of the chart bootstraps all the nodes
+#      from the primary node, the PKI (the CAs and the service account key,
+#      kubeadm generates the rest) by gen-pki.sh of the chart
+#   3. the CNI and the chart itself are deployed from a generated kustomize
+#      catalog: the anchor daemonsets take over the nodes, smoke tests
+#   4. FAULT INJECTION, not a user scenario nor a step of the lifecycle: the
+#      etcd member of a control plane node removed, its anchor joins it again,
+#      smoke tests. The most fragile step first, the steps after it run on the
+#      recovered cluster
+#   5. abrupt rotation of the CAs: the ssh-rebootstrap.sh tool of the chart
+#      puts new CAs on all the nodes (kubeadm generates the rest again, the
+#      workers go through the TLS bootstrap of kubelet again), the chart in the
+#      cluster gets them, smoke tests. Then once more with the apiservers
+#      stopped (the API is down), then the nodes held out of day 0
+#      (join_after_rotation) join with the new CA, smoke tests
+#   6. day 2 with the new CAs: a reconfiguration and an upgrade to the next
+#      Kubernetes minor version by the anchors, smoke tests after each of them
+---
+- hosts: primary
+  any_errors_fatal: true
+  tasks:
+    - name: Generate the ssh key of the gate
+      command: ssh-keygen -t ed25519 -q -N "" -f "{{ ansible_env.HOME }}/.ssh/kubeadm-gate"
+      args:
+        creates: "{{ ansible_env.HOME }}/.ssh/kubeadm-gate.pub"
+
+    - name: Read the public ssh key of the gate
+      command: cat "{{ ansible_env.HOME }}/.ssh/kubeadm-gate.pub"
+      register: kubeadm_gate_ssh_key
+
+- hosts: all
+  any_errors_fatal: true
+  tasks:
+    - name: Authorize the ssh key of the gate
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.ssh/authorized_keys"
+        line: "{{ hostvars[groups['primary'][0]].kubeadm_gate_ssh_key.stdout }}"
+        create: true
+        mode: "0600"
+
+- hosts: primary
+  any_errors_fatal: true
+  environment:
+    ORCHESTRATION: "{{ kubeadm_orchestration | default('ca') }}"
+    VALUES: "./charts/kubeadm/overrides/reference/ssh-orchestration-{{ kubeadm_orchestration | default('ca') }}.yaml"
+    KUBEADM_BEFORE_CNI: "{{ kubeadm_before_cni | default(false) | bool | lower }}"
+    CNI: "{{ kubeadm_cni | default('calico') }}"
+  tasks:
+    - name: Create the work directory
+      file:
+        path: "{{ ansible_env.HOME }}/kubeadm-gate"
+        state: directory
+        mode: "0700"
+
+    # in the order of the job variable: the first node runs kubeadm init (the
+    # host of the zuul node isn't used by the orchestration)
+    - name: Generate the nodes of the gate
+      copy:
+        dest: "{{ ansible_env.HOME }}/kubeadm-gate/nodes-all.yaml"
+        content: "{{ {'nodes': kubeadm_nodes} | to_nice_yaml }}"
+        mode: "0600"
+
+    - name: Generate the nodes of day 0 (nodes.yaml), the ones joining after the rotation (join_after_rotation) left out
+      copy:
+        dest: "{{ ansible_env.HOME }}/kubeadm-gate/nodes.yaml"
+        content: "{{ {'nodes': kubeadm_nodes | rejectattr('join_after_rotation', 'defined') | list} | to_nice_yaml }}"
+        mode: "0600"
+
+    - name: Bootstrap all the nodes over ssh
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm-ssh/030-ssh-bootstrap.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Deploy the catalog, test the cluster
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/035-generate-catalog.sh
+        ./tools/deployment/kubeadm/040-deploy-catalog.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Fault injection (not a user scenario), the etcd member of a control plane node removed, the anchor joins it again, test the cluster
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm-ssh/045-fault-etcd-member-removed.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Rotate the PKI over ssh (the API up, then down), join a node, test the cluster
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm-ssh/050-ssh-rebootstrap.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+        API_DOWN=true ./tools/deployment/kubeadm-ssh/050-ssh-rebootstrap.sh
+        ./tools/deployment/kubeadm-ssh/055-ssh-join.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Reconfigure and upgrade the cluster (day 2), test it
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm/060-day2-reconfigure.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+        ./tools/deployment/kubeadm/070-day2-upgrade.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+...

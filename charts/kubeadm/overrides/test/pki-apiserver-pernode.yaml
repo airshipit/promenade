@@ -1,0 +1,6 @@
+certs:
+  nodes:
+    nodename0:
+      apiserver:
+        crt: apiserver_node0-crt-placeholder
+        key: apiserver_node0-key-placeholder

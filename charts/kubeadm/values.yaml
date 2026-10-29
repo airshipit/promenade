@@ -14,18 +14,12 @@
 
 images:
   tags:
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_noble
     # only starts the reconcile script on the host: needs a shell with mount,
     # chroot and tar, and nsenter (kubelet restart job); multi-arch
     anchor: docker.io/library/busybox:1.37
     haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
   pull_policy: "IfNotPresent"
-  local_registry:
-    active: false
-    exclude:
-      - dep_check
-      - image_repo_sync
 
 # kubeadm, kubelet and kubectl are installed on the nodes by the bootstrap
 # script and kept in sync by the anchor if cluster_config.kubernetesVersion is
@@ -54,6 +48,27 @@ bootstrap:
   # without suffix-<nodename>. Using this parameter disables producing other manifests generated in _main.tpl to help sed find the needed field only.
   # this is because we assume that bootstrap.nodename is used only for manual helm template execution
   # nodename: <some node>
+  # the script of the bootstrap Secrets: bootstrap (templates/bin/_bootstrap.tpl)
+  # or rebootstrap (templates/bin/_rebootstrap.tpl, the certificates of the
+  # values again on the nodes of an existing cluster)
+  action: bootstrap
+  # the backups of the certificates of the node made by the backup phase of the
+  # rebootstrap script, a new one every run: they have the keys, the
+  # backup-remove phase removes them
+  # (the lock of the node: the reconcile script waits while it exists)
+  rebootstrap_backup_dir: /var/lib/kubeadm-backup
+  # seconds the rebootstrap script waits for the reconcile passes going on on
+  # the node (the worst case of the timeouts of a pass and a margin)
+  rebootstrap_reconcile_timeout: 2400
+  # the rebootstrap restart-clients phase deletes the pods of these selectors in
+  # this order (all the namespaces): they keep the CA and the service account
+  # tokens of the old ones. The ones of kubeadm and of the chart, the values
+  # add the others (the CNI, the operators...)
+  rebootstrap_restart_selectors:
+    - k8s-app=kube-dns
+    - k8s-app=kube-proxy
+    - component=kubernetes-kubeadm-anchor
+    - component=kubernetes-kubeadm-workers-anchor
 
 # daemonsets running the reconcile script (day 2) on the nodes, they can be
 # patched with bundle.tpl."templates/_daemonset-masters.yaml.patch" and
@@ -74,6 +89,12 @@ anchor:
     period: 15
     # its own files (script, service account, state), mounted in the pod only
     host_dir: /var/lib/kubeadm-reconcile
+    # refuse to replace the CA keys (Kubernetes, etcd, front proxy) and the
+    # service account key on a node which already has different ones: the
+    # certificates of the node are signed with them. The CAs are rotated by
+    # the rebootstrap; false is the way out of a wrong guard (the bootstrap
+    # skips it with --skip-phases ca-guard)
+    ca_guard: true
 
 # node checks (the checks phase): one line per check
 # "check OK|FAIL|SKIP <check> <details>", the phase fails if any check failed
@@ -125,7 +146,14 @@ haproxy:
       - mode tcp
     backend:
       - mode tcp
-      - option tcp-check
+      # the apiserver opens its port before it is ready: /readyz (anonymous,
+      # as the probes of the static pods), not the port only. A stopping
+      # apiserver fails /readyz: its sessions are closed, the clients (kubelet
+      # leases) go to the others at once
+      - option httpchk
+      - http-check send meth GET uri /readyz
+      - http-check expect status 200
+      - default-server check-ssl verify none on-marked-down shutdown-sessions
       - option redispatch
 
 files:
@@ -139,8 +167,6 @@ files:
       from: templates/phases/snippets/cri/_containerd_v3.tpl
       owner: "root:root"
       mode: "0600"
-  # placholder for cleanup after bootstrap
-  bootstrapcleanup: []
 # working examples (can be moved to test.sh):
 # files:
 #   rm_files: #groupname
@@ -351,11 +377,6 @@ cri:
 # NOTE: at the moment we don't support external etcd
 # see templates/utils/_k8s_pki_val_extract.tpl for implementation details
 # to use a different structure - override it in tpl section
-# refuse to replace the CA keys (Kubernetes, etcd, front proxy) and the
-# service account key on a node which already has different ones: the
-# certificates of the node are signed with them. Bootstrap and reconcile.
-ca_guard: true
-
 certs:
   # expected structure:
   # perms:
@@ -380,6 +401,16 @@ certs:
   #   key: placeholder
   #   pub: placeholder
   # ...
+  # the certificates of a node:
+  # nodes:
+  #   <node name>:
+  #     etcd_server: {crt, key}
+  #     etcd_peer: {crt, key}
+  #     kubelet: {crt, key}
+  #     # the API of the node (its own SANs, as kubeadm issues it), either this
+  #     # one for every control plane node or apiserver above shared by all of
+  #     # them: with both, the one of the node wins
+  #     apiserver: {crt, key}
   # see overrides/test/pki-*.yaml
 
 
@@ -480,3 +511,32 @@ entrypoint:
       gen-pki.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
     {{ end }}
 
+# the deprecated features: kept for the upgrades from the previous releases,
+# switched off, then removed with their code
+deprecated:
+  # MIGRATION from Airship: the static pods of a control plane node renamed
+  # to the kubeadm ones, the files of Airship removed at the end of the pass.
+  # Deprecated: the previous release did it always (without this gate), so
+  # the clusters upgraded through it are migrated already; true only for one
+  # coming from Airship directly. To be removed with its code
+  airship_migration:
+    enabled: false
+    files_to_delete:
+      - /etc/kubernetes/kubelet
+      - /etc/kubernetes/controller-manager
+      - /etc/kubernetes/scheduler
+      - /etc/kubernetes/apiserver/apiserver-proxy-cert.pem
+      - /etc/kubernetes/apiserver/apiserver-proxy-key.pem
+      - /etc/kubernetes/apiserver/agg-api-ca.pem
+      - /etc/kubernetes/apiserver/kubeconfig
+      - /etc/kubernetes/apiserver/pki
+      - /etc/kubernetes/kubeconfig
+      - /etc/kubernetes/pki/cluster-ca.pem
+      - /opt/kubernetes/bin/kubelet
+  # the preStop hook of the anchor pods of the previous release
+  # (/tmp/bin/pre_stop of the bin ConfigMap): they stop their reconcile pass
+  # with it when the upgrade replaces them. Deprecated: false once the
+  # previous release has the hook inline, then removed with
+  # templates/bin/_pre_stop.tpl
+  legacy_pre_stop:
+    enabled: true

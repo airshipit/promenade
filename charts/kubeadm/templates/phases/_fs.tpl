@@ -67,7 +67,6 @@ compare_copy_file() {
 
 subst_node_env() {
   sed \
-    -e "s|\${KUBEADM_TOKEN}|${KUBEADM_TOKEN:-}|g" \
     -e "s|\${NODE_ROLE}|${NODE_ROLE:-}|g" \
     -e "s|\${NODE_NAME}|${NODE_NAME:-}|g" \
     -e "s|\${NODE_IP}|${NODE_IP:-}|g" "$@"
@@ -100,8 +99,64 @@ sync_group_dir() {
   done
 }
 
-
 %s
+` -}}
+
+{{/* fs_rebootstrap_lib: the backup of the groups, for the rebootstrap script
+     only (templates/bin/_rebootstrap.tpl) */}}
+{{- $_ := set $sharedLibs (printf "%s_rebootstrap_lib" $sharedLibName) `
+# copies the files (absolute paths of the node) the node has to the backup $1
+backup_files() {
+  local backup="$1" file
+  shift
+  for file in "$@"; do
+    if [ -f "${ROOTFS}${file}" ]; then
+      mkdir -p "${backup}${file%/*}"
+      cp -p "${ROOTFS}${file}" "${backup}${file}"
+    fi
+  done
+}
+
+# puts the files back from the backup $1, removes the ones it doesn't have (the
+# node didn't have them before)
+restore_files() {
+  local backup="$1" file
+  shift
+  for file in "$@"; do
+    if [ -f "${backup}${file}" ]; then
+      cp -p "${backup}${file}" "${ROOTFS}${file}"
+    else
+      rm -f "${ROOTFS}${file}"
+    fi
+  done
+}
+
+# the files of the directory the group syncs (the same archives as
+# sync_group_dir)
+group_dir_files() {
+  local rootfs="$1" group="$2" dir="$3" node_role="$4"
+  local archive file
+  for archive in all ctrl all-pernode ctrl-pernode; do
+    case "${archive}" in
+      ctrl*) [ "$node_role" = "master" ] || continue ;;
+    esac
+    for file in "${rootfs}/run/kubeadm/${archive}/${group}"/*; do
+      [ -f "$file" ] && echo "${dir}/${file##*/}"
+    done
+  done
+  return 0
+}
+
+# copies the files of the directory the group syncs to the backup directory
+backup_group_dir() {
+  backup_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
+}
+
+# puts the files of the group back from the backup directory, removes the ones
+# it doesn't have (the node didn't have them before the sync)
+restore_group_dir() {
+  restore_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
+}
 ` -}}
 
 {{/* files groups go to the "all" archive as <group>/<path>, "_" groups are the phases ones */}}

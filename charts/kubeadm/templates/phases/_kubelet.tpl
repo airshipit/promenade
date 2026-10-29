@@ -112,3 +112,23 @@ sync_kubelet() {
 
 
 ) -}}
+
+{{/* kubelet_rebootstrap_lib: the functions of the rebootstrap script
+     (templates/bin/_rebootstrap.tpl), the groups of sync_kubelet_kubeconfig */}}
+{{- $_ := set $sharedLibs (printf "%s_rebootstrap_lib" $sharedLibName) `
+# copies the certificates of kubelet of the node to the backup $1
+kubelet_backup() {
+  local pki_dir="/etc/kubernetes/pki"
+
+  backup_group_dir "${ROOTFS}" "_kubeletpkipub" "${pki_dir}" "worker" "$1"
+  backup_group_dir "${ROOTFS}" "_kubeletpkipriv" "${pki_dir}" "worker" "$1"
+}
+
+# puts the certificates of kubelet of the backup $1 back
+kubelet_restore() {
+  local pki_dir="/etc/kubernetes/pki"
+
+  restore_group_dir "${ROOTFS}" "_kubeletpkipub" "${pki_dir}" "worker" "$1"
+  restore_group_dir "${ROOTFS}" "_kubeletpkipriv" "${pki_dir}" "worker" "$1"
+}
+` -}}

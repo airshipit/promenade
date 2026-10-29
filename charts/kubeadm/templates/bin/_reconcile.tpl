@@ -35,8 +35,6 @@ NAMESPACE="$(cat "${RECONCILE_DIR}/sa/namespace")"
 KUBERNETES_DIR="/etc/kubernetes"
 
 KUBERNETES_VERSION="$(sed -n 's/^ *kubernetesVersion: *\(.*\)/\1/p' /run/kubeadm/all/_kubeadm/ClusterConfiguration)"
-KUBEADM_ANNOTATION="last-applied-kubeadm-cfg-sha256"
-KUBELET_ANNOTATION="last-applied-kubelet-cfg-sha256"
 CRI_SOCKET_ANNOTATION="kubeadm.alpha.kubernetes.io/cri-socket"
 # set while the anchor keeps the node drained to restart kubelet
 KUBELET_RESTART_ANNOTATION="kubelet-restart-in-progress"
@@ -48,9 +46,6 @@ CRI_SOCKET=""
 KUBELET_CURRENT_VERSION=""
 KUBERNETES_ETCD=""
 KUBELET_RESTART_IN_PROGRESS=""
-
-# sleep randomly up to 30 seconds
-sleep $(shuf -i 1-30 -n 1)
 
 {{/* adding shared bash functions */}}
 {{ $sharedLibsContent }}
@@ -67,31 +62,16 @@ cleanup_old_backups() {
   fi
 }
 
-#remove_if_exists() {
-#  path="$1"
-#  if [ -e "$path" ]; then
-#    if [ -d "$path" ]; then rm -rf $path; else rm -f "$path"; fi
-#  fi
-#}
-
-#cleanup_old_configs() {
-#
-{{/*
-#{{- range $file := .Values.const.files_to_delete }}
-#  remove_if_exists "${ROOTFS}{{ $file }}"
-#{{- end }}
-*/}}
-#  echo "cleanup_old_configs is done"
-#}
-
 restart_kubelet() {
-  local was_ready
+  local was_ready restarted heartbeat i
   was_ready=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
   annotate_node "$KUBELET_RESTART_ANNOTATION" true
 {{- if $envAll.Values.kubelet.drain }}
   kubectl drain "${NODE_NAME}" --pod-selector '!kubelet-restart' --ignore-daemonsets --delete-emptydir-data
 {{- end }}
 
+  # the clock of the node: the kubelet sets the heartbeat by it too
+  restarted=$(date -u +%FT%TZ)
   # heredoc will take care of ${NODE_NAME} and etc
   job_name=$(kubectl create -n "${NAMESPACE}" -f - -o name <<EOF_DATA
 {{ tuple $envAll "templates/bin/helpers/_kubelet_restart.yaml.tpl" $envAll | include "kubeadm.bundle.patched_template" }}
@@ -104,13 +84,23 @@ EOF_DATA
   kubectl uncordon "${NODE_NAME}"
 {{- end }}
   kubectl annotate node "${NODE_NAME}" "${KUBELET_RESTART_ANNOTATION}-"
-  # a NotReady node (e.g. no CNI yet) doesn't become ready by the restart: the
-  # kubelet version check below makes sure kubelet is back
+
+  # the new kubelet reports the status of the node once started (the heartbeat
+  # of the conditions, the lease keeps the node alive in between)
+  for i in $(seq 60); do
+    heartbeat=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].lastHeartbeatTime}') || true
+    [[ $heartbeat > $restarted ]] && break
+    sleep 5
+  done
+  if [[ ! $heartbeat > $restarted ]]; then
+    echo "kubelet didn't report the node after the restart"
+    exit 1
+  fi
+
+  # a NotReady node (e.g. no CNI yet) doesn't become ready by the restart
   if [[ $was_ready == True ]]; then
     kubectl wait node --for=condition=ready "${NODE_NAME}" --timeout=60s
   fi
-
-  sleep 60
 
   KUBELET_CURRENT_VERSION=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.nodeInfo.kubeletVersion}')
   if [[ $KUBELET_CURRENT_VERSION != $("${BINARIES_DIR}/kubelet" --version | awk '{print $2}') ]]; then
@@ -118,7 +108,18 @@ EOF_DATA
     exit 1
   fi
 
-  sleep 60
+  # the node is ready with its control plane down: a new kubelet version starts
+  # the static pods again before the old ones free their ports, they are ready
+  # after a back-off
+  if [[ $NODE_ROLE == "master" ]]; then
+    for i in $(seq 60); do
+      kubectl wait -n kube-system --for=condition=ready pod -l tier=control-plane \
+        --field-selector "spec.nodeName=${NODE_NAME}" --timeout=5s && return 0
+      sleep 5
+    done
+    echo "the control plane of the node isn't ready after the restart"
+    exit 1
+  fi
 }
 
 # sets KUBEADM_ACTION_REQUIRED and KUBELET_RESTART_REQUIRED flags,
@@ -127,7 +128,7 @@ is_action_required() {
   local rc=1 # return code 1 means false
 
   if [[ $NODE_ROLE == "master" ]]; then
-    current_cluster_config_sha256=$(sha256sum < /run/kubeadm/all/_kubeadm/ClusterConfiguration | cut -d ' ' -f 1)
+    current_cluster_config_sha256=$(kubeadm_config_sha256)
     if [[ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 || $LAST_APPLIED_KUBEADM_CONFIG_SHA256 != $current_cluster_config_sha256 ]]; then
       KUBEADM_ACTION_REQUIRED=true
       rc=0
@@ -135,7 +136,7 @@ is_action_required() {
   fi
 
 {{- if $envAll.Values.kubelet.restart  }}
-  current_kubelet_config_sha256=$(sha256sum < /run/kubeadm/all/_kubelet/kubelet_config.yaml | cut -d ' ' -f 1)
+  current_kubelet_config_sha256=$(kubelet_config_sha256)
   if [[ -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 || $LAST_APPLIED_KUBELET_CONFIG_SHA256 != $current_kubelet_config_sha256 || $KUBELET_CURRENT_VERSION != $KUBERNETES_VERSION ]]; then
     KUBELET_RESTART_REQUIRED=true
     rc=0
@@ -165,21 +166,48 @@ upload_kubeadm_config() {
   dir="$(mktemp -d -p "${RECONCILE_DIR}")"
   # kubeadm may rewrite the kubeconfig passed to it
   cp "${ROOTFS}${KUBERNETES_DIR}/admin.conf" "${dir}/admin.conf"
-  # the node name isn't always the hostname kubeadm defaults to
-  cat > "${dir}/config.yaml" << EOF_CONFIG
-apiVersion: $(sed -n 's/^apiVersion: *//p' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/ClusterConfiguration" | head -n 1)
-kind: InitConfiguration
-nodeRegistration:
-  name: ${NODE_NAME}
-  criSocket: $(sed -n 's/^ *containerRuntimeEndpoint: *\(.*\)/\1/p' "${ROOTFS}/var/lib/kubelet/config.yaml")
----
-$(cat "${ROOTFS}${KUBERNETES_DIR}/kubeadm/ClusterConfiguration")
----
-$(cat "${ROOTFS}/var/lib/kubelet/config.yaml")
-EOF_CONFIG
+  kubeadm_node_config > "${dir}/config.yaml"
   kubeadm init phase upload-config all --config "${dir}/config.yaml" --kubeconfig "${dir}/admin.conf" || rc=$?
   rm -rf "${dir}"
   return $rc
+}
+
+# the join configuration of the bootstrap script (the placeholder of the
+# bootstrap token): the node bootstrapped by it joins again, e.g. its etcd
+# member removed below. Its admin.conf instead of the token, without the
+# phases of a new node (its certificates, kubeconfigs and kubelet are there).
+# A failed join: as the join below
+rejoin_control_plane() {
+  local dir phase phases="" skip="preflight control-plane-prepare/download-certs control-plane-prepare/certs control-plane-prepare/kubeconfig kubelet-start control-plane-join wait-control-plane"
+  if [ ! -f "${ROOTFS}${KUBERNETES_DIR}/admin.conf" ]; then
+    echo "${KUBERNETES_DIR}/kubeadm/join_config.yaml needs the bootstrap token: the node has no admin.conf to join with"
+    exit 1
+  fi
+  [[ $KUBERNETES_ETCD == "enabled" ]] || skip="${skip} check-etcd etcd-join"
+  dir="$(mktemp -d -p "${RECONCILE_DIR}")"
+  sed -e "s|^\( *kubeConfigPath:\).*|\1 ${KUBERNETES_DIR}/admin.conf|" -e '/^ *tlsBootstrapToken:/d' \
+    "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml" > "${dir}/config.yaml"
+  grep -q '^skipPhases:' "${dir}/config.yaml" || echo "skipPhases:" >> "${dir}/config.yaml"
+  # the ones the configuration doesn't skip yet
+  for phase in ${skip}; do
+    grep -q "^ *- ${phase}\$" "${dir}/config.yaml" || phases="${phases} ${phase}"
+  done
+  awk -v phases="${phases}" '{ print } /^skipPhases:/ { n = split(phases, p, " "); for (i = 1; i <= n; i++) print "  - " p[i] }' \
+    "${dir}/config.yaml" > "${dir}/rejoin.yaml"
+  if ! kubeadm join --config "${dir}/rejoin.yaml"; then
+    rm -rf "${dir}"
+    if [[ $KUBERNETES_ETCD == "enabled" ]]; then
+      echo "kubeadm join failed, performing reset to clean up local etcd member"
+      kubeadm reset phase remove-etcd-member
+      rm -f "${ROOTFS}${KUBERNETES_DIR}/manifests/etcd.yaml" || true
+      sleep 30
+    fi
+    exit 1
+  fi
+  rm -rf "${dir}"
+  # the join writes the manifests of the control plane again: the anchor is
+  # ready once its pods are
+  kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 300s
 }
 
 kubeadm_action() {
@@ -192,7 +220,10 @@ kubeadm_action() {
        ! -f "${ROOTFS}${KUBERNETES_DIR}/manifests/kube-controller-manager.yaml" ||
        ! -f "${ROOTFS}${KUBERNETES_DIR}/manifests/kube-scheduler.yaml"  ]] ||
        [[ $KUBERNETES_ETCD == "enabled" && ! -f "${ROOTFS}${KUBERNETES_DIR}/manifests/etcd.yaml" ]]; then
-    if ! kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"; then
+    if grep -qF '${KUBEADM_TOKEN}' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml"; then
+      # the node was bootstrapped by the chart in CA-only mode
+      rejoin_control_plane
+    elif ! kubeadm join --config "${KUBERNETES_DIR}/kubeadm/join_config.yaml"; then
       if [[ $KUBERNETES_ETCD == "enabled" ]]; then
         echo "kubeadm join failed, performing reset to clean up local etcd member"
         kubeadm reset phase remove-etcd-member
@@ -251,7 +282,10 @@ wait_apiservers_upgraded() {
   done
 }
 
-# migrate from airship names
+{{- if $envAll.Values.deprecated.airship_migration.enabled }}
+
+# MIGRATION from Airship (remove together with the cleanup below): the static
+# pods of Airship renamed to the kubeadm ones, a marker for the cleanup
 rename_cp_pods() {
   cp_pods="etcd apiserver controller-manager scheduler"
   for cp_pod in $cp_pods; do
@@ -263,6 +297,7 @@ rename_cp_pods() {
       component="${cp_pod}"
     fi
     if [ -e "$src_path" ]; then
+      touch "${RECONCILE_DIR}/airship-migration"
       if [ -e "$dst_path" ]; then
         echo "INFO: ${dst_path} already exists; removing stale ${src_path} without overwriting"
         rm -f "$src_path"
@@ -295,10 +330,58 @@ rename_cp_pods() {
   done
 }
 
+remove_if_exists() {
+  local path="$1"
+  if [ -e "$path" ]; then
+    if [ -d "$path" ]; then rm -rf "$path"; else rm -f "$path"; fi
+  fi
+}
+
+# MIGRATION from Airship: its files (deprecated.airship_migration),
+# once kubeadm has written the static pods again (the end of the pass). Only
+# on a node marked as one of Airship (renamed static pods, no annotations of
+# the chart): the chart writes to /etc/kubernetes/apiserver too
+airship_migration_cleanup() {
+  [ -e "${RECONCILE_DIR}/airship-migration" ] || return 0
+{{- range $file := $envAll.Values.deprecated.airship_migration.files_to_delete }}
+  remove_if_exists "${ROOTFS}{{ $file }}"
+{{- end }}
+  rm -f "${RECONCILE_DIR}/airship-migration"
+}
+{{- end }}
+
+# the rebootstrap script runs on the node while its backups exist (the lock, see
+# templates/bin/_rebootstrap.tpl): the node isn't touched until they are removed.
+# The waiting file tells the rebootstrap script the pass doesn't go on
+wait_rebootstrap() {
+  while [ -e "${ROOTFS}"{{ $envAll.Values.bootstrap.rebootstrap_backup_dir | quote }} ]; do
+    touch "${RECONCILE_DIR}/rebootstrap-wait"
+    echo "rebootstrap: {{ $envAll.Values.bootstrap.rebootstrap_backup_dir }} exists, waiting for the end of the procedure (restore or backup-remove)"
+    sleep 30
+  done
+  rm -f "${RECONCILE_DIR}/rebootstrap-wait"
+}
+
+wait_rebootstrap
 sync_binaries kubeadm kubectl || true
 # kubectl may be installed just above
 NODE_INFO=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.metadata.annotations.$CRI_SOCKET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}|{.metadata.labels.kubernetes-etcd}|{.metadata.annotations.$KUBELET_RESTART_ANNOTATION}")
 IFS='|' read -r LAST_APPLIED_KUBEADM_CONFIG_SHA256 LAST_APPLIED_KUBELET_CONFIG_SHA256 CRI_SOCKET KUBELET_CURRENT_VERSION KUBERNETES_ETCD KUBELET_RESTART_IN_PROGRESS <<<$NODE_INFO
+
+# no trace of the bootstrap or of a reconcile (e.g. a cluster taken over from
+# Airship): the anchors of all the nodes may start together, sleep randomly up
+# to 30 seconds
+if [[ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 && -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 ]]; then
+  sleep $(shuf -i 1-30 -n 1)
+fi
+{{- if $envAll.Values.deprecated.airship_migration.enabled }}
+
+# MIGRATION from Airship: a node without the annotations of the chart (any
+# role), its files are removed at the end of the pass
+if [[ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 && -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 ]]; then
+  touch "${RECONCILE_DIR}/airship-migration"
+fi
+{{- end }}
 # if isn't specified - kubeadm uses the version which corresponds to the binary
 [ -z "$KUBERNETES_VERSION" ] && KUBERNETES_VERSION=$(kubeadm version -o short)
 
@@ -307,7 +390,7 @@ if [[ $(kubeadm version -o short) != "$KUBERNETES_VERSION" ]]; then
   exit 1
 fi
 
-{{- if $envAll.Values.ca_guard }}
+{{- if $envAll.Values.anchor.reconcile.ca_guard }}
 # before any sync: the files of the node are left as they are
 guard_ca
 {{- end }}
@@ -337,7 +420,6 @@ sync_kubeadm
 if [[ $KUBERNETES_ETCD == "enabled" ]]; then
   # do not skip etcd related phases
   [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/join_config.yaml"
-  [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" ] && sed "${SED_INPLACE[@]}" '/check-etcd\|etcd-join/d' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/init_config.yaml" #TODO: to verify
   # turn on etcd upgrade
   [ -f "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml" ] && sed "${SED_INPLACE[@]}" -e 's/etcdUpgrade: false/etcdUpgrade: true/g' "${ROOTFS}${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
 fi
@@ -348,7 +430,9 @@ if [[ $NODE_ROLE == "master" && -f "${ROOTFS}${KUBERNETES_DIR}/admin.conf" ]]; t
   upload_kubeadm_config
 fi
 
-# migration from Airship to kubeadm
+# cluster-info and the RBAC of the TLS bootstrap are created by kubeadm init
+# (bootstrap-token phase): missing on a cluster not created by it (taken over
+# from Airship) or removed
 # kubeadm mutates the kubeconfig passed via --kubeconfig if it is a default one
 # (/etc/kubernetes/admin.conf). Operate on a throwaway copy of admin.conf so the
 # synced /etc/kubernetes/admin.conf on the host is not modified.
@@ -363,8 +447,10 @@ if [ $NODE_ROLE == "master" ] && ! kubectl get cm -n kube-public cluster-info; t
   [ $rc -eq 0 ] || exit $rc
 fi
 
-# migration from Airship to kubeadm
+{{- if $envAll.Values.deprecated.airship_migration.enabled }}
+
 [[ $NODE_ROLE == "master" ]] && rename_cp_pods
+{{- end }}
 
 
 is_action_required || true
@@ -374,17 +460,20 @@ is_action_required || true
 
 if [[ $KUBEADM_ACTION_REQUIRED == true ]]; then
   kubeadm_action
-  LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(sha256sum < /run/kubeadm/all/_kubeadm/ClusterConfiguration | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBEADM_CONFIG_SHA256="$(kubeadm_config_sha256)"
   annotate_node "$KUBEADM_ANNOTATION" "$LAST_APPLIED_KUBEADM_CONFIG_SHA256"
 fi
 
 if [[ $KUBELET_RESTART_REQUIRED == true ]]; then
   restart_kubelet
-  LAST_APPLIED_KUBELET_CONFIG_SHA256="$(sha256sum < /run/kubeadm/all/_kubelet/kubelet_config.yaml | cut -d ' ' -f 1)"
+  LAST_APPLIED_KUBELET_CONFIG_SHA256="$(kubelet_config_sha256)"
   annotate_node "$KUBELET_ANNOTATION" "$LAST_APPLIED_KUBELET_CONFIG_SHA256"
 fi
+{{- if $envAll.Values.deprecated.airship_migration.enabled }}
 
-#cleanup_old_configs
+airship_migration_cleanup
+{{- end }}
+
 {{- if $envAll.Values.checks.reconcile }}
 
 # the anchor becomes ready only if the node checks pass
