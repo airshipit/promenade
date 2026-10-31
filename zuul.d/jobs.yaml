@@ -19,6 +19,11 @@
     description: Runs cover job on noble
     nodeset: airship-promenade-single-node-noble
     pre-run: tools/zuul/playbooks/install-deps.yaml
+    vars:
+      # TODO: tox 4.67.5 fails when the .tox directories are group writable
+      # (umask 002 on the nodes): "package staging path ... can be changed by
+      # another account". Drop the pin once tox or the nodes are fixed
+      ensure_tox_version: "<4.67.5"
 
 - job:
     name: airship-promenade-openstack-tox-py312-noble
@@ -26,12 +31,22 @@
     description: Runs cover job on noble
     nodeset: airship-promenade-single-node-noble
     pre-run: tools/zuul/playbooks/install-deps.yaml
+    vars:
+      # TODO: tox 4.67.5 fails when the .tox directories are group writable
+      # (umask 002 on the nodes): "package staging path ... can be changed by
+      # another account". Drop the pin once tox or the nodes are fixed
+      ensure_tox_version: "<4.67.5"
 
 - job:
     name: airship-promenade-openstack-tox-pep8-noble
     parent: openstack-tox-pep8
     description: Runs pep8 job on noble
     nodeset: airship-promenade-single-node-noble
+    vars:
+      # TODO: tox 4.67.5 fails when the .tox directories are group writable
+      # (umask 002 on the nodes): "package staging path ... can be changed by
+      # another account". Drop the pin once tox or the nodes are fixed
+      ensure_tox_version: "<4.67.5"
 
 - job:
     name: airship-promenade-genesis-containerd-gate
