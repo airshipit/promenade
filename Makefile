@@ -100,6 +100,7 @@ build_kubernetes_registry:
 	@echo "===== Processing [kubernetes-registry] image ====="
 	./images/kubernetes-registry/setup.sh
 	@make build IMAGE=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/kubernetes-registry:${IMAGE_TAG}-${DISTRO} IMAGE_NAME=kubernetes-registry
+	./images/kubernetes-registry/cleanup.sh
 
 build_promenade:
 	@echo
@@ -155,7 +156,6 @@ helm-toolkit: helm-install
 
 clean:
 	rm -rf doc/build
-	rm -rf images/kubernetes-registry/assets/registry*
 	rm -f charts/*.tgz
 	rm -f charts/*/requirements.lock
 	rm -rf charts/*/charts

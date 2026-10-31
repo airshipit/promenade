@@ -25,7 +25,7 @@ GITHUB_PROXY=${GITHUB_PROXY:-""}
 
 REGISTRY_IMAGE=${REGISTRY_IMAGE:-"quay.io/airshipit/registry:latest"}
 REGISTRY_PORT=${REGISTRY_PORT:-"$(shuf -i 5050-5099 -n 1)"}
-REGISTRY_VERSION=${REGISTRY_VERSION:-"3.1.1"}
+REGISTRY_VERSION=${REGISTRY_VERSION:-"3.1.2"}
 REGISTRY_DOWNLOAD_URL="https://github.com/distribution/distribution/releases/download/v${REGISTRY_VERSION}/registry_${REGISTRY_VERSION}_linux_amd64.tar.gz"
 DOCKER_REGISTRY_URL="localhost:$REGISTRY_PORT"
 REGISTRY_DIR="$(dirname "$0")/assets/registry_dir"
