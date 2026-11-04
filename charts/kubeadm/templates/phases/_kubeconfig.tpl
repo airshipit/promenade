@@ -1,22 +1,11 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
-{{- $sharedLibName := index . 2 -}}
 
-{{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
+{{- $symbols := get $k8sConfDict "symbols" -}}
 
-{{- define "__kubeconfig_lib_functions" -}}
+{{- define "__render_kubeconfig" -}}
 {{- $envAll := . -}}
 {{- $tpl := (tuple $envAll "templates/phases/snippets/kubeconfig/_kubeconfig.yaml.tpl" | include "kubeadm.bundle.template") -}}
-{{/*kubeconfigs permissions*/}}
-{{- $dirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
-{{- $dirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
-{{- $adminMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "admin.conf") | include "kubeadm.bundle.template" -}}
-{{- $adminOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "admin.conf") | include "kubeadm.bundle.template" -}}
-{{- $ctrlMgrMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "controller-manager.conf") | include "kubeadm.bundle.template" -}}
-{{- $ctrlMgrOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "controller-manager.conf") | include "kubeadm.bundle.template" -}}
-{{- $schdlrMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
-{{- $schdlrOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
-
 render_kubeconfig() {
   local dst="$1" ep="$2" user="$3" ca="$4" cert="$5" key="$6" mode="$7" owner="$8"
   cat << 'EOF_TEMPLATE_DATA' | subst_node_env \
@@ -28,10 +17,22 @@ render_kubeconfig() {
 {{ $tpl }}
 EOF_TEMPLATE_DATA
 }
+{{- end -}}
 
-sync_kubeconfigs() {
+{{- define "__kubeconfigs_sync" -}}
+{{- $envAll := . -}}
+{{/*kubeconfigs permissions*/}}
+{{- $dirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
+{{- $dirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
+{{- $adminMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "admin.conf") | include "kubeadm.bundle.template" -}}
+{{- $adminOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "admin.conf") | include "kubeadm.bundle.template" -}}
+{{- $ctrlMgrMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "controller-manager.conf") | include "kubeadm.bundle.template" -}}
+{{- $ctrlMgrOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "controller-manager.conf") | include "kubeadm.bundle.template" -}}
+{{- $schdlrMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
+{{- $schdlrOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
+kubeconfigs_sync() {
 
-  if [[ "$NODE_ROLE" == "master" ]]; then
+  if [ "${NODE_ROLE}" == "master" ]; then
     ensure_dir "${ROOTFS}/etc/kubernetes/" "{{ $dirMode }}" "{{ $dirOwner }}"
 {{- /* without pregenerated client certs kubeadm generates kubeconfigs itself */}}
 {{- if ($envAll.Values.certs).admin }}
@@ -64,6 +65,12 @@ sync_kubeconfigs() {
 
   echo "kubeconfigs are synced"
 }
-
 {{- end -}}
-{{- $_ := set $sharedLibs $sharedLibName (include "__kubeconfig_lib_functions" $envAll) -}}
+
+{{- $_ := set $symbols "render_kubeconfig" (dict "needs" (list "subst_node_env" "compare_copy_file")
+"body" (include "__render_kubeconfig" $envAll)
+) -}}
+
+{{- $_ := set $symbols "kubeconfigs_sync" (dict "needs" (list "ensure_dir" "render_kubeconfig")
+"body" (include "__kubeconfigs_sync" $envAll)
+) -}}

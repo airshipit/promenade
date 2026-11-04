@@ -1,11 +1,9 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
-{{- $sharedLibName := index . 2 -}}
 
-{{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
+{{- $symbols := get $k8sConfDict "symbols" -}}
 
-{{/* we put here some common code which is used by most of the modules */}}
-{{- $_ := set $sharedLibs $sharedLibName `
+{{- $_ := set $symbols "k8s_up" (dict "body" `
 k8s_up() {
   # turn off swap
   sudo swapoff -a
@@ -28,4 +26,4 @@ EOF
 
   sudo sysctl --system
 }
-` -}}
+`) -}}

@@ -1,8 +1,8 @@
-# Installs the binary $1 into ${ROOTFS}${BINARIES_DIR} from binary_source.
+# Installs the binary $1 into ${ROOTFS}{{ .Values.binaries.install_dir }} from binary_source.
 # Runs on the node: by the bootstrap script and by the reconcile script on the
 # host, so it can use the tools of the node.
 # Returns 0 if the binary was changed, 1 if not, >1 on errors.
-install_binary() {
+binary_install() {
   local name="$1" url sha256 tmp rc=0
   IFS='|' read -r url sha256 <<< "$(binary_source "$name")"
   if [ -z "${url}" ]; then

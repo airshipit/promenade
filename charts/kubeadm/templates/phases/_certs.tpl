@@ -1,10 +1,9 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
-{{- $sharedLibName := index . 2 -}}
 
-{{- $controlPlaneNodes := get $k8sConfDict.fs "ctrl" -}}
-{{- $perNode := get $k8sConfDict.fs "ctrl-pernode" -}}
-
+{{- $symbols := get $k8sConfDict "symbols" -}}
+{{- $controlPlaneNodes := get (get $k8sConfDict "fs") "ctrl" -}}
+{{- $perNode := get (get $k8sConfDict "fs") "ctrl-pernode" -}}
 
 {{/* steps were taken from https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/ certs part*/}}
 {{- if $envAll.Values.certs -}}
@@ -112,68 +111,104 @@
   {{- end -}}
 {{- end -}}
 
-{{/*
-  unpack pki and pki/etcd folders, ensuring correct rights.
-*/}}
-{{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
-{{- $_ := set $sharedLibs $sharedLibName (printf `
-sync_certs() {
+{{- define "__certs_sync" -}}
+{{- $envAll := . -}}
+{{- $kubernetesPkiDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesPkiDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template" -}}
+{{- $pkipubMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipub") | include "kubeadm.bundle.template" -}}
+{{- $pkipubOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipub") | include "kubeadm.bundle.template" -}}
+{{- $pkiprivMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipriv") | include "kubeadm.bundle.template" -}}
+{{- $pkiprivOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipriv") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesPkiEtcdDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesPkiEtcdDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd") | include "kubeadm.bundle.template" -}}
+{{- $etcdpubMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpub") | include "kubeadm.bundle.template" -}}
+{{- $etcdpubOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpub") | include "kubeadm.bundle.template" -}}
+{{- $etcdprivMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv") | include "kubeadm.bundle.template" -}}
+{{- $etcdprivOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesAdminPkiDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesAdminPkiDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template" -}}
+{{- $adminpkipubMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub") | include "kubeadm.bundle.template" -}}
+{{- $adminpkipubOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub") | include "kubeadm.bundle.template" -}}
+{{- $adminpkiprivMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv") | include "kubeadm.bundle.template" -}}
+{{- $adminpkiprivOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv") | include "kubeadm.bundle.template" -}}
+certs_sync() {
   local pki_dir="/etc/kubernetes/pki"
   local etcd_dir="${pki_dir}/etcd"
   local admin_dir="/etc/kubernetes/admin/pki"
 
-  ensure_dir "${ROOTFS}${pki_dir}" "%s" "%s"
-  sync_group_dir "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" false "%s" "%s"
-  sync_group_dir "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" false "%s" "%s"
+  ensure_dir "${ROOTFS}${pki_dir}" "{{ $kubernetesPkiDirMode }}" "{{ $kubernetesPkiDirOwner }}"
+  group_dir_sync "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" false "{{ $pkipubMode }}" "{{ $pkipubOwner }}"
+  group_dir_sync "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" false "{{ $pkiprivMode }}" "{{ $pkiprivOwner }}"
   if [ "${NODE_ROLE}" == "master" ]; then
-    ensure_dir "${ROOTFS}${etcd_dir}" "%s" "%s"
-    sync_group_dir "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" false "%s" "%s"
-    sync_group_dir "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" false "%s" "%s"
+    ensure_dir "${ROOTFS}${etcd_dir}" "{{ $kubernetesPkiEtcdDirMode }}" "{{ $kubernetesPkiEtcdDirOwner }}"
+    group_dir_sync "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" false "{{ $etcdpubMode }}" "{{ $etcdpubOwner }}"
+    group_dir_sync "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" false "{{ $etcdprivMode }}" "{{ $etcdprivOwner }}"
 
-    ensure_dir "${ROOTFS}${admin_dir}" "%s" "%s"
-    sync_group_dir "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" false "%s" "%s"
-    sync_group_dir "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" false "%s" "%s"
+    ensure_dir "${ROOTFS}${admin_dir}" "{{ $kubernetesAdminPkiDirMode }}" "{{ $kubernetesAdminPkiDirOwner }}"
+    group_dir_sync "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" false "{{ $adminpkipubMode }}" "{{ $adminpkipubOwner }}"
+    group_dir_sync "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" false "{{ $adminpkiprivMode }}" "{{ $adminpkiprivOwner }}"
 
   fi
   echo "certs are synced"
 }
-`
-(tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipub") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipub") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipriv") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipriv") | include "kubeadm.bundle.template")
-
-(tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpub") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpub") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv") | include "kubeadm.bundle.template")
-
-(tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv") | include "kubeadm.bundle.template")
-(tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv") | include "kubeadm.bundle.template")
-
+{{- end -}}
+{{- $_ := set $symbols "certs_sync" (dict "needs" (list "ensure_dir" "group_dir_sync")
+"body" (include "__certs_sync" $envAll)
 ) -}}
-{{- $_ := set $sharedLibs $sharedLibName (print (get $sharedLibs $sharedLibName) (include "__certs_ca_guard" $envAll)) -}}
 
-{{/* ca_guard: called by the bootstrap and reconcile scripts before any sync */}}
-{{- define "__certs_ca_guard" }}
+{{- $_ := set $symbols "certs_backup" (dict "needs" (list "group_dir_backup")
+"body" `
+# copies the certificates of the node to the backup $1
+certs_backup() {
+  local pki_dir="/etc/kubernetes/pki"
+  local etcd_dir="${pki_dir}/etcd"
+  local admin_dir="/etc/kubernetes/admin/pki"
+
+  group_dir_backup "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" "$1"
+  group_dir_backup "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" "$1"
+  if [ "${NODE_ROLE}" == "master" ]; then
+    group_dir_backup "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    group_dir_backup "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    group_dir_backup "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" "$1"
+    group_dir_backup "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
+  fi
+}
+`) -}}
+
+{{- $_ := set $symbols "certs_restore" (dict "needs" (list "group_dir_restore")
+"body" `
+# puts the certificates of the backup $1 back
+certs_restore() {
+  local pki_dir="/etc/kubernetes/pki"
+  local etcd_dir="${pki_dir}/etcd"
+  local admin_dir="/etc/kubernetes/admin/pki"
+
+  group_dir_restore "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" "$1"
+  group_dir_restore "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" "$1"
+  if [ "${NODE_ROLE}" == "master" ]; then
+    group_dir_restore "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    group_dir_restore "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" "$1"
+    group_dir_restore "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" "$1"
+    group_dir_restore "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
+  fi
+}
+`) -}}
+
+{{- $_ := set $symbols "public_key" (dict "body" `
 # prints the public key of a certificate or a public key, the content if it is
 # neither of them
 public_key() {
   openssl x509 -noout -pubkey -in "$1" 2>/dev/null || openssl pkey -pubin -in "$1" 2>/dev/null || cat "$1"
 }
+`) -}}
 
+{{/* certs_guard_ca: called by the bootstrap and reconcile scripts before any sync */}}
+{{- $_ := set $symbols "certs_guard_ca" (dict "needs" (list "public_key")
+"body" `
 # the CA and service account keys of the node sign its certificates and tokens:
 # refuses to go on if the values deliver other ones. A CA certificate renewed
 # with the same key is fine, CA rotation isn't supported.
-guard_ca() {
+certs_guard_ca() {
   local src dst changed=""
   while read -r src dst; do
     [ -f "${ROOTFS}/run/kubeadm/${src}" ] && [ -f "${ROOTFS}${dst}" ] || continue
@@ -191,46 +226,10 @@ ctrl/_etcdpub/ca.crt /etc/kubernetes/pki/etcd/ca.crt
 ctrl/_pkipub/sa.pub /etc/kubernetes/pki/sa.pub
 EOF_CA_GUARD
   if [ -n "${changed}" ]; then
-    echo "ca_guard: the values deliver other keys than the ones of the node:${changed}" >&2
-    echo "ca_guard: the CAs are rotated by the rebootstrap, revert certs in the values" >&2
+    echo "certs_guard_ca: the values deliver other keys than the ones of the node:${changed}" >&2
+    echo "certs_guard_ca: the CAs are rotated by the rebootstrap, revert certs in the values" >&2
     return 1
   fi
-  echo "ca_guard: the keys of the node match the values"
+  echo "certs_guard_ca: the keys of the node match the values"
 }
-{{ end }}
-
-{{/* certs_rebootstrap_lib: the functions of the rebootstrap script
-     (templates/bin/_rebootstrap.tpl), the groups of sync_certs */}}
-{{- $_ := set $sharedLibs (printf "%s_rebootstrap_lib" $sharedLibName) `
-# copies the certificates of the node to the backup $1
-cert_backup() {
-  local pki_dir="/etc/kubernetes/pki"
-  local etcd_dir="${pki_dir}/etcd"
-  local admin_dir="/etc/kubernetes/admin/pki"
-
-  backup_group_dir "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" "$1"
-  backup_group_dir "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" "$1"
-  if [ "${NODE_ROLE}" == "master" ]; then
-    backup_group_dir "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" "$1"
-    backup_group_dir "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" "$1"
-    backup_group_dir "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" "$1"
-    backup_group_dir "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
-  fi
-}
-
-# puts the certificates of the backup $1 back
-cert_restore() {
-  local pki_dir="/etc/kubernetes/pki"
-  local etcd_dir="${pki_dir}/etcd"
-  local admin_dir="/etc/kubernetes/admin/pki"
-
-  restore_group_dir "${ROOTFS}" "_pkipub" "${pki_dir}" "${NODE_ROLE}" "$1"
-  restore_group_dir "${ROOTFS}" "_pkipriv" "${pki_dir}" "${NODE_ROLE}" "$1"
-  if [ "${NODE_ROLE}" == "master" ]; then
-    restore_group_dir "${ROOTFS}" "_etcdpub" "${etcd_dir}" "${NODE_ROLE}" "$1"
-    restore_group_dir "${ROOTFS}" "_etcdpriv" "${etcd_dir}" "${NODE_ROLE}" "$1"
-    restore_group_dir "${ROOTFS}" "_adminpkipub" "${admin_dir}" "${NODE_ROLE}" "$1"
-    restore_group_dir "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
-  fi
-}
-` -}}
+`) -}}

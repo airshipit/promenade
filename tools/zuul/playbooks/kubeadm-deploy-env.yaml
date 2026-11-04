@@ -14,7 +14,7 @@
 # here: only the parts of the openstack-helm deploy-env role which the
 # bootstrap script of the chart expects to be present on the node are used
 # (packages, the overlay network carrying the node IPs of the gate).
-# CRI-O or containerd is installed by the bootstrap script (install_cri of
+# CRI-O or containerd is installed by the bootstrap script (cri_install of
 # the reference orchestration).
 ---
 - hosts: all

@@ -1,4 +1,4 @@
-# Helpers for install_binary (and its overrides).
+# Helpers for binary_install (and its overrides).
 
 node_arch() {
   case "$(uname -m)" in
@@ -31,13 +31,13 @@ download_verified() {
 # prints a temporary file for the binary $1, in its directory for an atomic
 # replacement
 binary_tmp() {
-  mkdir -p "${ROOTFS}${BINARIES_DIR}" && mktemp "${ROOTFS}${BINARIES_DIR}/$1.XXXXXX"
+  mkdir -p "${ROOTFS}{{ .Values.binaries.install_dir }}" && mktemp "${ROOTFS}{{ .Values.binaries.install_dir }}/$1.XXXXXX"
 }
 
 # replaces the binary $2 with the file $1 if they differ, removes $1
 # returns 0 if the binary was changed, 1 if not, >1 on errors
 replace_binary() {
-  local tmp="$1" dst="${ROOTFS}${BINARIES_DIR}/$2"
+  local tmp="$1" dst="${ROOTFS}{{ .Values.binaries.install_dir }}/$2"
   if [ -e "${dst}" ] && cmp -s "${tmp}" "${dst}"; then
     rm -f "${tmp}"
     return 1

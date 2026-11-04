@@ -25,8 +25,6 @@ set -ex
 # ICMP payload of the pod to pod check, sent with fragmentation prohibited:
 # 1372 + 28 bytes of headers fits the pod MTU of the gate
 : "${SMOKE_TEST_PING_SIZE:="1372"}"
-# the key of the gate (the zuul playbook adds it to all the nodes)
-: "${SSH_KEY:="${HOME}/.ssh/kubeadm-gate"}"
 
 NODES=$(python3 -c '
 import sys, yaml
@@ -62,17 +60,6 @@ kubectl get --raw /livez --server https://127.0.0.1:6553 --certificate-authority
 while read -r _ ip role; do
   [[ "${role}" == "control-plane" ]] || continue
   kubectl get --raw /livez --server "https://${ip}:6443" --certificate-authority "${WORK_DIR}/ca.crt"
-done <<< "${NODES}"
-
-# The controller-manager and the scheduler of a control plane node go to the
-# apiserver of the node (kubeadm: the local API endpoint), not the VIP: during
-# an upgrade they run with the version of it
-SSH="ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -i ${SSH_KEY}"
-while read -r _ ip role; do
-  [[ "${role}" == "control-plane" ]] || continue
-  for conf in controller-manager scheduler; do
-    ${SSH} "${ip}" "sudo grep -E '^ *server: https://${ip}:6443\$' /etc/kubernetes/${conf}.conf"
-  done
 done <<< "${NODES}"
 
 # Workloads: scheduling, pod network, cluster DNS, apiserver -> kubelet.

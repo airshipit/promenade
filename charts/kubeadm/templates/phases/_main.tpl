@@ -6,42 +6,19 @@
      all/ctrl: "<group>/<file>" -> file, *-pernode: node -> "<group>/<file>" -> file */}}
 {{- $_ := set $k8sConfDict "fs" (dict "all" (dict) "ctrl" (dict) "all-pernode" (dict) "ctrl-pernode" (dict)) -}}
 
-{{/* shared script helpers (will go to all scripts)*/}}
+{{/* the parts of the argument parsing of the bootstrap script (*_cmd) */}}
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" | default (dict) -}}
 {{- $_ := set $k8sConfDict "sharedLibs" $sharedLibs -}}
+{{/* the functions and the globals of the scripts, see templates/lib/_linker.tpl */}}
+{{- $_ := set $k8sConfDict "symbols" (dict) -}}
 
 {{/* we're making an alternative implementation for the phases: e.g.
 https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 
-{{- $_ := tuple $envAll "templates/phases/_fs.tpl" (tuple $envAll $k8sConfDict "fs") | include "kubeadm.bundle.template" -}}
-{{- $_ := tuple $envAll "templates/phases/_certs.tpl" (tuple $envAll $k8sConfDict "certs") | include "kubeadm.bundle.template" -}}
-{{- $_ := tuple $envAll "templates/phases/_kubeconfig.tpl" (tuple $envAll $k8sConfDict "kubeconfig") | include "kubeadm.bundle.template" -}}
-{{/* kubelet needs certs and kubeconfig generator to create everything */}}
-{{- $_ := tuple $envAll "templates/phases/_kubelet.tpl" (tuple $envAll $k8sConfDict "kubelet") | include "kubeadm.bundle.template" -}}
-{{- $_ := tuple $envAll "templates/phases/_kubeadm.tpl" (tuple $envAll $k8sConfDict "kubeadm") | include "kubeadm.bundle.template" -}}
-{{/* use haproxy as vip */}}
-{{- $_ := tuple $envAll "templates/phases/_kube-cgroup.tpl" (tuple $envAll $k8sConfDict "kube-cgroup") | include "kubeadm.bundle.template" -}}
-{{- $_ := tuple $envAll "templates/phases/_vip_haproxy.tpl" (tuple $envAll $k8sConfDict "vip") | include "kubeadm.bundle.template" -}}
-{{- $_ := tuple $envAll "templates/phases/_k8s_up.tpl" (tuple $envAll $k8sConfDict "k8s_up") | include "kubeadm.bundle.template" -}}
-{{- $_ := tuple $envAll "templates/phases/_binaries.tpl" (tuple $envAll $k8sConfDict "binaries") | include "kubeadm.bundle.template" -}}
-{{/* the node checks, run by the bootstrap and reconcile scripts after the other phases */}}
-{{- $_ := tuple $envAll "templates/phases/_checks.tpl" (tuple $envAll $k8sConfDict "checks") | include "kubeadm.bundle.template" -}}
+{{- range $module := $envAll.Values.phases.modules -}}
+{{- $_ := tuple $envAll $module (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
+{{- end }}
 
-{{/* generate shared part for bash scripts with all phases and put it to our object (they will appear in this order) */}}
-{{/*TODO: can be implemented shorter, but there are some more complex plans - so, good enough for now */}}
-{{- $_ := set $k8sConfDict "sharedLibsContent" (print
-      (get $sharedLibs "fs")
-      (get $sharedLibs "certs")
-      (get $sharedLibs "kubeconfig")
-      (get $sharedLibs "kubelet")
-      (get $sharedLibs "kubeadm")
-      (get $sharedLibs "k8s_up")
-      (get $sharedLibs "kube-cgroup")
-      (get $sharedLibs "vip")
-      (get $sharedLibs "binaries")
-) -}}
-{{/* the checks go only to the scripts running them (checks.bootstrap, checks.reconcile):
-     the bootstrap script is cloud-init user data, limited in size */}}
 {{/* some of the phases also export parts for arg parsing *_cmd. collect all of them */}}
 {{- $cmdHookContent := "" -}}
 {{- range $name,$content := $sharedLibs -}}
@@ -54,7 +31,7 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{/* the nodes with their own files get their own bootstrap scripts */}}
 {{- $perNode := dict -}}
 {{- range $archive := list "all-pernode" "ctrl-pernode" -}}
-  {{- range $nodeName,$nodeFs := get $k8sConfDict.fs $archive -}}
+  {{- range $nodeName,$nodeFs := get (get $k8sConfDict "fs") $archive -}}
     {{- if $nodeFs -}}{{- $_ := set $perNode $nodeName true -}}{{- end -}}
   {{- end -}}
 {{- end -}}

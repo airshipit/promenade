@@ -36,7 +36,7 @@ check_result() {
 }
 
 kubectl() {
-  command kubectl --kubeconfig /etc/kubernetes/admin.conf "$@"
+  {{ $envAll.Values.binaries.install_dir }}/kubectl --kubeconfig /etc/kubernetes/admin.conf "$@"
 }
 
 # the anchors are ready when the reconcile and its node checks passed

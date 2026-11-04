@@ -1,9 +1,8 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
-{{- $sharedLibName := index . 2 -}}
 
-{{- $sharedLibs := get $k8sConfDict "sharedLibs" }}
-{{- define "__kube_cgroup_lib_functions" -}}
+{{- $symbols := get $k8sConfDict "symbols" -}}
+{{- define "__kube_cgroup_sync" -}}
 {{- $envAll := . -}}
 
 {{- $usrDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/usr/local/sbin") | include "kubeadm.bundle.template" -}}
@@ -16,7 +15,7 @@
 {{- $serviceMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/systemd/system" "kube-cgroup.service") | include "kubeadm.bundle.template" -}}
 {{- $serviceOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/systemd/system" "kube-cgroup.service") | include "kubeadm.bundle.template" -}}
 
-sync_kube_cgroup() {
+kube_cgroup_sync() {
   ensure_dir "${ROOTFS}/usr/local/sbin/" "{{ $usrDirMode }}" "{{ $usrDirOwner }}"
   base64 -d << 'EOF_DATA' | compare_copy_file - "${ROOTFS}/usr/local/sbin/kube-cgroup.sh" "{{ $scriptMode }}" "{{ $scriptOwner }}"
 {{ tuple $envAll "templates/phases/snippets/kube-cgroup/_kube-cgroup.sh.tpl" | include "kubeadm.bundle.template" | b64enc}}
@@ -27,7 +26,8 @@ EOF_DATA
 EOF_DATA
   echo "kube-cgroup is synced"
 }
-
 {{ end -}}
 
-{{- $_ := set $sharedLibs $sharedLibName (include "__kube_cgroup_lib_functions" $envAll) -}}
+{{- $_ := set $symbols "kube_cgroup_sync" (dict "needs" (list "ensure_dir" "compare_copy_file")
+"body" (include "__kube_cgroup_sync" $envAll)
+) -}}

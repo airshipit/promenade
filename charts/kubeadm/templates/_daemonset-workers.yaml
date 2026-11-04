@@ -129,7 +129,7 @@ spec:
               mountPath: /tmp/bin
 
 {{- range $archive := list "all" "all-pernode" }}
-{{- if include "kubeadm.fs.hasFiles" (tuple $k8sConfDict.fs $archive) }}
+{{- if include "kubeadm.fs.hasFiles" (tuple (get $k8sConfDict "fs") $archive) }}
             - name: fs-{{ $archive }}
               mountPath: /tmp/fs/{{ $archive }}.tar
 {{- if hasSuffix "-pernode" $archive }}
@@ -151,7 +151,7 @@ spec:
             name: {{ include "kubeadm.fullname" $envAll }}-bin
             defaultMode: 0555
 {{- range $archive := list "all" "all-pernode" }}
-{{- if include "kubeadm.fs.hasFiles" (tuple $k8sConfDict.fs $archive) }}
+{{- if include "kubeadm.fs.hasFiles" (tuple (get $k8sConfDict "fs") $archive) }}
         - name: fs-{{ $archive }}
           secret:
             secretName: {{ include "kubeadm.fullname" $envAll }}-fs-{{ $archive }}

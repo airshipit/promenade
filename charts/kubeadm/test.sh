@@ -13,6 +13,10 @@ _rootfs_mock() {
   cat << 'EOF' > "${test_bin}/sudo"
 #!/usr/bin/env bash
 echo "[MOCK sudo] $@" >> "${ROOTFS}/mock_calls.log"
+# tee reads the pipe: an unread one fails the writer with SIGPIPE (pipefail)
+if [ "$1" = "tee" ]; then
+  cat > /dev/null
+fi
 EOF
 
   # systemctl
@@ -55,6 +59,13 @@ esac
 exit 0
 EOF
 
+  # curl: the API is live (the checks phase)
+  cat << 'EOF' > "${test_bin}/curl"
+#!/usr/bin/env bash
+echo "[MOCK curl] curl $@" >> "${ROOTFS}/mock_calls.log"
+exit 0
+EOF
+
   # crictl: the static pods of the control plane, one per component
   cat << 'EOF' > "${test_bin}/crictl"
 #!/usr/bin/env bash
@@ -65,6 +76,9 @@ exit 0
 EOF
 
 chmod +x "${test_bin}"/*
+# the node scripts run kubeadm, kubectl and kubelet from binaries.install_dir
+mkdir -p "${ROOTFS}/usr/local/bin"
+ln -sf ../../../bin/kubeadm ../../../bin/kubectl "${ROOTFS}/usr/local/bin/"
 }
 
 assert_logged() {
@@ -118,8 +132,7 @@ run_bootstrap() {
   shift 1
 
   local overrides=""
-  # the node checks need a running node
-  local extra_helm_args="--set checks.bootstrap=false"
+  local extra_helm_args=""
   local script_args=()
 
   # Parsing named args
@@ -243,7 +256,6 @@ run_rebootstrap() {
   echo "[Run #${RUN_COUNTER}] rebootstrap: ${script_args[*]+${script_args[*]}}"
   "${HELM:-helm}" template kubeadm "${helm_args[@]}" \
     --set manifests.secret_bootstrap=true \
-    --set checks.bootstrap=false \
     --set bootstrap.action=rebootstrap | \
     "${YQ:-yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-bootstrap${postfix}\") | .data.script | @base64d" \
     > "${ROOTFS}/tmp/rebootstrap.sh"
@@ -265,6 +277,19 @@ assert_file_absent() {
   local file="$1"
   if [[ -f "$file" ]]; then
     echo "  ❌ [FAIL] Unexpected file found on worker: $file" >&2
+    FAILURES=$((FAILURES + 1))
+    return 1
+  fi
+}
+
+# the VIP the bootstrap wrote for the reconcile: the implementation $1, its
+# argument $2
+assert_vip_file() {
+  local file="${ROOTFS}/etc/kubernetes/kubeadm/addons/vip"
+  if [ "$(cat "${file}" 2>/dev/null)" = "$(printf '%s\n%s' "$1" "$2")" ]; then
+    echo "  ✅ [OK] VIP file: $1 $2"
+  else
+    echo "  ❌ [FAIL] VIP file: expected $1 $2, got: $(cat "${file}" 2>&1 | tr '\n' ' ')" >&2
     FAILURES=$((FAILURES + 1))
     return 1
   fi
@@ -377,6 +402,8 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
                        "HAProxy cfg contains backend node .144"
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
+# the argument of the script replaces vip.init_val
+assert_vip_file haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443'
 
 clean_bootstrap
 
@@ -526,6 +553,8 @@ uc0_full_haproxy=(
 export NODE_IP="172.29.0.139"
 export NODE_NAME="nodename1"
 run_bootstrap "nodename0" "${uc0_full_haproxy[@]}"
+# the VIP of the values (overrides/test/vip.yaml)
+assert_vip_file haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443,172.29.0.154:6443'
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
 
@@ -686,16 +715,16 @@ rebootstrap_pki="${ROOTFS}/etc/kubernetes/pki"
 rebootstrap_backups="${ROOTFS}/var/lib/kubeadm-backup"
 
 rebootstrap_check "--list-phases: the explicit phases are marked" eval \
-  'rebootstrap_run --list-phases && rebootstrap_log "restore (only with --phases)"'
+  'rebootstrap_run --list-phases && rebootstrap_log "backup_restore (only with --phases)"'
 rebootstrap_check "--list-phases: kubeadm generates the certificates only with --phases" eval \
-  'rebootstrap_log "kubeadm-certs (only with --phases)"'
+  'rebootstrap_log "kubeadm_certs (only with --phases)"'
 rebootstrap_check "an unknown phase fails" eval '! rebootstrap_run --phases nope'
 rebootstrap_check "an unknown phase is reported" rebootstrap_log "Unknown phase: nope"
 
 : > "${ROOTFS}/mock_calls.log"
 rebootstrap_check "the default phases pass" rebootstrap_run
-rebootstrap_check "restore is skipped by default" rebootstrap_log "phase restore: skipped"
-rebootstrap_check "backup-remove is skipped by default" rebootstrap_log "phase backup-remove: skipped"
+rebootstrap_check "backup_restore is skipped by default" rebootstrap_log "phase backup_restore: skipped"
+rebootstrap_check "backup_remove is skipped by default" rebootstrap_log "phase backup_remove: skipped"
 rebootstrap_backup="${rebootstrap_backups}/$(ls -1 "${rebootstrap_backups}" | tail -n 1)"
 rebootstrap_check "backup: the CA of the node" \
   grep -qx "ca-crt-placeholder" "${rebootstrap_backup}/etc/kubernetes/pki/ca.crt"
@@ -718,26 +747,24 @@ rebootstrap_check "certs: the new etcd CA key" grep -qx "etcd_ca-key-rotated" "$
 rebootstrap_check "certs: the certificates the rotation keeps" \
   grep -qx "etcd_peer_node0-crt-placeholder" "${rebootstrap_pki}/etcd/peer.crt"
 rebootstrap_check "the backups lock the reconcile" test -d "${rebootstrap_backups}"
-assert_logged "crictl stopp pod-kube-apiserver" "rebootstrap: the apiserver is stopped"
-assert_logged "crictl stopp pod-etcd" "rebootstrap: etcd is stopped"
-assert_before "crictl stopp pod-kube-apiserver" "crictl stopp pod-etcd" "rebootstrap: etcd after the others"
-assert_before "crictl stopp" "systemctl stop kubelet" "rebootstrap: the static pods, then kubelet"
+assert_before "stopp pod-kube-apiserver" "stopp pod-etcd" "rebootstrap: etcd after the others"
+assert_before "stopp pod-" "systemctl stop kubelet" "rebootstrap: the static pods, then kubelet"
 assert_before "systemctl stop kubelet" "systemctl restart containerd" "rebootstrap: kubelet, then the runtime is restarted"
 assert_before "systemctl restart containerd" "systemctl restart kubelet" "rebootstrap: the runtime, then kubelet"
 
-rebootstrap_check "restore passes" rebootstrap_run --phases restore
-rebootstrap_check "restore: the CA of the node" grep -qx "ca-crt-placeholder" "${rebootstrap_pki}/ca.crt"
-rebootstrap_check "restore: the etcd certificate of the node" \
+rebootstrap_check "backup_restore passes" rebootstrap_run --phases backup_restore
+rebootstrap_check "backup_restore: the CA of the node" grep -qx "ca-crt-placeholder" "${rebootstrap_pki}/ca.crt"
+rebootstrap_check "backup_restore: the etcd certificate of the node" \
   grep -qx "etcd_client_node0-crt-placeholder" "${rebootstrap_pki}/etcd/server.crt"
-rebootstrap_check "restore: the kubelet certificate of the node" \
+rebootstrap_check "backup_restore: the kubelet certificate of the node" \
   grep -qx "kubelet_node0-crt-placeholder" "${rebootstrap_pki}/kubelet.pem"
-rebootstrap_check "restore: the admin certificate of the node" \
+rebootstrap_check "backup_restore: the admin certificate of the node" \
   grep -qx "admin-crt-placeholder" "${ROOTFS}/etc/kubernetes/admin/pki/admin.pem"
-rebootstrap_check "restore: the etcd CA key the node didn't have is removed" \
+rebootstrap_check "backup_restore: the etcd CA key the node didn't have is removed" \
   test ! -e "${rebootstrap_pki}/etcd/ca.key"
 
-rebootstrap_check "backup-remove passes" rebootstrap_run --phases backup-remove
-rebootstrap_check "backup-remove: no backups, no lock" test ! -e "${rebootstrap_backups}"
+rebootstrap_check "backup_remove passes" rebootstrap_run --phases backup_remove
+rebootstrap_check "backup_remove: no backups, no lock" test ! -e "${rebootstrap_backups}"
 
 # an anchor of the node without the lock (an older chart)
 rebootstrap_anchor="${ROOTFS}/var/lib/kubelet/pods/old/volumes/kubernetes.io~configmap/bin"
@@ -775,7 +802,7 @@ ca_backups="${ROOTFS}/var/lib/kubeadm-backup"
 : > "${ROOTFS}/mock_calls.log"
 # the phases of the orchestration on a control plane node
 rebootstrap_check "the CAs only: the phases of a control plane node pass" ca_rebootstrap_run \
-  --phases reconcile-guard,backup,certs,kubeconfigs,kubelet,kubeadm-certs,static-pods-stop,kubelet-stop,cri-restart,kubelet-start,annotate
+  --phases reconcile_guard,backup,certs_sync,kubeconfigs_sync,_kubelet_sync,kubeadm_certs,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet
 ca_backup="${ca_backups}/$(ls -1 "${ca_backups}" | tail -n 1)"
 rebootstrap_check "the CAs only, backup: the certificates kubeadm generated" \
   grep -qx "old" "${ca_backup}/etc/kubernetes/pki/apiserver.crt"
@@ -795,25 +822,25 @@ assert_logged "kubeadm init phase certs all --config" "rebootstrap: kubeadm gene
 for k in admin controller-manager scheduler kubelet super-admin; do
   assert_logged "kubeadm init phase kubeconfig ${k} --config" "rebootstrap: kubeadm generates the ${k} kubeconfig"
 done
-assert_before "kubeadm init phase certs all" "crictl stopp" "rebootstrap: the certificates, then the restart"
+assert_before "kubeadm init phase certs all" "stopp pod-" "rebootstrap: the certificates, then the restart"
 assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/kubelet.conf annotate node --overwrite [^ ]+ last-applied-kubelet-cfg-sha256=[0-9a-f]{64}$" \
               "rebootstrap: the node is annotated with the configuration of kubelet only (as the node)"
-assert_before "systemctl restart kubelet" "kubectl .* annotate node" "rebootstrap: annotated AFTER kubelet-start"
+assert_before "systemctl restart kubelet" "kubectl .* annotate node" "rebootstrap: annotated AFTER kubelet_start"
 
-rebootstrap_check "the CAs only: restore passes" ca_rebootstrap_run --phases restore
-rebootstrap_check "the CAs only, restore: the certificates kubeadm generated" \
+rebootstrap_check "the CAs only: backup_restore passes" ca_rebootstrap_run --phases backup_restore
+rebootstrap_check "the CAs only, backup_restore: the certificates kubeadm generated" \
   grep -qx "old" "${ca_kubernetes}/pki/apiserver.crt"
-rebootstrap_check "the CAs only, restore: the kubeconfigs kubeadm generated" \
+rebootstrap_check "the CAs only, backup_restore: the kubeconfigs kubeadm generated" \
   grep -qx "old" "${ca_kubernetes}/kubelet.conf"
-rebootstrap_check "the CAs only, restore: the client certificate of kubelet" \
+rebootstrap_check "the CAs only, backup_restore: the client certificate of kubelet" \
   grep -qx "old" "${ca_kubelet_pki}/kubelet-client-current.pem"
-rebootstrap_check "the CAs only, restore: the CA" grep -qx "ca-crt-placeholder" "${ca_kubernetes}/pki/ca.crt"
+rebootstrap_check "the CAs only, backup_restore: the CA" grep -qx "ca-crt-placeholder" "${ca_kubernetes}/pki/ca.crt"
 
 # a worker: the TLS bootstrap of kubelet again
 : > "${ROOTFS}/mock_calls.log"
 export NODE_ROLE="worker"
-rebootstrap_check "the CAs only: kubeadm-certs on a worker needs the token" eval \
-  '! ca_rebootstrap_run --phases kubeadm-certs'
+rebootstrap_check "the CAs only: kubeadm_certs on a worker needs the token" eval \
+  '! ca_rebootstrap_run --phases kubeadm_certs'
 rebootstrap_check "the CAs only: the missing token is reported" rebootstrap_log "the bootstrap token of the cluster"
 # kubelet goes through the TLS bootstrap: it writes the new kubeconfig, then
 # the client certificate once the CSR is approved
@@ -829,18 +856,18 @@ fi
 exit 0
 EOF
 export KUBEADM_TOKEN="abcdef.0123456789abcdef"
-rebootstrap_check "the CAs only: kubeadm-certs passes on a worker" \
-  ca_rebootstrap_run --phases kubeadm-certs
+rebootstrap_check "the CAs only: kubeadm_certs passes on a worker" \
+  ca_rebootstrap_run --phases kubeadm_certs
 unset KUBEADM_TOKEN
 export NODE_ROLE="master"
 mv "${ROOTFS}/tmp/systemctl" "${ROOTFS}/bin/systemctl"
-rebootstrap_check "the CAs only, kubeadm-certs on a worker: the old client certificates are removed" \
+rebootstrap_check "the CAs only, kubeadm_certs on a worker: the old client certificates are removed" \
   test ! -e "${ca_kubelet_pki}/kubelet-client-2025.pem"
-rebootstrap_check "the CAs only, kubeadm-certs on a worker: the client certificate after the TLS bootstrap" \
+rebootstrap_check "the CAs only, kubeadm_certs on a worker: the client certificate after the TLS bootstrap" \
   grep -qx "new" "${ca_kubelet_pki}/kubelet-client-current.pem"
-rebootstrap_check "the CAs only, kubeadm-certs on a worker: the kubeconfig of kubelet after the TLS bootstrap" \
+rebootstrap_check "the CAs only, kubeadm_certs on a worker: the kubeconfig of kubelet after the TLS bootstrap" \
   grep -qx "new" "${ca_kubernetes}/kubelet.conf"
-rebootstrap_check "the CAs only, kubeadm-certs on a worker: the bootstrap kubeconfig is removed" \
+rebootstrap_check "the CAs only, kubeadm_certs on a worker: the bootstrap kubeconfig is removed" \
   test ! -e "${ca_kubernetes}/bootstrap-kubelet.conf"
 assert_logged "kubectl config --kubeconfig ${ROOTFS}/etc/kubernetes/bootstrap-kubelet.conf set-credentials tls-bootstrap-token-user --token abcdef.0123456789abcdef" \
   "rebootstrap: the bootstrap kubeconfig with the token"
@@ -850,7 +877,7 @@ assert_before "set-credentials" "systemctl restart kubelet" "rebootstrap: the bo
 
 # the cluster: the CAs of the cluster wide objects, the restart of the clients
 : > "${ROOTFS}/mock_calls.log"
-rebootstrap_check "kubeadm-cluster-info passes" ca_rebootstrap_run --phases kubeadm-cluster-info
+rebootstrap_check "kubeadm_cluster_info passes" ca_rebootstrap_run --phases kubeadm_cluster_info
 assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf -n kube-public create configmap cluster-info" \
   "rebootstrap: the CA of cluster-info"
 assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf apply --server-side" \
@@ -858,7 +885,7 @@ assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf apply --
 assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf -n kube-system delete configmap extension-apiserver-authentication" \
   "rebootstrap: the apiserver creates extension-apiserver-authentication again"
 : > "${ROOTFS}/mock_calls.log"
-rebootstrap_check "restart-clients passes" ca_rebootstrap_run --phases restart-clients
+rebootstrap_check "restart_clients passes" ca_rebootstrap_run --phases restart_clients
 assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf delete pods --all-namespaces -l k8s-app=kube-dns --grace-period=0 --force" \
   "rebootstrap: the pods of the selectors are deleted"
 assert_before "pods --all-namespaces -l k8s-app=kube-dns" "pods --all-namespaces -l component=kubernetes-kubeadm-anchor" \
@@ -892,12 +919,12 @@ ca_guard_log() {
 }
 ca_guard_check "the CA is on the node" test -f "${ca_guard_pki}/ca.crt"
 ca_guard_rerun
-ca_guard_check "the same keys: the bootstrap goes on" ca_guard_log "ca_guard: the keys of the node match the values"
+ca_guard_check "the same keys: the bootstrap goes on" ca_guard_log "certs_guard_ca: the keys of the node match the values"
 ca_guard_check "the same keys: the certs are synced" ca_guard_log "certs are synced"
 echo "other-ca-crt" > "${ca_guard_pki}/ca.crt"
 ca_guard_rerun
 ca_guard_check "another CA on the node: reported" \
-  ca_guard_log "ca_guard: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
+  ca_guard_log "certs_guard_ca: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
 ca_guard_check "another CA on the node: the bootstrap stops" eval '! ca_guard_log "certs are synced"'
 ca_guard_check "another CA on the node: not replaced" grep -qx "other-ca-crt" "${ca_guard_pki}/ca.crt"
 
@@ -1058,7 +1085,7 @@ files_mode() {
 }
 files_chart=$(mktemp -d)
 mkdir -p "${files_chart}/templates" "${files_chart}/rootfs"
-cp kubeadm/templates/phases/_fs.tpl kubeadm/templates/lib/bundle/_template.tpl kubeadm/templates/lib/_tar.tpl "${files_chart}/templates/"
+cp kubeadm/templates/phases/_fs.tpl kubeadm/templates/lib/bundle/_template.tpl kubeadm/templates/lib/_tar.tpl kubeadm/templates/lib/_linker.tpl "${files_chart}/templates/"
 printf 'apiVersion: v2\nname: files-test\nversion: 0.1.0\n' > "${files_chart}/Chart.yaml"
 cat > "${files_chart}/values.yaml" << 'EOF'
 word: rendered
@@ -1090,14 +1117,14 @@ files:
       state: rm
 EOF
 cat > "${files_chart}/templates/configmap.yaml" << 'EOF'
-{{- $conf := dict "sharedLibs" (dict) "fs" (dict "all" (dict)) -}}
-{{- $_ := include "files-test/templates/_fs.tpl" (tuple . $conf "fs") -}}
+{{- $conf := dict "sharedLibs" (dict) "symbols" (dict) "fs" (dict "all" (dict)) -}}
+{{- $_ := include "files-test/templates/_fs.tpl" (tuple . $conf) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: files-test
 data:
-  lib: {{ $conf.sharedLibs.fs | b64enc }}
+  lib: {{ include "linker" (dict "symbols" $conf.symbols "needs" (list "_test_sync")) | b64enc }}
   tar: {{ $conf.fs.all | include "tar" | b64enc }}
 EOF
 files_rendered=$("${HELM:-helm}" template files-test "${files_chart}")
@@ -1105,10 +1132,10 @@ echo "${files_rendered}" | sed -n 's/^  lib: //p' | base64 -d > "${files_chart}/
 # the files of the chart are in /run/kubeadm on the node (ensure_fs)
 mkdir -p "${files_chart}/rootfs/run/kubeadm/all"
 echo "${files_rendered}" | sed -n 's/^  tar: //p' | base64 -d | tar -x -C "${files_chart}/rootfs/run/kubeadm/all"
-# returns the status of sync_test: 0 changed, 1 unchanged, 2 if it didn't finish
+# returns the status of _test_sync: 0 changed, 1 unchanged, 2 if it didn't finish
 files_sync() {
   local rc=0
-  ROOTFS="${files_chart}/rootfs" SKIPPERM= bash -c 'set -euo pipefail; source "$1"; sync_test' _ "${files_chart}/lib.sh" > "${files_chart}/out" || rc=$?
+  ROOTFS="${files_chart}/rootfs" SKIPPERM= bash -c 'set -euo pipefail; source "$1"; _test_sync' _ "${files_chart}/lib.sh" > "${files_chart}/out" || rc=$?
   grep -qx "test is synced" "${files_chart}/out" || return 2
   return "${rc}"
 }
@@ -1358,6 +1385,91 @@ smp_check "fails on an unsupported directive" smp_fails directive 'unsupported d
 smp_check "fails if the gvk isn't a string" smp_fails gvk "the gvk must be a string"
 smp_check "fails if the schema isn't a dict" smp_fails schema "the schema must be a dict"
 rm -rf "${smp_chart}"
+
+# linker: the closure of the needs of the script in the order of the
+# dependencies, the environment, the errors
+
+echo "[linker] symbols linked by their dependencies"
+linker_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] linker: ${msg}"
+  else
+    echo "  ❌ [FAIL] linker: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+linker_chart=$(mktemp -d)
+mkdir -p "${linker_chart}/templates"
+cp kubeadm/templates/lib/_linker.tpl "${linker_chart}/templates/"
+printf 'apiVersion: v2\nname: linker-test\nversion: 0.1.0\n' > "${linker_chart}/Chart.yaml"
+cat > "${linker_chart}/templates/configmap.yaml" << 'EOF'
+{{- $error := .Values.error | default "" -}}
+{{- $nameNeeds := get (dict "undefined" (list "missing") "cycle" (list "greet")) $error | default list -}}
+{{- $symbols := dict -}}
+{{- $_ := set $symbols "GREETING" (dict "body" `GREETING=hello`) -}}
+{{- $_ := set $symbols "greet" (dict
+  "needs" (list "GREETING" "name")
+  "body" `
+# prints the greeting
+#
+# to the name $1
+greet() {
+  echo "${GREETING} $(name "$1")"
+}
+`) -}}
+{{- $_ := set $symbols "name" (dict "needs" $nameNeeds "body" `name() { echo "$1"; }`) -}}
+{{- $_ := set $symbols "unused" (dict "body" `unused() { :; }`) -}}
+{{- if eq $error "body" -}}
+{{- $_ := set $symbols "nobody" (dict) -}}
+{{- $_ := set $symbols "greet" (merge (dict "needs" (list "GREETING" "name" "nobody")) $symbols.greet) -}}
+{{- else if eq $error "environment" -}}
+{{- $_ := set $symbols "" (dict "needs" (list "name") "body" "") -}}
+{{- end -}}
+{{- if .Values.environment -}}
+{{- $_ := set $symbols "" (dict "body" "\n# the environment\nset -e\n") -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linker-test
+data:
+  script: |
+{{- include "linker" (dict "symbols" $symbols "needs" (.Values.needs | default (list "greet"))) | nindent 4 }}
+EOF
+# the linked script, the arguments go to helm
+linker_script() {
+  "${HELM:-helm}" template linker-test "${linker_chart}" "$@" | "${YQ:-yq}" '.data.script'
+}
+linker_expected='GREETING=hello
+
+name() { echo "$1"; }
+
+# prints the greeting
+#
+# to the name $1
+greet() {
+  echo "${GREETING} $(name "$1")"
+}'
+linker_check "the closure of the needs, the dependencies first, by name in each step" \
+  test "$(linker_script)" = "${linker_expected}"
+linker_check "the script runs" test "$(bash -c "$(linker_script); greet world")" = "hello world"
+linker_check "the environment always first" \
+  test "$(linker_script --set environment=true --set-json 'needs=["name"]')" = "$(printf '# the environment\nset -e\n\nname() { echo "$1"; }')"
+linker_check "the output is stable" test "$(linker_script)" = "$(linker_script)"
+# the rendering fails with the message
+linker_fails() {
+  local out
+  out=$("${HELM:-helm}" template linker-test "${linker_chart}" "${@:2}" 2>&1) && return 1
+  grep -q "$1" <<< "${out}"
+}
+linker_check "fails on a symbol without a body" linker_fails "symbol nobody needs a body" --set error=body
+linker_check "fails on an environment with needs" linker_fails 'the environment (symbol "") has no needs' --set error=environment
+linker_check "fails on an undefined need" linker_fails "undefined symbol missing (needed by the script)" --set-json 'needs=["missing"]'
+linker_check "fails on an undefined dependency" linker_fails "undefined symbol missing (needed by name)" --set error=undefined
+linker_check "fails on a cycle" linker_fails "a cycle among the symbols greet, name" --set error=cycle
+rm -rf "${linker_chart}"
 
 # tools: gen-pki.sh extracted from the chart (manifests.secret_tools) generates
 # the CAs and the service account key as a values override the chart takes,

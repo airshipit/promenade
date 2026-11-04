@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* the phases of the node scripts (bootstrap, rebootstrap): a script runs the
-     functions phase_<name> of its list of phases in the order of the list,
-     the options select them:
+{{/* the phases of the node scripts (bootstrap, rebootstrap): a phase is a
+     function, a script runs the ones of its list of phases in the order of
+     the list, the options select them:
        --phases a,b       only these ones
        --skip-phases a,b  all but these ones
        --list-phases      prints the list and exits
-     A phase "+<name>" of the list runs only if --phases names it.
+     A phase "+<function>" of the list runs only if --phases names it. A
+     function starting with _ returns a result: 1 isn't a failure, >1 is.
      Included by templates/bin/_bootstrap.tpl and _rebootstrap.tpl */ -}}
 PHASES_ONLY=""
 PHASES_SKIP=""
@@ -69,19 +70,25 @@ phases_check() {
 }
 
 run_phases() {
-  local phase name run
+  local phase name run rc
   for phase in "$@"; do
     name="${phase#+}"
     if [ -n "${PHASES_ONLY}" ]; then
       phases_in "${name}" "${PHASES_ONLY}" && run=true || run=false
-    elif [ "${phase}" != "${name}" ] || phases_in "${name}" "${PHASES_SKIP}"; then
+    elif [[ "${phase}" == +* ]] || phases_in "${name}" "${PHASES_SKIP}"; then
       run=false
     else
       run=true
     fi
     if [ "${run}" = true ]; then
       echo "phase ${name}"
-      "phase_${name//-/_}"
+      if [[ "${name}" == _* ]]; then
+        rc=0
+        "${name}" || rc=$?
+        [ "${rc}" -le 1 ] || exit "${rc}"
+      else
+        "${name}"
+      fi
     else
       echo "phase ${name}: skipped"
     fi

@@ -52,7 +52,7 @@
 # - the nodes: Ubuntu, sudo without a password, reach each other by the ips of
 #   the nodes, the internet (the binaries, containerd, runc), no local DNS
 #   resolver in /etc/resolv.conf (CoreDNS can't reach the loopback)
-# To change: nodes (required); install_cri (containerd), vip and
+# To change: nodes (required); cri_install (containerd), vip and
 # kubeconfig.controlPlaneEndpoint (haproxy on 127.0.0.1:6553), network,
 # cluster_config.kubernetesVersion.
 #
@@ -92,7 +92,7 @@ images:
     haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
 
-# containerd is installed by install_cri, see bundle.tpl below, its
+# containerd is installed by cri_install, see bundle.tpl below, its
 # configuration is the chart default (files.cri)
 cri:
   reconcile_install: true
@@ -110,7 +110,7 @@ kubeconfig:
   clusterName: kubernetes
   controlPlaneEndpoint: 127.0.0.1:6553
   # the controller-manager and the scheduler: the apiserver of the node
-  controlPlaneLocalEndpoint: ${NODE_IP}:6443
+  controlPlaneLocalEndpoint: 127.0.0.1:6443
 
 bootstrap:
   # ssh-rebootstrap.sh --restart-clients: the ones of the chart and Cilium
@@ -124,7 +124,7 @@ bootstrap:
 
 vip:
   # haproxy frontend and backends: "<bind>|<apiserver>,<apiserver>,..."
-  init: >-
+  init_val: >-
     *:6553|{{- $nodesOut := dict -}}
     {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
     {{- $backends := list -}}
@@ -174,7 +174,7 @@ bundle:
     # containerd, runc, the systemd unit and crictl (the rebootstrap stops the
     # static pods with it) from the upstream releases
     "templates/phases/snippets/cri/_install.sh.tpl": |
-      install_cri() {
+      cri_install() {
         local version=v2.4.2 runc=v1.5.2 crictl=v1.36.0 dir sha256
         containerd --version 2>/dev/null | grep -qw "${version}" && return 1
         ARCH="${ARCH:-$(node_arch)}" || return 2
@@ -721,7 +721,7 @@ bundle:
         are deleted (they keep the CA and the service account tokens of the
         old ones)
         --phases, --skip-phases: these phases of the rebootstrap script on all
-        the nodes at once (restore, backup-remove)
+        the nodes at once (backup_restore, backup_remove)
 
       Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH, SUDO
       EOF
@@ -754,15 +754,15 @@ bundle:
 
       echo "=== the lock of the reconcile and the backups on all the nodes"
       for node in "${NODES[@]}"; do
-        start_node "${node}" --phases reconcile-guard,backup
+        start_node "${node}" --phases reconcile_guard,backup
       done
       if ! wait_nodes; then
-        echo "The nodes aren't changed: ssh-rebootstrap.sh --phases backup-remove releases the lock" >&2
+        echo "The nodes aren't changed: ssh-rebootstrap.sh --phases backup_remove releases the lock" >&2
         exit 1
       fi
 
       # the control plane nodes first: the workers need the API with the new CAs
-      PHASES="certs,kubeconfigs,kubelet,static-pods-stop,kubelet-stop,cri-restart,kubelet-start,annotate{{ if .Values.checks.bootstrap }},checks{{ end }}"
+      PHASES="certs_sync,kubeconfigs_sync,_kubelet_sync,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet,run_checks"
       for role in master worker; do
         echo "=== the new files and the restart of the components on the ${role} nodes"
         for node in "${NODES[@]}"; do
@@ -770,18 +770,18 @@ bundle:
           start_node "${node}" --phases "${PHASES}"
         done
         if ! wait_nodes; then
-          echo "Back to the backups: ssh-rebootstrap.sh --phases restore,static-pods-stop,kubelet-stop,cri-restart,kubelet-start" >&2
+          echo "Back to the backups: ssh-rebootstrap.sh --phases backup_restore,static_pods_stop,kubelet_stop,cri_restart,kubelet_start" >&2
           exit 1
         fi
       done
 
       echo "=== the CAs of the cluster wide objects from ${FIRST_MASTER}"
-      start_node "${FIRST_MASTER}" --phases kubeadm-cluster-info
+      start_node "${FIRST_MASTER}" --phases kubeadm_cluster_info
       wait_nodes
 
       if [ "${RESTART_CLIENTS}" = true ]; then
         echo "=== the pods of bootstrap.rebootstrap_restart_selectors from ${FIRST_MASTER}"
-        start_node "${FIRST_MASTER}" --phases restart-clients
+        start_node "${FIRST_MASTER}" --phases restart_clients
         wait_nodes
       fi
 
@@ -789,5 +789,5 @@ bundle:
       The nodes are rebootstrapped, the reconcile waits for the lock. Next:
         1. helm upgrade the release with the new values: the anchors bring
            the files of the release back once the lock is released
-        2. ssh-rebootstrap.sh --phases backup-remove: releases the lock
+        2. ssh-rebootstrap.sh --phases backup_remove: releases the lock
       EOF

@@ -18,6 +18,8 @@ Thanks to the `templates/lib/bundle` module, all chart outputs can be fully rede
 
 Since the primary goal is to bootstrap Kubernetes precisely from zero (bare OS with no prior configuration) up to a fully functional Kubernetes API, and to maintain this configuration over time, the chart is intentionally kept as minimalistic as possible: its sole purpose is to solve the chicken-and-egg bootstrapping problem cleanly.
 
+The bootstrap script is kept minimal too: it carries only what its phases (`bootstrap.phases`) need. Every bash function of the node scripts is a symbol with its dependencies, and a script is linked from its phases like a binary from object files: see `templates/lib/_linker.tpl` and the modules of `templates/phases`. A phase is one of these functions, `--phases` and `--skip-phases` name the functions. A function returning a result (e.g. `_kubelet_sync`: 0 if the files were changed, 1 if not, >1 on errors) starts with `_`: as a phase, 1 isn't a failure.
+
 The chicken and the egg are untied by Helm itself: it renders templates on the client, without a cluster. `helm template` turns the values into the bootstrap and rebootstrap scripts before the Kubernetes API exists (or when it is down), and the same chart, installed into the cluster it has just bootstrapped, runs the reconcile. One chart and one set of values for every stage of the lifecycle, so bootstrap and reconcile can't drift apart.
 
 ## Tools
@@ -46,7 +48,7 @@ This is how the gate deploys the cluster (`ssh-bootstrap.sh` of `overrides/refer
 
 The checks are a sanity check of the cluster: Kubernetes works and runs the version of the values.
 
-On the node, the `checks` phase checks what the node itself needs: at the end of the bootstrap script (`checks.bootstrap`) that the API is reachable through `kubeconfig.controlPlaneEndpoint`, and in the reconcile before the anchor becomes ready (`checks.reconcile`) the first pass of the haproxy VIP reconcile. A failing node fails its bootstrap, or its anchor doesn't become ready and stops the rolling update. The static pods check their own liveness. One line per check:
+On the node, the `run_checks` phase checks what the node itself needs: at the end of the bootstrap script (the `run_checks` phase of `bootstrap.phases`, `check_api`) that the API is reachable through `kubeconfig.controlPlaneEndpoint`, and in the reconcile before the anchor becomes ready (`checks.reconcile`) that the VIP of the node works: its implementation (e.g. haproxy) is reconciled once with the apiservers of the cluster, a node bootstrapped without a VIP skips it. A failing node fails its bootstrap, or its anchor doesn't become ready and stops the rolling update. The static pods check their own liveness. One line per check:
 
 ```
 check OK api https://127.0.0.1:6553/livez
@@ -92,29 +94,19 @@ More examples are here [1].
 The project is under development. Below is the planned roadmap and feature wishlist (subject to iteration).
 
 ### Next, in this order
-#### 1. Linking
-The last library of the chart.
-
-- **Dynamic Module Linking (experimental):** every bash function of the node scripts is registered in a map with the names of the functions it calls; the values list the phases a script supports, and its shared library is linked from them by the dependencies, like object files into a binary: only what the phases need, an undefined function fails the rendering, `bundle.tpl` can replace or add functions. A test checks the declared dependencies against the calls.
-  - *Objects:* the modules of `templates/phases` (the built-in ones listed as now, the new ones of `bundle.tpl` found by their path), all in one format, all processed; `main` and the phases snippet are always in.
-  - *Symbols:* functions and variables (the globals like `KUBEADM_ANNOTATION`), both with their dependencies; the same name twice fails the rendering.
-  - *Order:* by the dependencies (the ones everything depends on first), the name for the ties: the same output on every rendering, the hashes of the scripts trigger the rollouts of the anchors.
-  - *Entry points:* a phase is a function too; the bootstrap and the rebootstrap scripts link from the functions of their phases (the list of the values), the reconcile one from the set of the functions its body calls.
-  - *For the deployment engineers:* a section of this README with an example of replacing and adding a function through `bundle.tpl`; clear messages of the rendering (an undefined or a duplicate symbol, with the module and the function referring to it) and a way to see what is linked and why (e.g. the linked symbols in a comment of the rendered script).
-  - *Instead of the libraries per script:* `*_rebootstrap_lib` (backup, restore, the certificates of kubeadm) exist only to keep them out of the bootstrap script; linked, they are symbols of their modules the bootstrap phases don't depend on.
-#### 2. Idempotent reconcile
+#### 1. Idempotent reconcile
 Carefully, with crash and restart tests (its steps are explicit once linked).
 
 - **Idempotent Reconcile State Machine:** Ensure step-level idempotency in `reconcile.sh` so that upon a crash loop, execution resumes exactly from the failed step.
-#### 3. kube-vip
+#### 2. kube-vip
 A new phase (a test of the linking too).
 
 - **External control plane VIP (`kube-vip`):** a different task than the node-local balancer: a floating VIP for clients outside the cluster (admin kubeconfigs, a parent cluster, Armada), as a static pod on control plane nodes.
-#### 4. A cluster from a parent one
+#### 3. A cluster from a parent one
 An override and a gate.
 
 - **No-Pivot Mode:** management remains on the parent cluster instead of pivoting to self-hosted child management. The credentials of the parent exist (`secret_ca_tls`, `secret_admin_tls`, `cert_manager_admin`); left: a gate deploying a cluster from a parent one, with a cloud-init simulation as the provisioner.
-#### 5. Hosted control plane
+#### 4. Hosted control plane
 A big override and a gate.
 
 A hosted control plane cluster: the control plane runs as pods on the parent cluster, the target cluster has worker nodes only. A moderate amount of work assembled from standard pieces, without changes to the core of the chart:
@@ -132,7 +124,7 @@ A hosted control plane cluster: the control plane runs as pods on the parent clu
 
 ### VIP Backends
 - **Node-local API load balancer:** HAProxy stays the only built-in implementation: proven in Airship, and the control plane endpoints change rarely, so dynamically reconfigured proxies (Envoy, Traefik) bring nothing. Kernel-space variants (iptables, IPVS, nftables) are not planned: they have no health checks of their own and need extra care for a `127.0.0.1` VIP (SNAT, `route_localnet`); whoever needs one can provide it through `bundle.tpl`.
-- **VIP mode is a day 0 decision:** the reconcile only follows the backends and the configuration of the VIP the node was bootstrapped with (it's on if the bootstrap wrote `haproxy.cfg`). Enabling, disabling or switching the VIP type on a live cluster is a migration: `controlPlaneEndpoint` in `kubeadm-config`, the server address in the kubeconfigs of every node, the apiserver certificate SANs and the order of the nodes. To be done as a dedicated, carefully ordered scenario, like the Airship to kubeadm migration in the reconcile.
+- **VIP mode is a day 0 decision:** the reconcile only follows the backends and the configuration of the VIP the node was bootstrapped with (the bootstrap writes it to `/etc/kubernetes/kubeadm/addons/vip`, the reconcile writes the VIP of the values there on the nodes bootstrapped before). Enabling, disabling or switching the VIP type on a live cluster is a migration: `controlPlaneEndpoint` in `kubeadm-config`, the server address in the kubeconfigs of every node, the apiserver certificate SANs and the order of the nodes. To be done as a dedicated, carefully ordered scenario, like the Airship to kubeadm migration in the reconcile.
 
 ### PKI Lifecycle & Certificate Management
 - **Automated & Manual Cert Rotation:** Support certificate rotation using the existing CA via scheduled `CronJob` instances or manual `Job` triggers.
@@ -142,7 +134,7 @@ A hosted control plane cluster: the control plane runs as pods on the parent clu
 ### Testing & Verification
 - **Modular Test Library:** Refactor test suites into a structured Bash test library with individual test specs (matching Go-like test signatures and execution flows).
 - **Helm Test & Gate Verification:** done, see [Checks](#checks). Left:
-  - **Switching phases:** the checks are a phase of the node scripts (`--skip-phases checks`), but still switched on at render time with the flags in `checks`.
+  - **Switching phases:** the checks are a phase of the node scripts (`--skip-phases run_checks`), but still switched on at render time with the flags in `checks`.
   - **Armada based gates:** `test.enabled` of the `ArmadaChart` in the aircat and aircruiser gates.
   - **Hosted control plane:** the profile replaces the control plane test (Deployments on the parent cluster, kubeconfig from a Secret, datastore and konnectivity checks), the worker checks stay as is.
 

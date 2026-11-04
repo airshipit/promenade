@@ -1,7 +1,8 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $sharedLibsContent :=  get $k8sConfDict "sharedLibsContent" -}}
+{{/* the symbols of templates/phases the script uses (anchor.reconcile.symbols),
+     linked (templates/lib/_linker.tpl) */}}
 #!/bin/bash
 # Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
 #
@@ -25,11 +26,20 @@ ROOTFS="${ROOTFS:-}"
 # ensure_fs (the files delivered by the chart are in /run/kubeadm)
 RECONCILE_DIR={{ $envAll.Values.anchor.reconcile.host_dir | quote }}
 
-kubectl() {
-  command kubectl --kubeconfig "${RECONCILE_DIR}/kubeconfig" "$@"
-}
 # namespace of the anchor pod: its service account runs the kubelet restart job
 NAMESPACE="$(cat "${RECONCILE_DIR}/sa/namespace")"
+
+kubectl() {
+  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" --kubeconfig "${RECONCILE_DIR}/kubeconfig" "$@"
+}
+
+kubeadm() {
+  if [[ "$1" == "version" ]]; then
+    "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" "$@"
+  else
+    "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" --v=5 "$@"
+  fi
+}
 
 # config directories
 KUBERNETES_DIR="/etc/kubernetes"
@@ -47,14 +57,9 @@ KUBELET_CURRENT_VERSION=""
 KUBERNETES_ETCD=""
 KUBELET_RESTART_IN_PROGRESS=""
 
-{{/* adding shared bash functions */}}
-{{ $sharedLibsContent }}
-{{- if $envAll.Values.checks.reconcile }}
-{{ get $k8sConfDict.sharedLibs "checks" }}
-{{- end }}
+{{/* the linked functions */}}
+{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" $envAll.Values.anchor.reconcile.symbols) }}
 # end of common functions
-
-PATH="${BINARIES_DIR}:${PATH}"
 
 cleanup_old_backups() {
   if [ -e "${ROOTFS}/etc/kubernetes/tmp/" ]; then
@@ -62,7 +67,7 @@ cleanup_old_backups() {
   fi
 }
 
-restart_kubelet() {
+kubelet_restart() {
   local was_ready restarted heartbeat i
   was_ready=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
   annotate_node "$KUBELET_RESTART_ANNOTATION" true
@@ -103,7 +108,7 @@ EOF_DATA
   fi
 
   KUBELET_CURRENT_VERSION=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.nodeInfo.kubeletVersion}')
-  if [[ $KUBELET_CURRENT_VERSION != $("${BINARIES_DIR}/kubelet" --version | awk '{print $2}') ]]; then
+  if [[ $KUBELET_CURRENT_VERSION != $("${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubelet" --version | awk '{print $2}') ]]; then
     echo "kubelet version mismatch"
     exit 1
   fi
@@ -111,7 +116,7 @@ EOF_DATA
   # the node is ready with its control plane down: a new kubelet version starts
   # the static pods again before the old ones free their ports, they are ready
   # after a back-off
-  if [[ $NODE_ROLE == "master" ]]; then
+  if [ "${NODE_ROLE}" == "master" ]; then
     for i in $(seq 60); do
       kubectl wait -n kube-system --for=condition=ready pod -l tier=control-plane \
         --field-selector "spec.nodeName=${NODE_NAME}" --timeout=5s && return 0
@@ -127,7 +132,7 @@ EOF_DATA
 is_action_required() {
   local rc=1 # return code 1 means false
 
-  if [[ $NODE_ROLE == "master" ]]; then
+  if [ "${NODE_ROLE}" == "master" ]; then
     current_cluster_config_sha256=$(kubeadm_config_sha256)
     if [[ -z $LAST_APPLIED_KUBEADM_CONFIG_SHA256 || $LAST_APPLIED_KUBEADM_CONFIG_SHA256 != $current_cluster_config_sha256 ]]; then
       KUBEADM_ACTION_REQUIRED=true
@@ -148,14 +153,6 @@ is_action_required() {
 
 annotate_node() {
   kubectl annotate node --overwrite "$NODE_NAME" "$1=$2"
-}
-
-kubeadm() {
-  if [[ "$1" == "version" ]]; then
-    command "${BINARIES_DIR}/kubeadm" "$@"
-  else
-    command "${BINARIES_DIR}/kubeadm" --v=5 "$@"
-  fi
 }
 
 # kubeadm join and upgrade node take the ClusterConfiguration from the
@@ -261,23 +258,32 @@ kubeadm_action() {
     kubeadm upgrade node --config "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
 
     # kubeadm changes kubelet server address - enforcing it back
-    sync_kubelet_kubeconfig || true
-    sync_kubeconfigs
+    _kubelet_kubeconfig_sync || true
+    kubeconfigs_sync
 
     kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 300s
   fi
 }
 
-# kubelet must not be newer than the apiservers
+# the version skew policy: kubelet must not be newer than any apiserver, by the
+# minor version (the patch one of an image pinned by its digest and the build
+# suffixes don't matter). Each is asked directly, through the VIP only one answers
 wait_apiservers_upgraded() {
-  local versions
+  local target endpoints endpoint versions
+  target=$(echo "${KUBERNETES_VERSION#v}" | cut -d . -f 1-2)
   while true; do
-    versions=$(kubectl get pods -n kube-system -l component=kube-apiserver \
-      -o jsonpath='{range .items[*]}{.spec.containers[0].image}{"\n"}{end}' | sed 's/.*://' | sort -u)
-    if [[ -z "$versions" || "$versions" == "$KUBERNETES_VERSION" ]]; then
-      return 0
-    fi
-    echo "waiting for the apiservers to be upgraded to $KUBERNETES_VERSION: $versions"
+    endpoints=$(kubectl get pods -n kube-system -l component=kube-apiserver \
+      -o jsonpath='{range .items[*]}{.metadata.annotations.kubeadm\.kubernetes\.io/kube-apiserver\.advertise-address\.endpoint}{"\n"}{end}')
+    # major.minor of each (the minor may be "37+"), 0 for the one that doesn't answer
+    # (being restarted). Its certificate may lack the IP of the node, the name of
+    # the service is in every one
+    versions=$(for endpoint in $endpoints; do
+      kubectl get --raw /version --server "https://${endpoint}" --tls-server-name kubernetes \
+        | awk -F '"' '/"major"/ { major = $4 } /"minor"/ { print major "." ($4 + 0) }' || echo 0
+    done | sort -u)
+    # none is older than the target: the oldest of them and the target is the target
+    [[ -z "$versions" || "$(printf '%s\n' "$versions" "$target" | sort -V | head -n 1)" == "$target" ]] && return 0
+    echo "waiting for the apiservers to be upgraded to $target: $versions"
     sleep 30
   done
 }
@@ -354,16 +360,16 @@ airship_migration_cleanup() {
 # templates/bin/_rebootstrap.tpl): the node isn't touched until they are removed.
 # The waiting file tells the rebootstrap script the pass doesn't go on
 wait_rebootstrap() {
-  while [ -e "${ROOTFS}"{{ $envAll.Values.bootstrap.rebootstrap_backup_dir | quote }} ]; do
+  while _backup_exists; do
     touch "${RECONCILE_DIR}/rebootstrap-wait"
-    echo "rebootstrap: {{ $envAll.Values.bootstrap.rebootstrap_backup_dir }} exists, waiting for the end of the procedure (restore or backup-remove)"
+    echo "rebootstrap: {{ $envAll.Values.backup.dir }} exists, waiting for the end of the procedure (backup_restore or backup_remove)"
     sleep 30
   done
   rm -f "${RECONCILE_DIR}/rebootstrap-wait"
 }
 
 wait_rebootstrap
-sync_binaries kubeadm kubectl || true
+binaries_sync kubeadm kubectl
 # kubectl may be installed just above
 NODE_INFO=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.annotations.$KUBEADM_ANNOTATION}|{.metadata.annotations.$KUBELET_ANNOTATION}|{.metadata.annotations.$CRI_SOCKET_ANNOTATION}|{.status.nodeInfo.kubeletVersion}|{.metadata.labels.kubernetes-etcd}|{.metadata.annotations.$KUBELET_RESTART_ANNOTATION}")
 IFS='|' read -r LAST_APPLIED_KUBEADM_CONFIG_SHA256 LAST_APPLIED_KUBELET_CONFIG_SHA256 CRI_SOCKET KUBELET_CURRENT_VERSION KUBERNETES_ETCD KUBELET_RESTART_IN_PROGRESS <<<$NODE_INFO
@@ -392,7 +398,7 @@ fi
 
 {{- if $envAll.Values.anchor.reconcile.ca_guard }}
 # before any sync: the files of the node are left as they are
-guard_ca
+certs_guard_ca
 {{- end }}
 
 cleanup_old_backups
@@ -402,19 +408,19 @@ KUBELET_RESTART_REQUIRED=false
 
 CRI_RESTART_REQUIRED=false
 {{- if $envAll.Values.cri.reconcile_install }}
-sync_cri_install && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+_cri_install_sync && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
 {{- end }}
-sync_cri && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+_cri_sync && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
 if [[ $CRI_RESTART_REQUIRED == true ]]; then
-  restart_cri
+  cri_restart
 fi
-sync_kubeconfigs
-sync_kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
-[[ $NODE_ROLE == "master" ]] || wait_apiservers_upgraded
-sync_binary kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+kubeconfigs_sync
+_kubelet_sync && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+[ "${NODE_ROLE}" == "master" ] || wait_apiservers_upgraded
+_binary_sync kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 
-sync_certs
-sync_kubeadm
+certs_sync
+kubeadm_sync
 
 # by default etcd is disabled - but if it was installed - turn this phase onn
 if [[ $KUBERNETES_ETCD == "enabled" ]]; then
@@ -426,7 +432,7 @@ fi
 
 # kubeadm config has to be up-to-date with what we have in values.
 # It is needed only on controllers (is_action_required works on controllers only)
-if [[ $NODE_ROLE == "master" && -f "${ROOTFS}${KUBERNETES_DIR}/admin.conf" ]]; then
+if [ "${NODE_ROLE}" == "master" ] && [ -f "${ROOTFS}${KUBERNETES_DIR}/admin.conf" ]; then
   upload_kubeadm_config
 fi
 
@@ -438,7 +444,7 @@ fi
 # synced /etc/kubernetes/admin.conf on the host is not modified.
 # (TODO) move this check prior to kubeadm join command, as well add a check if kubeconfig
 # has been modified due to cert rotation
-if [ $NODE_ROLE == "master" ] && ! kubectl get cm -n kube-public cluster-info; then
+if [ "${NODE_ROLE}" == "master" ] && ! kubectl get cm -n kube-public cluster-info; then
   tmp_admin_conf="$(mktemp -p "${RECONCILE_DIR}" -t temp-kubeconfig.XXXXXX)"
   cp "${ROOTFS}/etc/kubernetes/admin.conf" "$tmp_admin_conf"
   rc=0
@@ -449,7 +455,7 @@ fi
 
 {{- if $envAll.Values.deprecated.airship_migration.enabled }}
 
-[[ $NODE_ROLE == "master" ]] && rename_cp_pods
+[ "${NODE_ROLE}" == "master" ] && rename_cp_pods
 {{- end }}
 
 
@@ -465,7 +471,7 @@ if [[ $KUBEADM_ACTION_REQUIRED == true ]]; then
 fi
 
 if [[ $KUBELET_RESTART_REQUIRED == true ]]; then
-  restart_kubelet
+  kubelet_restart
   LAST_APPLIED_KUBELET_CONFIG_SHA256="$(kubelet_config_sha256)"
   annotate_node "$KUBELET_ANNOTATION" "$LAST_APPLIED_KUBELET_CONFIG_SHA256"
 fi
@@ -477,7 +483,7 @@ airship_migration_cleanup
 {{- if $envAll.Values.checks.reconcile }}
 
 # the anchor becomes ready only if the node checks pass
-run_checks check_vip
+run_checks vip_check
 {{- end }}
 
 touch "${RECONCILE_DIR}/done"
@@ -489,11 +495,8 @@ while true; do
     break
   fi
 {{- if dig "reconcile" false ($envAll.Values.vip | default dict) }}
-  # the node uses the haproxy VIP (configured by the bootstrap): follow the
-  # control plane endpoints
-  if [ -f "${ROOTFS}{{ $envAll.Values.haproxy.host_config_dir }}/haproxy.cfg" ]; then
-    vip_anchor || true
-  fi
+  # the VIP the node was bootstrapped with follows the control plane endpoints
+  vip_reconcile || true
 {{- end }}
   sleep {{ $envAll.Values.anchor.reconcile.period }}
 done

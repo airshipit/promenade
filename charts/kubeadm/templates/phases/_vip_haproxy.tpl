@@ -1,51 +1,52 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
-{{- $sharedLibName := index . 2 -}}
 
-{{- $allNodes := get $k8sConfDict.fs "all" -}}
+{{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
+{{/* the haproxy implementation of the VIP (vip.modules, templates/phases/_vip.tpl) */}}
 {{/* populate static pod anyway so user could use bootstrap command line to enable it */}}
 {{/* can be patched with bundle.tpl."templates/phases/snippets/vip/_haproxy.yaml.tpl.patch" */}}
 {{- $staticPod := tuple $envAll "templates/phases/snippets/vip/_haproxy.yaml.tpl" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
 {{- $_ := set $allNodes "_manifests/haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
 
 
+{{- $symbols := get $k8sConfDict "symbols" -}}
 {{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
 
-{{- define "__haproxy_lib_functions" -}}
-{{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
-{{- $sharedLibName := index . 2 -}}
+{{/* the argument of the bootstrap script, it replaces vip.init_val, e.g.
+     --vip_haproxy "*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443,172.29.0.154:6443" */}}
+{{- $_ := set $sharedLibs "vip_cmd" `
+  if [ "$1" == "--vip_haproxy" ]; then
+    vip_argname=haproxy
+    vip_arg=$2
+    addons_shift=2
+    return 0
+  fi
+` -}}
 
-{{- $haproxyHeader := (tuple $envAll "templates/phases/snippets/vip/_haproxy.cfg.header.tpl" | include "kubeadm.bundle.template") -}}
-
+{{- define "__vip_config_sync" -}}
+{{- $envAll := . -}}
 {{- $manifestDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/manifests") | include "kubeadm.bundle.template" -}}
 {{- $manifestDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/manifests") | include "kubeadm.bundle.template" -}}
 {{- $manifestMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests") | include "kubeadm.bundle.template" -}}
 {{- $manifestOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests") | include "kubeadm.bundle.template" -}}
 
-{{- $addonsDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/addons") | include "kubeadm.bundle.template" -}}
-{{- $addonsDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/addons") | include "kubeadm.bundle.template" -}}
-
-
-sync_vip_config() {
+vip_config_sync() {
   local kubernetes_dir="/etc/kubernetes"
 
   ensure_dir "${ROOTFS}${kubernetes_dir}/manifests" "{{ $manifestDirMode }}" "{{ $manifestDirOwner }}"
-  sync_group_dir "${ROOTFS}" "_manifests" "${kubernetes_dir}/manifests" "${NODE_ROLE}" false "{{ $manifestMode }}" "{{ $manifestOwner }}"
-
-  ensure_dir "${ROOTFS}${kubernetes_dir}/kubeadm/addons" "{{ $addonsDirMode }}" "{{ $addonsDirOwner }}"
+  group_dir_sync "${ROOTFS}" "_manifests" "${kubernetes_dir}/manifests" "${NODE_ROLE}" false "{{ $manifestMode }}" "{{ $manifestOwner }}"
 }
+{{- end -}}
 
-# we actually can build default value if we have access to control_plane structures
-# here is the example of arg: "*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443,172.29.0.1154:6443"
-{{ $vip_init := tpl ($envAll.Values.vip.init | default "") $envAll -}}
-{{ $sharedLibName }}_arg="{{ $vip_init }}"
-sync_{{ $sharedLibName }}() {
-  local arg=${{ $sharedLibName }}_arg
+{{- define "__vip_haproxy_sync" -}}
+{{- $envAll := . -}}
+{{- $haproxyHeader := (tuple $envAll "templates/phases/snippets/vip/_haproxy.cfg.header.tpl" | include "kubeadm.bundle.template") -}}
+vip_haproxy_sync() {
+  local arg=$vip_arg
 
-  sync_vip_config
+  vip_config_sync
 
-  echo "{{ $sharedLibName }}_arg=$arg"
+  echo "vip_arg=$arg"
   if [[ -n "$arg" ]]; then
     # VIP and the rest
     IFS='|' read -r VIP RAW_IPS <<< "$arg"
@@ -99,49 +100,52 @@ EOF_TEMPLATE_DATA
   fi
   echo "vip(haproxy) is synced"
 }
-
-# called by the reconcile loop: the backends of the values (vip.init) plus the
-# apiservers of the kubernetes endpointslices. All of them, ready or not:
-# haproxy health checks pick the live ones, the list shouldn't flap while the
-# control plane restarts. Keeps the current config if the API isn't available.
-{{ $sharedLibName }}_anchor() {
-    local init_arg="{{ $vip_init }}"
-    local bind init_backends service_endpoints backends
-
-    IFS='|' read -r bind init_backends <<< "$init_arg"
-    if [[ -z "$bind" ]]; then
-      bind="*:{{ splitList ":" $envAll.Values.kubeconfig.controlPlaneEndpoint | last }}"
-    fi
-
-    # "<port> <address> <address> ..." per endpointslice
-    if ! service_endpoints=$(kubectl --namespace default get endpointslices \
-        -l kubernetes.io/service-name=kubernetes \
-        -o jsonpath='{range .items[*]}{.ports[0].port}{" "}{.endpoints[*].addresses[*]}{"\n"}{end}'); then
-      echo "Unable to retrieve the kubernetes endpointslices, keeping the current haproxy config"
-      return 1
-    fi
-    service_endpoints=$(awk '{ for (i = 2; i <= NF; i++) print $i ":" $1 }' <<< "$service_endpoints")
-
-    backends=$(printf '%s\n%s\n' "${init_backends//,/$'\n'}" "$service_endpoints" | sed '/^$/d' | sort -u | paste -sd, -)
-    if [[ -z "$backends" ]]; then
-      echo "No apiservers found, keeping the current haproxy config"
-      return 1
-    fi
-
-    {{ $sharedLibName }}_arg="${bind}|${backends}"
-    sync_{{ $sharedLibName }}
-}
-
 {{- end -}}
 
-{{- $_ := set $sharedLibs $sharedLibName (include "__haproxy_lib_functions" (tuple $envAll $k8sConfDict $sharedLibName)) -}}
-{{- $_ := set $sharedLibs (printf "%s_cmd" $sharedLibName) (printf `
-  if [ "$1" == "--vip_haproxy" ]; then
-    %s_arg=$2
-    addons_shift=2
-    return 0
-  fi
-` $sharedLibName )
--}}
+{{- define "__vip_haproxy_reconcile" -}}
+{{- $envAll := . -}}
+# called by vip_reconcile: the bind and the backends of the bootstrap (vip_arg
+# of VIP_FILE) plus the apiservers of the kubernetes endpointslices. All of
+# them, ready or not: haproxy health checks pick the live ones, the list
+# shouldn't flap while the control plane restarts. Keeps the current config if
+# the API isn't available.
+vip_haproxy_reconcile() {
+  local init_arg="${vip_arg}"
+  local bind init_backends service_endpoints backends
 
-{{/* we also can build vip_haproxy_container content, anchor can synronize info about vip */}}
+  IFS='|' read -r bind init_backends <<< "$init_arg"
+  if [[ -z "$bind" ]]; then
+    bind="*:{{ splitList ":" $envAll.Values.kubeconfig.controlPlaneEndpoint | last }}"
+  fi
+
+  # "<port> <address> <address> ..." per endpointslice
+  if ! service_endpoints=$(kubectl --namespace default get endpointslices \
+      -l kubernetes.io/service-name=kubernetes \
+      -o jsonpath='{range .items[*]}{.ports[0].port}{" "}{.endpoints[*].addresses[*]}{"\n"}{end}'); then
+    echo "Unable to retrieve the kubernetes endpointslices, keeping the current haproxy config"
+    return 1
+  fi
+  service_endpoints=$(awk '{ for (i = 2; i <= NF; i++) print $i ":" $1 }' <<< "$service_endpoints")
+
+  backends=$(printf '%s\n%s\n' "${init_backends//,/$'\n'}" "$service_endpoints" | sed '/^$/d' | sort -u | paste -sd, -)
+  if [[ -z "$backends" ]]; then
+    echo "No apiservers found, keeping the current haproxy config"
+    return 1
+  fi
+
+  vip_arg="${bind}|${backends}"
+  vip_haproxy_sync
+}
+{{- end -}}
+
+{{- $_ := set $symbols "vip_config_sync" (dict "needs" (list "ensure_dir" "group_dir_sync")
+"body" (include "__vip_config_sync" $envAll)
+) -}}
+
+{{- $_ := set $symbols "vip_haproxy_sync" (dict "needs" (list "vip_config_sync" "vip_arg")
+"body" (include "__vip_haproxy_sync" $envAll)
+) -}}
+
+{{- $_ := set $symbols "vip_haproxy_reconcile" (dict "needs" (list "vip_arg" "vip_haproxy_sync")
+"body" (include "__vip_haproxy_reconcile" $envAll)
+) -}}
