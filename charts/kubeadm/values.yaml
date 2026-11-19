@@ -179,6 +179,12 @@ vip:
   # keeps its config and static pod in sync with the control plane endpoints.
   # Disable it when the VIP is managed by something else (e.g. the haproxy chart)
   reconcile: true
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/manifests, the haproxy static pod
+    "manifests":
+      owner: "root:root"
+      mode: "0600"
 
 haproxy:
   container_config_dir: /usr/local/etc/haproxy
@@ -205,146 +211,94 @@ haproxy:
       - default-server check-ssl verify none on-marked-down shutdown-sessions
       - option redispatch
 
-# the fs groups: fsgroups.<group> is synced by fsgroup_<group>_sync_rc
-fsgroups: {}
-# working examples (can be moved to test.sh):
-# fsgroups:
-#   rm_files: #groupname
-#     - path: /usr/local/share/ca/certain/dosntexist
-#       state: "rm"
-#   files:
-#     - path: /usr/local/share/ca/certain
-#       state: "dir" # or touch
-#       owner: "root:root" #optional
-#       mode: "0600" #optional
-#     - path: /usr/local/share/ca/certain2
-#       state: "copy" #  or content or tpl
-#       from: "/usr/local/share/ca/certain/filename"
-#       owner: "root:root" #optional
-#       mode: "0600" #optional
+# the filesystem of the nodes
+fs:
+  # the permissions on the node of the directories of the phases, the files
+  # have theirs in the values of the phase: <phase>.permissions.<group>, a group
+  # is delivered in _<group>/ of the archives (pkipub -> _pkipub/<file>) or is a
+  # file itself. If there is no data, empty owner and mode are passed and setting
+  # of permissions is skipped in that case.
+  permissions:
+    # certs/kubelet
+    "/etc/kubernetes/pki":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/pki/etcd":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/admin/pki":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/default":
+      owner: "root:root"
+    "/etc/systemd/system":
+      owner: "root:root"
+    "/var/lib/kubelet":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes":
+      owner: "root:root"
+    "/usr/local/sbin":
+      owner: "root:root"
+    "/etc/kubernetes/kubeadm":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/kubeadm/patches":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/apiserver":
+      owner: "root:root"
+      mode: "0700"
+    # haproxy static pod (vip phase) runs as nobody (65534) and reads its
+    # config from this directory
+    "/etc/kubernetes/kubeadm/addons":
+      owner: "root:root"
+      mode: "0755"
+  # the groups: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
+  groups: {}
+  # working examples (can be moved to test.sh):
+  # groups:
+  #   rm_files: #groupname
+  #     - path: /usr/local/share/ca/certain/dosntexist
+  #       state: "rm"
+  #   files:
+  #     - path: /usr/local/share/ca/certain
+  #       state: "dir" # or touch
+  #       owner: "root:root" #optional
+  #       mode: "0600" #optional
+  #     - path: /usr/local/share/ca/certain2
+  #       state: "copy" #  or content or tpl
+  #       from: "/usr/local/share/ca/certain/filename"
+  #       owner: "root:root" #optional
+  #       mode: "0600" #optional
 
-# the permissions on the node of the files of the phases: a group is delivered
-# in _<group>/ of the archives (pkipub -> _pkipub/<file>) or is a file itself.
-# if there is no data, empty owner and mode are passed and setting of
-# permissions is skipped in that case.
-permissions:
-  # certs/kubelet
-  "/etc/kubernetes/pki":
-    owner: "root:root"
-    mode: "0700"
-    groups:
-      # produced by certs phase
-      "pkipriv": # keys
-        owner: "root:root"
-        mode: "0600"
-      "pkipub": # certs,
-        owner: "root:root"
-        mode: "0644"
-      # produced by kubelet phase
-      "kubeletpkipriv": # keys
-        owner: "root:root"
-        mode: "0600"
-      "kubeletpkipub": # certs
-        owner: "root:root"
-        mode: "0644"
-  "/etc/kubernetes/pki/etcd":
-    owner: "root:root"
-    mode: "0700"
-    groups:
-      "etcdpriv": # keys
-        owner: "root:root"
-        mode: "0600"
-      "etcdpub": # certs,
-        owner: "root:root"
-        mode: "0600" #"0644"
-  "/etc/kubernetes/admin/pki":
-    owner: "root:root"
-    mode: "0700"
-    groups:
-      "adminpkipriv": # keys
-        owner: "root:root"
-        mode: "0600"
-      "adminpkipub": # certs,
-        owner: "root:root"
-        mode: "0600" #"0644"
-  "/etc/default":
-    owner: "root:root"
-    groups:
-      "kubelet":
-        owner: "root:root"
-        mode: "0600"
-  "/etc/systemd/system":
-    owner: "root:root"
-    groups:
-      "kubelet.service":
-        owner: "root:root"
-        mode: "0600"
-      "kube-cgroup.service":
-        owner: "root:root"
-        mode: "0600"
-  "/var/lib/kubelet":
-    owner: "root:root"
-    mode: "0700"
-    groups:
-      "config.yaml":
-        owner: "root:root"
-        mode: "0600"
-  "/etc/kubernetes":
-    owner: "root:root"
-    groups:
-      # produced by kubeconfig phase
-      "admin.conf":
-        owner: "root:root"
-        mode: "0600"
-      "controller-manager.conf":
-        owner: "root:root"
-        mode: "0600"
-      "scheduler.conf":
-        owner: "root:root"
-        mode: "0600"
-      # produced by kubelet phase
-      "kubelet.conf":
-        owner: "root:root"
-        mode: "0600"
-  "/usr/local/sbin":
-    owner: "root:root"
-    groups:
-      "kube-cgroup.sh":
-        owner: "root:root"
-        mode: "0600"
-  "/etc/kubernetes/kubeadm":
-    owner: "root:root"
-    mode: "0700"
-    groups:
-      "kubeadm":
-        owner: "root:root"
-        mode: "0600"
-  "/etc/kubernetes/kubeadm/patches":
-    owner: "root:root"
-    mode: "0700"
-    groups:
-      "kubeadmpatch":
-        owner: "root:root"
-        mode: "0600"
-  "/etc/kubernetes/apiserver":
-    owner: "root:root"
-    mode: "0700"
-    groups:
-      "kubeadmapiserver":
-        owner: "root:root"
-        mode: "0600"
-  # haproxy static pod (vip phase) runs as nobody (65534) and reads its
-  # config from this directory
-  "/etc/kubernetes/kubeadm/addons":
-    owner: "root:root"
-    mode: "0755"
-  "/etc/kubernetes/manifests":
-    groups:
-      # produced by vip phase
-      "manifests":
-        owner: "root:root"
-        mode: "0600"
+kubeadm:
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/kubeadm
+    "kubeadm":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/kubernetes/kubeadm/patches
+    "kubeadmpatch":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/kubernetes/apiserver
+    "kubeadmapiserver":
+      owner: "root:root"
+      mode: "0600"
 
+kube_cgroup:
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /usr/local/sbin
+    "kube-cgroup.sh":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/systemd/system
+    "kube-cgroup.service":
+      owner: "root:root"
+      mode: "0600"
 
 cluster_config: {}
   # if not specified - any in accordance to kubeadm version
@@ -353,6 +307,18 @@ cluster_config: {}
 kubeconfig:
   clusterName: kubernetes
   controlPlaneEndpoint: 127.0.0.1:6443
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes
+    "admin.conf":
+      owner: "root:root"
+      mode: "0600"
+    "controller-manager.conf":
+      owner: "root:root"
+      mode: "0600"
+    "scheduler.conf":
+      owner: "root:root"
+      mode: "0600"
 
 # the admin client certificate issued by cert-manager (manifests.cert_manager_admin),
 # kubeadm binds the group kubeadm:cluster-admins to cluster-admin
@@ -369,6 +335,31 @@ kubelet:
   drain: true
   # the job restarting kubelet can be patched with
   # bundle.tpl."templates/phases/snippets/kubelet/_job-kubelet-restart.yaml.patch"
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/pki
+    "kubeletpkipriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "kubeletpkipub": # certs
+      owner: "root:root"
+      mode: "0644"
+    # /etc/kubernetes
+    "kubelet.conf":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/default
+    "kubelet":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/systemd/system
+    "kubelet.service":
+      owner: "root:root"
+      mode: "0600"
+    # /var/lib/kubelet
+    "config.yaml":
+      owner: "root:root"
+      mode: "0600"
 
 cri:
   # kubelet starts after it, cri_restart restarts it
@@ -428,20 +419,29 @@ cri:
 # see templates/utils/_k8s_pki_val_extract.tpl for implementation details
 # to use a different structure - override it in tpl section
 certs:
-  # expected structure:
-  # perms:
-  #   pki_dir:
-  #     owner: "root:root"
-  #     mode: "0700"
-  #   pki_files:
-  #     owner: "root:root"
-  #     mode: "0600"
-  #   etcd_dir: # inherit pki_dir if not defines
-  #     owner: "root:root"
-  #     mode: "0700"
-  #   etcd_files: # inherit pki_files if not defines
-  #     owner: "root:root"
-  #     mode: "0600"
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/pki
+    "pkipriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "pkipub": # certs
+      owner: "root:root"
+      mode: "0644"
+    # /etc/kubernetes/pki/etcd
+    "etcdpriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "etcdpub": # certs
+      owner: "root:root"
+      mode: "0600" #"0644"
+    # /etc/kubernetes/admin/pki
+    "adminpkipriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "adminpkipub": # certs
+      owner: "root:root"
+      mode: "0600" #"0644"
 
   # ca:
   #   crt: placeholder

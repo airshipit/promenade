@@ -113,24 +113,24 @@
 
 {{- define "__certs_sync" -}}
 {{- $envAll := . -}}
-{{- $kubernetesPkiDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesPkiDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template" -}}
-{{- $pkipubMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipub") | include "kubeadm.bundle.template" -}}
-{{- $pkipubOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipub") | include "kubeadm.bundle.template" -}}
-{{- $pkiprivMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipriv") | include "kubeadm.bundle.template" -}}
-{{- $pkiprivOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "pkipriv") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesPkiEtcdDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesPkiEtcdDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd") | include "kubeadm.bundle.template" -}}
-{{- $etcdpubMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpub") | include "kubeadm.bundle.template" -}}
-{{- $etcdpubOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpub") | include "kubeadm.bundle.template" -}}
-{{- $etcdprivMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv") | include "kubeadm.bundle.template" -}}
-{{- $etcdprivOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki/etcd" "etcdpriv") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesAdminPkiDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesAdminPkiDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki") | include "kubeadm.bundle.template" -}}
-{{- $adminpkipubMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub") | include "kubeadm.bundle.template" -}}
-{{- $adminpkipubOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipub") | include "kubeadm.bundle.template" -}}
-{{- $adminpkiprivMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv") | include "kubeadm.bundle.template" -}}
-{{- $adminpkiprivOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/admin/pki" "adminpkipriv") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesPkiDirMode := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesPkiDirOwner := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_owner" -}}
+{{- $pkipubMode := tuple $envAll "certs" "pkipub" | include "kubeadm.fs.file_mode" -}}
+{{- $pkipubOwner := tuple $envAll "certs" "pkipub" | include "kubeadm.fs.file_owner" -}}
+{{- $pkiprivMode := tuple $envAll "certs" "pkipriv" | include "kubeadm.fs.file_mode" -}}
+{{- $pkiprivOwner := tuple $envAll "certs" "pkipriv" | include "kubeadm.fs.file_owner" -}}
+{{- $kubernetesPkiEtcdDirMode := tuple $envAll "/etc/kubernetes/pki/etcd" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesPkiEtcdDirOwner := tuple $envAll "/etc/kubernetes/pki/etcd" | include "kubeadm.fs.dir_owner" -}}
+{{- $etcdpubMode := tuple $envAll "certs" "etcdpub" | include "kubeadm.fs.file_mode" -}}
+{{- $etcdpubOwner := tuple $envAll "certs" "etcdpub" | include "kubeadm.fs.file_owner" -}}
+{{- $etcdprivMode := tuple $envAll "certs" "etcdpriv" | include "kubeadm.fs.file_mode" -}}
+{{- $etcdprivOwner := tuple $envAll "certs" "etcdpriv" | include "kubeadm.fs.file_owner" -}}
+{{- $kubernetesAdminPkiDirMode := tuple $envAll "/etc/kubernetes/admin/pki" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesAdminPkiDirOwner := tuple $envAll "/etc/kubernetes/admin/pki" | include "kubeadm.fs.dir_owner" -}}
+{{- $adminpkipubMode := tuple $envAll "certs" "adminpkipub" | include "kubeadm.fs.file_mode" -}}
+{{- $adminpkipubOwner := tuple $envAll "certs" "adminpkipub" | include "kubeadm.fs.file_owner" -}}
+{{- $adminpkiprivMode := tuple $envAll "certs" "adminpkipriv" | include "kubeadm.fs.file_mode" -}}
+{{- $adminpkiprivOwner := tuple $envAll "certs" "adminpkipriv" | include "kubeadm.fs.file_owner" -}}
 certs_sync() {
   local pki_dir="/etc/kubernetes/pki"
   local etcd_dir="${pki_dir}/etcd"

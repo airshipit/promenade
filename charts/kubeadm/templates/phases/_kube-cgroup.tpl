@@ -5,15 +5,15 @@
 {{- define "__kube_cgroup_sync" -}}
 {{- $envAll := . -}}
 
-{{- $usrDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/usr/local/sbin") | include "kubeadm.bundle.template" -}}
-{{- $usrDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/usr/local/sbin") | include "kubeadm.bundle.template" -}}
-{{- $scriptMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/usr/local/sbin" "kube-cgroup.sh") | include "kubeadm.bundle.template" -}}
-{{- $scriptOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/usr/local/sbin" "kube-cgroup.sh") | include "kubeadm.bundle.template" -}}
+{{- $usrDirMode := tuple $envAll "/usr/local/sbin" | include "kubeadm.fs.dir_mode" -}}
+{{- $usrDirOwner := tuple $envAll "/usr/local/sbin" | include "kubeadm.fs.dir_owner" -}}
+{{- $scriptMode := tuple $envAll "kube_cgroup" "kube-cgroup.sh" | include "kubeadm.fs.file_mode" -}}
+{{- $scriptOwner := tuple $envAll "kube_cgroup" "kube-cgroup.sh" | include "kubeadm.fs.file_owner" -}}
 
-{{- $etcDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/systemd/system") | include "kubeadm.bundle.template" -}}
-{{- $etcDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/systemd/system") | include "kubeadm.bundle.template" -}}
-{{- $serviceMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/systemd/system" "kube-cgroup.service") | include "kubeadm.bundle.template" -}}
-{{- $serviceOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/systemd/system" "kube-cgroup.service") | include "kubeadm.bundle.template" -}}
+{{- $etcDirMode := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_mode" -}}
+{{- $etcDirOwner := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_owner" -}}
+{{- $serviceMode := tuple $envAll "kube_cgroup" "kube-cgroup.service" | include "kubeadm.fs.file_mode" -}}
+{{- $serviceOwner := tuple $envAll "kube_cgroup" "kube-cgroup.service" | include "kubeadm.fs.file_owner" -}}
 
 kube_cgroup_sync() {
   ensure_dir "${ROOTFS}/usr/local/sbin/" "{{ $usrDirMode }}" "{{ $usrDirOwner }}"

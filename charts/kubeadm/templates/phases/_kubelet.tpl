@@ -30,16 +30,16 @@
 {{- range $_,$v := ($envAll.Values.certs).nodes -}}
   {{- if $v.kubelet -}}{{- $kubeletCerts = true -}}{{- end -}}
 {{- end -}}
-{{- $kubernetesPkiDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesPkiDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/pki") | include "kubeadm.bundle.template" -}}
-{{- $kubeletpkipubMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipub") | include "kubeadm.bundle.template" -}}
-{{- $kubeletpkipubOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipub") | include "kubeadm.bundle.template" -}}
-{{- $kubeletpkiprivMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipriv") | include "kubeadm.bundle.template" -}}
-{{- $kubeletpkiprivOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/pki" "kubeletpkipriv") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
-{{- $kubeletConfMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template" -}}
-{{- $kubeletConfOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesPkiDirMode := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesPkiDirOwner := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_owner" -}}
+{{- $kubeletpkipubMode := tuple $envAll "kubelet" "kubeletpkipub" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeletpkipubOwner := tuple $envAll "kubelet" "kubeletpkipub" | include "kubeadm.fs.file_owner" -}}
+{{- $kubeletpkiprivMode := tuple $envAll "kubelet" "kubeletpkipriv" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeletpkiprivOwner := tuple $envAll "kubelet" "kubeletpkipriv" | include "kubeadm.fs.file_owner" -}}
+{{- $kubernetesDirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesDirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" -}}
+{{- $kubeletConfMode := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeletConfOwner := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_owner" -}}
 # returns 0 if the files were changed, 1 if not
 kubelet_kubeconfig_sync_rc() {
   local pki_dir="/etc/kubernetes/pki"
@@ -76,18 +76,18 @@ kubelet_kubeconfig_sync_rc() {
 
 {{- define "__kubelet_sync_rc" -}}
 {{- $envAll := . -}}
-{{- $defaultDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/default") | include "kubeadm.bundle.template" -}}
-{{- $defaultDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/default") | include "kubeadm.bundle.template" -}}
-{{- $kubeletMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/default" "kubelet") | include "kubeadm.bundle.template" -}}
-{{- $kubeletOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/default" "kubelet") | include "kubeadm.bundle.template" -}}
-{{- $systemdSystemDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/systemd/system") | include "kubeadm.bundle.template" -}}
-{{- $systemdSystemDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/systemd/system") | include "kubeadm.bundle.template" -}}
-{{- $kubeletServiceMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/systemd/system" "kubelet.service") | include "kubeadm.bundle.template" -}}
-{{- $kubeletServiceOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/systemd/system" "kubelet.service") | include "kubeadm.bundle.template" -}}
-{{- $kubeletDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/var/lib/kubelet") | include "kubeadm.bundle.template" -}}
-{{- $kubeletDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/var/lib/kubelet") | include "kubeadm.bundle.template" -}}
-{{- $configYamlMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/var/lib/kubelet" "config.yaml") | include "kubeadm.bundle.template" -}}
-{{- $configYamlOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/var/lib/kubelet" "config.yaml") | include "kubeadm.bundle.template" -}}
+{{- $defaultDirMode := tuple $envAll "/etc/default" | include "kubeadm.fs.dir_mode" -}}
+{{- $defaultDirOwner := tuple $envAll "/etc/default" | include "kubeadm.fs.dir_owner" -}}
+{{- $kubeletMode := tuple $envAll "kubelet" "kubelet" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeletOwner := tuple $envAll "kubelet" "kubelet" | include "kubeadm.fs.file_owner" -}}
+{{- $systemdSystemDirMode := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_mode" -}}
+{{- $systemdSystemDirOwner := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_owner" -}}
+{{- $kubeletServiceMode := tuple $envAll "kubelet" "kubelet.service" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeletServiceOwner := tuple $envAll "kubelet" "kubelet.service" | include "kubeadm.fs.file_owner" -}}
+{{- $kubeletDirMode := tuple $envAll "/var/lib/kubelet" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubeletDirOwner := tuple $envAll "/var/lib/kubelet" | include "kubeadm.fs.dir_owner" -}}
+{{- $configYamlMode := tuple $envAll "kubelet" "config.yaml" | include "kubeadm.fs.file_mode" -}}
+{{- $configYamlOwner := tuple $envAll "kubelet" "config.yaml" | include "kubeadm.fs.file_owner" -}}
 # returns 0 if the files were changed, 1 if not
 kubelet_sync_rc() {
   local c=1 # return code 1 means false

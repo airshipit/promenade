@@ -4,7 +4,7 @@ images:
     etcdImageRepository: docker-open-nc.zc1.somedomain.com/upstream-local/kubernetes/etcd
 
 kubeadm:
-  fs:
+  templates:
     # kubeadm folder structure - pointing to templates
     "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
     "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"

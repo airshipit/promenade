@@ -1066,10 +1066,10 @@ for name in random text_random stored; do
 done
 rm -rf "${gzip_chart}"
 
-# fsgroups: every state, the mode is applied, the second sync with nothing to
+# fs.groups: every state, the mode is applied, the second sync with nothing to
 # change (unchanged files, an absent file to remove) doesn't stop the script
 
-echo "[fsgroups] states, mode, second sync"
+echo "[fs.groups] states, mode, second sync"
 files_check() {
   local msg="$1"
   shift
@@ -1093,29 +1093,30 @@ word: rendered
 bundle:
   tpl:
     file.tpl: "{{ .Values.word }}\n"
-fsgroups:
-  test:
-    - path: /d
-      state: dir
-      mode: "0750"
-    - path: /d/content
-      state: content
-      from: "content\n"
-      mode: "0640"
-    - path: /d/tpl
-      state: tpl
-      from: file.tpl
-    - path: /d/copy
-      state: copy
-      from: /d/content
-    - path: /d/touched
-      state: touch
-    - path: /d/removed
-      state: touch
-    - path: /d/removed
-      state: rm
-    - path: /d/absent
-      state: rm
+fs:
+  groups:
+    test:
+      - path: /d
+        state: dir
+        mode: "0750"
+      - path: /d/content
+        state: content
+        from: "content\n"
+        mode: "0640"
+      - path: /d/tpl
+        state: tpl
+        from: file.tpl
+      - path: /d/copy
+        state: copy
+        from: /d/content
+      - path: /d/touched
+        state: touch
+      - path: /d/removed
+        state: touch
+      - path: /d/removed
+        state: rm
+      - path: /d/absent
+        state: rm
 EOF
 cat > "${files_chart}/templates/configmap.yaml" << 'EOF'
 {{- $conf := dict "sharedLibs" (dict) "symbols" (dict) "fs" (dict "all" (dict)) -}}

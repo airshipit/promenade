@@ -22,14 +22,14 @@ EOF_TEMPLATE_DATA
 {{- define "__kubeconfigs_sync" -}}
 {{- $envAll := . -}}
 {{/*kubeconfigs permissions*/}}
-{{- $dirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
-{{- $dirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes") | include "kubeadm.bundle.template" -}}
-{{- $adminMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "admin.conf") | include "kubeadm.bundle.template" -}}
-{{- $adminOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "admin.conf") | include "kubeadm.bundle.template" -}}
-{{- $ctrlMgrMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "controller-manager.conf") | include "kubeadm.bundle.template" -}}
-{{- $ctrlMgrOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "controller-manager.conf") | include "kubeadm.bundle.template" -}}
-{{- $schdlrMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
-{{- $schdlrOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "scheduler.conf") | include "kubeadm.bundle.template" -}}
+{{- $dirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" -}}
+{{- $dirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" -}}
+{{- $adminMode := tuple $envAll "kubeconfig" "admin.conf" | include "kubeadm.fs.file_mode" -}}
+{{- $adminOwner := tuple $envAll "kubeconfig" "admin.conf" | include "kubeadm.fs.file_owner" -}}
+{{- $ctrlMgrMode := tuple $envAll "kubeconfig" "controller-manager.conf" | include "kubeadm.fs.file_mode" -}}
+{{- $ctrlMgrOwner := tuple $envAll "kubeconfig" "controller-manager.conf" | include "kubeadm.fs.file_owner" -}}
+{{- $schdlrMode := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_mode" -}}
+{{- $schdlrOwner := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_owner" -}}
 kubeconfigs_sync() {
 
   if [ "${NODE_ROLE}" == "master" ]; then

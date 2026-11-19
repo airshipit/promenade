@@ -77,8 +77,8 @@ VIP_FILE="${ROOTFS}/etc/kubernetes/kubeadm/addons/vip"
 
 {{- define "__vip_save" -}}
 {{- $envAll := . -}}
-{{- $addonsDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/addons") | include "kubeadm.bundle.template" -}}
-{{- $addonsDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/addons") | include "kubeadm.bundle.template" -}}
+{{- $addonsDirMode := tuple $envAll "/etc/kubernetes/kubeadm/addons" | include "kubeadm.fs.dir_mode" -}}
+{{- $addonsDirOwner := tuple $envAll "/etc/kubernetes/kubeadm/addons" | include "kubeadm.fs.dir_owner" -}}
 # the VIP (vip_argname, vip_arg) to VIP_FILE
 vip_save() {
   ensure_dir "${VIP_FILE%/*}" "{{ $addonsDirMode }}" "{{ $addonsDirOwner }}"

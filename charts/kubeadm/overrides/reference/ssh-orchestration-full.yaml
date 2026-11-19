@@ -136,7 +136,7 @@ vip:
     {{- join "," $backends -}}
 
 kubeadm:
-  fs:
+  templates:
     "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
     "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
     "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"

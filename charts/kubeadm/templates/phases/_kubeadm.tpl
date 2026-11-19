@@ -11,8 +11,8 @@
 -}}
 
 {{- if $envAll.Values.kubeadm -}}
-  {{- if $envAll.Values.kubeadm.fs -}}
-    {{- range $filename,$template := $envAll.Values.kubeadm.fs -}}
+  {{- if $envAll.Values.kubeadm.templates -}}
+    {{- range $filename,$template := $envAll.Values.kubeadm.templates -}}
       {{/* account for different directories. fail if no matiching prefix */}}
       {{- $fname := base $filename -}}
       {{- $fdir := dir $filename -}}
@@ -26,18 +26,18 @@
 {{- $symbols := get $k8sConfDict "symbols" -}}
 {{- define "__kubeadm_sync" -}}
 {{- $envAll := . -}}
-{{- $kubernetesKubeadmDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/kubeadm") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesKubeadmDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/kubeadm") | include "kubeadm.bundle.template" -}}
-{{- $kubeadmMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/kubeadm" "kubeadm") | include "kubeadm.bundle.template" -}}
-{{- $kubeadmOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/kubeadm" "kubeadm") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesKubeadmPatchesDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/patches") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesKubeadmPatchesDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/patches") | include "kubeadm.bundle.template" -}}
-{{- $kubeadmpatchMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/patches" "kubeadmpatch") | include "kubeadm.bundle.template" -}}
-{{- $kubeadmpatchOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/kubeadm/patches" "kubeadmpatch") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesApiserverDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/apiserver") | include "kubeadm.bundle.template" -}}
-{{- $kubernetesApiserverDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/apiserver") | include "kubeadm.bundle.template" -}}
-{{- $kubeadmapiserverMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/apiserver" "kubeadmapiserver") | include "kubeadm.bundle.template" -}}
-{{- $kubeadmapiserverOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/apiserver" "kubeadmapiserver") | include "kubeadm.bundle.template" -}}
+{{- $kubernetesKubeadmDirMode := tuple $envAll "/etc/kubernetes/kubeadm" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesKubeadmDirOwner := tuple $envAll "/etc/kubernetes/kubeadm" | include "kubeadm.fs.dir_owner" -}}
+{{- $kubeadmMode := tuple $envAll "kubeadm" "kubeadm" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeadmOwner := tuple $envAll "kubeadm" "kubeadm" | include "kubeadm.fs.file_owner" -}}
+{{- $kubernetesKubeadmPatchesDirMode := tuple $envAll "/etc/kubernetes/kubeadm/patches" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesKubeadmPatchesDirOwner := tuple $envAll "/etc/kubernetes/kubeadm/patches" | include "kubeadm.fs.dir_owner" -}}
+{{- $kubeadmpatchMode := tuple $envAll "kubeadm" "kubeadmpatch" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeadmpatchOwner := tuple $envAll "kubeadm" "kubeadmpatch" | include "kubeadm.fs.file_owner" -}}
+{{- $kubernetesApiserverDirMode := tuple $envAll "/etc/kubernetes/apiserver" | include "kubeadm.fs.dir_mode" -}}
+{{- $kubernetesApiserverDirOwner := tuple $envAll "/etc/kubernetes/apiserver" | include "kubeadm.fs.dir_owner" -}}
+{{- $kubeadmapiserverMode := tuple $envAll "kubeadm" "kubeadmapiserver" | include "kubeadm.fs.file_mode" -}}
+{{- $kubeadmapiserverOwner := tuple $envAll "kubeadm" "kubeadmapiserver" | include "kubeadm.fs.file_owner" -}}
 kubeadm_sync() {
   local kubernetes_dir="/etc/kubernetes"
 

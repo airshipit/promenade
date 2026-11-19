@@ -1,5 +1,6 @@
 {{/*
-  The archives with the files of the chart (see templates/phases/_fs.tpl)
+  The files of the chart (see templates/phases/_fs.tpl): the archives, the
+  groups, the permissions
 */}}
 
 {{/* "true" if the archive (tuple fs archive) has files, for any node in the per-node ones */}}
@@ -85,4 +86,32 @@
   {{- $_ := set $symbols $fn (dict "needs" (keys $needs | sortAlpha)
   "body" $body
   ) -}}
+{{- end -}}
+
+{{/* the permissions of a directory of the phases (tuple envAll path): fs.permissions.<path> */}}
+{{- define "kubeadm.fs.dir_mode" -}}
+  {{- $envAll := index . 0 -}}
+  {{- $path := index . 1 -}}
+  {{- dig "permissions" $path "mode" "" ($envAll.Values.fs | default dict) -}}
+{{- end -}}
+
+{{- define "kubeadm.fs.dir_owner" -}}
+  {{- $envAll := index . 0 -}}
+  {{- $path := index . 1 -}}
+  {{- dig "permissions" $path "owner" "" ($envAll.Values.fs | default dict) -}}
+{{- end -}}
+
+{{/* the permissions of a group of the files of a phase (tuple envAll phase group): <phase>.permissions.<group> */}}
+{{- define "kubeadm.fs.file_mode" -}}
+  {{- $envAll := index . 0 -}}
+  {{- $phase := index . 1 -}}
+  {{- $group := index . 2 -}}
+  {{- dig "permissions" $group "mode" "" (index $envAll.Values $phase | default dict) -}}
+{{- end -}}
+
+{{- define "kubeadm.fs.file_owner" -}}
+  {{- $envAll := index . 0 -}}
+  {{- $phase := index . 1 -}}
+  {{- $group := index . 2 -}}
+  {{- dig "permissions" $group "owner" "" (index $envAll.Values $phase | default dict) -}}
 {{- end -}}

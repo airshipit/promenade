@@ -25,10 +25,10 @@
 
 {{- define "__vip_config_sync" -}}
 {{- $envAll := . -}}
-{{- $manifestDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/kubernetes/manifests") | include "kubeadm.bundle.template" -}}
-{{- $manifestDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/kubernetes/manifests") | include "kubeadm.bundle.template" -}}
-{{- $manifestMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests") | include "kubeadm.bundle.template" -}}
-{{- $manifestOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes/manifests" "manifests") | include "kubeadm.bundle.template" -}}
+{{- $manifestDirMode := tuple $envAll "/etc/kubernetes/manifests" | include "kubeadm.fs.dir_mode" -}}
+{{- $manifestDirOwner := tuple $envAll "/etc/kubernetes/manifests" | include "kubeadm.fs.dir_owner" -}}
+{{- $manifestMode := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_mode" -}}
+{{- $manifestOwner := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_owner" -}}
 
 vip_config_sync() {
   local kubernetes_dir="/etc/kubernetes"
