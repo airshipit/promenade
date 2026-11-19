@@ -258,7 +258,7 @@ kubeadm_action() {
     kubeadm upgrade node --config "${KUBERNETES_DIR}/kubeadm/upgrade_config.yaml"
 
     # kubeadm changes kubelet server address - enforcing it back
-    _kubelet_kubeconfig_sync || true
+    kubelet_kubeconfig_sync_rc || true
     kubeconfigs_sync
 
     kubectl wait --for=condition=ready pods -n kube-system --field-selector "spec.nodeName=$NODE_NAME" -l tier=control-plane --timeout 300s
@@ -360,7 +360,7 @@ airship_migration_cleanup() {
 # templates/bin/_rebootstrap.tpl): the node isn't touched until they are removed.
 # The waiting file tells the rebootstrap script the pass doesn't go on
 wait_rebootstrap() {
-  while _backup_exists; do
+  while backup_exists_rc; do
     touch "${RECONCILE_DIR}/rebootstrap-wait"
     echo "rebootstrap: {{ $envAll.Values.backup.dir }} exists, waiting for the end of the procedure (backup_restore or backup_remove)"
     sleep 30
@@ -408,16 +408,16 @@ KUBELET_RESTART_REQUIRED=false
 
 CRI_RESTART_REQUIRED=false
 {{- if $envAll.Values.cri.reconcile_install }}
-_cri_install_sync && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+cri_install_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
 {{- end }}
-_cri_sync && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
 if [[ $CRI_RESTART_REQUIRED == true ]]; then
   cri_restart
 fi
 kubeconfigs_sync
-_kubelet_sync && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+kubelet_sync_rc && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 [ "${NODE_ROLE}" == "master" ] || wait_apiservers_upgraded
-_binary_sync kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+binary_sync_rc kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 
 certs_sync
 kubeadm_sync

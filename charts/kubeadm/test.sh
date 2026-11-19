@@ -802,7 +802,7 @@ ca_backups="${ROOTFS}/var/lib/kubeadm-backup"
 : > "${ROOTFS}/mock_calls.log"
 # the phases of the orchestration on a control plane node
 rebootstrap_check "the CAs only: the phases of a control plane node pass" ca_rebootstrap_run \
-  --phases reconcile_guard,backup,certs_sync,kubeconfigs_sync,_kubelet_sync,kubeadm_certs,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet
+  --phases reconcile_guard,backup,certs_sync,kubeconfigs_sync,kubelet_sync_rc,kubeadm_certs,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet
 ca_backup="${ca_backups}/$(ls -1 "${ca_backups}" | tail -n 1)"
 rebootstrap_check "the CAs only, backup: the certificates kubeadm generated" \
   grep -qx "old" "${ca_backup}/etc/kubernetes/pki/apiserver.crt"
@@ -1124,7 +1124,7 @@ kind: ConfigMap
 metadata:
   name: files-test
 data:
-  lib: {{ include "linker" (dict "symbols" $conf.symbols "needs" (list "_test_sync")) | b64enc }}
+  lib: {{ include "linker" (dict "symbols" $conf.symbols "needs" (list "test_sync_rc")) | b64enc }}
   tar: {{ $conf.fs.all | include "tar" | b64enc }}
 EOF
 files_rendered=$("${HELM:-helm}" template files-test "${files_chart}")
@@ -1132,10 +1132,10 @@ echo "${files_rendered}" | sed -n 's/^  lib: //p' | base64 -d > "${files_chart}/
 # the files of the chart are in /run/kubeadm on the node (ensure_fs)
 mkdir -p "${files_chart}/rootfs/run/kubeadm/all"
 echo "${files_rendered}" | sed -n 's/^  tar: //p' | base64 -d | tar -x -C "${files_chart}/rootfs/run/kubeadm/all"
-# returns the status of _test_sync: 0 changed, 1 unchanged, 2 if it didn't finish
+# returns the status of test_sync_rc: 0 changed, 1 unchanged, 2 if it didn't finish
 files_sync() {
   local rc=0
-  ROOTFS="${files_chart}/rootfs" SKIPPERM= bash -c 'set -euo pipefail; source "$1"; _test_sync' _ "${files_chart}/lib.sh" > "${files_chart}/out" || rc=$?
+  ROOTFS="${files_chart}/rootfs" SKIPPERM= bash -c 'set -euo pipefail; source "$1"; test_sync_rc' _ "${files_chart}/lib.sh" > "${files_chart}/out" || rc=$?
   grep -qx "test is synced" "${files_chart}/out" || return 2
   return "${rc}"
 }

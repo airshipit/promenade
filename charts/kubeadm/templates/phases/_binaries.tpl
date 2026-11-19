@@ -34,10 +34,10 @@ binary_source() {
 
 {{- $_ := set $symbols "cri_restart" (dict "body" (tuple $envAll "templates/phases/snippets/cri/_restart.sh.tpl" | include "kubeadm.bundle.template")) -}}
 
-{{- $_ := set $symbols "_binary_sync" (dict "needs" (list "binary_install")
+{{- $_ := set $symbols "binary_sync_rc" (dict "needs" (list "binary_install")
 "body" `
 # returns 0 if the binary was changed, 1 if not, exits on errors
-_binary_sync() {
+binary_sync_rc() {
   local rc=0
   binary_install "$1" || rc=$?
   if [ "$rc" -gt 1 ]; then
@@ -48,22 +48,22 @@ _binary_sync() {
 }
 `) -}}
 
-{{- $_ := set $symbols "binaries_sync" (dict "needs" (list "_binary_sync")
+{{- $_ := set $symbols "binaries_sync" (dict "needs" (list "binary_sync_rc")
 "body" `
 # the given binaries, kubeadm, kubectl and kubelet without arguments
 binaries_sync() {
   local name
   [ $# -gt 0 ] || set -- kubeadm kubectl kubelet
   for name in "$@"; do
-    _binary_sync "$name" || true
+    binary_sync_rc "$name" || true
   done
 }
 `) -}}
 
-{{- $_ := set $symbols "_cri_install_sync" (dict "needs" (list "cri_install")
+{{- $_ := set $symbols "cri_install_sync_rc" (dict "needs" (list "cri_install")
 "body" `
 # returns 0 if the container runtime was changed, 1 if not, exits on errors
-_cri_install_sync() {
+cri_install_sync_rc() {
   local rc=0
   cri_install || rc=$?
   if [ "$rc" -gt 1 ]; then
@@ -74,17 +74,17 @@ _cri_install_sync() {
 }
 `) -}}
 
-{{/* _cri_sync: the files group cri of the values (templates/phases/_fs.tpl) */}}
+{{/* cri_sync_rc: the files group cri of the values (templates/phases/_fs.tpl) */}}
 {{- if not ($envAll.Values.files | default dict).cri -}}
 {{- fail "files.cri: the configuration of the container runtime is required by cri_setup and the reconcile, don't remove it" -}}
 {{- end -}}
-{{- $_ := set $symbols "cri_setup" (dict "needs" (list "_cri_install_sync" "_cri_sync" "cri_restart")
+{{- $_ := set $symbols "cri_setup" (dict "needs" (list "cri_install_sync_rc" "cri_sync_rc" "cri_restart")
 "body" `
 # the container runtime and its configuration, restarted if they are changed
 cri_setup() {
   local cri_changed=false
-  _cri_install_sync && cri_changed=true
-  _cri_sync && cri_changed=true
+  cri_install_sync_rc && cri_changed=true
+  cri_sync_rc && cri_changed=true
   if [[ $cri_changed == true ]]; then
     cri_restart
   fi

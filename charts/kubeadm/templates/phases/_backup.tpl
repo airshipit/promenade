@@ -39,33 +39,33 @@ restore_files() {
 }
 `) -}}
 
-{{- $_ := set $symbols "group_dir_backup" (dict "needs" (list "backup_files" "_group_dir_files")
+{{- $_ := set $symbols "group_dir_backup" (dict "needs" (list "backup_files" "group_dir_files")
 "body" `
 # copies the files of the directory the group syncs to the backup directory
 group_dir_backup() {
-  backup_files "$5" $(_group_dir_files "$1" "$2" "$3" "$4")
+  backup_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
 }
 `) -}}
 
-{{- $_ := set $symbols "group_dir_restore" (dict "needs" (list "restore_files" "_group_dir_files")
+{{- $_ := set $symbols "group_dir_restore" (dict "needs" (list "restore_files" "group_dir_files")
 "body" `
 # puts the files of the group back from the backup directory, removes the ones
 # it doesn't have (the node didn't have them before the sync)
 group_dir_restore() {
-  restore_files "$5" $(_group_dir_files "$1" "$2" "$3" "$4")
+  restore_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
 }
 `) -}}
 
-{{- define "___backup_exists" -}}
+{{- define "__backup_exists_rc" -}}
 {{- $envAll := . -}}
 # 0 while backup.dir exists (reconcile_guard creates it before the first
 # backup): the procedure isn't over (backup_restore or backup_remove)
-_backup_exists() {
+backup_exists_rc() {
   [ -e "${ROOTFS}{{ $envAll.Values.backup.dir }}" ]
 }
 {{- end -}}
-{{- $_ := set $symbols "_backup_exists" (dict
-"body" (include "___backup_exists" $envAll)
+{{- $_ := set $symbols "backup_exists_rc" (dict
+"body" (include "__backup_exists_rc" $envAll)
 ) -}}
 
 {{- define "__backup" -}}

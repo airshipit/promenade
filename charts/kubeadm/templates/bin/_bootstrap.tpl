@@ -9,7 +9,7 @@
                         than the ones of the node
     certs_sync        - the certificates
     kubeconfigs_sync  - the kubeconfigs
-    _kubelet_sync     - the certificates and the kubeconfig of kubelet, its
+    kubelet_sync_rc   - the certificates and the kubeconfig of kubelet, its
                         unit and configuration
     kubeadm_sync      - the configurations of kubeadm
     vip_sync          - the VIP of the control plane endpoint

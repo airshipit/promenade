@@ -20,7 +20,7 @@
                         the values are in the cluster): the anchors go on
     certs_sync        - the certificates (as the bootstrap)
     kubeconfigs_sync  - the kubeconfigs (as the bootstrap)
-    _kubelet_sync     - the certificates and the kubeconfig of kubelet, its
+    kubelet_sync_rc   - the certificates and the kubeconfig of kubelet, its
                         unit and configuration (as the bootstrap)
     kubeadm_certs     - only with --phases, the values have the CAs only: what
                         kubeadm generated from the CAs again. On the control

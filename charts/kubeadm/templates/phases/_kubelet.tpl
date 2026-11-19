@@ -23,7 +23,7 @@
 {{- end -}}
 
 {{- $symbols := get $k8sConfDict "symbols" -}}
-{{- define "___kubelet_kubeconfig_sync" -}}
+{{- define "__kubelet_kubeconfig_sync_rc" -}}
 {{- $envAll := . -}}
 {{/* without pregenerated kubelet certs kubeadm generates kubelet.conf itself */}}
 {{- $kubeletCerts := false -}}
@@ -41,7 +41,7 @@
 {{- $kubeletConfMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template" -}}
 {{- $kubeletConfOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/etc/kubernetes" "kubelet.conf") | include "kubeadm.bundle.template" -}}
 # returns 0 if the files were changed, 1 if not
-_kubelet_kubeconfig_sync() {
+kubelet_kubeconfig_sync_rc() {
   local pki_dir="/etc/kubernetes/pki"
   local k_crt="${ROOTFS}${pki_dir}/kubelet.pem"
   local k_key="${ROOTFS}${pki_dir}/kubelet-key.pem"
@@ -70,11 +70,11 @@ _kubelet_kubeconfig_sync() {
   [ "$sha_before" != "$sha_after" ] && return 0 || return 1
 }
 {{- end -}}
-{{- $_ := set $symbols "_kubelet_kubeconfig_sync" (dict "needs" (list "ensure_dir" "group_dir_sync" "render_kubeconfig")
-"body" (include "___kubelet_kubeconfig_sync" $envAll)
+{{- $_ := set $symbols "kubelet_kubeconfig_sync_rc" (dict "needs" (list "ensure_dir" "group_dir_sync" "render_kubeconfig")
+"body" (include "__kubelet_kubeconfig_sync_rc" $envAll)
 ) -}}
 
-{{- define "___kubelet_sync" -}}
+{{- define "__kubelet_sync_rc" -}}
 {{- $envAll := . -}}
 {{- $defaultDirMode := tuple $envAll "templates/phases/snippets/common/_dir_mode.tpl" (tuple $envAll "/etc/default") | include "kubeadm.bundle.template" -}}
 {{- $defaultDirOwner := tuple $envAll "templates/phases/snippets/common/_dir_owner.tpl" (tuple $envAll "/etc/default") | include "kubeadm.bundle.template" -}}
@@ -89,10 +89,10 @@ _kubelet_kubeconfig_sync() {
 {{- $configYamlMode := tuple $envAll "templates/phases/snippets/common/_file_mode.tpl" (tuple $envAll "/var/lib/kubelet" "config.yaml") | include "kubeadm.bundle.template" -}}
 {{- $configYamlOwner := tuple $envAll "templates/phases/snippets/common/_file_owner.tpl" (tuple $envAll "/var/lib/kubelet" "config.yaml") | include "kubeadm.bundle.template" -}}
 # returns 0 if the files were changed, 1 if not
-_kubelet_sync() {
+kubelet_sync_rc() {
   local c=1 # return code 1 means false
 
-  _kubelet_kubeconfig_sync && c=0
+  kubelet_kubeconfig_sync_rc && c=0
 
   ensure_dir "${ROOTFS}/etc/default/" "{{ $defaultDirMode }}" "{{ $defaultDirOwner }}"
   subst_node_env "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet" | compare_copy_file - "${ROOTFS}/etc/default/kubelet" && c=0
@@ -109,12 +109,12 @@ _kubelet_sync() {
   return $c
 }
 {{- end -}}
-{{- $_ := set $symbols "_kubelet_sync" (dict "needs" (list "_kubelet_kubeconfig_sync" "ensure_dir" "ensure_file" "subst_node_env" "compare_copy_file")
-"body" (include "___kubelet_sync" $envAll)
+{{- $_ := set $symbols "kubelet_sync_rc" (dict "needs" (list "kubelet_kubeconfig_sync_rc" "ensure_dir" "ensure_file" "subst_node_env" "compare_copy_file")
+"body" (include "__kubelet_sync_rc" $envAll)
 ) -}}
 
 {{/* the rebootstrap script only (templates/bin/_rebootstrap.tpl), the groups
-     of _kubelet_kubeconfig_sync */}}
+     of kubelet_kubeconfig_sync_rc */}}
 {{- $_ := set $symbols "kubelet_backup" (dict "needs" (list "group_dir_backup")
 "body" `
 # copies the certificates of kubelet of the node to the backup $1

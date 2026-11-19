@@ -247,13 +247,13 @@ kubeadm() {
   # kubeadm writes its kubelet configuration (/var/lib/kubelet/config.yaml):
   # the one of the chart again, as the reconcile does, and the kubeconfig of
   # the control plane endpoint
-  if _kubelet_sync; then
+  if kubelet_sync_rc; then
     systemctl daemon-reload
     systemctl restart kubelet
   fi
 }
 {{- end -}}
-{{- $_ := set $symbols "kubeadm" (dict "needs" (list "kubeadm_token_config" "_kubelet_sync")
+{{- $_ := set $symbols "kubeadm" (dict "needs" (list "kubeadm_token_config" "kubelet_sync_rc")
 "body" (include "__kubeadm" $envAll)
 ) -}}
 
@@ -282,10 +282,10 @@ kubeadm_init_certs() {
   fi
   rm -rf "${dir}"
   # kubelet goes through the control plane endpoint
-  _kubelet_kubeconfig_sync || true
+  kubelet_kubeconfig_sync_rc || true
 }
 {{- end -}}
-{{- $_ := set $symbols "kubeadm_init_certs" (dict "needs" (list "kubeadm_generated_files" "kubeadm_node_config" "_kubelet_kubeconfig_sync")
+{{- $_ := set $symbols "kubeadm_init_certs" (dict "needs" (list "kubeadm_generated_files" "kubeadm_node_config" "kubelet_kubeconfig_sync_rc")
 "body" (include "__kubeadm_init_certs" $envAll)
 ) -}}
 

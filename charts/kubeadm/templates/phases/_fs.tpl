@@ -80,10 +80,10 @@ subst_node_env() {
 }
 `) -}}
 
-{{- $_ := set $symbols "_group_dir_files" (dict "body" `
+{{- $_ := set $symbols "group_dir_files" (dict "body" `
 # the files of the directory the group syncs (the same archives as
 # group_dir_sync)
-_group_dir_files() {
+group_dir_files() {
   local rootfs="$1" group="$2" dir="$3" node_role="$4"
   local archive file
   for archive in all ctrl all-pernode ctrl-pernode; do
@@ -129,12 +129,12 @@ group_dir_sync() {
 `) -}}
 
 {{/* files groups go to the "all" archive as <group>/<path>, "_" groups are the phases ones:
-     _<group>_sync returns 0 if the files were changed, 1 if not */}}
+     <group>_sync_rc returns 0 if the files were changed, 1 if not */}}
 {{- range $group,$list := $envAll.Values.files | default dict -}}
   {{- if hasPrefix "_" $group -}}{{ fail (printf "files group %s: groups starting with _ are reserved for the phases" $group) }}{{- end -}}
   {{- $needs := dict -}}
   {{- $body := printf `# the files group %s of the values (files.%s)
-_%s_sync() {
+%s_sync_rc() {
   local host_dir="${ROOTFS}"
   local changed=1 # return code 1 means false
 ` $group $group $group -}}
@@ -179,8 +179,8 @@ _%s_sync() {
   {{- $body = printf `%s  echo "%s is synced"
   return $changed
 }` $body $group -}}
-  {{- if hasKey $symbols (printf "_%s_sync" $group) -}}{{ fail (printf "files group %s: _%s_sync is a function of the chart" $group $group) }}{{- end -}}
-  {{- $_ := set $symbols (printf "_%s_sync" $group) (dict "needs" (keys $needs | sortAlpha)
+  {{- if hasKey $symbols (printf "%s_sync_rc" $group) -}}{{ fail (printf "files group %s: %s_sync_rc is a function of the chart" $group $group) }}{{- end -}}
+  {{- $_ := set $symbols (printf "%s_sync_rc" $group) (dict "needs" (keys $needs | sortAlpha)
   "body" $body
   ) -}}
 {{- end -}}

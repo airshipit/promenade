@@ -762,7 +762,7 @@ bundle:
       fi
 
       # the control plane nodes first: the workers need the API with the new CAs
-      PHASES="certs_sync,kubeconfigs_sync,_kubelet_sync,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet,run_checks"
+      PHASES="certs_sync,kubeconfigs_sync,kubelet_sync_rc,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet,run_checks"
       for role in master worker; do
         echo "=== the new files and the restart of the components on the ${role} nodes"
         for node in "${NODES[@]}"; do

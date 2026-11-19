@@ -60,7 +60,7 @@ bootstrap:
     - certs_guard_ca
     - certs_sync
     - kubeconfigs_sync
-    - _kubelet_sync
+    - kubelet_sync_rc
     - kubeadm_sync
     - vip_sync
     - cri_setup
@@ -80,7 +80,7 @@ bootstrap:
     - +backup_remove
     - certs_sync
     - kubeconfigs_sync
-    - _kubelet_sync
+    - kubelet_sync_rc
     - +kubeadm_certs
     - static_pods_stop
     - kubelet_stop
@@ -141,22 +141,22 @@ anchor:
     # (templates/lib/_linker.tpl), the ones of its options (ca_guard,
     # cri.reconcile_install, checks.reconcile, vip.reconcile) included
     symbols:
-      - _backup_exists
+      - backup_exists_rc
       - annotations
       - kubeadm_config_sha256
       - kubeadm_node_config
       - kubelet_config_sha256
       - cri_restart
-      - _binary_sync
-      - _cri_sync
-      - _kubelet_sync
+      - binary_sync_rc
+      - cri_sync_rc
+      - kubelet_sync_rc
       - binaries_sync
       - certs_sync
       - kubeadm_sync
       - kubeconfigs_sync
-      - _kubelet_kubeconfig_sync
+      - kubelet_kubeconfig_sync_rc
       - certs_guard_ca
-      - _cri_install_sync
+      - cri_install_sync_rc
       - run_checks
       - vip_check
       - vip_reconcile

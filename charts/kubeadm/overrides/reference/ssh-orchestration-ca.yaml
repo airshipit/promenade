@@ -718,7 +718,7 @@ bundle:
       echo "=== the new files, the certificates of kubeadm and the restart of the components on the control plane nodes"
       for node in "${NODES[@]}"; do
         [ "${NODE_ROLE[${node}]}" = master ] || continue
-        start_node "${node}" --phases "certs_sync,kubeconfigs_sync,_kubelet_sync,kubeadm_certs,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet,run_checks"
+        start_node "${node}" --phases "certs_sync,kubeconfigs_sync,kubelet_sync_rc,kubeadm_certs,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet,run_checks"
       done
       if ! wait_nodes; then
         echo "Back to the backups: ssh-rebootstrap.sh --phases backup_restore,static_pods_stop,kubelet_stop,cri_restart,kubelet_start" >&2
@@ -736,7 +736,7 @@ bundle:
           "${SUDO} kubeadm token create --ttl {{ .Values.orchestration.token_ttl }}")
         echo "=== the TLS bootstrap of kubelet on the workers"
         for node in "${WORKERS[@]}"; do
-          start_node "${node}" --phases "certs_sync,kubeconfigs_sync,_kubelet_sync,kubeadm_certs,annotate_applied_kubelet,run_checks"
+          start_node "${node}" --phases "certs_sync,kubeconfigs_sync,kubelet_sync_rc,kubeadm_certs,annotate_applied_kubelet,run_checks"
         done
         if ! wait_nodes; then
           echo "Back to the backups: ssh-rebootstrap.sh --phases backup_restore,static_pods_stop,kubelet_stop,cri_restart,kubelet_start" >&2

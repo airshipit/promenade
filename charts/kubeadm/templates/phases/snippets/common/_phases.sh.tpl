@@ -21,7 +21,7 @@ limitations under the License.
        --skip-phases a,b  all but these ones
        --list-phases      prints the list and exits
      A phase "+<function>" of the list runs only if --phases names it. A
-     function starting with _ returns a result: 1 isn't a failure, >1 is.
+     function ending with _rc returns a result: 1 isn't a failure, >1 is.
      Included by templates/bin/_bootstrap.tpl and _rebootstrap.tpl */ -}}
 PHASES_ONLY=""
 PHASES_SKIP=""
@@ -82,7 +82,7 @@ run_phases() {
     fi
     if [ "${run}" = true ]; then
       echo "phase ${name}"
-      if [[ "${name}" == _* ]]; then
+      if [[ "${name}" == *_rc ]]; then
         rc=0
         "${name}" || rc=$?
         [ "${rc}" -le 1 ] || exit "${rc}"
