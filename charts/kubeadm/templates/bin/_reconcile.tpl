@@ -1,8 +1,6 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{/* the symbols of templates/phases the script uses (anchor.reconcile.symbols),
-     linked (templates/lib/_linker.tpl) */}}
 #!/bin/bash
 # Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
 #
@@ -58,7 +56,28 @@ KUBERNETES_ETCD=""
 KUBELET_RESTART_IN_PROGRESS=""
 
 {{/* the linked functions */}}
-{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" $envAll.Values.anchor.reconcile.symbols) }}
+{{- $needs := list
+  "backup_exists_rc"
+  "annotations"
+  "kubeadm_config_sha256"
+  "kubeadm_node_config"
+  "kubelet_config_sha256"
+  "cri_restart"
+  "binary_sync_rc"
+  "cri_sync_rc"
+  "kubelet_sync_rc"
+  "binaries_sync"
+  "certs_sync"
+  "kubeadm_sync"
+  "kubeconfigs_sync"
+  "kubelet_kubeconfig_sync_rc"
+  "certs_guard_ca"
+  "cri_install_sync_rc"
+  "run_checks"
+  "vip_check"
+  "vip_reconcile"
+-}}
+{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" $needs) }}
 # end of common functions
 
 cleanup_old_backups() {
