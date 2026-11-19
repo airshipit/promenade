@@ -93,7 +93,7 @@ images:
     pause: registry.k8s.io/pause:3.10
 
 # containerd is installed by cri_install, see bundle.tpl below, its
-# configuration is the chart default (files.cri)
+# configuration is the chart default (cri.fsgroup)
 cri:
   reconcile_install: true
   restart: true

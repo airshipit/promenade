@@ -205,19 +205,10 @@ haproxy:
       - default-server check-ssl verify none on-marked-down shutdown-sessions
       - option redispatch
 
-files:
-  # todo - can check sha256 before and after and restart containerd if needed
-  cri:
-    - path: /etc/containerd
-      state: dir
-      owner: "root:root"
-    - path: /etc/containerd/config.toml
-      state: tpl
-      from: templates/phases/snippets/cri/_containerd_v3.tpl
-      owner: "root:root"
-      mode: "0600"
+# the fs groups: fsgroups.<group> is synced by fsgroup_<group>_sync_rc
+fsgroups: {}
 # working examples (can be moved to test.sh):
-# files:
+# fsgroups:
 #   rm_files: #groupname
 #     - path: /usr/local/share/ca/certain/dosntexist
 #       state: "rm"
@@ -386,9 +377,19 @@ cri:
   # flag. The installation procedure can be redefined in
   # bundle.tpl."templates/phases/snippets/cri/_install.sh.tpl".
   reconcile_install: false
-  # the reconcile script restarts the runtime when cri_install or files.cri
+  # the reconcile script restarts the runtime when cri_install or cri.fsgroup
   # changed it, the bootstrap script always does
   restart: false
+  # the configuration of the runtime, synced by cri_sync_rc (the items as in files)
+  fsgroup:
+    - path: /etc/containerd
+      state: dir
+      owner: "root:root"
+    - path: /etc/containerd/config.toml
+      state: tpl
+      from: templates/phases/snippets/cri/_containerd_v3.tpl
+      owner: "root:root"
+      mode: "0600"
   # auths:
   #   - repo: docker-open-nc.zc1.somedomain.com
   #     auth: user:password
@@ -511,6 +512,7 @@ phases:
     - templates/phases/_kube-cgroup.tpl
     - templates/phases/_vip.tpl
     - templates/phases/_k8s_up.tpl
+    - templates/phases/_cri.tpl
     - templates/phases/_binaries.tpl
     - templates/phases/_checks.tpl
 

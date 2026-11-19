@@ -32,8 +32,6 @@ binary_source() {
 "body" (tuple $envAll "templates/phases/snippets/cri/_install.sh.tpl" | include "kubeadm.bundle.template")
 ) -}}
 
-{{- $_ := set $symbols "cri_restart" (dict "body" (tuple $envAll "templates/phases/snippets/cri/_restart.sh.tpl" | include "kubeadm.bundle.template")) -}}
-
 {{- $_ := set $symbols "binary_sync_rc" (dict "needs" (list "binary_install")
 "body" `
 # returns 0 if the binary was changed, 1 if not, exits on errors
@@ -74,10 +72,7 @@ cri_install_sync_rc() {
 }
 `) -}}
 
-{{/* cri_sync_rc: the files group cri of the values (templates/phases/_fs.tpl) */}}
-{{- if not ($envAll.Values.files | default dict).cri -}}
-{{- fail "files.cri: the configuration of the container runtime is required by cri_setup and the reconcile, don't remove it" -}}
-{{- end -}}
+{{/* cri_sync_rc and cri_restart: templates/phases/_cri.tpl */}}
 {{- $_ := set $symbols "cri_setup" (dict "needs" (list "cri_install_sync_rc" "cri_sync_rc" "cri_restart")
 "body" `
 # the container runtime and its configuration, restarted if they are changed

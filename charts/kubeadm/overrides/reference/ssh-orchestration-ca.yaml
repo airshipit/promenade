@@ -110,9 +110,7 @@ cri:
   service: crio.service
   reconcile_install: true
   restart: true
-
-files:
-  cri:
+  fsgroup:
     - path: /etc/crio/crio.conf.d
       state: dir
       owner: "root:root"

@@ -128,59 +128,8 @@ group_dir_sync() {
 }
 `) -}}
 
-{{/* files groups go to the "all" archive as <group>/<path>, "_" groups are the phases ones:
-     <group>_sync_rc returns 0 if the files were changed, 1 if not */}}
-{{- range $group,$list := $envAll.Values.files | default dict -}}
-  {{- if hasPrefix "_" $group -}}{{ fail (printf "files group %s: groups starting with _ are reserved for the phases" $group) }}{{- end -}}
-  {{- $needs := dict -}}
-  {{- $body := printf `# the files group %s of the values (files.%s)
-%s_sync_rc() {
-  local host_dir="${ROOTFS}"
-  local changed=1 # return code 1 means false
-` $group $group $group -}}
-  {{- range $i,$v := $list -}}
-    {{- if not $v.path -}}{{ fail (printf "files group %s, item %d doesn't have path" $group $i) }}{{- end -}}
-    {{- if or (eq $v.state "rm") (eq $v.state "remove") -}}
-      {{- $body = printf `%s  rm -f "${host_dir}%s"
-` $body $v.path -}}
-    {{- else -}}
-      {{- $owner := $v.owner | default "" -}}
-      {{- $mode := $v.mode | default "" -}}
-      {{- if eq $v.state "dir" -}}
-        {{- $_ := set $needs "ensure_dir" true -}}
-        {{- $body = printf `%s  ensure_dir "${host_dir}%s" "%s" "%s"
-` $body $v.path $mode $owner -}}
-      {{- else if eq $v.state "touch" -}}
-        {{- $_ := set $needs "ensure_file" true -}}
-        {{- $body = printf `%s  ensure_file "${host_dir}%s" "%s" "%s"
-` $body $v.path $mode $owner -}}
-      {{- else -}}
-        {{- if not $v.from -}}{{ fail (printf "files group %s, item %d doesn't have \"from\" field" $group $i) }}{{- end -}}
-        {{/* compare_copy_file returns 1 when the file is unchanged */}}
-        {{- if or (eq $v.state "cp") (eq $v.state "copy") -}}
-          {{- $_ := set $needs "compare_copy_file" true -}}
-          {{- $body = printf `%s  compare_copy_file "${host_dir}%s" "${host_dir}%s" "%s" "%s" && changed=0
-` $body $v.from $v.path $mode $owner -}}
-        {{- else if or (eq $v.state "content") (eq $v.state "tpl") -}}
-          {{- $data := $v.from -}}
-          {{- if eq $v.state "tpl" -}}
-            {{- $data = tuple $envAll $v.from | include "kubeadm.bundle.template" -}}
-          {{- end -}}
-          {{- $file := printf "%s/%s" $group (trimPrefix "/" $v.path) -}}
-          {{- $_ := set $all $file (dict "content" $data "file_mode" 384) -}}
-          {{- $_ := set $needs "compare_copy_file" true -}}
-          {{- $body = printf `%s  compare_copy_file "${host_dir}/run/kubeadm/all/%s" "${host_dir}%s" "%s" "%s" && changed=0
-` $body $file $v.path $mode $owner -}}
-        {{- end -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
-  {{/* bash doesn't like empty functions */}}
-  {{- $body = printf `%s  echo "%s is synced"
-  return $changed
-}` $body $group -}}
-  {{- if hasKey $symbols (printf "%s_sync_rc" $group) -}}{{ fail (printf "files group %s: %s_sync_rc is a function of the chart" $group $group) }}{{- end -}}
-  {{- $_ := set $symbols (printf "%s_sync_rc" $group) (dict "needs" (keys $needs | sortAlpha)
-  "body" $body
-  ) -}}
+{{/* the fs groups of the values: fsgroups.<group> is synced by fsgroup_<group>_sync_rc
+     (templates/phases/snippets/common/_fs.tpl) */}}
+{{- range $group,$list := $envAll.Values.fsgroups | default dict -}}
+  {{- tuple $envAll $k8sConfDict (printf "fsgroup_%s_sync_rc" $group) $list | include "kubeadm.fs.render_fsgroup_sync_rc" -}}
 {{- end -}}
