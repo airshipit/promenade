@@ -16,11 +16,11 @@ bundle:
         template:
           spec:
             terminationGracePeriodSeconds: 1200
-    "templates/phases/snippets/vip/_haproxy.yaml.tpl.patch": |
+    "templates/phases/snippets/vip/_pod-haproxy.yaml.patch": |
       metadata:
         annotations:
           test-annotation: test-value
-    "templates/bin/helpers/_kubelet_restart.yaml.tpl.patch": |
+    "templates/phases/snippets/kubelet/_job-kubelet-restart.yaml.patch": |
       spec:
         template:
           spec:

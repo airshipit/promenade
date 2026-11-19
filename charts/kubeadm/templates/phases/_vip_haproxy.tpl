@@ -4,8 +4,8 @@
 {{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
 {{/* the haproxy implementation of the VIP (vip.modules, templates/phases/_vip.tpl) */}}
 {{/* populate static pod anyway so user could use bootstrap command line to enable it */}}
-{{/* can be patched with bundle.tpl."templates/phases/snippets/vip/_haproxy.yaml.tpl.patch" */}}
-{{- $staticPod := tuple $envAll "templates/phases/snippets/vip/_haproxy.yaml.tpl" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
+{{/* can be patched with bundle.tpl."templates/phases/snippets/vip/_pod-haproxy.yaml.patch" */}}
+{{- $staticPod := tuple $envAll "templates/phases/snippets/vip/_pod-haproxy.yaml" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
 {{- $_ := set $allNodes "_manifests/haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
 
 

@@ -377,7 +377,7 @@ kubelet:
   # the node is drained before the restart and uncordoned after it
   drain: true
   # the job restarting kubelet can be patched with
-  # bundle.tpl."templates/bin/helpers/_kubelet_restart.yaml.tpl.patch"
+  # bundle.tpl."templates/phases/snippets/kubelet/_job-kubelet-restart.yaml.patch"
 
 cri:
   # kubelet starts after it, cri_restart restarts it

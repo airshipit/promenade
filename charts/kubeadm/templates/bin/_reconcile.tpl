@@ -97,7 +97,7 @@ kubelet_restart() {
   restarted=$(date -u +%FT%TZ)
   # heredoc will take care of ${NODE_NAME} and etc
   job_name=$(kubectl create -n "${NAMESPACE}" -f - -o name <<EOF_DATA
-{{ tuple $envAll "templates/bin/helpers/_kubelet_restart.yaml.tpl" $envAll | include "kubeadm.bundle.patched_template" }}
+{{ tuple $envAll "templates/phases/snippets/kubelet/_job-kubelet-restart.yaml" $envAll | include "kubeadm.bundle.patched_template" }}
 EOF_DATA
 )
 
