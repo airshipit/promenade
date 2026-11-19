@@ -76,7 +76,7 @@ exit 0
 EOF
 
 chmod +x "${test_bin}"/*
-# the node scripts run kubeadm, kubectl and kubelet from binaries.install_dir
+# the node scripts run kubeadm and kubectl by name (the PATH has the mocks), binary_install compares with binaries.install_dir
 mkdir -p "${ROOTFS}/usr/local/bin"
 ln -sf ../../../bin/kubeadm ../../../bin/kubectl "${ROOTFS}/usr/local/bin/"
 }

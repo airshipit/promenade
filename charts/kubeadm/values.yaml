@@ -21,13 +21,14 @@ images:
     pause: registry.k8s.io/pause:3.10
   pull_policy: "IfNotPresent"
 
-# kubeadm, kubelet and kubectl: the node scripts run them from install_dir.
-# They are installed there by the bootstrap script and kept in sync by the
-# anchor if cluster_config.kubernetesVersion is set, otherwise the node has
-# them there. urls are tpl strings, ${ARCH} is substituted on the node with its
-# architecture. sha256 is optional, if empty the binary is verified with
-# <url>.sha256. The installation procedure can be redefined in
-# bundle.tpl."templates/phases/snippets/binaries/_install.sh.tpl".
+# kubeadm, kubelet and kubectl: the node scripts run them by name, so install_dir
+# has to be in the PATH of the node (the reconcile takes the PATH of the login
+# shell of the host). They are installed there by the bootstrap script and kept
+# in sync by the anchor if cluster_config.kubernetesVersion is set, otherwise
+# the node has them in its PATH. urls are tpl strings, ${ARCH} is substituted
+# on the node with its architecture. sha256 is optional, if empty the binary
+# is verified with <url>.sha256. The installation procedure can be
+# redefined in bundle.tpl."templates/phases/snippets/binaries/_install.sh.tpl".
 binaries:
   install_dir: /usr/local/bin
   kubeadm:

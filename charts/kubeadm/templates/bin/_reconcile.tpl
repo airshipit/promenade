@@ -27,15 +27,14 @@ RECONCILE_DIR={{ $envAll.Values.anchor.reconcile.host_dir | quote }}
 # namespace of the anchor pod: its service account runs the kubelet restart job
 NAMESPACE="$(cat "${RECONCILE_DIR}/sa/namespace")"
 
-kubectl() {
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" --kubeconfig "${RECONCILE_DIR}/kubeconfig" "$@"
-}
+export KUBECONFIG="${RECONCILE_DIR}/kubeconfig"
 
+# kubeadm doesn't get the KUBECONFIG of kubectl
 kubeadm() {
   if [[ "$1" == "version" ]]; then
-    "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" "$@"
+    env -u KUBECONFIG kubeadm "$@"
   else
-    "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" --v=5 "$@"
+    env -u KUBECONFIG kubeadm --v=5 "$@"
   fi
 }
 
@@ -127,7 +126,7 @@ EOF_DATA
   fi
 
   KUBELET_CURRENT_VERSION=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.nodeInfo.kubeletVersion}')
-  if [[ $KUBELET_CURRENT_VERSION != $("${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubelet" --version | awk '{print $2}') ]]; then
+  if [[ $KUBELET_CURRENT_VERSION != $(kubelet --version | awk '{print $2}') ]]; then
     echo "kubelet version mismatch"
     exit 1
   fi

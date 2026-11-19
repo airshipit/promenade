@@ -109,7 +109,7 @@ annotate_applied_kubelet() {
 # the pods of the selector, the API of the restarted control plane may be
 # unavailable for a while
 delete_pods() {
-  local kubectl=("${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
+  local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
   local delay
   for delay in 0 1 2 4 8; do
     sleep "${delay}"
@@ -127,7 +127,7 @@ delete_pods() {
 # the new CA in kube-root-ca.crt of all the namespaces (the controller-manager
 # publishes it): the pods started before it get the old one and keep it
 wait_root_ca() {
-  local kubectl=("${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
+  local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
   local ca namespaces ns stale="" i
   ca=$(cat "${ROOTFS}/etc/kubernetes/pki/ca.crt") || return 1
   for i in $(seq 60); do

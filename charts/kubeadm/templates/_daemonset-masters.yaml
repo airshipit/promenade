@@ -101,6 +101,11 @@ spec:
             - |
               # account for images that may not have pipefail in sh
               if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi
+              # the reconcile finds kubeadm, kubectl and kubelet (binaries.install_dir)
+              # by the PATH of the login shell of the host; chroot keeps the
+              # environment of the container, so it is taken from the host
+              host_path_var=$(chroot /host /bin/bash -lc 'printf "\n%s" "$PATH"' </dev/null 2>/dev/null | tail -n1) || true
+              [ -z "${host_path_var}" ] || export PATH="${host_path_var}:${PATH}"
               { /tmp/bin/ensure_fs && exec chroot /host /bin/bash {{ $envAll.Values.anchor.reconcile.host_dir }}/bin/reconcile; } 2>&1 | tee "/host/var/log/kubeadm_output_$(date +%Y%m%d_%H%M%S).log"
           lifecycle:
             preStop:

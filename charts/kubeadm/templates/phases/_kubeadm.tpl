@@ -91,7 +91,7 @@ kubelet_config_sha256() {
 # as the kubeadm timeouts. The annotations save the first pass of the reconcile
 # its work only: without them it applies the configurations again
 annotate_applied() {
-  local kubectl=("${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" --kubeconfig "${ROOTFS}/etc/kubernetes/kubelet.conf")
+  local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/kubelet.conf")
   local n=1
   until "${kubectl[@]}" annotate node --overwrite "${NODE_NAME}" "$@"; do
     if [ "$n" -ge 150 ]; then
@@ -240,7 +240,7 @@ kubeadm() {
     fi
     args+=("${arg}")
   done
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" ${args[@]+"${args[@]}"} || rc=$?
+  command kubeadm ${args[@]+"${args[@]}"} || rc=$? # the binary, not this phase
   rm -rf "${dir}"
   [ "${rc}" -eq 0 ] || return "${rc}"
 
@@ -272,13 +272,13 @@ kubeadm_init_certs() {
   rm -f "${ROOTFS}"/var/lib/kubelet/pki/kubelet-client-*.pem
   dir=$(mktemp -d)
   kubeadm_node_config > "${dir}/config.yaml"
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" init phase certs all --config "${dir}/config.yaml"
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" init phase kubeconfig admin --config "${dir}/config.yaml"
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" init phase kubeconfig controller-manager --config "${dir}/config.yaml"
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" init phase kubeconfig scheduler --config "${dir}/config.yaml"
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" init phase kubeconfig kubelet --config "${dir}/config.yaml"
+  kubeadm init phase certs all --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig admin --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig controller-manager --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig scheduler --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig kubelet --config "${dir}/config.yaml"
   if [ "${super_admin}" == "true" ]; then
-    "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubeadm" init phase kubeconfig super-admin --config "${dir}/config.yaml"
+    kubeadm init phase kubeconfig super-admin --config "${dir}/config.yaml"
   fi
   rm -rf "${dir}"
   # kubelet goes through the control plane endpoint
@@ -309,7 +309,7 @@ kubeadm_certs() {
 # extension-apiserver-authentication with its CAs again (the aggregated API
 # servers trust it)
 kubeadm_cluster_info() {
-  local kubectl=("${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
+  local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
   local kubeconfig
   if kubeconfig=$("${kubectl[@]}" -n kube-public get configmap cluster-info -o jsonpath='{.data.kubeconfig}'); then
     kubeconfig=$(echo "${kubeconfig}" | sed "s|^\( *certificate-authority-data:\).*|\1 $(base64 < "${ROOTFS}/etc/kubernetes/pki/ca.crt" | tr -d '\n')|")

@@ -162,13 +162,13 @@ kubelet_tls_bootstrap() {
   local conf="${ROOTFS}/etc/kubernetes/bootstrap-kubelet.conf" n=1
   : "${KUBEADM_TOKEN:?the bootstrap token of the cluster}"
   rm -f "${ROOTFS}/etc/kubernetes/kubelet.conf" "${ROOTFS}"/var/lib/kubelet/pki/kubelet-client-*.pem
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" config --kubeconfig "${conf}" set-cluster kubernetes \
+  kubectl config --kubeconfig "${conf}" set-cluster kubernetes \
     --server "https://{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
     --certificate-authority "${ROOTFS}/etc/kubernetes/pki/kubelet-client-ca.pem" --embed-certs
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" config --kubeconfig "${conf}" set-credentials tls-bootstrap-token-user --token "${KUBEADM_TOKEN}"
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" config --kubeconfig "${conf}" set-context default --cluster kubernetes --user tls-bootstrap-token-user
+  kubectl config --kubeconfig "${conf}" set-credentials tls-bootstrap-token-user --token "${KUBEADM_TOKEN}"
+  kubectl config --kubeconfig "${conf}" set-context default --cluster kubernetes --user tls-bootstrap-token-user
   # kubectl writes it 0600
-  "${ROOTFS}{{ $envAll.Values.binaries.install_dir }}/kubectl" config --kubeconfig "${conf}" use-context default
+  kubectl config --kubeconfig "${conf}" use-context default
   systemctl daemon-reload
   systemctl restart kubelet
   until [ -f "${ROOTFS}/etc/kubernetes/kubelet.conf" ] && [ -f "${ROOTFS}/var/lib/kubelet/pki/kubelet-client-current.pem" ]; do
