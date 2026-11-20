@@ -12,14 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-images:
-  tags:
-    # only starts the reconcile script on the host: needs a shell with mount,
-    # chroot and tar, and nsenter (kubelet restart job); multi-arch
-    anchor: docker.io/library/busybox:1.37
-    haproxy: docker.io/library/haproxy:3.4.7
-    pause: registry.k8s.io/pause:3.10
-  pull_policy: "IfNotPresent"
+#
+# shared config:
+#
+
+cluster_config: {}
+  # if not specified - any in accordance to kubeadm version
+  # kubernetesVersion: v1.36.3
+
+#
+# modules config:
+#
+
+# the backups of the certificates of the node made by the backup phase (the
+# rebootstrap script), a new one every run: they have the keys, the
+# backup_remove phase removes them
+# (the lock of the node: the reconcile script waits while it exists)
+backup:
+  dir: /var/lib/kubeadm-backup
 
 # kubeadm, kubelet and kubectl: the node scripts run them by name, so install_dir
 # has to be in the PATH of the node (the reconcile takes the PATH of the login
@@ -40,6 +50,332 @@ binaries:
   kubectl:
     url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${ARCH}/kubectl"
     sha256: ""
+
+# here is where all secrets are provided
+# 3 options are supported:
+# 1. no secrets - assuming that kubadm will be used to generate everything
+# 2. ca key/crt are provided - kubeadm will be used to generate the rest
+# 3. all secrets (including etcd) are pregenerated and kubeadm will be used only only for
+#    certain phases like maintaining manifests
+# NOTE: at the moment we don't support external etcd
+certs:
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/pki
+    "pkipriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "pkipub": # certs
+      owner: "root:root"
+      mode: "0644"
+    # /etc/kubernetes/pki/etcd
+    "etcdpriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "etcdpub": # certs
+      owner: "root:root"
+      mode: "0600" #"0644"
+    # /etc/kubernetes/admin/pki
+    "adminpkipriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "adminpkipub": # certs
+      owner: "root:root"
+      mode: "0600" #"0644"
+
+  # ca:
+  #   crt: placeholder
+  #   key: placeholder
+
+  # sa:
+  #   key: placeholder
+  #   pub: placeholder
+  # ...
+  # the certificates of a node:
+  # nodes:
+  #   <node name>:
+  #     etcd_server: {crt, key}
+  #     etcd_peer: {crt, key}
+  #     kubelet: {crt, key}
+  #     # the API of the node (its own SANs, as kubeadm issues it), either this
+  #     # one for every control plane node or apiserver above shared by all of
+  #     # them: with both, the one of the node wins
+  #     apiserver: {crt, key}
+  # see overrides/test/pki-*.yaml
+
+# node checks: one line per check "check OK|FAIL|SKIP <check> <details>",
+# the checks fail if any check failed. Day 0/1: the run_checks phase of the
+# bootstrap and rebootstrap scripts (bootstrap.phases), /livez through
+# kubeconfig.controlPlaneEndpoint
+checks:
+  # day 2, by the reconcile before the anchor becomes ready (it restarts): the
+  # first pass of the haproxy VIP reconcile (vip.reconcile), the reconcile loop
+  # ignores its errors
+  reconcile: true
+  # attempts 2 seconds apart of the api check (about 5 minutes, as the kubeadm
+  # timeouts): on a joining node kubelet pulls the images and starts the haproxy
+  # static pod of the VIP first
+  attempts: 150
+  # helm test (manifests.helm_test): a pod on a control plane node waits for the
+  # anchors and checks the cluster through the API
+  helm_test:
+    rollout_timeout: 1800s
+
+cri:
+  # kubelet starts after it, cri_restart restarts it
+  service: containerd.service
+  # the bootstrap script always runs cri_install, the reconcile script with this
+  # flag. The installation procedure can be redefined in
+  # bundle.tpl."templates/phases/snippets/cri/_install.sh.tpl".
+  reconcile_install: false
+  # the reconcile script restarts the runtime when cri_install or cri.fsgroup
+  # changed it, the bootstrap script always does
+  restart: false
+  # the configuration of the runtime, synced by cri_sync_rc (the items as in files)
+  fsgroup:
+    - path: /etc/containerd
+      state: dir
+      owner: "root:root"
+    - path: /etc/containerd/config.toml
+      state: tpl
+      from: templates/phases/snippets/cri/_containerd_v3.tpl
+      owner: "root:root"
+      mode: "0600"
+  # auths:
+  #   - repo: docker-open-nc.zc1.somedomain.com
+  #     auth: user:password
+
+# the filesystem of the nodes
+fs:
+  # the permissions on the node of the directories of the phases, the files
+  # have theirs in the values of the phase: <phase>.permissions.<group>, a group
+  # is delivered in _<group>/ of the archives (pkipub -> _pkipub/<file>) or is a
+  # file itself. If there is no data, empty owner and mode are passed and setting
+  # of permissions is skipped in that case.
+  permissions:
+    # certs/kubelet
+    "/etc/kubernetes/pki":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/pki/etcd":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/admin/pki":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/default":
+      owner: "root:root"
+    "/etc/systemd/system":
+      owner: "root:root"
+    "/var/lib/kubelet":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes":
+      owner: "root:root"
+    "/usr/local/sbin":
+      owner: "root:root"
+    "/etc/kubernetes/kubeadm":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/kubeadm/patches":
+      owner: "root:root"
+      mode: "0700"
+    "/etc/kubernetes/apiserver":
+      owner: "root:root"
+      mode: "0700"
+    # haproxy static pod (vip phase) runs as nobody (65534) and reads its
+    # config from this directory
+    "/etc/kubernetes/kubeadm/addons":
+      owner: "root:root"
+      mode: "0755"
+  # the groups: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
+  groups: {}
+  # working examples (can be moved to test.sh):
+  # groups:
+  #   rm_files: #groupname
+  #     - path: /usr/local/share/ca/certain/dosntexist
+  #       state: "rm"
+  #   files:
+  #     - path: /usr/local/share/ca/certain
+  #       state: "dir" # or touch
+  #       owner: "root:root" #optional
+  #       mode: "0600" #optional
+  #     - path: /usr/local/share/ca/certain2
+  #       state: "copy" #  or content or tpl
+  #       from: "/usr/local/share/ca/certain/filename"
+  #       owner: "root:root" #optional
+  #       mode: "0600" #optional
+
+kube_cgroup:
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /usr/local/sbin
+    "kube-cgroup.sh":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/systemd/system
+    "kube-cgroup.service":
+      owner: "root:root"
+      mode: "0600"
+
+kubeadm:
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/kubeadm
+    "kubeadm":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/kubernetes/kubeadm/patches
+    "kubeadmpatch":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/kubernetes/apiserver
+    "kubeadmapiserver":
+      owner: "root:root"
+      mode: "0600"
+
+kubeconfig:
+  clusterName: kubernetes
+  controlPlaneEndpoint: 127.0.0.1:6443
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes
+    "admin.conf":
+      owner: "root:root"
+      mode: "0600"
+    "controller-manager.conf":
+      owner: "root:root"
+      mode: "0600"
+    "scheduler.conf":
+      owner: "root:root"
+      mode: "0600"
+
+kubelet:
+  restart: true
+  # the node is drained before the restart and uncordoned after it
+  drain: true
+  # the job restarting kubelet can be patched with
+  # bundle.tpl."templates/phases/snippets/kubelet/_job-kubelet-restart.yaml.patch"
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/pki
+    "kubeletpkipriv": # keys
+      owner: "root:root"
+      mode: "0600"
+    "kubeletpkipub": # certs
+      owner: "root:root"
+      mode: "0644"
+    # /etc/kubernetes
+    "kubelet.conf":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/default
+    "kubelet":
+      owner: "root:root"
+      mode: "0600"
+    # /etc/systemd/system
+    "kubelet.service":
+      owner: "root:root"
+      mode: "0600"
+    # /var/lib/kubelet
+    "config.yaml":
+      owner: "root:root"
+      mode: "0600"
+
+haproxy:
+  container_config_dir: /usr/local/etc/haproxy
+  host_config_dir: /etc/kubernetes/kubeadm/addons
+  period: 5
+  conf_parts:
+    global:
+      - maxconn 10240
+    defaults:
+      - timeout connect 5000ms
+      - timeout client 24h
+      - timeout server 24h
+    frontend:
+      - mode tcp
+    backend:
+      - mode tcp
+      # the apiserver opens its port before it is ready: /readyz (anonymous,
+      # as the probes of the static pods), not the port only. A stopping
+      # apiserver fails /readyz: its sessions are closed, the clients (kubelet
+      # leases) go to the others at once
+      - option httpchk
+      - http-check send meth GET uri /readyz
+      - http-check expect status 200
+      - default-server check-ssl verify none on-marked-down shutdown-sessions
+      - option redispatch
+
+vip:
+  # the implementations of the VIP: templates/phases/_vip_<module>.tpl
+  modules:
+    - haproxy
+  # the VIP of the bootstrap script: the implementation and its argument (a tpl
+  # string), the arguments of the script replace them (--vip_<module>), e.g.
+  # haproxy: "<bind>|<apiserver>,<apiserver>,..."
+  init_argname: haproxy
+  # init_val: "*:6553|172.29.0.139:6443,172.29.0.144:6443"
+  # day 2: on the nodes bootstrapped with the haproxy VIP the reconcile loop
+  # keeps its config and static pod in sync with the control plane endpoints.
+  # Disable it when the VIP is managed by something else (e.g. the haproxy chart)
+  reconcile: true
+  # the permissions of the files of the phase (see fs.permissions)
+  permissions:
+    # /etc/kubernetes/manifests, the haproxy static pod
+    "manifests":
+      owner: "root:root"
+      mode: "0600"
+
+#
+# chart-wide parameters
+#
+
+# the admin client certificate issued by cert-manager (manifests.cert_manager_admin),
+# kubeadm binds the group kubeadm:cluster-admins to cluster-admin
+admin_credentials:
+  common_name: kubeadm-parent-admin
+  organizations:
+    - kubeadm:cluster-admins
+  duration: 8760h
+  renew_before: 720h
+
+# the Service of etcd params
+etcd_service:
+  name: kubernetes-etcd
+  ip: "10.96.0.2"
+  service_client:
+    enable_node_port: false
+    node_port: 32379
+    port: 2379
+    # TODO: must match with kubeadm.settings.etcd_servers ports
+    target_port: 2379
+
+# daemonsets running the reconcile script (day 2) on the nodes, they can be
+# patched with bundle.tpl."templates/_daemonset-masters.yaml.patch" and
+# bundle.tpl."templates/_daemonset-workers.yaml.patch" (strategic merge patch)
+anchor:
+  # service account of the anchor pods and the kubelet restart jobs, created
+  # in the release namespace
+  service_account: kubeadm
+  labels:
+    common:
+      node_selector_key: kubeadm
+      node_selector_value: enabled
+    masters:
+      node_selector_key: kubernetes-apiserver
+      node_selector_value: enabled
+  reconcile:
+    # seconds between the checks of the chart configuration
+    period: 15
+    # its own files (script, service account, state), mounted in the pod only
+    host_dir: /var/lib/kubeadm-reconcile
+    # refuse to replace the CA keys (Kubernetes, etcd, front proxy) and the
+    # service account key on a node which already has different ones: the
+    # certificates of the node are signed with them. The CAs are rotated by
+    # the rebootstrap; false is the way out of a wrong guard (the bootstrap
+    # skips it with --skip-phases certs_guard_ca)
+    ca_guard: true
 
 bootstrap:
   compress_fs: tar
@@ -105,370 +441,20 @@ bootstrap:
     - component=kubernetes-kubeadm-anchor
     - component=kubernetes-kubeadm-workers-anchor
 
-# the backups of the certificates of the node made by the backup phase (the
-# rebootstrap script), a new one every run: they have the keys, the
-# backup_remove phase removes them
-# (the lock of the node: the reconcile script waits while it exists)
-backup:
-  dir: /var/lib/kubeadm-backup
-
-# daemonsets running the reconcile script (day 2) on the nodes, they can be
-# patched with bundle.tpl."templates/_daemonset-masters.yaml.patch" and
-# bundle.tpl."templates/_daemonset-workers.yaml.patch" (strategic merge patch)
-anchor:
-  # service account of the anchor pods and the kubelet restart jobs, created
-  # in the release namespace
-  service_account: kubeadm
-  labels:
-    common:
-      node_selector_key: kubeadm
-      node_selector_value: enabled
-    masters:
-      node_selector_key: kubernetes-apiserver
-      node_selector_value: enabled
-  reconcile:
-    # seconds between the checks of the chart configuration
-    period: 15
-    # its own files (script, service account, state), mounted in the pod only
-    host_dir: /var/lib/kubeadm-reconcile
-    # refuse to replace the CA keys (Kubernetes, etcd, front proxy) and the
-    # service account key on a node which already has different ones: the
-    # certificates of the node are signed with them. The CAs are rotated by
-    # the rebootstrap; false is the way out of a wrong guard (the bootstrap
-    # skips it with --skip-phases certs_guard_ca)
-    ca_guard: true
-
-# node checks: one line per check "check OK|FAIL|SKIP <check> <details>",
-# the checks fail if any check failed. Day 0/1: the run_checks phase of the
-# bootstrap and rebootstrap scripts (bootstrap.phases), /livez through
-# kubeconfig.controlPlaneEndpoint
-checks:
-  # day 2, by the reconcile before the anchor becomes ready (it restarts): the
-  # first pass of the haproxy VIP reconcile (vip.reconcile), the reconcile loop
-  # ignores its errors
-  reconcile: true
-  # attempts 2 seconds apart of the api check (about 5 minutes, as the kubeadm
-  # timeouts): on a joining node kubelet pulls the images and starts the haproxy
-  # static pod of the VIP first
-  attempts: 150
-  # helm test (manifests.helm_test): a pod on a control plane node waits for the
-  # anchors and checks the cluster through the API
-  helm_test:
-    rollout_timeout: 1800s
-
-etcd_service:
-  name: kubernetes-etcd
-  ip: "10.96.0.2"
-  service_client:
-    enable_node_port: false
-    node_port: 32379
-    port: 2379
-    # TODO: must match with kubeadm.settings.etcd_servers ports
-    target_port: 2379
-
-vip:
-  # the implementations of the VIP: templates/phases/_vip_<module>.tpl
-  modules:
-    - haproxy
-  # the VIP of the bootstrap script: the implementation and its argument (a tpl
-  # string), the arguments of the script replace them (--vip_<module>), e.g.
-  # haproxy: "<bind>|<apiserver>,<apiserver>,..."
-  init_argname: haproxy
-  # init_val: "*:6553|172.29.0.139:6443,172.29.0.144:6443"
-  # day 2: on the nodes bootstrapped with the haproxy VIP the reconcile loop
-  # keeps its config and static pod in sync with the control plane endpoints.
-  # Disable it when the VIP is managed by something else (e.g. the haproxy chart)
-  reconcile: true
-  # the permissions of the files of the phase (see fs.permissions)
-  permissions:
-    # /etc/kubernetes/manifests, the haproxy static pod
-    "manifests":
-      owner: "root:root"
-      mode: "0600"
-
-haproxy:
-  container_config_dir: /usr/local/etc/haproxy
-  host_config_dir: /etc/kubernetes/kubeadm/addons
-  period: 5
-  conf_parts:
-    global:
-      - maxconn 10240
-    defaults:
-      - timeout connect 5000ms
-      - timeout client 24h
-      - timeout server 24h
-    frontend:
-      - mode tcp
-    backend:
-      - mode tcp
-      # the apiserver opens its port before it is ready: /readyz (anonymous,
-      # as the probes of the static pods), not the port only. A stopping
-      # apiserver fails /readyz: its sessions are closed, the clients (kubelet
-      # leases) go to the others at once
-      - option httpchk
-      - http-check send meth GET uri /readyz
-      - http-check expect status 200
-      - default-server check-ssl verify none on-marked-down shutdown-sessions
-      - option redispatch
-
-# the filesystem of the nodes
-fs:
-  # the permissions on the node of the directories of the phases, the files
-  # have theirs in the values of the phase: <phase>.permissions.<group>, a group
-  # is delivered in _<group>/ of the archives (pkipub -> _pkipub/<file>) or is a
-  # file itself. If there is no data, empty owner and mode are passed and setting
-  # of permissions is skipped in that case.
-  permissions:
-    # certs/kubelet
-    "/etc/kubernetes/pki":
-      owner: "root:root"
-      mode: "0700"
-    "/etc/kubernetes/pki/etcd":
-      owner: "root:root"
-      mode: "0700"
-    "/etc/kubernetes/admin/pki":
-      owner: "root:root"
-      mode: "0700"
-    "/etc/default":
-      owner: "root:root"
-    "/etc/systemd/system":
-      owner: "root:root"
-    "/var/lib/kubelet":
-      owner: "root:root"
-      mode: "0700"
-    "/etc/kubernetes":
-      owner: "root:root"
-    "/usr/local/sbin":
-      owner: "root:root"
-    "/etc/kubernetes/kubeadm":
-      owner: "root:root"
-      mode: "0700"
-    "/etc/kubernetes/kubeadm/patches":
-      owner: "root:root"
-      mode: "0700"
-    "/etc/kubernetes/apiserver":
-      owner: "root:root"
-      mode: "0700"
-    # haproxy static pod (vip phase) runs as nobody (65534) and reads its
-    # config from this directory
-    "/etc/kubernetes/kubeadm/addons":
-      owner: "root:root"
-      mode: "0755"
-  # the groups: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
-  groups: {}
-  # working examples (can be moved to test.sh):
-  # groups:
-  #   rm_files: #groupname
-  #     - path: /usr/local/share/ca/certain/dosntexist
-  #       state: "rm"
-  #   files:
-  #     - path: /usr/local/share/ca/certain
-  #       state: "dir" # or touch
-  #       owner: "root:root" #optional
-  #       mode: "0600" #optional
-  #     - path: /usr/local/share/ca/certain2
-  #       state: "copy" #  or content or tpl
-  #       from: "/usr/local/share/ca/certain/filename"
-  #       owner: "root:root" #optional
-  #       mode: "0600" #optional
-
-kubeadm:
-  # the permissions of the files of the phase (see fs.permissions)
-  permissions:
-    # /etc/kubernetes/kubeadm
-    "kubeadm":
-      owner: "root:root"
-      mode: "0600"
-    # /etc/kubernetes/kubeadm/patches
-    "kubeadmpatch":
-      owner: "root:root"
-      mode: "0600"
-    # /etc/kubernetes/apiserver
-    "kubeadmapiserver":
-      owner: "root:root"
-      mode: "0600"
-
-kube_cgroup:
-  # the permissions of the files of the phase (see fs.permissions)
-  permissions:
-    # /usr/local/sbin
-    "kube-cgroup.sh":
-      owner: "root:root"
-      mode: "0600"
-    # /etc/systemd/system
-    "kube-cgroup.service":
-      owner: "root:root"
-      mode: "0600"
-
-cluster_config: {}
-  # if not specified - any in accordance to kubeadm version
-  # kubernetesVersion: v1.36.3
-
-kubeconfig:
-  clusterName: kubernetes
-  controlPlaneEndpoint: 127.0.0.1:6443
-  # the permissions of the files of the phase (see fs.permissions)
-  permissions:
-    # /etc/kubernetes
-    "admin.conf":
-      owner: "root:root"
-      mode: "0600"
-    "controller-manager.conf":
-      owner: "root:root"
-      mode: "0600"
-    "scheduler.conf":
-      owner: "root:root"
-      mode: "0600"
-
-# the admin client certificate issued by cert-manager (manifests.cert_manager_admin),
-# kubeadm binds the group kubeadm:cluster-admins to cluster-admin
-admin_credentials:
-  common_name: kubeadm-parent-admin
-  organizations:
-    - kubeadm:cluster-admins
-  duration: 8760h
-  renew_before: 720h
-
-kubelet:
-  restart: true
-  # the node is drained before the restart and uncordoned after it
-  drain: true
-  # the job restarting kubelet can be patched with
-  # bundle.tpl."templates/phases/snippets/kubelet/_job-kubelet-restart.yaml.patch"
-  # the permissions of the files of the phase (see fs.permissions)
-  permissions:
-    # /etc/kubernetes/pki
-    "kubeletpkipriv": # keys
-      owner: "root:root"
-      mode: "0600"
-    "kubeletpkipub": # certs
-      owner: "root:root"
-      mode: "0644"
-    # /etc/kubernetes
-    "kubelet.conf":
-      owner: "root:root"
-      mode: "0600"
-    # /etc/default
-    "kubelet":
-      owner: "root:root"
-      mode: "0600"
-    # /etc/systemd/system
-    "kubelet.service":
-      owner: "root:root"
-      mode: "0600"
-    # /var/lib/kubelet
-    "config.yaml":
-      owner: "root:root"
-      mode: "0600"
-
-cri:
-  # kubelet starts after it, cri_restart restarts it
-  service: containerd.service
-  # the bootstrap script always runs cri_install, the reconcile script with this
-  # flag. The installation procedure can be redefined in
-  # bundle.tpl."templates/phases/snippets/cri/_install.sh.tpl".
-  reconcile_install: false
-  # the reconcile script restarts the runtime when cri_install or cri.fsgroup
-  # changed it, the bootstrap script always does
-  restart: false
-  # the configuration of the runtime, synced by cri_sync_rc (the items as in files)
-  fsgroup:
-    - path: /etc/containerd
-      state: dir
-      owner: "root:root"
-    - path: /etc/containerd/config.toml
-      state: tpl
-      from: templates/phases/snippets/cri/_containerd_v3.tpl
-      owner: "root:root"
-      mode: "0600"
-  # auths:
-  #   - repo: docker-open-nc.zc1.somedomain.com
-  #     auth: user:password
-
-# this is main data about cluster in full mode
-# and potentially ca mode in case there is an
-# additional haproxy static pod
-# TODO: rename masters to control plance nodes everywhere, it's kubeadm terminology
-# we may also don't need genesis. potenially we can bootstrap from any controller node
-# they must be identical/interchangable in the end of the day
-# ksn stands for k8s network
-# control_plane:
-#   genesis:
-#     hostname: hostname0
-#   masters:
-#   - hostname: hostname0
-#     ip:
-#       ksn: 172.29.0.139
-#   - hostname: hostname1
-#     ip:
-#       ksn: 172.29.0.144
-#   - hostname: hostname2
-#     ip:
-#       ksn: 172.29.0.149
-#   - hostname: hostname3
-#     ip:
-#       ksn: 172.29.0.154
-
-# here is where all secrets are provided
-# 3 options are supported:
-# 1. no secrets - assuming that kubadm will be used to generate everything
-# 2. ca key/crt are provided - kubeadm will be used to generate the rest
-# 3. all secrets (including etcd) are pregenerated and kubeadm will be used only only for
-#    certain phases like maintaining manifests
-# NOTE: at the moment we don't support external etcd
-# see templates/utils/_k8s_pki_val_extract.tpl for implementation details
-# to use a different structure - override it in tpl section
-certs:
-  # the permissions of the files of the phase (see fs.permissions)
-  permissions:
-    # /etc/kubernetes/pki
-    "pkipriv": # keys
-      owner: "root:root"
-      mode: "0600"
-    "pkipub": # certs
-      owner: "root:root"
-      mode: "0644"
-    # /etc/kubernetes/pki/etcd
-    "etcdpriv": # keys
-      owner: "root:root"
-      mode: "0600"
-    "etcdpub": # certs
-      owner: "root:root"
-      mode: "0600" #"0644"
-    # /etc/kubernetes/admin/pki
-    "adminpkipriv": # keys
-      owner: "root:root"
-      mode: "0600"
-    "adminpkipub": # certs
-      owner: "root:root"
-      mode: "0600" #"0644"
-
-  # ca:
-  #   crt: placeholder
-  #   key: placeholder
-
-  # sa:
-  #   key: placeholder
-  #   pub: placeholder
-  # ...
-  # the certificates of a node:
-  # nodes:
-  #   <node name>:
-  #     etcd_server: {crt, key}
-  #     etcd_peer: {crt, key}
-  #     kubelet: {crt, key}
-  #     # the API of the node (its own SANs, as kubeadm issues it), either this
-  #     # one for every control plane node or apiserver above shared by all of
-  #     # them: with both, the one of the node wins
-  #     apiserver: {crt, key}
-  # see overrides/test/pki-*.yaml
-
-
 # resources prefix
 fullnameOverride: kubeadm-service
 
+images:
+  tags:
+    # only starts the reconcile script on the host: needs a shell with mount,
+    # chroot and tar, and nsenter (kubelet restart job); multi-arch
+    anchor: docker.io/library/busybox:1.37
+    haproxy: docker.io/library/haproxy:3.4.7
+    pause: registry.k8s.io/pause:3.10
+  pull_policy: "IfNotPresent"
+
 # manifests gates
-# for day 1: bootstrap/bootstrap_joing will contain kubeadm init/join related step for node named genesis for init and
+# for day 1: bootstrap.sh will contain kubeadm init/join related step for node named genesis for init and
 #            kubeadm join for the rest of the nodes. doesn're require anything else.
 #            bootstrap scipt can be up to ~150Kb (in case of perNode is used), that's why the script separated onto
 #            dedicated secret for each node, since Secrets have limit 1 - 2Mb and
@@ -516,7 +502,6 @@ phases:
     - templates/phases/_binaries.tpl
     - templates/phases/_checks.tpl
 
-#### BUNDLE CONFIG #####
 bundle:
   tpl: {}
     #"sometpl": "hello"
