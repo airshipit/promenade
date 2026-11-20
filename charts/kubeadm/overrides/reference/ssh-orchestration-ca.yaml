@@ -62,7 +62,7 @@
 # - the nodes: Ubuntu, sudo without a password, reach each other by the ips of
 #   the nodes, the internet (the binaries, the CRI-O bundle), no local DNS
 #   resolver in /etc/resolv.conf (CoreDNS can't reach the loopback)
-# To change: nodes (required); cri and cri_install (CRI-O), vip and
+# To change: nodes (required); cri and cri_install_sync_rc (CRI-O), vip and
 # kubeconfig.controlPlaneEndpoint (haproxy on 127.0.0.1:6553), network,
 # cluster_config.kubernetesVersion.
 #
@@ -105,7 +105,7 @@ images:
     haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
 
-# CRI-O is installed by cri_install, see bundle.tpl below
+# CRI-O is installed by cri_install_sync_rc, see bundle.tpl below
 cri:
   service: crio.service
   reconcile_install: true
@@ -203,20 +203,17 @@ bundle:
     # CRI-O from the static bundle of the release: crio, conmon, the OCI
     # runtimes, crictl and the systemd unit
     "templates/phases/snippets/cri/_install.sh.tpl": |
-      cri_install() {
+      cri_install_sync_rc() {
         local version=v1.36.7 url sha256 dir
         crio --version 2>/dev/null | grep -qw "${version#v}" && return 1
-        ARCH="${ARCH:-$(node_arch)}" || return 2
+        ARCH="${ARCH:-$(node_arch)}" || exit 1
         url="https://storage.googleapis.com/cri-o/artifacts/cri-o.${ARCH}.${version}.tar.gz"
-        sha256=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || return 2
-        dir=$(mktemp -d) || return 2
+        sha256=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || exit 1
+        dir=$(mktemp -d) || exit 1
+        download_verified "${dir}/cri-o.tar.gz" "${url}" "${sha256}"
+        tar -xzf "${dir}/cri-o.tar.gz" -C "${dir}" || exit 1
         # the CNI plugins of the bundle go to /opt/cni/bin too
-        if ! download_verified "${dir}/cri-o.tar.gz" "${url}" "${sha256}" ||
-          ! tar -xzf "${dir}/cri-o.tar.gz" -C "${dir}" ||
-          ! (cd "${dir}/cri-o" && bash ./install); then
-          rm -rf "${dir}"
-          return 2
-        fi
+        (cd "${dir}/cri-o" && bash ./install) || exit 1
         rm -rf "${dir}"
         modprobe overlay
         systemctl daemon-reload
@@ -225,29 +222,24 @@ bundle:
     # kubeadm, kubelet and kubectl are taken from the node binaries archive of
     # the release (an example of the installation procedure override)
     "templates/phases/snippets/binaries/_install.sh.tpl": |
-      binary_install() {
+      binary_sync_rc() {
         local name="$1" dir="${ROOTFS}/var/cache/kubeadm-binaries" url archive tmp
         [ -n "$(binary_source "$name")" ] || return 1
-        ARCH="${ARCH:-$(node_arch)}" || return 2
+        ARCH="${ARCH:-$(node_arch)}" || exit 1
         url={{ tpl .Values.binaries.archive.url . | quote }}
 
         # downloaded once per url
         archive="${dir}/$(printf '%s' "${url}" | sha256sum | cut -c1-16).tar.gz"
         if [ ! -f "${archive}" ]; then
-          mkdir -p -m 0700 "${dir}" && rm -f "${dir}"/* || return 2
-          tmp=$(mktemp "${archive}.XXXXXX") || return 2
-          if ! download_verified "${tmp}" "${url}" || ! mv -f "${tmp}" "${archive}"; then
-            rm -f "${tmp}"
-            return 2
-          fi
+          mkdir -p -m 0700 "${dir}" && rm -f "${dir}"/* || exit 1
+          tmp=$(mktemp "${archive}.XXXXXX") || exit 1
+          download_verified "${tmp}" "${url}"
+          mv -f "${tmp}" "${archive}" || exit 1
         fi
 
-        tmp=$(binary_tmp "${name}") || return 2
-        if ! tar -xOf "${archive}" "kubernetes/node/bin/${name}" > "${tmp}"; then
-          rm -f "${tmp}"
-          return 2
-        fi
-        replace_binary "${tmp}" "${name}" || return $?
+        tmp=$(binary_tmp "${name}") || exit 1
+        tar -xOf "${archive}" "kubernetes/node/bin/${name}" > "${tmp}" || { rm -f "${tmp}"; exit 1; }
+        replace_binary "${tmp}" "${name}" || return 1
         echo "${name} is installed from ${url}"
       }
     "templates/phases/snippets/kubeadm/ClusterConfiguration": |
@@ -562,8 +554,15 @@ bundle:
         [master]={{ .Values.orchestration.kubeadm.join_master | quote }}
         [worker]={{ .Values.orchestration.kubeadm.join_worker | quote }}
       )
-      # the phases after the prep ones
-      KUBEADM_PHASES="kubeadm,annotate_applied_configs,run_checks"
+      # the prep phases: the default ones of the bootstrap script but kubeadm_run
+      # and the ones after it
+      {{- $prep := list }}
+      {{- range $phase := .Values.bootstrap.phases }}
+      {{-   if not (or (hasPrefix "+" $phase) (has $phase (list "kubeadm_run" "annotate_applied_configs" "check_run"))) }}
+      {{-     $prep = append $prep $phase }}
+      {{-   end }}
+      {{- end }}
+      PREP_PHASES=({{ range $prep }} -- {{ . }}{{ end }} )
 
       usage() {
         cat << EOF
@@ -621,13 +620,13 @@ bundle:
 
       echo "=== the prep phases on ${TARGETS[*]}"
       for node in "${TARGETS[@]}"; do
-        start_node "${node}" --skip-phases "${KUBEADM_PHASES}"
+        start_node "${node}" --run "${PREP_PHASES[@]}"
       done
       wait_nodes
 
       if [ "${JOIN}" = false ]; then
         echo "=== kubeadm init on ${FIRST_MASTER}"
-        start_node "${FIRST_MASTER}" --phases "${KUBEADM_PHASES}" -- "${KUBEADM_INIT[@]}"
+        start_node "${FIRST_MASTER}" --run -- kubeadm_run "${KUBEADM_INIT[@]}" -- annotate_applied_configs -- check_run
         wait_nodes
 
         if [ "${#NODES[@]}" -eq 1 ]; then
@@ -644,7 +643,7 @@ bundle:
       for node in "${TARGETS[@]}"; do
         [ "${node}" != "${FIRST_MASTER}" ] || continue
         # shellcheck disable=SC2086 # the arguments of kubeadm
-        start_node "${node}" --phases "${KUBEADM_PHASES}" -- ${KUBEADM_JOIN[${NODE_ROLE[${node}]}]}
+        start_node "${node}" --run -- kubeadm_run ${KUBEADM_JOIN[${NODE_ROLE[${node}]}]} -- annotate_applied_configs -- check_run
       done
       wait_nodes
       echo "The cluster is bootstrapped"
@@ -663,15 +662,15 @@ bundle:
 
       usage() {
         cat << EOF
-      Usage: ssh-rebootstrap.sh [--restart-clients] | [--phases a,b | --skip-phases a,b]
+      Usage: ssh-rebootstrap.sh [--restart-clients] | [-- <phase> [<arguments>]]...
 
         without options: the lock and the backups on all the nodes, then the
         rest of the default phases on all the nodes at once
         --restart-clients: then the pods of bootstrap.rebootstrap_restart_selectors
         are deleted (they keep the CA and the service account tokens of the
         old ones)
-        --phases, --skip-phases: these phases of the rebootstrap script on all
-        the nodes at once (backup_restore, backup_remove)
+        -- <phase> <arguments>: these phases of the rebootstrap script in
+        this order on all the nodes at once (backup restore, backup remove)
 
       Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH, SUDO
       EOF
@@ -682,7 +681,7 @@ bundle:
       RESTART_CLIENTS=false
       while [ $# -gt 0 ]; do
         case "$1" in
-          --phases|--skip-phases) PHASE_ARGS=("$1" "${2:?$1 needs a comma separated list of phases}"); shift ;;
+          --) PHASE_ARGS=(--run "$@"); break ;;
           --restart-clients) RESTART_CLIENTS=true ;;
           -h|--help) usage ;;
           *) echo "Unknown option: $1" >&2; usage 1 ;;
@@ -704,10 +703,10 @@ bundle:
 
       echo "=== the lock of the reconcile and the backups on all the nodes"
       for node in "${NODES[@]}"; do
-        start_node "${node}" --phases reconcile_guard,backup
+        start_node "${node}" --run -- reconcile_guard -- backup
       done
       if ! wait_nodes; then
-        echo "The nodes aren't changed: ssh-rebootstrap.sh --phases backup_remove releases the lock" >&2
+        echo "The nodes aren't changed: ssh-rebootstrap.sh -- backup remove releases the lock" >&2
         exit 1
       fi
 
@@ -716,10 +715,11 @@ bundle:
       echo "=== the new files, the certificates of kubeadm and the restart of the components on the control plane nodes"
       for node in "${NODES[@]}"; do
         [ "${NODE_ROLE[${node}]}" = master ] || continue
-        start_node "${node}" --phases "certs_sync,kubeconfigs_sync,kubelet_sync_rc,kubeadm_certs,static_pods_stop,kubelet_stop,cri_restart,kubelet_start,annotate_applied_kubelet,run_checks"
+        start_node "${node}" --run -- certs_sync -- kubeconfigs_sync -- kubelet_sync_rc -- kubeadm_certs \
+          -- static_pods_stop -- kubelet_stop -- cri_restart -- kubelet_start -- annotate_applied_kubelet -- check_run
       done
       if ! wait_nodes; then
-        echo "Back to the backups: ssh-rebootstrap.sh --phases backup_restore,static_pods_stop,kubelet_stop,cri_restart,kubelet_start" >&2
+        echo "Back to the backups: ssh-rebootstrap.sh -- backup restore -- static_pods_stop -- kubelet_stop -- cri_restart -- kubelet_start" >&2
         exit 1
       fi
 
@@ -734,21 +734,22 @@ bundle:
           "${SUDO} kubeadm token create --ttl {{ .Values.orchestration.token_ttl }}")
         echo "=== the TLS bootstrap of kubelet on the workers"
         for node in "${WORKERS[@]}"; do
-          start_node "${node}" --phases "certs_sync,kubeconfigs_sync,kubelet_sync_rc,kubeadm_certs,annotate_applied_kubelet,run_checks"
+          start_node "${node}" --run -- certs_sync -- kubeconfigs_sync -- kubelet_sync_rc -- kubeadm_certs \
+            -- annotate_applied_kubelet -- check_run
         done
         if ! wait_nodes; then
-          echo "Back to the backups: ssh-rebootstrap.sh --phases backup_restore,static_pods_stop,kubelet_stop,cri_restart,kubelet_start" >&2
+          echo "Back to the backups: ssh-rebootstrap.sh -- backup restore -- static_pods_stop -- kubelet_stop -- cri_restart -- kubelet_start" >&2
           exit 1
         fi
       fi
 
       echo "=== the CAs of the cluster wide objects from ${FIRST_MASTER}"
-      start_node "${FIRST_MASTER}" --phases kubeadm_cluster_info
+      start_node "${FIRST_MASTER}" --run -- kubeadm_cluster_info
       wait_nodes
 
       if [ "${RESTART_CLIENTS}" = true ]; then
         echo "=== the pods of bootstrap.rebootstrap_restart_selectors from ${FIRST_MASTER}"
-        start_node "${FIRST_MASTER}" --phases restart_clients
+        start_node "${FIRST_MASTER}" --run -- restart_clients
         wait_nodes
       fi
 
@@ -756,5 +757,5 @@ bundle:
       The nodes are rebootstrapped, the reconcile waits for the lock. Next:
         1. helm upgrade the release with the new values: the anchors bring
            the files of the release back once the lock is released
-        2. ssh-rebootstrap.sh --phases backup_remove: releases the lock
+        2. ssh-rebootstrap.sh -- backup remove: releases the lock
       EOF

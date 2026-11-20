@@ -1,6 +1,6 @@
 {{/*
   the bootstrap script: makes a node a node of the cluster with the files of
-  the values, kubeadm init (or kubeadm join, the arguments after --). It is
+  the values, kubeadm init (or kubeadm join: "-- kubeadm_run join ..."). It is
   delivered with the bootstrap Secrets (bootstrap.action: bootstrap) and run on
   the node (it can be called by cloud-init), phase by phase (see
   templates/phases/snippets/common/_phases.sh.tpl). The phases it has and
@@ -12,18 +12,21 @@
     kubelet_sync_rc   - the certificates and the kubeconfig of kubelet, its
                         unit and configuration
     kubeadm_sync      - the configurations of kubeadm
-    vip_sync          - the VIP of the control plane endpoint
+    vip_sync          - the VIP of the control plane endpoint, the arguments
+                        "<implementation> <argument>" save the VIP of the
+                        node (vip.init_argname, vip.init_val by default)
     cri_setup         - the container runtime, restarted if it is changed
     kube_cgroup_sync  - the kube-cgroup service
     binaries_sync     - kubeadm, kubectl, kubelet
     k8s_up            - swap, the kernel modules and sysctl
     kubelet_start     - kubelet is (re)started
-    kubeadm           - kubeadm init (or the arguments after --), then the
-                        configuration of kubelet of the chart again
+    kubeadm_run       - kubeadm with the arguments of the phase (init by
+                        default), then the configuration of kubelet of the
+                        chart again
     annotate_applied_configs - the node with the configurations it runs
                         with: the first pass of the reconcile doesn't apply
                         them again
-    run_checks        - the node checks (templates/phases/_checks.tpl)
+    check_run         - the node checks (templates/phases/_checks.tpl)
 */}}
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
@@ -48,8 +51,6 @@
 {{/* the functions of the script: always linked, they win over the ones of
      templates/phases (templates/phases/snippets/common/_phases_link.tpl) */}}
 {{- $symbols := dict -}}
-
-{{- $cmdHookContent := get $k8sConfDict "cmdHookContent" -}}
 
 #!/bin/bash
 # Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
@@ -114,35 +115,6 @@ cleanup_fs() {
 {{ tuple $envAll "templates/phases/snippets/common/_phases.sh.tpl" | include "kubeadm.bundle.template" }}
 # end of common functions
 
-cmd_hook () {
-{{ $cmdHookContent }}
-  return 1
-}
-
-kubeadm_args=("init")
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --) # everything after -- goes to `kubeadm`
-      shift
-      kubeadm_args=("$@")
-      break
-      ;;
-    *)
-      if phases_arg "$@"; then
-        shift $phases_shift
-        continue
-      fi
-      addons_shift=0
-      if ! cmd_hook "$@"; then
-        echo "Unknown option: $1" >&2
-        exit 1
-      fi
-      shift $addons_shift
-      ;;
-  esac
-done
-phases_check "${PHASES[@]}"
-
 ensure_fs
-run_phases "${PHASES[@]}"
+run_phases "$@"
 cleanup_fs

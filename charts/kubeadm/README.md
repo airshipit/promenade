@@ -10,7 +10,7 @@ This is not just a standard Helm chart — it is a **0-fat Day 0 chart**, design
 * **Day 2 (Reconfiguration & Upgrades):** Performs cluster reconfiguration and binary/component upgrades. When redeployed with updated `values.yaml`, it executes reconciliation logic to align the live cluster state with the target configuration.
 * **Rebootstrap (Recovery & CA Rotation):** Puts the certificates of `values.yaml` on the nodes of an existing cluster again, whether its API works or not: an abrupt rotation of the CAs, a recovery from expired certificates. The reconcile waits meanwhile, the procedure can be rolled back from the backups.
 
-The lifecycle of a node is **b-r-rb**: bootstrap, reconcile, rebootstrap. The node scripts run phase by phase (`--phases`, `--skip-phases`), so an orchestration drives them across the nodes: `overrides/reference/ssh-orchestration-ca.yaml` (the CAs only in the values, kubeadm generates the rest) and `ssh-orchestration-full.yaml` (the full PKI) are reference ones over ssh, tested by the gates.
+The lifecycle of a node is **b-r-rb**: bootstrap, reconcile, rebootstrap. The node scripts are libraries of phases: by default they run their list of phases, the command line gives the phases their arguments (`-- <phase> <arguments>`) or, with `--run`, names the phases to run in its order, so an orchestration drives them across the nodes: `overrides/reference/ssh-orchestration-ca.yaml` (the CAs only in the values, kubeadm generates the rest) and `ssh-orchestration-full.yaml` (the full PKI) are reference ones over ssh, tested by the gates.
 
 ## Architecture & Philosophy
 
@@ -18,7 +18,7 @@ Thanks to the `templates/lib/bundle` module, all chart outputs can be fully rede
 
 Since the primary goal is to bootstrap Kubernetes precisely from zero (bare OS with no prior configuration) up to a fully functional Kubernetes API, and to maintain this configuration over time, the chart is intentionally kept as minimalistic as possible: its sole purpose is to solve the chicken-and-egg bootstrapping problem cleanly.
 
-The bootstrap script is kept minimal too: it carries only what its phases (`bootstrap.phases`) need. Every bash function of the node scripts is a symbol with its dependencies, and a script is linked from its phases like a binary from object files: see `templates/lib/_linker.tpl` and the modules of `templates/phases`. A phase is one of these functions, `--phases` and `--skip-phases` name the functions. A function returning a result (e.g. `kubelet_sync_rc`: 0 if the files were changed, 1 if not, >1 on errors) ends with `_rc`: as a phase, 1 isn't a failure.
+The bootstrap script is kept minimal too: it carries only what its phases (`bootstrap.phases`) need. Every bash function of the node scripts is a symbol with its dependencies, and a script is linked from its phases like a binary from object files: see `templates/lib/_linker.tpl` and the modules of `templates/phases`. A phase is one of these functions, the command line names it (`-- <phase> <arguments>`). A function returning a result (e.g. `kubelet_sync_rc`: 0 if the files were changed, 1 if not, >1 on errors) ends with `_rc`: as a phase, 1 isn't a failure.
 
 The chicken and the egg are untied by Helm itself: it renders templates on the client, without a cluster. `helm template` turns the values into the bootstrap and rebootstrap scripts before the Kubernetes API exists (or when it is down), and the same chart, installed into the cluster it has just bootstrapped, runs the reconcile. One chart and one set of values for every stage of the lifecycle, so bootstrap and reconcile can't drift apart.
 
@@ -48,7 +48,7 @@ This is how the gate deploys the cluster (`ssh-bootstrap.sh` of `overrides/refer
 
 The checks are a sanity check of the cluster: Kubernetes works and runs the version of the values.
 
-On the node, the `run_checks` phase checks what the node itself needs: at the end of the bootstrap script (the `run_checks` phase of `bootstrap.phases`, `check_api`) that the API is reachable through `kubeconfig.controlPlaneEndpoint`, and in the reconcile before the anchor becomes ready (`checks.reconcile`) that the VIP of the node works: its implementation (e.g. haproxy) is reconciled once with the apiservers of the cluster, a node bootstrapped without a VIP skips it. A failing node fails its bootstrap, or its anchor doesn't become ready and stops the rolling update. The static pods check their own liveness. One line per check:
+On the node, the `check_run` phase checks what the node itself needs: at the end of the bootstrap script (the `check_run` phase of `bootstrap.phases`, `check_api`) that the API is reachable through `kubeconfig.controlPlaneEndpoint`, and in the reconcile before the anchor becomes ready (`checks.reconcile`) that the VIP of the node works: its implementation (e.g. haproxy) is reconciled once with the apiservers of the cluster, a node bootstrapped without a VIP skips it. A failing node fails its bootstrap, or its anchor doesn't become ready and stops the rolling update. The static pods check their own liveness. One line per check:
 
 ```
 check OK api https://127.0.0.1:6553/livez
@@ -134,7 +134,7 @@ A hosted control plane cluster: the control plane runs as pods on the parent clu
 ### Testing & Verification
 - **Modular Test Library:** Refactor test suites into a structured Bash test library with individual test specs (matching Go-like test signatures and execution flows).
 - **Helm Test & Gate Verification:** done, see [Checks](#checks). Left:
-  - **Switching phases:** the checks are a phase of the node scripts (`--skip-phases run_checks`), but still switched on at render time with the flags in `checks`.
+  - **Switching phases:** the checks are a phase of the node scripts (an orchestration runs it or not with `--run`), but still switched on at render time with the flags in `checks`.
   - **Armada based gates:** `test.enabled` of the `ArmadaChart` in the aircat and aircruiser gates.
   - **Hosted control plane:** the profile replaces the control plane test (Deployments on the parent cluster, kubeconfig from a Secret, datastore and konnectivity checks), the worker checks stay as is.
 

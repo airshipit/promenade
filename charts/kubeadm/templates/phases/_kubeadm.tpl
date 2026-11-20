@@ -221,13 +221,14 @@ kubeadm_token_config() {
 }
 `) -}}
 
-{{- define "__kubeadm" -}}
+{{- define "__kubeadm_run" -}}
 {{- $envAll := . -}}
-# kubeadm with the arguments of the script after -- (kubeadm init by default)
-kubeadm() {
+# kubeadm with the arguments of the phase (init by default)
+kubeadm_run() {
   local args=() arg dir config=false rc=0
+  [ $# -gt 0 ] || set -- init
   dir=$(mktemp -d)
-  for arg in ${kubeadm_args[@]+"${kubeadm_args[@]}"}; do
+  for arg in "$@"; do
     if [ "${config}" = true ]; then
       kubeadm_token_config "${arg}" "${dir}/config.yaml"
       arg="${dir}/config.yaml"
@@ -240,7 +241,7 @@ kubeadm() {
     fi
     args+=("${arg}")
   done
-  command kubeadm ${args[@]+"${args[@]}"} || rc=$? # the binary, not this phase
+  kubeadm ${args[@]+"${args[@]}"} || rc=$?
   rm -rf "${dir}"
   [ "${rc}" -eq 0 ] || return "${rc}"
 
@@ -253,8 +254,8 @@ kubeadm() {
   fi
 }
 {{- end -}}
-{{- $_ := set $symbols "kubeadm" (dict "needs" (list "kubeadm_token_config" "kubelet_sync_rc")
-"body" (include "__kubeadm" $envAll)
+{{- $_ := set $symbols "kubeadm_run" (dict "needs" (list "kubeadm_token_config" "kubelet_sync_rc")
+"body" (include "__kubeadm_run" $envAll)
 ) -}}
 
 {{- define "__kubeadm_init_certs" -}}

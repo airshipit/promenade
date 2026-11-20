@@ -59,7 +59,7 @@ group_dir_restore() {
 {{- define "__backup_exists_rc" -}}
 {{- $envAll := . -}}
 # 0 while backup.dir exists (reconcile_guard creates it before the first
-# backup): the procedure isn't over (backup_restore or backup_remove)
+# backup): the procedure isn't over (backup restore or backup remove)
 backup_exists_rc() {
   [ -e "${ROOTFS}{{ $envAll.Values.backup.dir }}" ]
 }
@@ -70,51 +70,39 @@ backup_exists_rc() {
 
 {{- define "__backup" -}}
 {{- $envAll := . -}}
-# every run makes a new backup (<timestamp>) of the certificates of the node,
-# they have the keys: backup_remove removes all of them when the procedure is
-# over
+# the phase: a new backup (<timestamp>) of the certificates of the node, with
+# "restore" the certificates of the last one back, with "remove" all the
+# backups (they have the keys: the procedure is over, the reconcile goes on)
 backup() {
-  local backup
-  backup="${ROOTFS}{{ $envAll.Values.backup.dir }}/$(date -u +%Y%m%dT%H%M%SZ)"
-  mkdir -p -m 0700 "${ROOTFS}{{ $envAll.Values.backup.dir }}" "${backup}"
-  certs_backup "${backup}"
-  kubelet_backup "${backup}"
-  kubeadm_backup "${backup}"
-  echo "the certificates are backed up to ${backup}"
-}
-{{- end -}}
-{{- $_ := set $symbols "backup" (dict "needs" (list "certs_backup" "kubelet_backup" "kubeadm_backup")
-"body" (include "__backup" $envAll)
-) -}}
-
-{{- define "__backup_restore" -}}
-{{- $envAll := . -}}
-# from the last backup or REBOOTSTRAP_BACKUP (<timestamp>)
-backup_restore() {
   local dir="${ROOTFS}{{ $envAll.Values.backup.dir }}" backup
-  backup="${REBOOTSTRAP_BACKUP:-$(ls -1 "${dir}" | tail -n 1)}"
-  # it removes the files the backup doesn't have: not a wrong or empty name
-  if [ -z "${backup}" ] || [ ! -d "${dir}/${backup}" ]; then
-    echo "no backup '${backup}' in ${dir}" >&2
-    return 1
-  fi
-  certs_restore "${dir}/${backup}"
-  kubelet_restore "${dir}/${backup}"
-  kubeadm_restore "${dir}/${backup}"
-  echo "the certificates are restored from ${dir}/${backup}"
+  case "${1:-}" in
+    "")
+      backup="${dir}/$(date -u +%Y%m%dT%H%M%SZ)"
+      mkdir -p -m 0700 "${dir}" "${backup}"
+      certs_backup "${backup}"
+      kubelet_backup "${backup}"
+      kubeadm_backup "${backup}"
+      echo "the certificates are backed up to ${backup}"
+      ;;
+    restore)
+      # fails without backups: restore removes the files the backup doesn't have
+      backup=$(ls -1d "${dir}"/*/ | tail -n 1)
+      certs_restore "${backup}"
+      kubelet_restore "${backup}"
+      kubeadm_restore "${backup}"
+      echo "the certificates are restored from ${backup}"
+      ;;
+    remove)
+      rm -rf "${dir}"
+      echo "the backups ${dir} are removed"
+      ;;
+    *)
+      echo "usage: backup [restore | remove]" >&2
+      return 1
+      ;;
+  esac
 }
 {{- end -}}
-{{- $_ := set $symbols "backup_restore" (dict "needs" (list "certs_restore" "kubelet_restore" "kubeadm_restore")
-"body" (include "__backup_restore" $envAll)
-) -}}
-
-{{- define "__backup_remove" -}}
-{{- $envAll := . -}}
-backup_remove() {
-  rm -rf "${ROOTFS}{{ $envAll.Values.backup.dir }}"
-  echo "the backups {{ $envAll.Values.backup.dir }} are removed"
-}
-{{- end -}}
-{{- $_ := set $symbols "backup_remove" (dict
-"body" (include "__backup_remove" $envAll)
+{{- $_ := set $symbols "backup" (dict "needs" (list "certs_backup" "kubelet_backup" "kubeadm_backup" "certs_restore" "kubelet_restore" "kubeadm_restore")
+"body" (include "__backup" $envAll)
 ) -}}

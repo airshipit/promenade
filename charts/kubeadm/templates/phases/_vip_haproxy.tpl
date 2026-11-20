@@ -10,18 +10,9 @@
 
 
 {{- $symbols := get $k8sConfDict "symbols" -}}
-{{- $sharedLibs := get $k8sConfDict "sharedLibs" -}}
-
-{{/* the argument of the bootstrap script, it replaces vip.init_val, e.g.
-     --vip_haproxy "*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443,172.29.0.154:6443" */}}
-{{- $_ := set $sharedLibs "vip_cmd" `
-  if [ "$1" == "--vip_haproxy" ]; then
-    vip_argname=haproxy
-    vip_arg=$2
-    addons_shift=2
-    return 0
-  fi
-` -}}
+{{/* the argument (vip_sync haproxy <arg>, vip.init_val):
+     "<bind>|<apiserver>,<apiserver>,...", e.g.
+     "*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443" */}}
 
 {{- define "__vip_config_sync" -}}
 {{- $envAll := . -}}

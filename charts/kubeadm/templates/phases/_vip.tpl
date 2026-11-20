@@ -5,15 +5,14 @@
      implementations are the modules of vip.modules (templates/phases/_vip_<module>.tpl),
      they define vip_<module>_sync (vip_sync calls the one of vip_argname),
      vip_<module>_reconcile (vip_reconcile calls the one the node was
-     bootstrapped with), they may set vip_argname and vip_arg from the
-     arguments of the bootstrap script */}}
+     bootstrapped with). The arguments of vip_sync replace vip_argname and
+     vip_arg */}}
 {{- $symbols := get $k8sConfDict "symbols" -}}
 
 {{- define "__vip_arg" -}}
 {{- $envAll := . -}}
 # the VIP: the implementation (vip_argname) and its argument, the values
-# (vip.init_argname, vip.init_val) or the last argument of the bootstrap script
-# setting them
+# (vip.init_argname, vip.init_val) or the arguments of vip_sync
 vip_argname="{{ $envAll.Values.vip.init_argname | default "" }}"
 vip_arg="{{ tpl ($envAll.Values.vip.init_val | default "") $envAll }}"
 {{- end -}}
@@ -23,8 +22,10 @@ vip_arg="{{ tpl ($envAll.Values.vip.init_val | default "") $envAll }}"
 {{- $envAll := . -}}
 # the arguments in VIP_FILE (the reconcile follows the VIP the node was
 # bootstrapped with, an empty argument is no VIP), then the VIP of the
-# implementation vip_argname
+# implementation vip_argname; the arguments "<implementation> <argument>"
+# replace the values ones
 vip_sync() {
+  [ $# -eq 0 ] || { vip_argname="$1"; vip_arg="${2:-}"; }
   [ -z "${vip_arg}" ] || vip_save
   case "${vip_argname}" in
 {{- range $module := $envAll.Values.vip.modules }}

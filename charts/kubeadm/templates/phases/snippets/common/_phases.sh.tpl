@@ -15,82 +15,61 @@ limitations under the License.
 */}}
 
 {{/* the phases of the node scripts (bootstrap, rebootstrap): a phase is a
-     function, a script runs the ones of its list of phases in the order of
-     the list, the options select them:
-       --phases a,b       only these ones
-       --skip-phases a,b  all but these ones
-       --list-phases      prints the list and exits
-     A phase "+<function>" of the list runs only if --phases names it. A
-     function ending with _rc returns a result: 1 isn't a failure, >1 is.
+     function of the list of phases of the script, the command line is
+       [--run] [-- <phase> [<arguments>]]...
+     Without --run the phases of the list run in its order, the segments
+     "-- <phase> <arguments>" give the arguments to the phases, a phase
+     "+<function>" of the list runs only if a segment names it. With --run the
+     segments are the phases to run, in their order. The phase checks its
+     arguments and has the defaults.
+     A function ending with _rc returns a result: 1 isn't a failure, >1 is.
      Included by templates/bin/_bootstrap.tpl and _rebootstrap.tpl */ -}}
-PHASES_ONLY=""
-PHASES_SKIP=""
-PHASES_LIST=false
-
-# parses a phase option, phases_shift: the number of the arguments it takes
-phases_arg() {
-  case "$1" in
-    --phases) PHASES_ONLY="${2:?$1 needs a comma separated list of phases}"; phases_shift=2 ;;
-    --skip-phases) PHASES_SKIP="${2:?$1 needs a comma separated list of phases}"; phases_shift=2 ;;
-    --list-phases) PHASES_LIST=true; phases_shift=1 ;;
-    *) return 1 ;;
-  esac
+# the arguments of the first segment "-- $1 ..." of "${@:2}" to PHASE_ARGS,
+# fails if there is none
+phase_args() {
+  local name="$1"
+  shift
+  PHASE_ARGS=()
+  while [ $# -gt 0 ] && { [ "$1" != "--" ] || [ "${2:-}" != "${name}" ]; }; do
+    shift
+  done
+  [ $# -gt 0 ] || return 1
+  shift 2
+  while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+    PHASE_ARGS+=("$1")
+    shift
+  done
 }
 
-# the phase is in the comma separated list
-phases_in() {
-  case ",$2," in
-    *",$1,"*) return 0 ;;
-  esac
-  return 1
-}
-
-# checks the phase options against the list of phases, prints the list for
-# --list-phases and exits
-phases_check() {
-  local phase known="" name
-  for phase in "$@"; do
-    known="${known},${phase#+}"
-  done
-  for name in ${PHASES_ONLY//,/ } ${PHASES_SKIP//,/ }; do
-    if ! phases_in "${name}" "${known#,}"; then
-      echo "Unknown phase: ${name} (phases: ${known#,})" >&2
-      exit 1
-    fi
-  done
-  if [ "${PHASES_LIST}" = true ]; then
-    for phase in "$@"; do
-      case "${phase}" in
-        +*) echo "${phase#+} (only with --phases)" ;;
-        *) echo "${phase}" ;;
-      esac
-    done
-    exit 0
+# runs the phase $1 with the arguments PHASE_ARGS
+phase_run() {
+  local rc=0
+  echo "phase $1"
+  if [[ "$1" == *_rc ]]; then
+    "$1" ${PHASE_ARGS[@]+"${PHASE_ARGS[@]}"} || rc=$?
+    [ "${rc}" -le 1 ] || exit "${rc}"
+  else
+    "$1" ${PHASE_ARGS[@]+"${PHASE_ARGS[@]}"}
   fi
 }
 
+# runs the phases of PHASES by the command line
 run_phases() {
-  local phase name run rc
-  for phase in "$@"; do
-    name="${phase#+}"
-    if [ -n "${PHASES_ONLY}" ]; then
-      phases_in "${name}" "${PHASES_ONLY}" && run=true || run=false
-    elif [[ "${phase}" == +* ]] || phases_in "${name}" "${PHASES_SKIP}"; then
-      run=false
-    else
-      run=true
-    fi
-    if [ "${run}" = true ]; then
-      echo "phase ${name}"
-      if [[ "${name}" == *_rc ]]; then
-        rc=0
-        "${name}" || rc=$?
-        [ "${rc}" -le 1 ] || exit "${rc}"
+  local phase
+  if [ "${1:-}" = "--run" ]; then
+    shift
+    while [ $# -gt 0 ]; do
+      phase_args "$2" "$@"
+      phase_run "$2"
+      shift $((${#PHASE_ARGS[@]} + 2))
+    done
+  else
+    for phase in "${PHASES[@]}"; do
+      if phase_args "${phase#+}" "$@" || [[ "${phase}" != +* ]]; then
+        phase_run "${phase#+}"
       else
-        "${name}"
+        echo "phase ${phase#+}: skipped"
       fi
-    else
-      echo "phase ${name}: skipped"
-    fi
-  done
+    done
+  fi
 }

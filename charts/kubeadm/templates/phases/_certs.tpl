@@ -233,3 +233,59 @@ EOF_CA_GUARD
   echo "certs_guard_ca: the keys of the node match the values"
 }
 `) -}}
+
+{{- $_ := set $symbols "certs_served_rc" (dict "body" `
+# the server $1 (host:port) serves the certificate file $2: it has reloaded it
+certs_served_rc() {
+  local served file
+  # the server may refuse the handshake without a client certificate, its
+  # certificate is printed anyway
+  served=$(openssl s_client -connect "$1" < /dev/null 2> /dev/null | openssl x509 -noout -fingerprint -sha256) || true
+  file=$(openssl x509 -noout -fingerprint -sha256 -in "${ROOTFS}$2")
+  [ -n "${served}" ] && [ "${served}" = "${file}" ]
+}
+`) -}}
+
+{{- $_ := set $symbols "certs_manifest_flag" (dict "body" `
+# the value of the flag --$2 of the static pod manifest $1: the command line the
+# component runs with (kubeadm wrote it, the patches may have changed it)
+certs_manifest_flag() {
+  [ -f "${ROOTFS}$1" ] || return 0
+  sed -n "s/^ *- --$2=//p" "${ROOTFS}$1" | head -n 1
+}
+`) -}}
+
+{{/* certs_check: called by the reconcile script before the anchor becomes ready */}}
+{{- $_ := set $symbols "certs_check" (dict "needs" (list "check_attempts" "check_result" "certs_served_rc" "certs_manifest_flag")
+"body" `
+# the components of the node serve the certificates of its files: they reload
+# them after the sync, the anchor becomes ready once they did. The endpoints
+# and the certificates are the ones the components run with: the apiserver and
+# etcd if the node runs them (their manifests), kubelet (its configuration)
+certs_check() {
+  local apiserver=/etc/kubernetes/manifests/kube-apiserver.yaml
+  local etcd=/etc/kubernetes/manifests/etcd.yaml
+  local kubelet="${ROOTFS}/var/lib/kubelet/config.yaml"
+  local etcd_url kubelet_port kubelet_crt endpoint file
+  # the first client url of etcd, kubeadm puts 127.0.0.1 first
+  etcd_url=$(certs_manifest_flag "${etcd}" listen-client-urls)
+  etcd_url="${etcd_url%%,*}"
+  # 10250 is the default port of kubelet
+  kubelet_port=$(sed -n 's/^port: *//p' "${kubelet}")
+  kubelet_crt=$(sed -n 's/^tlsCertFile: *//p' "${kubelet}" | tr -d '"')
+  while read -r endpoint file; do
+    # the node doesn't run the component or it has no certificate of the files
+    [ -n "${file}" ] || continue
+    if check_attempts certs_served_rc "${endpoint}" "${file}"; then
+      check_result OK certs "${endpoint} serves ${file}"
+    else
+      check_result FAIL certs "${endpoint} doesn't serve ${file}"
+    fi
+  done << EOF_CERTS_CHECK
+127.0.0.1:$(certs_manifest_flag "${apiserver}" secure-port) $(certs_manifest_flag "${apiserver}" tls-cert-file)
+${etcd_url#*://} $(certs_manifest_flag "${etcd}" cert-file)
+127.0.0.1:${kubelet_port:-10250} ${kubelet_crt}
+EOF_CERTS_CHECK
+  return 0
+}
+`) -}}

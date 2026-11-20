@@ -24,27 +24,13 @@ binary_source() {
      a symbol each, they may call the helpers */}}
 {{- $_ := set $symbols "binaries_helpers" (dict "body" (tuple $envAll "templates/phases/snippets/binaries/_helpers.sh.tpl" | include "kubeadm.bundle.template")) -}}
 
-{{- $_ := set $symbols "binary_install" (dict "needs" (list "binary_source" "binaries_helpers")
+{{- $_ := set $symbols "binary_sync_rc" (dict "needs" (list "binary_source" "binaries_helpers")
 "body" (tuple $envAll "templates/phases/snippets/binaries/_install.sh.tpl" | include "kubeadm.bundle.template")
 ) -}}
 
-{{- $_ := set $symbols "cri_install" (dict "needs" (list "binaries_helpers")
+{{- $_ := set $symbols "cri_install_sync_rc" (dict "needs" (list "binaries_helpers")
 "body" (tuple $envAll "templates/phases/snippets/cri/_install.sh.tpl" | include "kubeadm.bundle.template")
 ) -}}
-
-{{- $_ := set $symbols "binary_sync_rc" (dict "needs" (list "binary_install")
-"body" `
-# returns 0 if the binary was changed, 1 if not, exits on errors
-binary_sync_rc() {
-  local rc=0
-  binary_install "$1" || rc=$?
-  if [ "$rc" -gt 1 ]; then
-    echo "Failed to install $1" >&2
-    exit "$rc"
-  fi
-  return "$rc"
-}
-`) -}}
 
 {{- $_ := set $symbols "binaries_sync" (dict "needs" (list "binary_sync_rc")
 "body" `
@@ -55,20 +41,6 @@ binaries_sync() {
   for name in "$@"; do
     binary_sync_rc "$name" || true
   done
-}
-`) -}}
-
-{{- $_ := set $symbols "cri_install_sync_rc" (dict "needs" (list "cri_install")
-"body" `
-# returns 0 if the container runtime was changed, 1 if not, exits on errors
-cri_install_sync_rc() {
-  local rc=0
-  cri_install || rc=$?
-  if [ "$rc" -gt 1 ]; then
-    echo "Failed to install the container runtime" >&2
-    exit "$rc"
-  fi
-  return "$rc"
 }
 `) -}}
 

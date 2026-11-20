@@ -72,8 +72,10 @@ KUBELET_RESTART_IN_PROGRESS=""
   "kubelet_kubeconfig_sync_rc"
   "certs_guard_ca"
   "cri_install_sync_rc"
-  "run_checks"
+  "check_run"
   "vip_check"
+  "certs_check"
+  "certs_manifest_flag"
   "vip_reconcile"
 -}}
 {{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" $needs) }}
@@ -306,6 +308,37 @@ wait_apiservers_upgraded() {
   done
 }
 
+# the checksums of the files of the command line of the apiserver of the node
+# (certificates, keys, configurations), nothing if the node doesn't run it
+apiserver_files_sha256() {
+  local manifest="${ROOTFS}${KUBERNETES_DIR}/manifests/kube-apiserver.yaml" file
+  [ -f "${manifest}" ] || return 0
+  for file in $(sed -n 's/^ *- --[^=]*=\(\/[^,]*\)$/\1/p' "${manifest}"); do
+    [ -f "${ROOTFS}${file}" ] && sha256sum "${ROOTFS}${file}"
+  done
+  return 0
+}
+
+# the apiserver of the node starts again with all the files of its command
+# line: it reloads some of them only (not its client certificates). kubelet
+# starts the stopped static pod again
+apiserver_restart() {
+  local pods pod port i
+  port=$(certs_manifest_flag "${KUBERNETES_DIR}/manifests/kube-apiserver.yaml" secure-port)
+  # not in the for list: errexit doesn't see a failure there
+  pods=$(crictl pods -q --namespace kube-system --label component=kube-apiserver)
+  for pod in ${pods}; do
+    # the default RPC timeout of crictl is 2s: stopping a sandbox takes longer
+    crictl --timeout 60s stopp "${pod}"
+  done
+  for i in $(seq 150); do
+    curl -ksf --max-time 5 "https://127.0.0.1:${port}/readyz" > /dev/null && return 0
+    sleep 2
+  done
+  echo "the apiserver isn't ready after the restart"
+  exit 1
+}
+
 {{- if $envAll.Values.deprecated.airship_migration.enabled }}
 
 # MIGRATION from Airship (remove together with the cleanup below): the static
@@ -380,7 +413,7 @@ airship_migration_cleanup() {
 wait_rebootstrap() {
   while backup_exists_rc; do
     touch "${RECONCILE_DIR}/rebootstrap-wait"
-    echo "rebootstrap: {{ $envAll.Values.backup.dir }} exists, waiting for the end of the procedure (backup_restore or backup_remove)"
+    echo "rebootstrap: {{ $envAll.Values.backup.dir }} exists, waiting for the end of the procedure (backup restore or backup remove)"
     sleep 30
   done
   rm -f "${RECONCILE_DIR}/rebootstrap-wait"
@@ -437,8 +470,11 @@ kubelet_sync_rc && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }
 [ "${NODE_ROLE}" == "master" ] || wait_apiservers_upgraded
 binary_sync_rc kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 
+# the apiserver restarts if the sync changed its files
+APISERVER_FILES_SHA256="$(apiserver_files_sha256)"
 certs_sync
 kubeadm_sync
+[ "$(apiserver_files_sha256)" == "${APISERVER_FILES_SHA256}" ] || apiserver_restart
 
 # by default etcd is disabled - but if it was installed - turn this phase onn
 if [[ $KUBERNETES_ETCD == "enabled" ]]; then
@@ -501,7 +537,7 @@ airship_migration_cleanup
 {{- if $envAll.Values.checks.reconcile }}
 
 # the anchor becomes ready only if the node checks pass
-run_checks vip_check
+check_run vip_check certs_check
 {{- end }}
 
 touch "${RECONCILE_DIR}/done"

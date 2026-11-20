@@ -98,7 +98,7 @@ mv "${WORK_DIR}/pki-values-rotated.yaml" "${WORK_DIR}/pki-values.yaml"
 export CHART_ARGS="${CLUSTER_ARGS} -f ${WORK_DIR}/pki-values.yaml"
 ./tools/deployment/kubeadm/035-generate-catalog.sh
 kubectl apply -k "${CATALOG}/kubeadm" --server-side --force-conflicts
-bash "${WORK_DIR}/ssh-rebootstrap.sh" --phases backup_remove
+bash "${WORK_DIR}/ssh-rebootstrap.sh" -- backup remove
 
 kubectl wait --for=condition=Ready nodes --all --timeout=300s
 # all the static pods restarted at once with the new PKI: etcd and the

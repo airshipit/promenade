@@ -6,9 +6,6 @@
      all/ctrl: "<group>/<file>" -> file, *-pernode: node -> "<group>/<file>" -> file */}}
 {{- $_ := set $k8sConfDict "fs" (dict "all" (dict) "ctrl" (dict) "all-pernode" (dict) "ctrl-pernode" (dict)) -}}
 
-{{/* the parts of the argument parsing of the bootstrap script (*_cmd) */}}
-{{- $sharedLibs := get $k8sConfDict "sharedLibs" | default (dict) -}}
-{{- $_ := set $k8sConfDict "sharedLibs" $sharedLibs -}}
 {{/* the functions and the globals of the scripts, see templates/lib/_linker.tpl */}}
 {{- $_ := set $k8sConfDict "symbols" (dict) -}}
 
@@ -19,14 +16,6 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{- $_ := tuple $envAll $module (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
 {{- end }}
 
-{{/* some of the phases also export parts for arg parsing *_cmd. collect all of them */}}
-{{- $cmdHookContent := "" -}}
-{{- range $name,$content := $sharedLibs -}}
-  {{- if hasSuffix "_cmd" $name -}}
-    {{- $cmdHookContent = print $cmdHookContent $content -}}
-  {{- end -}}
-{{- end -}}
-{{- $_ := set $k8sConfDict "cmdHookContent" $cmdHookContent -}}
 
 {{/* the nodes with their own files get their own bootstrap scripts */}}
 {{- $perNode := dict -}}

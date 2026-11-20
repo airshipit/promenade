@@ -25,8 +25,8 @@ cluster_config: {}
 #
 
 # the backups of the certificates of the node made by the backup phase (the
-# rebootstrap script), a new one every run: they have the keys, the
-# backup_remove phase removes them
+# rebootstrap script), a new one every run: they have the keys, "backup
+# remove" removes them
 # (the lock of the node: the reconcile script waits while it exists)
 backup:
   dir: /var/lib/kubeadm-backup
@@ -104,17 +104,18 @@ certs:
   # see overrides/test/pki-*.yaml
 
 # node checks: one line per check "check OK|FAIL|SKIP <check> <details>",
-# the checks fail if any check failed. Day 0/1: the run_checks phase of the
+# the checks fail if any check failed. Day 0/1: the check_run phase of the
 # bootstrap and rebootstrap scripts (bootstrap.phases), /livez through
 # kubeconfig.controlPlaneEndpoint
 checks:
   # day 2, by the reconcile before the anchor becomes ready (it restarts): the
   # first pass of the haproxy VIP reconcile (vip.reconcile), the reconcile loop
-  # ignores its errors
+  # ignores its errors; the apiserver, etcd and kubelet of the node serve the
+  # certificates of its files (they reload them, checks.attempts)
   reconcile: true
-  # attempts 2 seconds apart of the api check (about 5 minutes, as the kubeadm
-  # timeouts): on a joining node kubelet pulls the images and starts the haproxy
-  # static pod of the VIP first
+  # attempts 2 seconds apart of the api and certs checks (about 5 minutes, as
+  # the kubeadm timeouts): on a joining node kubelet pulls the images and starts
+  # the haproxy static pod of the VIP first
   attempts: 150
   # helm test (manifests.helm_test): a pod on a control plane node waits for the
   # anchors and checks the cluster through the API
@@ -124,12 +125,12 @@ checks:
 cri:
   # kubelet starts after it, cri_restart restarts it
   service: containerd.service
-  # the bootstrap script always runs cri_install, the reconcile script with this
-  # flag. The installation procedure can be redefined in
+  # the bootstrap script always runs cri_install_sync_rc, the reconcile script
+  # with this flag. The installation procedure can be redefined in
   # bundle.tpl."templates/phases/snippets/cri/_install.sh.tpl".
   reconcile_install: false
-  # the reconcile script restarts the runtime when cri_install or cri.fsgroup
-  # changed it, the bootstrap script always does
+  # the reconcile script restarts the runtime when cri_install_sync_rc or
+  # cri.fsgroup changed it, the bootstrap script always does
   restart: false
   # the configuration of the runtime, synced by cri_sync_rc (the items as in files)
   fsgroup:
@@ -311,8 +312,9 @@ vip:
   # the implementations of the VIP: templates/phases/_vip_<module>.tpl
   modules:
     - haproxy
-  # the VIP of the bootstrap script: the implementation and its argument (a tpl
-  # string), the arguments of the script replace them (--vip_<module>), e.g.
+  # the VIP of the node: the implementation and its argument (a tpl string),
+  # the arguments of the vip_sync phase replace them, saved on the node by the
+  # first phase using the VIP, e.g.
   # haproxy: "<bind>|<apiserver>,<apiserver>,..."
   init_argname: haproxy
   # init_val: "*:6553|172.29.0.139:6443,172.29.0.144:6443"
@@ -374,7 +376,7 @@ anchor:
     # service account key on a node which already has different ones: the
     # certificates of the node are signed with them. The CAs are rotated by
     # the rebootstrap; false is the way out of a wrong guard (the bootstrap
-    # skips it with --skip-phases certs_guard_ca)
+    # runs without it with --run and its other phases)
     ca_guard: true
 
 bootstrap:
@@ -392,7 +394,9 @@ bootstrap:
   action: bootstrap
   # the phases of the bootstrap script in their order (templates/bin/_bootstrap.tpl):
   # a phase is a function of templates/phases, the script is linked from them,
-  # only the functions they need (templates/lib/_linker.tpl)
+  # only the functions they need (templates/lib/_linker.tpl). "+<phase>" runs
+  # only if the command line names it ("-- <phase> <arguments>"), --run runs
+  # the named ones only (templates/phases/snippets/common/_phases.sh.tpl)
   phases:
     - certs_guard_ca
     - certs_sync
@@ -405,16 +409,14 @@ bootstrap:
     - binaries_sync
     - k8s_up
     - kubelet_start
-    - kubeadm
+    - kubeadm_run
     - annotate_applied_configs
-    - run_checks
+    - check_run
   # the phases of the rebootstrap script (templates/bin/_rebootstrap.tpl), as
-  # bootstrap.phases; "+<phase>" runs only if --phases names it
+  # bootstrap.phases
   rebootstrap_phases:
     - reconcile_guard
     - backup
-    - +backup_restore
-    - +backup_remove
     - certs_sync
     - kubeconfigs_sync
     - kubelet_sync_rc
@@ -425,7 +427,7 @@ bootstrap:
     - cri_restart
     - kubelet_start
     - annotate_applied_kubelet
-    - run_checks
+    - check_run
     - +kubeadm_cluster_info
     - +restart_clients
   # seconds the rebootstrap script waits for the reconcile passes going on on
@@ -489,18 +491,18 @@ phases:
   # the modules of the phases, in this order
   # (kubelet uses the generators of the certs and kubeconfig ones)
   modules:
-    - templates/phases/_fs.tpl
+    - templates/phases/_backup.tpl
+    - templates/phases/_binaries.tpl
     - templates/phases/_certs.tpl
+    - templates/phases/_checks.tpl
+    - templates/phases/_cri.tpl
+    - templates/phases/_fs.tpl
+    - templates/phases/_k8s_up.tpl
+    - templates/phases/_kube-cgroup.tpl
+    - templates/phases/_kubeadm.tpl
     - templates/phases/_kubeconfig.tpl
     - templates/phases/_kubelet.tpl
-    - templates/phases/_kubeadm.tpl
-    - templates/phases/_backup.tpl
-    - templates/phases/_kube-cgroup.tpl
     - templates/phases/_vip.tpl
-    - templates/phases/_k8s_up.tpl
-    - templates/phases/_cri.tpl
-    - templates/phases/_binaries.tpl
-    - templates/phases/_checks.tpl
 
 bundle:
   tpl: {}
