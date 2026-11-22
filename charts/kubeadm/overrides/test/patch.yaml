@@ -20,7 +20,7 @@ bundle:
       metadata:
         annotations:
           test-annotation: test-value
-    "templates/phases/modules/kubelet/_job-kubelet-restart.yaml.patch": |
+    "templates/phases/modules/reconcile/_job-kubelet-restart.yaml.patch": |
       spec:
         template:
           spec:

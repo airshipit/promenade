@@ -150,11 +150,6 @@ certs:
 # bootstrap and rebootstrap profiles (bootstrap.profiles), /livez through
 # kubeconfig.controlPlaneEndpoint
 checks:
-  # day 2, by the reconcile before the anchor becomes ready (it restarts): the
-  # first pass of the haproxy VIP reconcile (vip.reconcile), the reconcile loop
-  # ignores its errors; the apiserver, etcd and kubelet of the node serve the
-  # certificates of its files (they reload them, checks.attempts)
-  reconcile: true
   # attempts 2 seconds apart of the api and certs checks (about 5 minutes, as
   # the kubeadm timeouts): on a joining node kubelet pulls the images and starts
   # the haproxy static pod of the VIP first
@@ -167,12 +162,6 @@ checks:
 cri:
   # kubelet starts after it, cri_restart restarts it
   service: containerd.service
-  # the bootstrap script always runs binary_cri_sync_rc (binaries.sync.cri),
-  # the reconcile script with this flag
-  reconcile_install: false
-  # the reconcile script restarts the runtime when binary_cri_sync_rc or
-  # cri.fsgroup changed it, the bootstrap script always does
-  restart: false
   # the configuration of the runtime, synced by cri_sync_rc (the items as in files)
   fsgroup:
     - path: /etc/containerd
@@ -293,11 +282,6 @@ kubeconfig:
       mode: "0600"
 
 kubelet:
-  restart: true
-  # the node is drained before the restart and uncordoned after it
-  drain: true
-  # the job restarting kubelet can be patched with
-  # bundle.tpl."templates/phases/modules/kubelet/_job-kubelet-restart.yaml.patch"
   # the permissions of the files of the phase (see fs.permissions)
   permissions:
     # /etc/kubernetes/pki
@@ -359,10 +343,6 @@ vip:
   # haproxy: "<bind>|<apiserver>,<apiserver>,..."
   init_argname: haproxy
   # init_val: "*:6553|172.29.0.139:6443,172.29.0.144:6443"
-  # day 2: on the nodes bootstrapped with the haproxy VIP the reconcile loop
-  # keeps its config and static pod in sync with the control plane endpoints.
-  # Disable it when the VIP is managed by something else (e.g. the haproxy chart)
-  reconcile: true
   # the permissions of the files of the phase (see fs.permissions)
   permissions:
     # /etc/kubernetes/manifests, the haproxy static pod
@@ -419,6 +399,28 @@ anchor:
     # the rebootstrap; false is the way out of a wrong guard (the bootstrap
     # runs without it with --run and its other phases)
     ca_guard: true
+    # the node checks before the anchor becomes ready (it restarts): the first
+    # pass of the VIP reconcile (its errors are ignored by the reconcile loop
+    # later), the apiserver, etcd and kubelet of the node serve the
+    # certificates of its files (they reload them, checks.attempts)
+    checks: true
+    # on the nodes bootstrapped with the haproxy VIP the reconcile loop keeps
+    # its config and static pod in sync with the control plane endpoints.
+    # Disable it when the VIP is managed by something else (e.g. the haproxy
+    # chart)
+    vip: true
+    # the runtime is installed by binary_cri_sync_rc (binaries.sync.cri) as the
+    # bootstrap script always does
+    cri_install: false
+    # the runtime is restarted when binary_cri_sync_rc or cri.fsgroup changed
+    # it, the bootstrap script always does
+    cri_restart: false
+    # kubelet is restarted when its files, its configuration or its binary
+    # changed. A job restarts it, the job can be patched with
+    # bundle.tpl."templates/phases/modules/reconcile/_job-kubelet-restart.yaml.patch"
+    kubelet_restart: true
+    # the node is drained before the kubelet restart and uncordoned after it
+    kubelet_drain: true
 
 bootstrap:
   compress_fs: tar

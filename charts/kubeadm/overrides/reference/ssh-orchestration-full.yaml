@@ -92,18 +92,13 @@ images:
     haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
 
-# containerd is installed by binary_cri_sync_rc, see binaries.sync below, its
-# configuration is the chart default (cri.fsgroup)
-cri:
-  reconcile_install: true
-  restart: true
-
 cluster_config:
   kubernetesVersion: v1.37.0
 
 binaries:
   # the data of binaries.sync below: containerd, runc and crictl of the upstream
-  # releases (tpl strings, ${arch} is substituted on the node)
+  # releases (tpl strings, ${arch} is substituted on the node); the
+  # configuration of containerd is the chart default (cri.fsgroup)
   containerd:
     version: v2.4.2
     url: 'https://github.com/containerd/containerd/releases/download/{{ .Values.binaries.containerd.version }}/containerd-static-{{ trimPrefix "v" .Values.binaries.containerd.version }}-linux-${arch}.tar.gz'
@@ -147,10 +142,14 @@ binaries:
           systemctl enable containerd
         }
 
-kubelet:
-  # the anchor applies kubelet configuration changes: it drains the node and
-  # restarts kubelet (there are other nodes for the workloads)
-  restart: true
+anchor:
+  reconcile:
+    # the reconcile installs and restarts the runtime too
+    cri_install: true
+    cri_restart: true
+    # the anchor applies kubelet configuration changes: it drains the node and
+    # restarts kubelet (there are other nodes for the workloads)
+    kubelet_restart: true
 
 kubeconfig:
   clusterName: kubernetes

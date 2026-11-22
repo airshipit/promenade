@@ -12,13 +12,13 @@ reconcile_tick() {
   if is_action_required; then
     return 1
   fi
-{{- if dig "reconcile" false ($envAll.Values.vip | default dict) }}
+{{- if $envAll.Values.anchor.reconcile.vip }}
   vip_reconcile || true
 {{- end }}
 }
 {{- end -}}
 {{- $needs := list "is_action_required" -}}
-{{- if dig "reconcile" false ($envAll.Values.vip | default dict) -}}
+{{- if $envAll.Values.anchor.reconcile.vip -}}
   {{- $needs = append $needs "vip_reconcile" -}}
 {{- end -}}
 {{- $_ := set $symbols "reconcile_tick" (dict "needs" $needs

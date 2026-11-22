@@ -5,7 +5,7 @@
 {{- $checks := $envAll.Values.checks -}}
 
 {{/* the node checks: called by the check_run phase of the bootstrap and
-     rebootstrap scripts and the reconcile script (checks.reconcile), one line
+     rebootstrap scripts and the reconcile script (anchor.reconcile.checks), one line
      per check:
      "check OK|FAIL|SKIP <check> <details>"
      the other modules define their <module>_check with check_result

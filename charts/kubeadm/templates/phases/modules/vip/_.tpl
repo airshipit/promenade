@@ -115,7 +115,6 @@ vip_save() {
 # reconcile: the first pass of the VIP reconcile (vip_reconcile), the
 # reconcile loop repeats it after the anchor is ready and ignores its errors
 vip_check() {
-{{- if $envAll.Values.vip.reconcile }}
   local argname
   if ! argname=$(vip_configured); then
     check_result SKIP vip "the node has no VIP"
@@ -124,17 +123,10 @@ vip_check() {
   else
     check_result FAIL vip "the ${argname} VIP can't follow the apiservers (see above)"
   fi
-{{- else }}
-  check_result SKIP vip "vip.reconcile is disabled"
-{{- end }}
   return 0
 }
 {{- end -}}
-{{- $vipCheckNeeds := list "check_result" -}}
-{{- if $envAll.Values.vip.reconcile -}}
-{{-   $vipCheckNeeds = concat $vipCheckNeeds (list "vip_configured" "vip_reconcile") -}}
-{{- end -}}
-{{- $_ := set $symbols "vip_check" (dict "needs" $vipCheckNeeds
+{{- $_ := set $symbols "vip_check" (dict "needs" (list "check_result" "vip_configured" "vip_reconcile")
 "body" (include "__vip_check" $envAll)
 ) -}}
 

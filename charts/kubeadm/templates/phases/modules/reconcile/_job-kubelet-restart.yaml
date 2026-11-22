@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* Note: this file is called from templates/bin/_reconcile.tpl to create the job which restarts kubelet,
-     it can be patched with bundle.tpl."templates/phases/modules/kubelet/_job-kubelet-restart.yaml.patch" (strategic merge patch) */}}
+{{/* Note: kubelet_restart (templates/phases/modules/reconcile/_.tpl) creates the job which restarts kubelet from this file,
+     it can be patched with bundle.tpl."templates/phases/modules/reconcile/_job-kubelet-restart.yaml.patch" (strategic merge patch) */}}
 
 apiVersion: batch/v1
 kind: Job
@@ -68,7 +68,7 @@ spec:
 
               echo "perform daemon-reload"
               systemctl daemon-reload
-{{- if .Values.kubelet.restart }}
+{{- if .Values.anchor.reconcile.kubelet_restart }}
               echo "restarting kubelet service"
               systemctl restart kubelet.service
 {{- end }}

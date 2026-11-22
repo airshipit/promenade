@@ -232,7 +232,7 @@ kubelet_restart() {
   local was_ready restarted heartbeat i
   was_ready=$(kubectl get node "${NODE_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
   annotate_node "$KUBELET_RESTART_ANNOTATION" true
-{{- if $envAll.Values.kubelet.drain }}
+{{- if $envAll.Values.anchor.reconcile.kubelet_drain }}
   kubectl drain "${NODE_NAME}" --pod-selector '!kubelet-restart' --ignore-daemonsets --delete-emptydir-data
 {{- end }}
 
@@ -240,13 +240,13 @@ kubelet_restart() {
   restarted=$(date -u +%FT%TZ)
   # heredoc will take care of ${NODE_NAME} and etc
   job_name=$(kubectl create -n "${NAMESPACE}" -f - -o name <<EOF_DATA
-{{ tuple $envAll "templates/phases/modules/kubelet/_job-kubelet-restart.yaml" $envAll | include "kubeadm.bundle.patched_template" }}
+{{ tuple $envAll "templates/phases/modules/reconcile/_job-kubelet-restart.yaml" $envAll | include "kubeadm.bundle.patched_template" }}
 EOF_DATA
 )
 
   kubectl wait -n "${NAMESPACE}" --for=condition=complete $job_name --timeout=600s
 
-{{- if $envAll.Values.kubelet.drain }}
+{{- if $envAll.Values.anchor.reconcile.kubelet_drain }}
   kubectl uncordon "${NODE_NAME}"
 {{- end }}
   kubectl annotate node "${NODE_NAME}" "${KUBELET_RESTART_ANNOTATION}-"
@@ -307,7 +307,7 @@ is_action_required() {
     fi
   fi
 
-{{- if $envAll.Values.kubelet.restart  }}
+{{- if $envAll.Values.anchor.reconcile.kubelet_restart }}
   current_kubelet_config_sha256=$(kubelet_config_sha256)
   if [[ -z $LAST_APPLIED_KUBELET_CONFIG_SHA256 || $LAST_APPLIED_KUBELET_CONFIG_SHA256 != $current_kubelet_config_sha256 || $KUBELET_CURRENT_VERSION != $KUBERNETES_VERSION ]]; then
     KUBELET_RESTART_REQUIRED=true

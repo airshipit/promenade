@@ -47,17 +47,17 @@ reconcile_pass() {
   KUBELET_RESTART_REQUIRED=false
 
   CRI_RESTART_REQUIRED=false
-  {{- if $envAll.Values.cri.reconcile_install }}
-  binary_cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+  {{- if $envAll.Values.anchor.reconcile.cri_install }}
+  binary_cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.anchor.reconcile.cri_restart }}
   {{- end }}
-  cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+  cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.anchor.reconcile.cri_restart }}
   if [[ $CRI_RESTART_REQUIRED == true ]]; then
     cri_restart
   fi
   kubeconfigs_sync
-  kubelet_sync_rc && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+  kubelet_sync_rc && KUBELET_RESTART_REQUIRED={{ $envAll.Values.anchor.reconcile.kubelet_restart }}
   [ "${NODE_ROLE}" == "master" ] || wait_apiservers_upgraded
-  binary_kubernetes_sync_rc kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+  binary_kubernetes_sync_rc kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.anchor.reconcile.kubelet_restart }}
 
   # the apiserver restarts if the sync changed its files
   APISERVER_FILES_SHA256="$(apiserver_files_sha256)"
@@ -123,10 +123,10 @@ reconcile_pass() {
   airship_migration_cleanup
   {{- end }}
 
-  {{- if $envAll.Values.checks.reconcile }}
+  {{- if $envAll.Values.anchor.reconcile.checks }}
 
   # the anchor becomes ready only if the node checks pass
-  check_run vip_check certs_check
+  check_run{{ if $envAll.Values.anchor.reconcile.vip }} vip_check{{ end }} certs_check
   {{- end }}
 }
 {{- end -}}
@@ -159,14 +159,17 @@ reconcile_pass() {
 {{- if $envAll.Values.anchor.reconcile.ca_guard -}}
   {{- $needs = append $needs "certs_guard_ca" -}}
 {{- end -}}
-{{- if $envAll.Values.cri.reconcile_install -}}
+{{- if $envAll.Values.anchor.reconcile.cri_install -}}
   {{- $needs = append $needs "binary_cri_sync_rc" -}}
 {{- end -}}
 {{- if $envAll.Values.deprecated.airship_migration.enabled -}}
   {{- $needs = concat $needs (list "rename_cp_pods" "airship_migration_cleanup") -}}
 {{- end -}}
-{{- if $envAll.Values.checks.reconcile -}}
-  {{- $needs = concat $needs (list "check_run" "vip_check" "certs_check") -}}
+{{- if $envAll.Values.anchor.reconcile.checks -}}
+  {{- $needs = concat $needs (list "check_run" "certs_check") -}}
+  {{- if $envAll.Values.anchor.reconcile.vip -}}
+    {{- $needs = append $needs "vip_check" -}}
+  {{- end -}}
 {{- end -}}
 {{- $_ := set $symbols "reconcile_pass" (dict "needs" $needs
 "body" (include "__reconcile_pass" $envAll)

@@ -108,8 +108,6 @@ images:
 # CRI-O is installed by binary_cri_sync_rc, see binaries.sync below
 cri:
   service: crio.service
-  reconcile_install: true
-  restart: true
   fsgroup:
     - path: /etc/crio/crio.conf.d
       state: dir
@@ -180,10 +178,14 @@ binaries:
           systemctl enable crio
         }
 
-kubelet:
-  # the anchor applies kubelet configuration changes: it drains the node and
-  # restarts kubelet (there are other nodes for the workloads)
-  restart: true
+anchor:
+  reconcile:
+    # the reconcile installs and restarts the runtime too
+    cri_install: true
+    cri_restart: true
+    # the anchor applies kubelet configuration changes: it drains the node and
+    # restarts kubelet (there are other nodes for the workloads)
+    kubelet_restart: true
 
 kubeconfig:
   clusterName: kubernetes
