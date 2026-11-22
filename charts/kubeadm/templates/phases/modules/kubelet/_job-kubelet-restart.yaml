@@ -15,7 +15,7 @@ limitations under the License.
 */}}
 
 {{/* Note: this file is called from templates/bin/_reconcile.tpl to create the job which restarts kubelet,
-     it can be patched with bundle.tpl."templates/phases/snippets/kubelet/_job-kubelet-restart.yaml.patch" (strategic merge patch) */}}
+     it can be patched with bundle.tpl."templates/phases/modules/kubelet/_job-kubelet-restart.yaml.patch" (strategic merge patch) */}}
 
 apiVersion: batch/v1
 kind: Job

@@ -3,10 +3,10 @@
 
 {{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
 {{- $perNode := get (get $k8sConfDict "fs") "all-pernode" -}}
-{{- $_ := set $allNodes "_kubelet/kubelet" (dict "content" (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-service-default.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/default/kubelet" "file_mode" 0600 ) -}}
-{{- $_ := set $allNodes "_kubelet/kubelet.service" (dict "content"  (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-service.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/systemd/system/kubelet.service" "file_mode" 0600 ) -}}
-{{- if eq "tpl" (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.templateActualMode") -}}
-  {{- $_ := set $allNodes "_kubelet/kubelet_config.yaml" (dict "content"  (tuple $envAll "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template") "dest_path" "var/lib/kubelet/config.yaml" "file_mode" 0600 ) -}}
+{{- $_ := set $allNodes "_kubelet/kubelet" (dict "content" (tuple $envAll "templates/phases/modules/kubelet/_kubelet-service-default.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/default/kubelet" "file_mode" 0600 ) -}}
+{{- $_ := set $allNodes "_kubelet/kubelet.service" (dict "content"  (tuple $envAll "templates/phases/modules/kubelet/_kubelet-service.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/systemd/system/kubelet.service" "file_mode" 0600 ) -}}
+{{- if eq "tpl" (tuple $envAll "templates/phases/modules/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.templateActualMode") -}}
+  {{- $_ := set $allNodes "_kubelet/kubelet_config.yaml" (dict "content"  (tuple $envAll "templates/phases/modules/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template") "dest_path" "var/lib/kubelet/config.yaml" "file_mode" 0600 ) -}}
 {{- end -}}
 
 {{- if $envAll.Values.certs -}}
@@ -113,7 +113,7 @@ kubelet_sync_rc() {
 "body" (include "__kubelet_sync_rc" $envAll)
 ) -}}
 
-{{/* the rebootstrap script only (templates/bin/_rebootstrap.tpl), the groups
+{{/* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the groups
      of kubelet_kubeconfig_sync_rc */}}
 {{- $_ := set $symbols "kubelet_backup" (dict "needs" (list "group_dir_backup")
 "body" `

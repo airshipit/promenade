@@ -16,7 +16,7 @@
       {{/* account for different directories. fail if no matiching prefix */}}
       {{- $fname := base $filename -}}
       {{- $fdir := dir $filename -}}
-      {{- if not (hasKey $folder2prefix $fdir) -}}{{ fail (printf "_kubeadm.tpl doesn't know how to treat files in %s (filename %s)" $fdir $filename) }}{{- end -}}
+      {{- if not (hasKey $folder2prefix $fdir) -}}{{ fail (printf "templates/phases/modules/kubeadm/_.tpl doesn't know how to treat files in %s (filename %s)" $fdir $filename) }}{{- end -}}
       {{- $ftuple := get $folder2prefix $fdir -}}
       {{- $_ := set (index $ftuple 1) (printf "_%s/%s" (trimSuffix "_" (index $ftuple 0)) $fname) (dict "content" (tuple $envAll $template | include "kubeadm.bundle.template") "dest_path" "/etc/kubernetes/kubeadm/cluster_config.yaml") -}}
     {{- end -}}
@@ -119,6 +119,19 @@ annotate_applied_configs() {
 }
 `) -}}
 
+{{- $_ := set $symbols "annotate_applied_kubelet" (dict "needs" (list "annotate_applied" "annotations" "kubelet_config_sha256")
+"body" `
+# the first pass of the reconcile doesn't apply the configuration of kubelet
+# again (the one of the values, the bundle may leave it to kubeadm)
+annotate_applied_kubelet() {
+  if [ ! -f "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" ]; then
+    echo "the values have no configuration of kubelet"
+    return 0
+  fi
+  annotate_applied "${KUBELET_ANNOTATION}=$(kubelet_config_sha256)"
+}
+`) -}}
+
 {{- $_ := set $symbols "kubeadm_values_init_config" (dict "needs" (list "subst_node_env")
 "body" `
 # the InitConfiguration of the values for the node (init_config.yaml of the
@@ -164,7 +177,7 @@ EOF_CONFIG
 }
 `) -}}
 
-{{/* the rebootstrap script only (templates/bin/_rebootstrap.tpl), the files
+{{/* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the files
      kubeadm generates when the values have the CAs only (the backups have
      them anyway) */}}
 {{- $_ := set $symbols "kubeadm_generated_files" (dict "body" `

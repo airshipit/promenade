@@ -2,7 +2,7 @@
 {{- $k8sConfDict := dict -}}
 {{/* populates k8sConfDict TODO: rename to phasesConfDict? when we finish */}}
 
-{{/* the archives with the files of the chart, see templates/phases/_fs.tpl:
+{{/* the archives with the files of the chart, see templates/phases/modules/fs/_.tpl:
      all/ctrl: "<group>/<file>" -> file, *-pernode: node -> "<group>/<file>" -> file */}}
 {{- $_ := set $k8sConfDict "fs" (dict "all" (dict) "ctrl" (dict) "all-pernode" (dict) "ctrl-pernode" (dict)) -}}
 
@@ -12,6 +12,8 @@
 {{/* we're making an alternative implementation for the phases: e.g.
 https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 
+{{/* the runner of the phases, then the modules */}}
+{{- $_ := tuple $envAll "templates/phases/_phase_runner.tpl" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
 {{- range $module := $envAll.Values.phases.modules -}}
 {{- $_ := tuple $envAll $module (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
 {{- end }}

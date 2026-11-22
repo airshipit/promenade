@@ -5,7 +5,7 @@
 
 {{- define "__render_kubeconfig" -}}
 {{- $envAll := . -}}
-{{- $tpl := (tuple $envAll "templates/phases/snippets/kubeconfig/_kubeconfig.yaml.tpl" | include "kubeadm.bundle.template") -}}
+{{- $tpl := (tuple $envAll "templates/phases/modules/kubeconfig/_kubeconfig.yaml.tpl" | include "kubeadm.bundle.template") -}}
 render_kubeconfig() {
   local dst="$1" ep="$2" user="$3" ca="$4" cert="$5" key="$6" mode="$7" owner="$8"
   cat << 'EOF_TEMPLATE_DATA' | subst_node_env \

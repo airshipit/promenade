@@ -44,7 +44,7 @@
 #                       the components: the control plane nodes, then the
 #                       workers
 #
-# The nodes come from templates/phases/snippets/tools/_nodes.tpl below, the
+# The nodes come from templates/phases/modules/tools/_nodes.tpl below, the
 # network of the certificates from network and kubeconfig of the values.
 #
 # Requirements:
@@ -126,7 +126,7 @@ vip:
   # haproxy frontend and backends: "<bind>|<apiserver>,<apiserver>,..."
   init_val: >-
     *:6553|{{- $nodesOut := dict -}}
-    {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+    {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
     {{- $backends := list -}}
     {{- range $nodesOut.nodes -}}
     {{- if eq .role "master" -}}
@@ -137,11 +137,11 @@ vip:
 
 kubeadm:
   templates:
-    "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
-    "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
-    "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
+    "ClusterConfiguration": "templates/phases/modules/kubeadm/ClusterConfiguration"
+    "init_config.yaml": "templates/phases/modules/kubeadm/init_config.yaml"
+    "join_config.yaml": "templates/phases/modules/kubeadm/join_config.yaml"
     # used by the anchor (day 2): kubeadm upgrade node
-    "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
+    "upgrade_config.yaml": "templates/phases/modules/kubeadm/upgrade_config.yaml"
 
 orchestration:
   ssh: ssh -o BatchMode=yes
@@ -163,17 +163,17 @@ entrypoint:
       name: {{ include "kubeadm.fullname" . }}-tools
     type: Opaque
     data:
-      gen-pki.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      gen-pki-full.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      ssh-bootstrap.sh: {{ tuple . "templates/phases/snippets/tools/_ssh-bootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      ssh-rebootstrap.sh: {{ tuple . "templates/phases/snippets/tools/_ssh-rebootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      gen-pki.sh: {{ tuple . "templates/phases/modules/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      gen-pki-full.sh: {{ tuple . "templates/phases/modules/tools/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-bootstrap.sh: {{ tuple . "templates/phases/modules/tools/_ssh-bootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-rebootstrap.sh: {{ tuple . "templates/phases/modules/tools/_ssh-rebootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
     {{ end }}
 
 bundle:
   tpl:
     # containerd, runc, the systemd unit and crictl (the rebootstrap stops the
     # static pods with it) from the upstream releases
-    "templates/phases/snippets/cri/_install.sh.tpl": |
+    "templates/phases/modules/cri/_install.sh.tpl": |
       cri_install_sync_rc() {
         local version=v2.4.2 runc=v1.5.2 crictl=v1.36.0 dir sha256
         containerd --version 2>/dev/null | grep -qw "${version}" && return 1
@@ -198,7 +198,7 @@ bundle:
         systemctl daemon-reload
         systemctl enable containerd
       }
-    "templates/phases/snippets/kubeadm/ClusterConfiguration": |
+    "templates/phases/modules/kubeadm/ClusterConfiguration": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: ClusterConfiguration
       kubernetesVersion: {{ .Values.cluster_config.kubernetesVersion }}
@@ -230,7 +230,7 @@ bundle:
       etcd:
         local:
           dataDir: /var/lib/etcd
-    "templates/phases/snippets/kubeadm/init_config.yaml": |
+    "templates/phases/modules/kubeadm/init_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: InitConfiguration
       localAPIEndpoint:
@@ -257,8 +257,8 @@ bundle:
         kubeletHealthCheck: 5m0s
         kubernetesAPICall: 3m0s
       ---
-      {{ tuple . "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template" }}
-    "templates/phases/snippets/kubeadm/join_config.yaml": |
+      {{ tuple . "templates/phases/modules/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template" }}
+    "templates/phases/modules/kubeadm/join_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: JoinConfiguration
       controlPlane:
@@ -288,7 +288,7 @@ bundle:
         kubeletHealthCheck: 5m0s
         kubernetesAPICall: 3m0s
         discovery: 5m0s
-    "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
+    "templates/phases/modules/kubeadm/upgrade_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: UpgradeConfiguration
       node:
@@ -313,7 +313,7 @@ bundle:
         controlPlaneComponentHealthCheck: 5m0s
         kubeletHealthCheck: 5m0s
         kubernetesAPICall: 3m0s
-    "templates/phases/snippets/kubelet/_kubelet-config.yaml": |
+    "templates/phases/modules/kubelet/_kubelet-config.yaml": |
       apiVersion: kubelet.config.k8s.io/v1beta1
       kind: KubeletConfiguration
       authentication:
@@ -348,7 +348,7 @@ bundle:
     #   role      master or worker (NODE_ROLE)
     #   labels    the labels of the node set by ssh-bootstrap.sh (a dict)
     # The order matters: the first master runs kubeadm init.
-    "templates/phases/snippets/tools/_nodes.tpl": |
+    "templates/phases/modules/tools/_nodes.tpl": |
       {{- $envAll := index . 0 -}}
       {{- $out := index . 1 -}}
       {{- $roles := dict "control-plane" "master" "worker" "worker" -}}
@@ -361,11 +361,11 @@ bundle:
     # the full PKI of the cluster: the CAs by gen-pki.sh of the chart, the
     # certificates of the nodes (baked in) signed by them. Only the missing
     # ones are added to the file: a new node gets its own
-    "templates/phases/snippets/tools/_gen-pki-full.sh.tpl": |
+    "templates/phases/modules/tools/_gen-pki-full.sh.tpl": |
       #!/bin/bash
       set -euo pipefail
       {{- $nodesOut := dict -}}
-      {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" }}
+      {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" }}
 
       OUTPUT_FILE="${PKI_VALUES:-values-pki.yaml}"
       LEAF_DAYS="${LEAF_DAYS:-365}"
@@ -392,7 +392,7 @@ bundle:
       # the CAs and the service account key
       if [ ! -s "${OUTPUT_FILE}" ]; then
         bash -s -- --out-file "${OUTPUT_FILE}" << 'EOF_GEN_PKI'
-      {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" }}
       EOF_GEN_PKI
       fi
 
@@ -512,11 +512,11 @@ bundle:
       echo "the full PKI is in ${OUTPUT_FILE}"
 
     # the common part of the tools: the nodes and running the node scripts
-    "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl": |
+    "templates/phases/modules/tools/_ssh-orchestration.sh.tpl": |
       {{- $nodesOut := dict -}}
-      {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+      {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
       {{- if not $nodesOut.nodes -}}
-      {{- fail "ssh orchestration: no nodes (templates/phases/snippets/tools/_nodes.tpl)" -}}
+      {{- fail "ssh orchestration: no nodes (templates/phases/modules/tools/_nodes.tpl)" -}}
       {{- end -}}
       {{- $firstMaster := "" -}}
       {{- range $node := $nodesOut.nodes -}}
@@ -528,14 +528,14 @@ bundle:
       {{- end -}}
       {{- end -}}
       {{- if not $firstMaster -}}
-      {{- fail "ssh orchestration: no control plane node (templates/phases/snippets/tools/_nodes.tpl)" -}}
+      {{- fail "ssh orchestration: no control plane node (templates/phases/modules/tools/_nodes.tpl)" -}}
       {{- end -}}
       HELM="${HELM:-helm}"
       CHART_ARGS="${CHART_ARGS:?the values of the cluster: \"<release> <chart> -f <values>...\"}"
       SSH="${SSH:-{{ .Values.orchestration.ssh }}}"
       SUDO="${SUDO-{{ .Values.orchestration.sudo }}}"
 
-      # the nodes: templates/phases/snippets/tools/_nodes.tpl
+      # the nodes: templates/phases/modules/tools/_nodes.tpl
       NODES=({{ range $nodesOut.nodes }} {{ .hostname | quote }}{{ end }} )
       declare -A NODE_IP=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .ip | quote }}{{ end }} )
       declare -A NODE_ROLE=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .role | quote }}{{ end }} )
@@ -552,16 +552,16 @@ bundle:
         printf "'%s'" "${1//\'/\'\\\'\'}"
       }
 
-      # renders the script of the node: render_node <action> <node>
+      # renders the script of the node: render_node <profile> <node>
       render_node() {
-        local action="$1" node="$2"
+        local profile="$1" node="$2"
         # shellcheck disable=SC2086 # CHART_ARGS is a list of arguments
         "${HELM}" template ${CHART_ARGS} \
           --set manifests.secret_bootstrap=true --set bootstrap.string_data=false \
-          --set bootstrap.action="${action}" --set bootstrap.nodename="${node}" \
+          --set bootstrap.profile="${profile}" --set bootstrap.nodename="${node}" \
           | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d > "${WORK_DIR}/${node}.sh"
         if [ ! -s "${WORK_DIR}/${node}.sh" ]; then
-          echo "${node}: the chart has no ${action} script for the node" >&2
+          echo "${node}: the chart has no ${profile} script for the node" >&2
           exit 1
         fi
       }
@@ -605,19 +605,19 @@ bundle:
         fi
       }
 
-    "templates/phases/snippets/tools/_ssh-bootstrap.sh.tpl": |
+    "templates/phases/modules/tools/_ssh-bootstrap.sh.tpl": |
       #!/bin/bash
       # Bootstrap of the cluster over ssh: the reference orchestration of the
       # bootstrap scripts of the nodes (overrides/reference/ssh-orchestration-full.yaml)
       set -euo pipefail
 
-      {{ tuple . "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
 
       KUBEADM_INIT=({{ .Values.orchestration.kubeadm.init }})
       KUBEADM_JOIN=({{ .Values.orchestration.kubeadm.join }})
       # the workers: the default phases of the bootstrap script but kubeadm_run
       {{- $workers := list }}
-      {{- range $phase := .Values.bootstrap.phases }}
+      {{- range $phase := .Values.bootstrap.profiles.bootstrap }}
       {{-   if not (or (hasPrefix "+" $phase) (eq $phase "kubeadm_run")) }}
       {{-     $workers = append $workers $phase }}
       {{-   end }}
@@ -675,7 +675,7 @@ bundle:
       PKI_VALUES="${PKI_VALUES:-values-pki.yaml}"
       echo "=== the PKI: ${PKI_VALUES}"
       bash -s -- --out-file "${PKI_VALUES}" << 'EOF_GEN_PKI_FULL'
-      {{ tuple . "templates/phases/snippets/tools/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/tools/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" }}
       EOF_GEN_PKI_FULL
       CHART_ARGS="${CHART_ARGS} -f ${PKI_VALUES}"
 
@@ -703,13 +703,13 @@ bundle:
       label_nodes
       echo "The cluster is bootstrapped"
 
-    "templates/phases/snippets/tools/_ssh-rebootstrap.sh.tpl": |
+    "templates/phases/modules/tools/_ssh-rebootstrap.sh.tpl": |
       #!/bin/bash
       # Rebootstrap of the cluster over ssh: the reference orchestration of the
       # rebootstrap scripts of the nodes (overrides/reference/ssh-orchestration-full.yaml)
       set -euo pipefail
 
-      {{ tuple . "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
       {{- if not ((.Values.certs).apiserver_kubelet_client).crt }}
       # rendered without the PKI: the other tools make it
       echo "ssh-rebootstrap.sh: the values must have the full PKI (gen-pki-full.sh)" >&2

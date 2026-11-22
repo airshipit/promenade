@@ -256,7 +256,7 @@ run_rebootstrap() {
   echo "[Run #${RUN_COUNTER}] rebootstrap: ${script_args[*]+${script_args[*]}}"
   "${HELM:-helm}" template kubeadm "${helm_args[@]}" \
     --set manifests.secret_bootstrap=true \
-    --set bootstrap.action=rebootstrap | \
+    --set bootstrap.profile=rebootstrap | \
     "${YQ:-yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-bootstrap${postfix}\") | .data.script | @base64d" \
     > "${ROOTFS}/tmp/rebootstrap.sh"
   bash "${ROOTFS}/tmp/rebootstrap.sh" ${script_args[@]+"${script_args[@]}"} > "${ROOTFS}/tmp/rebootstrap.log" 2>&1
@@ -1080,8 +1080,9 @@ files_mode() {
 }
 files_chart=$(mktemp -d)
 mkdir -p "${files_chart}/templates/snippets" "${files_chart}/rootfs"
-cp kubeadm/templates/phases/_fs.tpl kubeadm/templates/lib/bundle/_template.tpl kubeadm/templates/lib/_tar.tpl kubeadm/templates/lib/_linker.tpl "${files_chart}/templates/"
-cp kubeadm/templates/phases/snippets/common/_fs.tpl "${files_chart}/templates/snippets/"
+cp kubeadm/templates/lib/bundle/_template.tpl kubeadm/templates/lib/_tar.tpl kubeadm/templates/lib/_linker.tpl "${files_chart}/templates/"
+cp kubeadm/templates/phases/modules/fs/_.tpl "${files_chart}/templates/_fs.tpl"
+cp kubeadm/templates/phases/modules/fs/_helpers.tpl "${files_chart}/templates/snippets/"
 printf 'apiVersion: v2\nname: files-test\nversion: 0.1.0\n' > "${files_chart}/Chart.yaml"
 cat > "${files_chart}/values.yaml" << 'EOF'
 word: rendered

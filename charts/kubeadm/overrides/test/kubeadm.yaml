@@ -6,23 +6,23 @@ images:
 kubeadm:
   templates:
     # kubeadm folder structure - pointing to templates
-    "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
-    "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
-    "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
+    "ClusterConfiguration": "templates/phases/modules/kubeadm/ClusterConfiguration"
+    "init_config.yaml": "templates/phases/modules/kubeadm/init_config.yaml"
+    "join_config.yaml": "templates/phases/modules/kubeadm/join_config.yaml"
     # test.sh: the bootstrap token of the join
-    "join_worker_config.yaml": "templates/phases/snippets/kubeadm/join_worker_config.yaml"
-    "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
+    "join_worker_config.yaml": "templates/phases/modules/kubeadm/join_worker_config.yaml"
+    "upgrade_config.yaml": "templates/phases/modules/kubeadm/upgrade_config.yaml"
     # patches dir which is referenced in init/join configs
-    "patches/etcd.yaml": "templates/phases/snippets/kubeadm/patches/etcd.yaml"
-    "patches/kube-apiserver.yaml": "templates/phases/snippets/kubeadm/patches/kube-controller-manager.yaml"
-    "patches/kube-controller-manager.yaml": "templates/phases/snippets/kubeadm/patches/kube-controller-manager.yaml"
-    "patches/kube-scheduler.yaml": "templates/phases/snippets/kubeadm/patches/kube-scheduler.yaml"
+    "patches/etcd.yaml": "templates/phases/modules/kubeadm/patches/etcd.yaml"
+    "patches/kube-apiserver.yaml": "templates/phases/modules/kubeadm/patches/kube-controller-manager.yaml"
+    "patches/kube-controller-manager.yaml": "templates/phases/modules/kubeadm/patches/kube-controller-manager.yaml"
+    "patches/kube-scheduler.yaml": "templates/phases/modules/kubeadm/patches/kube-scheduler.yaml"
     # kube apiserver files which are referenced in ClusterConfiguration
     # (note, each folder (/etc/kubernetes/apiserver/) must be accounted for in the code of kubeadm phase)
-    "/etc/kubernetes/apiserver/acconfig.yaml": "templates/phases/snippets/kubeadm/apiserver/acconfig.yaml"
-    "/etc/kubernetes/apiserver/audit-policy.yaml": "templates/phases/snippets/kubeadm/apiserver/audit-policy.yaml"
-    "/etc/kubernetes/apiserver/encryption_provider.yaml": "templates/phases/snippets/kubeadm/apiserver/encryption_provider.yaml"
-    "/etc/kubernetes/apiserver/eventconfig.yaml": "templates/phases/snippets/kubeadm/apiserver/eventconfig.yaml"
+    "/etc/kubernetes/apiserver/acconfig.yaml": "templates/phases/modules/kubeadm/apiserver/acconfig.yaml"
+    "/etc/kubernetes/apiserver/audit-policy.yaml": "templates/phases/modules/kubeadm/apiserver/audit-policy.yaml"
+    "/etc/kubernetes/apiserver/encryption_provider.yaml": "templates/phases/modules/kubeadm/apiserver/encryption_provider.yaml"
+    "/etc/kubernetes/apiserver/eventconfig.yaml": "templates/phases/modules/kubeadm/apiserver/eventconfig.yaml"
   settings:
   # here the user can define some values to be configured as yaml and getting used in those files
   # another strategy which can be used is - make patches here and apply on top of generated yaml template
@@ -37,7 +37,7 @@ kubeadm:
 # adding kubeadm templates as tpl files
 bundle:
   tpl:
-    "templates/phases/snippets/kubeadm/ClusterConfiguration": |
+    "templates/phases/modules/kubeadm/ClusterConfiguration": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: ClusterConfiguration
       {{- if .Values.cluster_config.kubernetesVersion }}
@@ -156,7 +156,7 @@ bundle:
             mountPath: /etc/kubernetes/pki
             name: pki-certs
             pathType: DirectoryOrCreate
-    "templates/phases/snippets/kubeadm/init_config.yaml": |
+    "templates/phases/modules/kubeadm/init_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: InitConfiguration
       bootstrapTokens: []
@@ -200,7 +200,7 @@ bundle:
         kubernetesAPICall: 1m0s
         tlsBootstrap: 5m0s
         upgradeManifests: 5m0s
-    "templates/phases/snippets/kubeadm/join_config.yaml": |
+    "templates/phases/modules/kubeadm/join_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: JoinConfiguration
       caCertPath: /etc/kubernetes/pki/ca.crt
@@ -240,7 +240,7 @@ bundle:
       - wait-control-plane
       patches:
         directory: /etc/kubernetes/kubeadm/patches
-    "templates/phases/snippets/kubeadm/join_worker_config.yaml": |
+    "templates/phases/modules/kubeadm/join_worker_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: JoinConfiguration
       discovery:
@@ -249,7 +249,7 @@ bundle:
         tlsBootstrapToken: "${KUBEADM_TOKEN}"
       nodeRegistration:
         name: "${NODE_NAME}"
-    "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
+    "templates/phases/modules/kubeadm/upgrade_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: UpgradeConfiguration
       node:
@@ -270,7 +270,7 @@ bundle:
         - addon
         imagePullPolicy: Always
         imagePullSerial: false
-    "templates/phases/snippets/kubeadm/patches/etcd.yaml": |
+    "templates/phases/modules/kubeadm/patches/etcd.yaml": |
       spec:
         containers:
         - name: etcd
@@ -281,7 +281,7 @@ bundle:
             requests:
               cpu: 20000m
               memory: 8Gi
-    "templates/phases/snippets/kubeadm/patches/kube-apiserver.yaml": |
+    "templates/phases/modules/kubeadm/patches/kube-apiserver.yaml": |
       metadata:
         labels:
           application: kubernetes
@@ -295,7 +295,7 @@ bundle:
             requests:
               cpu: 100m
               memory: 128Mi
-    "templates/phases/snippets/kubeadm/patches/kube-controller-manager.yaml": |
+    "templates/phases/modules/kubeadm/patches/kube-controller-manager.yaml": |
       spec:
         containers:
         - name: kube-controller-manager
@@ -306,7 +306,7 @@ bundle:
             requests:
               cpu: 100m
               memory: 128Mi
-    "templates/phases/snippets/kubeadm/patches/kube-scheduler.yaml": |
+    "templates/phases/modules/kubeadm/patches/kube-scheduler.yaml": |
       spec:
         containers:
         - name: kube-scheduler
@@ -317,13 +317,13 @@ bundle:
             requests:
               cpu: 100m
               memory: 128Mi
-    "templates/phases/snippets/kubeadm/apiserver/acconfig.yaml": |
+    "templates/phases/modules/kubeadm/apiserver/acconfig.yaml": |
       apiVersion: apiserver.k8s.io/v1alpha1
       kind: AdmissionConfiguration
       plugins:
       - name: EventRateLimit
         path: eventconfig.yaml
-    "templates/phases/snippets/kubeadm/apiserver/audit-policy.yaml": |
+    "templates/phases/modules/kubeadm/apiserver/audit-policy.yaml": |
       apiVersion: audit.k8s.io/v1
       kind: Policy
       rules:
@@ -433,7 +433,7 @@ bundle:
       - level: Metadata
         omitStages:
         - RequestReceived
-    "templates/phases/snippets/kubeadm/apiserver/encryption_provider.yaml": |
+    "templates/phases/modules/kubeadm/apiserver/encryption_provider.yaml": |
       apiVersion: apiserver.config.k8s.io/v1
       kind: EncryptionConfiguration
       resources:
@@ -447,7 +447,7 @@ bundle:
         - identity: {}
         resources:
         - secrets
-    "templates/phases/snippets/kubeadm/apiserver/eventconfig.yaml": |
+    "templates/phases/modules/kubeadm/apiserver/eventconfig.yaml": |
       apiVersion: eventratelimit.admission.k8s.io/v1alpha1
       kind: Configuration
       limits:

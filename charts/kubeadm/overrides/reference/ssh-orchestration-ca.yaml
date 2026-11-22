@@ -52,7 +52,7 @@
 #                       again, then the workers go through the TLS bootstrap
 #                       of kubelet again
 #
-# The nodes come from templates/phases/snippets/tools/_nodes.tpl: it fills the
+# The nodes come from templates/phases/modules/tools/_nodes.tpl: it fills the
 # list of the nodes (hostname, ip, role) from the values. The default one reads
 # `nodes:` of the values (name, ip, role control-plane or worker), override it
 # for another format (bundle.tpl). The tools get the nodes as their own data.
@@ -78,7 +78,7 @@
 #
 # Render the tools with this file, run them with the same values in
 # CHART_ARGS: they render the script of every node with them
-# (bootstrap.action, bootstrap.nodename).
+# (bootstrap.profile, bootstrap.nodename).
 #
 #   helm template kubeadm ./charts/kubeadm -f nodes.yaml \
 #     -f ./charts/kubeadm/overrides/reference/ssh-orchestration-ca.yaml \
@@ -116,7 +116,7 @@ cri:
       owner: "root:root"
     - path: /etc/crio/crio.conf.d/20-kubeadm.conf
       state: tpl
-      from: templates/phases/snippets/cri/_crio.tpl
+      from: templates/phases/modules/cri/_crio.tpl
       owner: "root:root"
       mode: "0644"
 
@@ -152,7 +152,7 @@ vip:
   # haproxy frontend and backends: "<bind>|<apiserver>,<apiserver>,..."
   init_val: >-
     *:6553|{{- $nodesOut := dict -}}
-    {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+    {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
     {{- $backends := list -}}
     {{- range $nodesOut.nodes -}}
     {{- if eq .role "master" -}}
@@ -163,13 +163,13 @@ vip:
 
 kubeadm:
   templates:
-    "ClusterConfiguration": "templates/phases/snippets/kubeadm/ClusterConfiguration"
-    "init_config.yaml": "templates/phases/snippets/kubeadm/init_config.yaml"
-    "join_config.yaml": "templates/phases/snippets/kubeadm/join_config.yaml"
-    "join_worker_config.yaml": "templates/phases/snippets/kubeadm/join_worker_config.yaml"
-    "discovery.conf": "templates/phases/snippets/kubeadm/discovery.conf"
+    "ClusterConfiguration": "templates/phases/modules/kubeadm/ClusterConfiguration"
+    "init_config.yaml": "templates/phases/modules/kubeadm/init_config.yaml"
+    "join_config.yaml": "templates/phases/modules/kubeadm/join_config.yaml"
+    "join_worker_config.yaml": "templates/phases/modules/kubeadm/join_worker_config.yaml"
+    "discovery.conf": "templates/phases/modules/kubeadm/discovery.conf"
     # used by the anchor (day 2): kubeadm upgrade node
-    "upgrade_config.yaml": "templates/phases/snippets/kubeadm/upgrade_config.yaml"
+    "upgrade_config.yaml": "templates/phases/modules/kubeadm/upgrade_config.yaml"
 
 orchestration:
   ssh: ssh -o BatchMode=yes
@@ -193,16 +193,16 @@ entrypoint:
       name: {{ include "kubeadm.fullname" . }}-tools
     type: Opaque
     data:
-      gen-pki.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      ssh-bootstrap.sh: {{ tuple . "templates/phases/snippets/tools/_ssh-bootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      ssh-rebootstrap.sh: {{ tuple . "templates/phases/snippets/tools/_ssh-rebootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      gen-pki.sh: {{ tuple . "templates/phases/modules/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-bootstrap.sh: {{ tuple . "templates/phases/modules/tools/_ssh-bootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-rebootstrap.sh: {{ tuple . "templates/phases/modules/tools/_ssh-rebootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
     {{ end }}
 
 bundle:
   tpl:
     # CRI-O from the static bundle of the release: crio, conmon, the OCI
     # runtimes, crictl and the systemd unit
-    "templates/phases/snippets/cri/_install.sh.tpl": |
+    "templates/phases/modules/cri/_install.sh.tpl": |
       cri_install_sync_rc() {
         local version=v1.36.7 url sha256 dir
         crio --version 2>/dev/null | grep -qw "${version#v}" && return 1
@@ -221,7 +221,7 @@ bundle:
       }
     # kubeadm, kubelet and kubectl are taken from the node binaries archive of
     # the release (an example of the installation procedure override)
-    "templates/phases/snippets/binaries/_install.sh.tpl": |
+    "templates/phases/modules/binaries/_install.sh.tpl": |
       binary_sync_rc() {
         local name="$1" dir="${ROOTFS}/var/cache/kubeadm-binaries" url archive tmp
         [ -n "$(binary_source "$name")" ] || return 1
@@ -242,7 +242,7 @@ bundle:
         replace_binary "${tmp}" "${name}" || return 1
         echo "${name} is installed from ${url}"
       }
-    "templates/phases/snippets/kubeadm/ClusterConfiguration": |
+    "templates/phases/modules/kubeadm/ClusterConfiguration": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: ClusterConfiguration
       kubernetesVersion: {{ .Values.cluster_config.kubernetesVersion }}
@@ -266,7 +266,7 @@ bundle:
       etcd:
         local:
           dataDir: /var/lib/etcd
-    "templates/phases/snippets/kubeadm/init_config.yaml": |
+    "templates/phases/modules/kubeadm/init_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: InitConfiguration
       localAPIEndpoint:
@@ -294,10 +294,10 @@ bundle:
         kubeletHealthCheck: 5m0s
         kubernetesAPICall: 3m0s
       ---
-      {{ tuple . "templates/phases/snippets/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template" }}
-    "templates/phases/snippets/kubeadm/discovery.conf": |
+      {{ tuple . "templates/phases/modules/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.template" }}
+    "templates/phases/modules/kubeadm/discovery.conf": |
       {{- $nodesOut := dict -}}
-      {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+      {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
       {{- $masters := list -}}
       {{- range $nodesOut.nodes -}}
       {{- if eq .role "master" -}}
@@ -320,7 +320,7 @@ bundle:
       users:
         - name: discovery
           user: {}
-    "templates/phases/snippets/kubeadm/join_config.yaml": |
+    "templates/phases/modules/kubeadm/join_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: JoinConfiguration
       controlPlane:
@@ -356,7 +356,7 @@ bundle:
         kubeletHealthCheck: 5m0s
         kubernetesAPICall: 3m0s
         discovery: 5m0s
-    "templates/phases/snippets/kubeadm/join_worker_config.yaml": |
+    "templates/phases/modules/kubeadm/join_worker_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: JoinConfiguration
       discovery:
@@ -379,7 +379,7 @@ bundle:
         kubeletHealthCheck: 5m0s
         kubernetesAPICall: 3m0s
         discovery: 5m0s
-    "templates/phases/snippets/kubeadm/upgrade_config.yaml": |
+    "templates/phases/modules/kubeadm/upgrade_config.yaml": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: UpgradeConfiguration
       node:
@@ -404,7 +404,7 @@ bundle:
         controlPlaneComponentHealthCheck: 5m0s
         kubeletHealthCheck: 5m0s
         kubernetesAPICall: 3m0s
-    "templates/phases/snippets/kubelet/_kubelet-config.yaml": |
+    "templates/phases/modules/kubelet/_kubelet-config.yaml": |
       apiVersion: kubelet.config.k8s.io/v1beta1
       kind: KubeletConfiguration
       authentication:
@@ -438,7 +438,7 @@ bundle:
     #   ip        the address of the node (NODE_IP), ssh goes to it
     #   role      master or worker (NODE_ROLE)
     # The order matters: the first master runs kubeadm init.
-    "templates/phases/snippets/tools/_nodes.tpl": |
+    "templates/phases/modules/tools/_nodes.tpl": |
       {{- $envAll := index . 0 -}}
       {{- $out := index . 1 -}}
       {{- $roles := dict "control-plane" "master" "worker" "worker" -}}
@@ -449,11 +449,11 @@ bundle:
       {{- $_ := set $out "nodes" $nodes -}}
 
     # the common part of the tools: the nodes and running the node scripts
-    "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl": |
+    "templates/phases/modules/tools/_ssh-orchestration.sh.tpl": |
       {{- $nodesOut := dict -}}
-      {{- $_ := tuple . "templates/phases/snippets/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+      {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
       {{- if not $nodesOut.nodes -}}
-      {{- fail "ssh orchestration: no nodes (templates/phases/snippets/tools/_nodes.tpl)" -}}
+      {{- fail "ssh orchestration: no nodes (templates/phases/modules/tools/_nodes.tpl)" -}}
       {{- end -}}
       {{- $firstMaster := "" -}}
       {{- range $node := $nodesOut.nodes -}}
@@ -465,14 +465,14 @@ bundle:
       {{- end -}}
       {{- end -}}
       {{- if not $firstMaster -}}
-      {{- fail "ssh orchestration: no control plane node (templates/phases/snippets/tools/_nodes.tpl)" -}}
+      {{- fail "ssh orchestration: no control plane node (templates/phases/modules/tools/_nodes.tpl)" -}}
       {{- end -}}
       HELM="${HELM:-helm}"
       CHART_ARGS="${CHART_ARGS:?the values of the cluster: \"<release> <chart> -f <values>...\"}"
       SSH="${SSH:-{{ .Values.orchestration.ssh }}}"
       SUDO="${SUDO-{{ .Values.orchestration.sudo }}}"
 
-      # the nodes: templates/phases/snippets/tools/_nodes.tpl
+      # the nodes: templates/phases/modules/tools/_nodes.tpl
       NODES=({{ range $nodesOut.nodes }} {{ .hostname | quote }}{{ end }} )
       declare -A NODE_IP=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .ip | quote }}{{ end }} )
       declare -A NODE_ROLE=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .role | quote }}{{ end }} )
@@ -488,16 +488,16 @@ bundle:
         printf "'%s'" "${1//\'/\'\\\'\'}"
       }
 
-      # renders the script of the node: render_node <action> <node>
+      # renders the script of the node: render_node <profile> <node>
       render_node() {
-        local action="$1" node="$2"
+        local profile="$1" node="$2"
         # shellcheck disable=SC2086 # CHART_ARGS is a list of arguments
         "${HELM}" template ${CHART_ARGS} \
           --set manifests.secret_bootstrap=true --set bootstrap.string_data=false \
-          --set bootstrap.action="${action}" --set bootstrap.nodename="${node}" \
+          --set bootstrap.profile="${profile}" --set bootstrap.nodename="${node}" \
           | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d > "${WORK_DIR}/${node}.sh"
         if [ ! -s "${WORK_DIR}/${node}.sh" ]; then
-          echo "${node}: the chart has no ${action} script for the node" >&2
+          echo "${node}: the chart has no ${profile} script for the node" >&2
           exit 1
         fi
       }
@@ -541,13 +541,13 @@ bundle:
         fi
       }
 
-    "templates/phases/snippets/tools/_ssh-bootstrap.sh.tpl": |
+    "templates/phases/modules/tools/_ssh-bootstrap.sh.tpl": |
       #!/bin/bash
       # Bootstrap of the cluster over ssh: the reference orchestration of the
       # bootstrap scripts of the nodes (overrides/reference/ssh-orchestration-ca.yaml)
       set -euo pipefail
 
-      {{ tuple . "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
 
       KUBEADM_INIT=({{ .Values.orchestration.kubeadm.init }})
       declare -A KUBEADM_JOIN=(
@@ -557,7 +557,7 @@ bundle:
       # the prep phases: the default ones of the bootstrap script but kubeadm_run
       # and the ones after it
       {{- $prep := list }}
-      {{- range $phase := .Values.bootstrap.phases }}
+      {{- range $phase := .Values.bootstrap.profiles.bootstrap }}
       {{-   if not (or (hasPrefix "+" $phase) (has $phase (list "kubeadm_run" "annotate_applied_configs" "check_run"))) }}
       {{-     $prep = append $prep $phase }}
       {{-   end }}
@@ -648,13 +648,13 @@ bundle:
       wait_nodes
       echo "The cluster is bootstrapped"
 
-    "templates/phases/snippets/tools/_ssh-rebootstrap.sh.tpl": |
+    "templates/phases/modules/tools/_ssh-rebootstrap.sh.tpl": |
       #!/bin/bash
       # Rebootstrap of the cluster over ssh: the reference orchestration of the
       # rebootstrap scripts of the nodes (overrides/reference/ssh-orchestration-ca.yaml)
       set -euo pipefail
 
-      {{ tuple . "templates/phases/snippets/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
       {{- /* the CAs only: kubeadm generates the rest */}}
       {{- if ((.Values.certs).apiserver).crt }}
       {{- fail "ssh-rebootstrap.sh: the values must have the CAs only, kubeadm generates the rest" }}

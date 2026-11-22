@@ -2,8 +2,9 @@
 {{- $k8sConfDict := index . 1 -}}
 
 {{/* the VIP of the control plane endpoint: the generic part, the
-     implementations are the modules of vip.modules (templates/phases/_vip_<module>.tpl),
-     they define vip_<module>_sync (vip_sync calls the one of vip_argname),
+     implementations are the modules of vip.modules
+     (templates/phases/modules/vip/_<module>.tpl), they define
+     vip_<module>_sync (vip_sync calls the one of vip_argname),
      vip_<module>_reconcile (vip_reconcile calls the one the node was
      bootstrapped with). The arguments of vip_sync replace vip_argname and
      vip_arg */}}
@@ -139,5 +140,5 @@ vip_check() {
 
 {{/* the implementations */}}
 {{- range $module := $envAll.Values.vip.modules -}}
-{{- $_ := tuple $envAll (printf "templates/phases/_vip_%s.tpl" $module) (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
+{{- $_ := tuple $envAll (printf "templates/phases/modules/vip/_%s.tpl" $module) (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
 {{- end -}}

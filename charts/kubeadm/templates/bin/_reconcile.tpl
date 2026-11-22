@@ -99,7 +99,7 @@ kubelet_restart() {
   restarted=$(date -u +%FT%TZ)
   # heredoc will take care of ${NODE_NAME} and etc
   job_name=$(kubectl create -n "${NAMESPACE}" -f - -o name <<EOF_DATA
-{{ tuple $envAll "templates/phases/snippets/kubelet/_job-kubelet-restart.yaml" $envAll | include "kubeadm.bundle.patched_template" }}
+{{ tuple $envAll "templates/phases/modules/kubelet/_job-kubelet-restart.yaml" $envAll | include "kubeadm.bundle.patched_template" }}
 EOF_DATA
 )
 
@@ -408,7 +408,7 @@ airship_migration_cleanup() {
 {{- end }}
 
 # the rebootstrap script runs on the node while its backups exist (the lock, see
-# templates/bin/_rebootstrap.tpl): the node isn't touched until they are removed.
+# bootstrap.profiles.rebootstrap): the node isn't touched until they are removed.
 # The waiting file tells the rebootstrap script the pass doesn't go on
 wait_rebootstrap() {
   while backup_exists_rc; do

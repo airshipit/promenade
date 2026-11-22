@@ -111,7 +111,7 @@ check_etcd_members() {
   fi
   pod=$(head -n 1 <<< "${pods}")
   # the endpoint kubeadm itself finds etcd by (the annotation of its static pod),
-  # the certs are the ones the chart delivers (see phases/_certs.tpl)
+  # the certs are the ones the chart delivers (see templates/phases/modules/certs/_.tpl)
   endpoint=$(kubectl -n kube-system get pod "${pod}" \
     -o jsonpath='{.metadata.annotations.kubeadm\.kubernetes\.io/etcd\.advertise-client-urls}')
   # etcdctl fails on a flag shadowing its ETCDCTL_<FLAG> env: skip the flags the

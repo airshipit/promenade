@@ -1,6 +1,6 @@
 {{/*
-  The files of the chart (see templates/phases/_fs.tpl): the archives, the
-  groups, the permissions
+  The files of the chart (see templates/phases/modules/fs/_.tpl): the
+  archives, the groups, the permissions
 */}}
 
 {{/* "true" if the archive (tuple fs archive) has files, for any node in the per-node ones */}}

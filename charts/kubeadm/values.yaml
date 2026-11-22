@@ -38,7 +38,7 @@ backup:
 # the node has them in its PATH. urls are tpl strings, ${ARCH} is substituted
 # on the node with its architecture. sha256 is optional, if empty the binary
 # is verified with <url>.sha256. The installation procedure can be
-# redefined in bundle.tpl."templates/phases/snippets/binaries/_install.sh.tpl".
+# redefined in bundle.tpl."templates/phases/modules/binaries/_install.sh.tpl".
 binaries:
   install_dir: /usr/local/bin
   kubeadm:
@@ -105,7 +105,7 @@ certs:
 
 # node checks: one line per check "check OK|FAIL|SKIP <check> <details>",
 # the checks fail if any check failed. Day 0/1: the check_run phase of the
-# bootstrap and rebootstrap scripts (bootstrap.phases), /livez through
+# bootstrap and rebootstrap profiles (bootstrap.profiles), /livez through
 # kubeconfig.controlPlaneEndpoint
 checks:
   # day 2, by the reconcile before the anchor becomes ready (it restarts): the
@@ -127,7 +127,7 @@ cri:
   service: containerd.service
   # the bootstrap script always runs cri_install_sync_rc, the reconcile script
   # with this flag. The installation procedure can be redefined in
-  # bundle.tpl."templates/phases/snippets/cri/_install.sh.tpl".
+  # bundle.tpl."templates/phases/modules/cri/_install.sh.tpl".
   reconcile_install: false
   # the reconcile script restarts the runtime when cri_install_sync_rc or
   # cri.fsgroup changed it, the bootstrap script always does
@@ -139,7 +139,7 @@ cri:
       owner: "root:root"
     - path: /etc/containerd/config.toml
       state: tpl
-      from: templates/phases/snippets/cri/_containerd_v3.tpl
+      from: templates/phases/modules/cri/_containerd_v3.tpl
       owner: "root:root"
       mode: "0600"
   # auths:
@@ -256,7 +256,7 @@ kubelet:
   # the node is drained before the restart and uncordoned after it
   drain: true
   # the job restarting kubelet can be patched with
-  # bundle.tpl."templates/phases/snippets/kubelet/_job-kubelet-restart.yaml.patch"
+  # bundle.tpl."templates/phases/modules/kubelet/_job-kubelet-restart.yaml.patch"
   # the permissions of the files of the phase (see fs.permissions)
   permissions:
     # /etc/kubernetes/pki
@@ -309,7 +309,7 @@ haproxy:
       - option redispatch
 
 vip:
-  # the implementations of the VIP: templates/phases/_vip_<module>.tpl
+  # the implementations of the VIP: templates/phases/modules/vip/_<module>.tpl
   modules:
     - haproxy
   # the VIP of the node: the implementation and its argument (a tpl string),
@@ -388,48 +388,100 @@ bootstrap:
   # without suffix-<nodename>. Using this parameter disables producing other manifests generated in _main.tpl to help sed find the needed field only.
   # this is because we assume that bootstrap.nodename is used only for manual helm template execution
   # nodename: <some node>
-  # the script of the bootstrap Secrets: bootstrap (templates/bin/_bootstrap.tpl)
-  # or rebootstrap (templates/bin/_rebootstrap.tpl, the certificates of the
-  # values again on the nodes of an existing cluster)
-  action: bootstrap
-  # the phases of the bootstrap script in their order (templates/bin/_bootstrap.tpl):
-  # a phase is a function of templates/phases, the script is linked from them,
-  # only the functions they need (templates/lib/_linker.tpl). "+<phase>" runs
-  # only if the command line names it ("-- <phase> <arguments>"), --run runs
-  # the named ones only (templates/phases/snippets/common/_phases.sh.tpl)
-  phases:
-    - certs_guard_ca
-    - certs_sync
-    - kubeconfigs_sync
-    - kubelet_sync_rc
-    - kubeadm_sync
-    - vip_sync
-    - cri_setup
-    - kube_cgroup_sync
-    - binaries_sync
-    - k8s_up
-    - kubelet_start
-    - kubeadm_run
-    - annotate_applied_configs
-    - check_run
-  # the phases of the rebootstrap script (templates/bin/_rebootstrap.tpl), as
-  # bootstrap.phases
-  rebootstrap_phases:
-    - reconcile_guard
-    - backup
-    - certs_sync
-    - kubeconfigs_sync
-    - kubelet_sync_rc
-    - +kubeadm_certs
-    - static_pods_stop
-    - kubelet_stop
-    # TODO: the reference procedure restarts the runtime, find out why (its history)
-    - cri_restart
-    - kubelet_start
-    - annotate_applied_kubelet
-    - check_run
-    - +kubeadm_cluster_info
-    - +restart_clients
+  # the profile of the script of the bootstrap Secrets
+  # (templates/bin/_bootstrap.tpl): it runs the phases of
+  # bootstrap.profiles.<profile>
+  profile: bootstrap
+  # the phases of the script in their order: a phase is a function of
+  # templates/phases, the script is linked from them, only the functions they
+  # need (templates/lib/_linker.tpl). "+<phase>" runs only if the command line
+  # names it ("-- <phase> <arguments>"), --run runs the named ones only
+  # (templates/phases/_phase_runner.tpl)
+  profiles:
+    # makes a node a node of the cluster with the files of the values: kubeadm
+    # init (kubeadm join: "-- kubeadm_run join ..."), it can be called by
+    # cloud-init
+    bootstrap:
+      # refuses to go on if the values deliver other CA keys than the ones of
+      # the node
+      - certs_guard_ca
+      # the certificates
+      - certs_sync
+      # the kubeconfigs
+      - kubeconfigs_sync
+      # the certificates and the kubeconfig of kubelet, its unit and
+      # configuration
+      - kubelet_sync_rc
+      # the configurations of kubeadm
+      - kubeadm_sync
+      # the VIP of the control plane endpoint, the arguments "<implementation>
+      # <argument>" save the VIP of the node (vip.init_argname, vip.init_val
+      # by default)
+      - vip_sync
+      # the container runtime, restarted if it is changed
+      - cri_setup
+      # the kube-cgroup service
+      - kube_cgroup_sync
+      # kubeadm, kubectl, kubelet
+      - binaries_sync
+      # swap, the kernel modules and sysctl
+      - k8s_up
+      # kubelet is (re)started
+      - kubelet_start
+      # kubeadm with the arguments of the phase (init by default), then the
+      # configuration of kubelet of the chart again
+      - kubeadm_run
+      # the node with the configurations it runs with: the first pass of the
+      # reconcile doesn't apply them again
+      - annotate_applied_configs
+      # the node checks (templates/phases/modules/checks/_.tpl)
+      - check_run
+    # the certificates of the values again on the nodes of an existing cluster,
+    # its API alive or not (recovery from an expired CA, abrupt CA rotation),
+    # on all the nodes at once. The certificates are pregenerated or, with the
+    # CAs only, generated by kubeadm: the orchestration selects the phases
+    # (overrides/reference/ssh-orchestration-ca.yaml). No CA guard: changing
+    # the CA is what it is for
+    rebootstrap:
+      # the anchors of the node wait while the backups exist (backup.dir, the
+      # lock), the reconcile passes going on finish first
+      - reconcile_guard
+      # the certificates of the node to a new backup in backup.dir; with
+      # "restore": the certificates from the last backup, then the restart
+      # phases again; with "remove": all the backups (they have the keys) once
+      # the values are in the cluster, the anchors go on
+      - backup
+      # as in bootstrap
+      - certs_sync
+      - kubeconfigs_sync
+      - kubelet_sync_rc
+      # the values have the CAs only: what kubeadm generated from the CAs
+      # again, its certificates and kubeconfigs on the control plane nodes, the
+      # TLS bootstrap of kubelet on the workers (KUBEADM_TOKEN), once the
+      # control plane runs with the new CAs
+      - +kubeadm_certs
+      # the static pods of the control plane (crictl stopp), kubelet starts
+      # them again
+      - static_pods_stop
+      # the restart
+      - kubelet_stop
+      # TODO: the reference procedure restarts the runtime, find out why (its history)
+      - cri_restart
+      - kubelet_start
+      # the node with the configuration of kubelet it runs with (not the
+      # kubeadm one: the script doesn't apply it)
+      - annotate_applied_kubelet
+      # the node checks
+      - check_run
+      # on a control plane node: the CA of the cluster-info ConfigMap (kubeadm
+      # creates it only), extension-apiserver-authentication is removed (the
+      # apiserver creates it with the new CAs)
+      - +kubeadm_cluster_info
+      # on a control plane node: the pods of
+      # bootstrap.rebootstrap_restart_selectors are deleted once
+      # kube-root-ca.crt of all the namespaces has the new CA, they keep the CA
+      # and the service account tokens of the old ones
+      - +restart_clients
   # seconds the rebootstrap script waits for the reconcile passes going on on
   # the node (the worst case of the timeouts of a pass and a margin)
   rebootstrap_reconcile_timeout: 2400
@@ -491,18 +543,19 @@ phases:
   # the modules of the phases, in this order
   # (kubelet uses the generators of the certs and kubeconfig ones)
   modules:
-    - templates/phases/_backup.tpl
-    - templates/phases/_binaries.tpl
-    - templates/phases/_certs.tpl
-    - templates/phases/_checks.tpl
-    - templates/phases/_cri.tpl
-    - templates/phases/_fs.tpl
-    - templates/phases/_k8s_up.tpl
-    - templates/phases/_kube-cgroup.tpl
-    - templates/phases/_kubeadm.tpl
-    - templates/phases/_kubeconfig.tpl
-    - templates/phases/_kubelet.tpl
-    - templates/phases/_vip.tpl
+    - templates/phases/modules/backup/_.tpl
+    - templates/phases/modules/binaries/_.tpl
+    - templates/phases/modules/certs/_.tpl
+    - templates/phases/modules/checks/_.tpl
+    - templates/phases/modules/cri/_.tpl
+    - templates/phases/modules/fs/_.tpl
+    - templates/phases/modules/k8s_up/_.tpl
+    - templates/phases/modules/kube-cgroup/_.tpl
+    - templates/phases/modules/kubeadm/_.tpl
+    - templates/phases/modules/kubeconfig/_.tpl
+    - templates/phases/modules/kubelet/_.tpl
+    - templates/phases/modules/rebootstrap/_.tpl
+    - templates/phases/modules/vip/_.tpl
 
 bundle:
   tpl: {}
@@ -562,7 +615,7 @@ entrypoint:
       name: {{ include "kubeadm.fullname" . }}-tools
     type: Opaque
     data:
-      gen-pki.sh: {{ tuple . "templates/phases/snippets/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      gen-pki.sh: {{ tuple . "templates/phases/modules/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
     {{ end }}
 
 # the deprecated features: kept for the upgrades from the previous releases,

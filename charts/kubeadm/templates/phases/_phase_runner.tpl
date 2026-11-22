@@ -14,16 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* the phases of the node scripts (bootstrap, rebootstrap): a phase is a
-     function of the list of phases of the script, the command line is
+{{- $envAll := index . 0 -}}
+{{- $k8sConfDict := index . 1 -}}
+{{- $symbols := get $k8sConfDict "symbols" -}}
+
+{{/* the runner of the phases of the bootstrap script (templates/bin/_bootstrap.tpl,
+     linked with "run_phases"): a phase is a function of the phases of its
+     profile (PHASES), the command line is
        [--run] [-- <phase> [<arguments>]]...
      Without --run the phases of the list run in its order, the segments
      "-- <phase> <arguments>" give the arguments to the phases, a phase
      "+<function>" of the list runs only if a segment names it. With --run the
      segments are the phases to run, in their order. The phase checks its
      arguments and has the defaults.
-     A function ending with _rc returns a result: 1 isn't a failure, >1 is.
-     Included by templates/bin/_bootstrap.tpl and _rebootstrap.tpl */ -}}
+     A function ending with _rc returns a result: 1 isn't a failure, >1 is. */}}
+{{- $_ := set $symbols "phase_args" (dict "body" `
 # the arguments of the first segment "-- $1 ..." of "${@:2}" to PHASE_ARGS,
 # fails if there is none
 phase_args() {
@@ -40,7 +45,9 @@ phase_args() {
     shift
   done
 }
+`) -}}
 
+{{- $_ := set $symbols "phase_run" (dict "body" `
 # runs the phase $1 with the arguments PHASE_ARGS
 phase_run() {
   local rc=0
@@ -52,7 +59,10 @@ phase_run() {
     "$1" ${PHASE_ARGS[@]+"${PHASE_ARGS[@]}"}
   fi
 }
+`) -}}
 
+{{- $_ := set $symbols "run_phases" (dict "needs" (list "phase_args" "phase_run")
+"body" `
 # runs the phases of PHASES by the command line
 run_phases() {
   local phase
@@ -73,3 +83,4 @@ run_phases() {
     done
   fi
 }
+`) -}}

@@ -22,14 +22,14 @@ binary_source() {
 
 {{/* the snippets of bundle.tpl (the installation procedures of the values):
      a symbol each, they may call the helpers */}}
-{{- $_ := set $symbols "binaries_helpers" (dict "body" (tuple $envAll "templates/phases/snippets/binaries/_helpers.sh.tpl" | include "kubeadm.bundle.template")) -}}
+{{- $_ := set $symbols "binaries_helpers" (dict "body" (tuple $envAll "templates/phases/modules/binaries/_helpers.sh.tpl" | include "kubeadm.bundle.template")) -}}
 
 {{- $_ := set $symbols "binary_sync_rc" (dict "needs" (list "binary_source" "binaries_helpers")
-"body" (tuple $envAll "templates/phases/snippets/binaries/_install.sh.tpl" | include "kubeadm.bundle.template")
+"body" (tuple $envAll "templates/phases/modules/binaries/_install.sh.tpl" | include "kubeadm.bundle.template")
 ) -}}
 
 {{- $_ := set $symbols "cri_install_sync_rc" (dict "needs" (list "binaries_helpers")
-"body" (tuple $envAll "templates/phases/snippets/cri/_install.sh.tpl" | include "kubeadm.bundle.template")
+"body" (tuple $envAll "templates/phases/modules/cri/_install.sh.tpl" | include "kubeadm.bundle.template")
 ) -}}
 
 {{- $_ := set $symbols "binaries_sync" (dict "needs" (list "binary_sync_rc")
@@ -44,7 +44,7 @@ binaries_sync() {
 }
 `) -}}
 
-{{/* cri_sync_rc and cri_restart: templates/phases/_cri.tpl */}}
+{{/* cri_sync_rc and cri_restart: templates/phases/modules/cri/_.tpl */}}
 {{- $_ := set $symbols "cri_setup" (dict "needs" (list "cri_install_sync_rc" "cri_sync_rc" "cri_restart")
 "body" `
 # the container runtime and its configuration, restarted if they are changed

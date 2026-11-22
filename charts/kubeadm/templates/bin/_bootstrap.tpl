@@ -1,36 +1,15 @@
 {{/*
-  the bootstrap script: makes a node a node of the cluster with the files of
-  the values, kubeadm init (or kubeadm join: "-- kubeadm_run join ..."). It is
-  delivered with the bootstrap Secrets (bootstrap.action: bootstrap) and run on
-  the node (it can be called by cloud-init), phase by phase (see
-  templates/phases/snippets/common/_phases.sh.tpl). The phases it has and
-  their order are the ones of bootstrap.phases, the default ones are:
-    certs_guard_ca    - refuses to go on if the values deliver other CA keys
-                        than the ones of the node
-    certs_sync        - the certificates
-    kubeconfigs_sync  - the kubeconfigs
-    kubelet_sync_rc   - the certificates and the kubeconfig of kubelet, its
-                        unit and configuration
-    kubeadm_sync      - the configurations of kubeadm
-    vip_sync          - the VIP of the control plane endpoint, the arguments
-                        "<implementation> <argument>" save the VIP of the
-                        node (vip.init_argname, vip.init_val by default)
-    cri_setup         - the container runtime, restarted if it is changed
-    kube_cgroup_sync  - the kube-cgroup service
-    binaries_sync     - kubeadm, kubectl, kubelet
-    k8s_up            - swap, the kernel modules and sysctl
-    kubelet_start     - kubelet is (re)started
-    kubeadm_run       - kubeadm with the arguments of the phase (init by
-                        default), then the configuration of kubelet of the
-                        chart again
-    annotate_applied_configs - the node with the configurations it runs
-                        with: the first pass of the reconcile doesn't apply
-                        them again
-    check_run         - the node checks (templates/phases/_checks.tpl)
+  the script of the bootstrap Secrets: run on the node phase by phase
+  (templates/phases/_phase_runner.tpl), the phases of the profile
+  bootstrap.profile (bootstrap.profiles in the values)
 */}}
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 {{- $nodename := index . 2 -}}
+{{- $profile := $envAll.Values.bootstrap.profile -}}
+{{- if not (hasKey $envAll.Values.bootstrap.profiles $profile) -}}
+{{- fail (printf "bootstrap.profile %s isn't one of bootstrap.profiles" $profile) -}}
+{{- end -}}
 {{- $fs := dict -}}
 
 {{/* all the archives of the node in one, unpacked to /run/kubeadm/<archive> */}}
@@ -47,10 +26,6 @@
 {{- end -}}
 {{- end -}}
 
-
-{{/* the functions of the script: always linked, they win over the ones of
-     templates/phases (templates/phases/snippets/common/_phases_link.tpl) */}}
-{{- $symbols := dict -}}
 
 #!/bin/bash
 # Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
@@ -110,9 +85,20 @@ cleanup_fs() {
   echo "cleanup_fs is done"
 }
 
-{{/* the linked functions and the phases (bootstrap.phases) */}}
-{{ include "kubeadm.phases.link" (tuple $k8sConfDict $symbols $envAll.Values.bootstrap.phases) }}
-{{ tuple $envAll "templates/phases/snippets/common/_phases.sh.tpl" | include "kubeadm.bundle.template" }}
+{{/* the runner (run_phases) and the functions of the phases of the profile
+     ("+<phase>" too) linked (templates/lib/_linker.tpl), then the phases: a
+     phase is a function */}}
+{{- $phases := index $envAll.Values.bootstrap.profiles $profile -}}
+{{- $needs := list "run_phases" -}}
+{{- range $phase := $phases -}}
+  {{- $needs = append $needs (trimPrefix "+" $phase) -}}
+{{- end }}
+{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" $needs) }}
+PHASES=(
+{{- range $phase := $phases }}
+  {{ $phase | squote }}
+{{- end }}
+)
 # end of common functions
 
 ensure_fs

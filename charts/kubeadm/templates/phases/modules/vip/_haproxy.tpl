@@ -2,10 +2,10 @@
 {{- $k8sConfDict := index . 1 -}}
 
 {{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
-{{/* the haproxy implementation of the VIP (vip.modules, templates/phases/_vip.tpl) */}}
+{{/* the haproxy implementation of the VIP (vip.modules, templates/phases/modules/vip/_.tpl) */}}
 {{/* populate static pod anyway so user could use bootstrap command line to enable it */}}
-{{/* can be patched with bundle.tpl."templates/phases/snippets/vip/_pod-haproxy.yaml.patch" */}}
-{{- $staticPod := tuple $envAll "templates/phases/snippets/vip/_pod-haproxy.yaml" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
+{{/* can be patched with bundle.tpl."templates/phases/modules/vip/_pod-haproxy.yaml.patch" */}}
+{{- $staticPod := tuple $envAll "templates/phases/modules/vip/_pod-haproxy.yaml" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
 {{- $_ := set $allNodes "_manifests/haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
 
 
@@ -31,7 +31,7 @@ vip_config_sync() {
 
 {{- define "__vip_haproxy_sync" -}}
 {{- $envAll := . -}}
-{{- $haproxyHeader := (tuple $envAll "templates/phases/snippets/vip/_haproxy.cfg.header.tpl" | include "kubeadm.bundle.template") -}}
+{{- $haproxyHeader := (tuple $envAll "templates/phases/modules/vip/_haproxy.cfg.header.tpl" | include "kubeadm.bundle.template") -}}
 vip_haproxy_sync() {
   local arg=$vip_arg
 

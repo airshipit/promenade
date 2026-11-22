@@ -6,7 +6,7 @@ network:
 
 bundle:
   tpl:
-    "templates/phases/snippets/kubelet/_kubelet-config.yaml": |
+    "templates/phases/modules/kubelet/_kubelet-config.yaml": |
       apiVersion: kubelet.config.k8s.io/v1beta1
       kind: KubeletConfiguration
       authentication:

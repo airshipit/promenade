@@ -8,8 +8,9 @@
      rebootstrap scripts and the reconcile script (checks.reconcile), one line
      per check:
      "check OK|FAIL|SKIP <check> <details>"
-     the other modules define their <module>_check with check_result (vip_check
-     in templates/phases/_vip.tpl, certs_check in _certs.tpl) */}}
+     the other modules define their <module>_check with check_result
+     (vip_check in templates/phases/modules/vip/_.tpl, certs_check in
+     templates/phases/modules/certs/_.tpl) */}}
 {{- $_ := set $symbols "CHECK_FAILURES" (dict "body" "CHECK_FAILURES=0") -}}
 
 {{- $_ := set $symbols "check_result" (dict "needs" (list "CHECK_FAILURES")

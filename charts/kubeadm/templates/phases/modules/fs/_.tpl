@@ -129,7 +129,7 @@ group_dir_sync() {
 `) -}}
 
 {{/* the groups of the values: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
-     (templates/phases/snippets/common/_fs.tpl) */}}
+     (templates/phases/modules/fs/_helpers.tpl) */}}
 {{- range $group,$list := ($envAll.Values.fs).groups | default dict -}}
   {{- tuple $envAll $k8sConfDict (printf "fsgroup_%s_sync_rc" $group) $list | include "kubeadm.fs.render_fsgroup_sync_rc" -}}
 {{- end -}}
