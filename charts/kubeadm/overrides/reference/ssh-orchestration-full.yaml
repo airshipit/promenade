@@ -52,7 +52,7 @@
 # - the nodes: Ubuntu, sudo without a password, reach each other by the ips of
 #   the nodes, the internet (the binaries, containerd, runc), no local DNS
 #   resolver in /etc/resolv.conf (CoreDNS can't reach the loopback)
-# To change: nodes (required); cri_install_sync_rc (containerd), vip and
+# To change: nodes (required); binaries (containerd), vip and
 # kubeconfig.controlPlaneEndpoint (haproxy on 127.0.0.1:6553), network,
 # cluster_config.kubernetesVersion.
 #
@@ -92,7 +92,7 @@ images:
     haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
 
-# containerd is installed by cri_install_sync_rc, see bundle.tpl below, its
+# containerd is installed by binary_cri_sync_rc, see binaries.sync below, its
 # configuration is the chart default (cri.fsgroup)
 cri:
   reconcile_install: true
@@ -100,6 +100,52 @@ cri:
 
 cluster_config:
   kubernetesVersion: v1.37.0
+
+binaries:
+  # the data of binaries.sync below: containerd, runc and crictl of the upstream
+  # releases (tpl strings, ${arch} is substituted on the node)
+  containerd:
+    version: v2.4.2
+    url: 'https://github.com/containerd/containerd/releases/download/{{ .Values.binaries.containerd.version }}/containerd-static-{{ trimPrefix "v" .Values.binaries.containerd.version }}-linux-${arch}.tar.gz'
+    service_url: "https://raw.githubusercontent.com/containerd/containerd/{{ .Values.binaries.containerd.version }}/containerd.service"
+  # the release: runc.${arch} and runc.sha256sum
+  runc:
+    url: "https://github.com/opencontainers/runc/releases/download/v1.5.2"
+  crictl:
+    url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.36.0/crictl-v1.36.0-linux-${arch}.tar.gz"
+  sync:
+    # containerd, runc, the systemd unit and crictl from the upstream releases,
+    # kubeadm, kubelet and kubectl as by default (binaries.url)
+    cri:
+      needs:
+        - binary_arch
+        - binary_download
+      body: |
+        # containerd, runc, the systemd unit and crictl (the rebootstrap stops the
+        # static pods with it) from the upstream releases
+        binary_cri_sync_rc() {
+          local version={{ .Values.binaries.containerd.version | quote }} arch url sum dir
+          containerd --version 2>/dev/null | grep -qw "${version}" && return 1
+          arch=$(binary_arch) || exit 1
+          dir=$(mktemp -d) || exit 1
+          url={{ tpl .Values.binaries.containerd.url . | quote }}
+          sum=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || exit 1
+          binary_download "${dir}/containerd.tar.gz" "${url}" "${sum}"
+          tar -xzf "${dir}/containerd.tar.gz" -C /usr/local || exit 1
+          url={{ tpl .Values.binaries.runc.url . | quote }}
+          sum=$(curl -fsSL --retry 5 "${url}/runc.sha256sum" | awk -v f="runc.${arch}" '$2 == f {print $1}') || exit 1
+          binary_download "${dir}/runc" "${url}/runc.${arch}" "${sum}"
+          install -m 0755 "${dir}/runc" /usr/local/sbin/runc || exit 1
+          curl -fsSL --retry 5 -o /etc/systemd/system/containerd.service \
+            {{ tpl .Values.binaries.containerd.service_url . | quote }} || exit 1
+          url={{ tpl .Values.binaries.crictl.url . | quote }}
+          binary_download "${dir}/crictl.tar.gz" "${url}"
+          tar -xzf "${dir}/crictl.tar.gz" -C /usr/local/bin crictl || exit 1
+          rm -rf "${dir}"
+          echo "runtime-endpoint: unix:///run/containerd/containerd.sock" > /etc/crictl.yaml
+          systemctl daemon-reload
+          systemctl enable containerd
+        }
 
 kubelet:
   # the anchor applies kubelet configuration changes: it drains the node and
@@ -171,33 +217,6 @@ entrypoint:
 
 bundle:
   tpl:
-    # containerd, runc, the systemd unit and crictl (the rebootstrap stops the
-    # static pods with it) from the upstream releases
-    "templates/phases/modules/cri/_install.sh.tpl": |
-      cri_install_sync_rc() {
-        local version=v2.4.2 runc=v1.5.2 crictl=v1.36.0 dir sha256
-        containerd --version 2>/dev/null | grep -qw "${version}" && return 1
-        ARCH="${ARCH:-$(node_arch)}" || exit 1
-        dir=$(mktemp -d) || exit 1
-        local url="https://github.com/containerd/containerd/releases/download/${version}/containerd-static-${version#v}-linux-${ARCH}.tar.gz"
-        local runc_url="https://github.com/opencontainers/runc/releases/download/${runc}"
-        local crictl_url="https://github.com/kubernetes-sigs/cri-tools/releases/download/${crictl}/crictl-${crictl}-linux-${ARCH}.tar.gz"
-        sha256=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || exit 1
-        download_verified "${dir}/containerd.tar.gz" "${url}" "${sha256}"
-        tar -xzf "${dir}/containerd.tar.gz" -C /usr/local || exit 1
-        sha256=$(curl -fsSL --retry 5 "${runc_url}/runc.sha256sum" | awk -v f="runc.${ARCH}" '$2 == f {print $1}') || exit 1
-        download_verified "${dir}/runc" "${runc_url}/runc.${ARCH}" "${sha256}"
-        install -m 0755 "${dir}/runc" /usr/local/sbin/runc || exit 1
-        curl -fsSL --retry 5 -o /etc/systemd/system/containerd.service \
-          "https://raw.githubusercontent.com/containerd/containerd/${version}/containerd.service" || exit 1
-        sha256=$(curl -fsSL --retry 5 "${crictl_url}.sha256") || exit 1
-        download_verified "${dir}/crictl.tar.gz" "${crictl_url}" "${sha256}"
-        tar -xzf "${dir}/crictl.tar.gz" -C /usr/local/bin crictl || exit 1
-        rm -rf "${dir}"
-        echo "runtime-endpoint: unix:///run/containerd/containerd.sock" > /etc/crictl.yaml
-        systemctl daemon-reload
-        systemctl enable containerd
-      }
     "templates/phases/modules/kubeadm/ClusterConfiguration": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: ClusterConfiguration

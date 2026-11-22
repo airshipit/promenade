@@ -1,0 +1,51 @@
+# kubeadm, kubelet and kubectl from the deb packages of pkgs.k8s.io (Ubuntu):
+# binaries.sync.kubernetes of the chart redefined, the test of the packages
+# variant (test.sh, apt-get and dpkg-query are mocked)
+cluster_config:
+  kubernetesVersion: v1.37.0
+
+binaries:
+  # the packages install the binaries to /usr/bin: the kubelet unit of the
+  # chart and the PATH take them from there
+  install_dir: /usr/bin
+  # the deb repository of the minor version (a mirror in closed environments)
+  apt:
+    repo: 'https://pkgs.k8s.io/core:/stable:/{{ regexFind "^v[0-9]+\\.[0-9]+" .Values.cluster_config.kubernetesVersion }}/deb/'
+  sync:
+    kubernetes:
+      needs: []
+      body: |
+        # kubeadm, kubelet or kubectl $1 of cluster_config.kubernetesVersion from
+        # the deb packages of binaries.apt.repo
+        binary_kubernetes_sync_rc() {
+          local name="$1" version={{ trimPrefix "v" ((.Values.cluster_config).kubernetesVersion | default "") | quote }}
+          local repo={{ tpl .Values.binaries.apt.repo . | quote }}
+          local list="${ROOTFS}/etc/apt/sources.list.d/kubernetes.list"
+          local key="${ROOTFS}/etc/apt/keyrings/kubernetes.gpg"
+          local policy="${ROOTFS}/usr/sbin/policy-rc.d"
+          local dropin="${ROOTFS}/etc/systemd/system/kubelet.service.d"
+          [ -n "${version}" ] || return 1
+          # the package of this version is there already
+          case "$(dpkg-query -W -f '${Version}' "${name}" 2>/dev/null)" in
+            "${version}"-*) return 1 ;;
+          esac
+          if ! grep -qsF "${repo}" "${list}"; then
+            mkdir -p "${key%/*}" "${list%/*}"
+            curl -fsSL "${repo}Release.key" | gpg --dearmor --yes -o "${key}" || exit 1
+            echo "deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] ${repo} /" > "${list}"
+          fi
+          apt-get update -q || exit 1
+          # the anchor restarts kubelet itself after a drain: the package must not
+          mkdir -p "${policy%/*}"
+          printf '#!/bin/sh\nexit 101\n' > "${policy}" && chmod 0755 "${policy}"
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -q --allow-downgrades \
+            --allow-change-held-packages "${name}=${version}-*" || { rm -f "${policy}"; exit 1; }
+          rm -f "${policy}"
+          apt-mark hold "${name}" > /dev/null
+          # the unit of the chart, not the drop-in of the package
+          if [ "${name}" = kubelet ]; then
+            mkdir -p "${dropin}"
+            : > "${dropin}/10-kubeadm.conf"
+          fi
+          echo "${name} ${version} is installed from ${repo}"
+        }

@@ -62,7 +62,7 @@
 # - the nodes: Ubuntu, sudo without a password, reach each other by the ips of
 #   the nodes, the internet (the binaries, the CRI-O bundle), no local DNS
 #   resolver in /etc/resolv.conf (CoreDNS can't reach the loopback)
-# To change: nodes (required); cri and cri_install_sync_rc (CRI-O), vip and
+# To change: nodes (required); cri and binaries (CRI-O), vip and
 # kubeconfig.controlPlaneEndpoint (haproxy on 127.0.0.1:6553), network,
 # cluster_config.kubernetesVersion.
 #
@@ -105,7 +105,7 @@ images:
     haproxy: docker.io/library/haproxy:3.4.7
     pause: registry.k8s.io/pause:3.10
 
-# CRI-O is installed by cri_install_sync_rc, see bundle.tpl below
+# CRI-O is installed by binary_cri_sync_rc, see binaries.sync below
 cri:
   service: crio.service
   reconcile_install: true
@@ -124,10 +124,61 @@ cluster_config:
   kubernetesVersion: v1.37.0
 
 binaries:
-  # used by the installation procedure override (bundle.tpl), ${ARCH} is the
-  # architecture of the node
-  archive:
-    url: "https://dl.k8s.io/{{ .Values.cluster_config.kubernetesVersion }}/kubernetes-node-linux-${ARCH}.tar.gz"
+  # the data of binaries.sync below: the node binaries archive of the release
+  # and the CRI-O bundle (tpl strings, ${arch} is substituted on the node)
+  archive_url: "https://dl.k8s.io/{{ .Values.cluster_config.kubernetesVersion }}/kubernetes-node-linux-${arch}.tar.gz"
+  crio:
+    version: v1.36.7
+    url: "https://storage.googleapis.com/cri-o/artifacts/cri-o.${arch}.{{ .Values.binaries.crio.version }}.tar.gz"
+  sync:
+    # kubeadm, kubelet and kubectl from the node binaries archive of the release
+    kubernetes:
+      body: |
+        # kubeadm, kubelet or kubectl $1 from the node binaries archive of the
+        # release (downloaded once per url)
+        binary_kubernetes_sync_rc() {
+          local name="$1" version={{ (.Values.cluster_config).kubernetesVersion | default "" | quote }} cache="${ROOTFS}/var/cache/kubeadm-binaries" arch url archive tmp
+          if [ -z "${version}" ]; then
+            echo "WARNING: ${name} isn't managed (cluster_config.kubernetesVersion isn't set), the one on the node is used" >&2
+            return 1
+          fi
+          arch=$(binary_arch) || exit 1
+          url={{ tpl .Values.binaries.archive_url . | quote }}
+          archive="${cache}/$(echo -n "${url}" | sha256sum | cut -c1-16).tar.gz"
+          if [ ! -f "${archive}" ]; then
+            mkdir -p -m 0700 "${cache}" && rm -f "${cache}"/* || exit 1
+            tmp=$(mktemp "${archive}.XXXXXX") || exit 1
+            binary_download "${tmp}" "${url}"
+            mv -f "${tmp}" "${archive}" || exit 1
+          fi
+          mkdir -p "${ROOTFS}{{ .Values.binaries.install_dir }}" && tmp=$(mktemp "${ROOTFS}{{ .Values.binaries.install_dir }}/${name}.XXXXXX") || exit 1
+          tar -xOf "${archive}" "kubernetes/node/bin/${name}" > "${tmp}" || { rm -f "${tmp}"; exit 1; }
+          binary_replace "${tmp}" "${name}" || return 1
+          echo "${name} is installed from ${url}"
+        }
+    # CRI-O from its static bundle
+    cri:
+      needs:
+        - binary_arch
+        - binary_download
+      body: |
+        # CRI-O from its static bundle: crio, conmon, the OCI runtimes, crictl and
+        # the systemd unit (the CNI plugins of the bundle go to /opt/cni/bin too)
+        binary_cri_sync_rc() {
+          local version={{ .Values.binaries.crio.version | quote }} arch url sum dir
+          crio --version 2>/dev/null | grep -qw "${version#v}" && return 1
+          arch=$(binary_arch) || exit 1
+          url={{ tpl .Values.binaries.crio.url . | quote }}
+          sum=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || exit 1
+          dir=$(mktemp -d) || exit 1
+          binary_download "${dir}/cri-o.tar.gz" "${url}" "${sum}"
+          tar -xzf "${dir}/cri-o.tar.gz" -C "${dir}" || exit 1
+          (cd "${dir}/cri-o" && bash ./install) || exit 1
+          rm -rf "${dir}"
+          modprobe overlay
+          systemctl daemon-reload
+          systemctl enable crio
+        }
 
 kubelet:
   # the anchor applies kubelet configuration changes: it drains the node and
@@ -200,48 +251,6 @@ entrypoint:
 
 bundle:
   tpl:
-    # CRI-O from the static bundle of the release: crio, conmon, the OCI
-    # runtimes, crictl and the systemd unit
-    "templates/phases/modules/cri/_install.sh.tpl": |
-      cri_install_sync_rc() {
-        local version=v1.36.7 url sha256 dir
-        crio --version 2>/dev/null | grep -qw "${version#v}" && return 1
-        ARCH="${ARCH:-$(node_arch)}" || exit 1
-        url="https://storage.googleapis.com/cri-o/artifacts/cri-o.${ARCH}.${version}.tar.gz"
-        sha256=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || exit 1
-        dir=$(mktemp -d) || exit 1
-        download_verified "${dir}/cri-o.tar.gz" "${url}" "${sha256}"
-        tar -xzf "${dir}/cri-o.tar.gz" -C "${dir}" || exit 1
-        # the CNI plugins of the bundle go to /opt/cni/bin too
-        (cd "${dir}/cri-o" && bash ./install) || exit 1
-        rm -rf "${dir}"
-        modprobe overlay
-        systemctl daemon-reload
-        systemctl enable crio
-      }
-    # kubeadm, kubelet and kubectl are taken from the node binaries archive of
-    # the release (an example of the installation procedure override)
-    "templates/phases/modules/binaries/_install.sh.tpl": |
-      binary_sync_rc() {
-        local name="$1" dir="${ROOTFS}/var/cache/kubeadm-binaries" url archive tmp
-        [ -n "$(binary_source "$name")" ] || return 1
-        ARCH="${ARCH:-$(node_arch)}" || exit 1
-        url={{ tpl .Values.binaries.archive.url . | quote }}
-
-        # downloaded once per url
-        archive="${dir}/$(printf '%s' "${url}" | sha256sum | cut -c1-16).tar.gz"
-        if [ ! -f "${archive}" ]; then
-          mkdir -p -m 0700 "${dir}" && rm -f "${dir}"/* || exit 1
-          tmp=$(mktemp "${archive}.XXXXXX") || exit 1
-          download_verified "${tmp}" "${url}"
-          mv -f "${tmp}" "${archive}" || exit 1
-        fi
-
-        tmp=$(binary_tmp "${name}") || exit 1
-        tar -xOf "${archive}" "kubernetes/node/bin/${name}" > "${tmp}" || { rm -f "${tmp}"; exit 1; }
-        replace_binary "${tmp}" "${name}" || return 1
-        echo "${name} is installed from ${url}"
-      }
     "templates/phases/modules/kubeadm/ClusterConfiguration": |
       apiVersion: kubeadm.k8s.io/v1beta4
       kind: ClusterConfiguration

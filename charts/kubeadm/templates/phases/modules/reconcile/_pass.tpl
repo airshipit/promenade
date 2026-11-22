@@ -48,7 +48,7 @@ reconcile_pass() {
 
   CRI_RESTART_REQUIRED=false
   {{- if $envAll.Values.cri.reconcile_install }}
-  cri_install_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
+  binary_cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
   {{- end }}
   cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.cri.restart }}
   if [[ $CRI_RESTART_REQUIRED == true ]]; then
@@ -57,7 +57,7 @@ reconcile_pass() {
   kubeconfigs_sync
   kubelet_sync_rc && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
   [ "${NODE_ROLE}" == "master" ] || wait_apiservers_upgraded
-  binary_sync_rc kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
+  binary_kubernetes_sync_rc kubelet && KUBELET_RESTART_REQUIRED={{ $envAll.Values.kubelet.restart  }}
 
   # the apiserver restarts if the sync changed its files
   APISERVER_FILES_SHA256="$(apiserver_files_sha256)"
@@ -139,7 +139,7 @@ reconcile_pass() {
   "apiserver_files_sha256"
   "apiserver_restart"
   "binaries_sync"
-  "binary_sync_rc"
+  "binary_kubernetes_sync_rc"
   "certs_sync"
   "cleanup_old_backups"
   "cri_restart"
@@ -160,7 +160,7 @@ reconcile_pass() {
   {{- $needs = append $needs "certs_guard_ca" -}}
 {{- end -}}
 {{- if $envAll.Values.cri.reconcile_install -}}
-  {{- $needs = append $needs "cri_install_sync_rc" -}}
+  {{- $needs = append $needs "binary_cri_sync_rc" -}}
 {{- end -}}
 {{- if $envAll.Values.deprecated.airship_migration.enabled -}}
   {{- $needs = concat $needs (list "rename_cp_pods" "airship_migration_cleanup") -}}

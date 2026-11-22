@@ -1,4 +1,4 @@
 # Day 2 upgrade (070-day2-upgrade.sh): the next Kubernetes minor version, the
-# binaries of the nodes follow it (binaries.*.url of the chart).
+# binaries of the nodes follow it (binaries.url of the chart).
 cluster_config:
   kubernetesVersion: v1.37.0

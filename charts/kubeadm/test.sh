@@ -75,8 +75,49 @@ last="${!#}"
 exit 0
 EOF
 
+  # the packages of the node: dpkg-query prints the version apt-get installed
+  cat << 'EOF' > "${test_bin}/dpkg-query"
+#!/usr/bin/env bash
+echo "[MOCK dpkg-query] dpkg-query $@" >> "${ROOTFS}/mock_calls.log"
+cat "${ROOTFS}/var/lib/dpkg-mock/${!#}" 2>/dev/null
+EOF
+
+  # apt-get install <package>=<version>-*: the package of <version>-1.1, and
+  # whether the policy keeps the services from restarting
+  cat << 'EOF' > "${test_bin}/apt-get"
+#!/usr/bin/env bash
+echo "[MOCK apt-get] apt-get $@" >> "${ROOTFS}/mock_calls.log"
+[ ! -x "${ROOTFS}/usr/sbin/policy-rc.d" ] || echo "[MOCK apt-get] policy-rc.d is there" >> "${ROOTFS}/mock_calls.log"
+for arg in "$@"; do
+  case "${arg}" in
+    *=*)
+      mkdir -p "${ROOTFS}/var/lib/dpkg-mock"
+      ver="${arg#*=}"
+      echo "${ver%\*}1.1" > "${ROOTFS}/var/lib/dpkg-mock/${arg%%=*}"
+      ;;
+  esac
+done
+exit 0
+EOF
+
+  cat << 'EOF' > "${test_bin}/apt-mark"
+#!/usr/bin/env bash
+echo "[MOCK apt-mark] apt-mark $@" >> "${ROOTFS}/mock_calls.log"
+EOF
+
+  # gpg --dearmor -o <file>
+  cat << 'EOF' > "${test_bin}/gpg"
+#!/usr/bin/env bash
+echo "[MOCK gpg] gpg $@" >> "${ROOTFS}/mock_calls.log"
+cat > /dev/null
+while [ $# -gt 0 ]; do
+  [ "$1" != "-o" ] || echo "key" > "$2"
+  shift
+done
+EOF
+
 chmod +x "${test_bin}"/*
-# the node scripts run kubeadm and kubectl by name (the PATH has the mocks), binary_sync_rc compares with binaries.install_dir
+# the node scripts run kubeadm and kubectl by name (the PATH has the mocks), binary_kubernetes_sync_rc compares with binaries.install_dir
 mkdir -p "${ROOTFS}/usr/local/bin"
 ln -sf ../../../bin/kubeadm ../../../bin/kubectl "${ROOTFS}/usr/local/bin/"
 }
@@ -922,6 +963,38 @@ ca_guard_check "another CA on the node: reported" \
   ca_guard_log "certs_guard_ca: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
 ca_guard_check "another CA on the node: the bootstrap stops" eval '! ca_guard_log "certs are synced"'
 ca_guard_check "another CA on the node: not replaced" grep -qx "other-ca-crt" "${ca_guard_pki}/ca.crt"
+
+clean_bootstrap
+
+echo "[binaries] kubeadm, kubelet and kubectl from the deb packages"
+apt_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] apt: ${msg}"
+  else
+    echo "  ❌ [FAIL] apt: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+run_bootstrap "" -f ${ovrds}/binaries-apt.yaml
+for name in kubeadm kubelet kubectl; do
+  assert_logged "apt-get install .* ${name}=1\.37\.0-\*" "apt: ${name} of the version is installed"
+  assert_logged "apt-mark hold ${name}$" "apt: ${name} is held"
+done
+apt_check "the repository of the minor version" \
+  grep -qx "deb \[signed-by=/etc/apt/keyrings/kubernetes.gpg\] https://pkgs.k8s.io/core:/stable:/v1.37/deb/ /" \
+  "${ROOTFS}/etc/apt/sources.list.d/kubernetes.list"
+assert_logged "policy-rc.d is there" "apt: the services don't restart while installed"
+assert_file_absent "${ROOTFS}/usr/sbin/policy-rc.d"
+apt_check "the drop-in of the package is replaced by an empty one" \
+  test -f "${ROOTFS}/etc/systemd/system/kubelet.service.d/10-kubeadm.conf" -a \
+  ! -s "${ROOTFS}/etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
+# the binaries phase runs again on the node: the packages are there
+: > "${ROOTFS}/mock_calls.log"
+bash "${ROOTFS}/tmp/script.sh" --run -- binaries_sync > "${ROOTFS}/tmp/apt-rerun.log" 2>&1 || true
+apt_check "the packages of the version are there: nothing is installed" eval '! grep -q "apt-get" "${ROOTFS}/mock_calls.log"'
+apt_check "the packages of the version are there: the versions are asked" grep -q "dpkg-query -W" "${ROOTFS}/mock_calls.log"
 
 clean_bootstrap
 

@@ -33,23 +33,65 @@ backup:
 
 # kubeadm, kubelet and kubectl: the node scripts run them by name, so install_dir
 # has to be in the PATH of the node (the reconcile takes the PATH of the login
-# shell of the host). They are installed there by the bootstrap script and kept
-# in sync by the anchor if cluster_config.kubernetesVersion is set, otherwise
-# the node has them in its PATH. urls are tpl strings, ${ARCH} is substituted
-# on the node with its architecture. sha256 is optional, if empty the binary
-# is verified with <url>.sha256. The installation procedure can be
-# redefined in bundle.tpl."templates/phases/modules/binaries/_install.sh.tpl".
+# shell of the host). The bootstrap script installs them there and the anchor
+# keeps them in sync with binary_kubernetes_sync_rc (binaries.sync).
 binaries:
   install_dir: /usr/local/bin
-  kubeadm:
-    url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${ARCH}/kubeadm"
-    sha256: ""
-  kubelet:
-    url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${ARCH}/kubelet"
-    sha256: ""
-  kubectl:
-    url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${ARCH}/kubectl"
-    sha256: ""
+  # the data of binaries.sync below: where kubeadm, kubelet and kubectl come
+  # from (a tpl string, ${name} and ${arch} are substituted on the node), and
+  # their sha256 if there is no <url>.sha256 next to them
+  url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${arch}/${name}"
+  sha256: {}
+    # kubeadm: <sha256>
+  # the functions installing the binaries on the nodes
+  # (templates/phases/modules/binaries/_binary_sync_rc.tpl): the helpers of the
+  # binaries module each uses and its body (a tpl string)
+  sync:
+    # binary_kubernetes_sync_rc <name>: kubeadm, kubelet or kubectl
+    kubernetes:
+      needs:
+        - binary_arch
+        - binary_download
+        - binary_replace
+      body: |
+        # kubeadm, kubelet or kubectl $1 of cluster_config.kubernetesVersion from
+        # binaries.url (with binaries.sha256)
+        binary_kubernetes_sync_rc() {
+          local name="$1" version={{ (.Values.cluster_config).kubernetesVersion | default "" | quote }} dst="${ROOTFS}{{ .Values.binaries.install_dir }}/$1" arch url sum="" tmp
+          if [ -z "${version}" ]; then
+            echo "WARNING: ${name} isn't managed (cluster_config.kubernetesVersion isn't set), the one on the node is used" >&2
+            return 1
+          fi
+          arch=$(binary_arch) || exit 1
+          url={{ tpl .Values.binaries.url . | quote }}
+          # sums cases go here
+          case "${name}" in
+        {{- range $name, $sum := .Values.binaries.sha256 | default dict }}
+            {{ $name }}) sum={{ $sum | quote }} ;;
+        {{- end }}
+          esac
+          [ -n "${sum}" ] || sum=$(curl -fsSL --retry 5 "${url}.sha256") || exit 1
+          # the binary is there already: nothing to download
+          if [ -f "${dst}" ] && [ "$(sha256sum < "${dst}" | cut -d ' ' -f 1)" = "${sum}" ]; then
+            return 1
+          fi
+          mkdir -p "${ROOTFS}{{ .Values.binaries.install_dir }}" && tmp=$(mktemp "${ROOTFS}{{ .Values.binaries.install_dir }}/${name}.XXXXXX") || exit 1
+          binary_download "${tmp}" "${url}" "${sum}"
+          binary_replace "${tmp}" "${name}" || return 1
+          echo "${name} is installed from ${url}"
+        }
+    # binary_cri_sync_rc: the container runtime
+    cri:
+      needs: []
+      body: |
+        # the container runtime cri.service has to be on the node
+        binary_cri_sync_rc() {
+          if ! systemctl cat {{ .Values.cri.service | quote }} > /dev/null 2>&1; then
+            echo "the runtime {{ .Values.cri.service }} isn't found: install it on the node" >&2
+            exit 1
+          fi
+          return 1
+        }
 
 # here is where all secrets are provided
 # 3 options are supported:
@@ -125,11 +167,10 @@ checks:
 cri:
   # kubelet starts after it, cri_restart restarts it
   service: containerd.service
-  # the bootstrap script always runs cri_install_sync_rc, the reconcile script
-  # with this flag. The installation procedure can be redefined in
-  # bundle.tpl."templates/phases/modules/cri/_install.sh.tpl".
+  # the bootstrap script always runs binary_cri_sync_rc (binaries.sync.cri),
+  # the reconcile script with this flag
   reconcile_install: false
-  # the reconcile script restarts the runtime when cri_install_sync_rc or
+  # the reconcile script restarts the runtime when binary_cri_sync_rc or
   # cri.fsgroup changed it, the bootstrap script always does
   restart: false
   # the configuration of the runtime, synced by cri_sync_rc (the items as in files)
