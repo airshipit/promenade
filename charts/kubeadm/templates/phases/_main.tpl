@@ -12,9 +12,10 @@
 {{/* we're making an alternative implementation for the phases: e.g.
 https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 
-{{/* the runner of the phases, then the modules */}}
+{{/* the runner of the phases, then the modules (templates/phases/_modules.tpl) */}}
 {{- $_ := tuple $envAll "templates/phases/_phase_runner.tpl" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
-{{- range $module := $envAll.Values.phases.modules -}}
+{{- $_ := tuple $envAll "templates/phases/_modules.tpl" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
+{{- range $module := get $k8sConfDict "modules" -}}
 {{- $_ := tuple $envAll $module (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" -}}
 {{- end }}
 

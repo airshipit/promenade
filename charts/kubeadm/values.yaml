@@ -539,24 +539,6 @@ manifests:
   etcd_service: false
   rbac: true
 
-phases:
-  # the modules of the phases, in this order
-  # (kubelet uses the generators of the certs and kubeconfig ones)
-  modules:
-    - templates/phases/modules/backup/_.tpl
-    - templates/phases/modules/binaries/_.tpl
-    - templates/phases/modules/certs/_.tpl
-    - templates/phases/modules/checks/_.tpl
-    - templates/phases/modules/cri/_.tpl
-    - templates/phases/modules/fs/_.tpl
-    - templates/phases/modules/k8s_up/_.tpl
-    - templates/phases/modules/kube-cgroup/_.tpl
-    - templates/phases/modules/kubeadm/_.tpl
-    - templates/phases/modules/kubeconfig/_.tpl
-    - templates/phases/modules/kubelet/_.tpl
-    - templates/phases/modules/rebootstrap/_.tpl
-    - templates/phases/modules/vip/_.tpl
-
 bundle:
   tpl: {}
     #"sometpl": "hello"
