@@ -12,6 +12,7 @@
   "templates/phases/modules/certs/_.tpl"
   "templates/phases/modules/checks/_.tpl"
   "templates/phases/modules/cri/_.tpl"
+  "templates/phases/modules/etcd/_.tpl"
   "templates/phases/modules/fs/_.tpl"
   "templates/phases/modules/k8s_up/_.tpl"
   "templates/phases/modules/kube-cgroup/_.tpl"

@@ -128,6 +128,9 @@ binaries:
   crio:
     version: v1.36.7
     url: "https://storage.googleapis.com/cri-o/artifacts/cri-o.${arch}.{{ .Values.binaries.crio.version }}.tar.gz"
+  # etcdutl and etcdctl of the etcd of the cluster (etcd_restore)
+  etcd:
+    version: v3.6.8
   sync:
     # kubeadm, kubelet and kubectl from the node binaries archive of the release
     kubernetes:
@@ -577,12 +580,16 @@ bundle:
 
       usage() {
         cat << EOF
-      Usage: ssh-bootstrap.sh [--join <node>...]
+      Usage: ssh-bootstrap.sh [--join <node>...] | [--restore <snapshot>]
 
         without options: all the nodes, kubeadm init on the first control
         plane node, kubeadm join of the rest
         --join: these nodes join the existing cluster (the prep phases, then
         kubeadm join), the other nodes are untouched
+        --restore: the control plane nodes only (reset before), kubeadm init on
+        the first one with the etcd of the snapshot (a file on that node), the
+        other ones join it. The workers are untouched, they reconnect: the PKI
+        is the same
 
       Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH, SUDO, PKI_VALUES
       EOF
@@ -592,6 +599,7 @@ bundle:
       # the nodes the tool bootstraps
       TARGETS=("${NODES[@]}")
       JOIN=false
+      RESTORE=()
       while [ $# -gt 0 ]; do
         case "$1" in
           --join)
@@ -604,6 +612,15 @@ bundle:
               shift
             done
             [ "${#TARGETS[@]}" -gt 0 ] || { echo "--join needs the nodes" >&2; usage 1; }
+            ;;
+          --restore)
+            [ $# -gt 1 ] || { echo "--restore needs the snapshot" >&2; usage 1; }
+            RESTORE=(-- etcd_restore "$2")
+            TARGETS=()
+            for node in "${NODES[@]}"; do
+              [ "${NODE_ROLE[${node}]}" != master ] || TARGETS+=("${node}")
+            done
+            shift
             ;;
           -h|--help) usage ;;
           *) echo "Unknown option: $1" >&2; usage 1 ;;
@@ -637,8 +654,20 @@ bundle:
 
       if [ "${JOIN}" = false ]; then
         echo "=== kubeadm init on ${FIRST_MASTER}"
-        start_node "${FIRST_MASTER}" --run -- kubeadm_run "${KUBEADM_INIT[@]}" -- annotate_applied_configs -- check_run
+        # the restored etcd data dir isn't empty
+        [ "${#RESTORE[@]}" -eq 0 ] || KUBEADM_INIT+=(--ignore-preflight-errors=DirAvailable--var-lib-etcd)
+        start_node "${FIRST_MASTER}" --run ${RESTORE[@]+"${RESTORE[@]}"} -- kubeadm_run "${KUBEADM_INIT[@]}" -- annotate_applied_configs -- check_run
         wait_nodes
+
+        # the snapshot has the Node objects of the other control plane nodes,
+        # Ready as they were: kubeadm join refuses them, they register again
+        if [ "${#RESTORE[@]}" -gt 0 ]; then
+          for node in "${TARGETS[@]}"; do
+            [ "${node}" != "${FIRST_MASTER}" ] || continue
+            ${SSH} "${NODE_IP[${FIRST_MASTER}]}" \
+              "${SUDO} kubectl --kubeconfig /etc/kubernetes/admin.conf delete node --ignore-not-found $(squote "${node}")"
+          done
+        fi
 
         if [ "${#NODES[@]}" -eq 1 ]; then
           echo "The cluster is bootstrapped"

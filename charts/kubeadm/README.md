@@ -115,6 +115,14 @@ helm test kubeadm --logs
 
 When the chart is applied with `kubectl` (e.g. `helm template | kubectl apply`), render it with `--skip-tests`: `kubectl` ignores the hook annotations and would create the test pod at once. The gate runs the test pod separately, see `tools/deployment/kubeadm/045-helm-test.sh`.
 
+### Restoring etcd from a Snapshot
+
+A lost control plane can be bootstrapped again with the etcd of a snapshot (`etcdctl snapshot save`); taking and keeping the snapshots isn't the job of the chart. On the first control plane node the `+etcd_restore <snapshot>` phase of the bootstrap script restores the snapshot before `kubeadm_run` (with `--run`): the member gets the name and the peer URL kubeadm gives it, and `kubeadm init` starts etcd with the restored data. `kubeadm init` needs `--ignore-preflight-errors=DirAvailable--var-lib-etcd` then. The other control plane nodes join it as usual. etcdutl comes from `binaries.sync.etcd` (`binaries.etcd.version`), or the one on the node is used. The `+binary_etcd_sync_rc` phase installs etcdutl and etcdctl on the node alone too, e.g. for the snapshots.
+
+With the same PKI the workers reconnect: their certificates and the service account tokens of the snapshot stay valid. The snapshot brings back the Node objects as they were, and `kubeadm join` refuses a Ready one, so the Node objects of the other control plane nodes are deleted before they join.
+
+`ssh-bootstrap.sh --restore <snapshot>` of `overrides/reference/ssh-orchestration-ca.yaml` does all of this, the gate tests it (`tools/deployment/kubeadm-ssh/047-ssh-etcd-restore.sh`).
+
 ## Roadmap
 
 The project is under development. Below is the planned roadmap and feature wishlist (subject to iteration).
@@ -128,9 +136,8 @@ Carefully, with crash and restart tests (its steps are explicit once linked).
 A new phase (a test of the linking too).
 
 - **External control plane VIP (`kube-vip`):** a different task than the node-local balancer: a floating VIP for clients outside the cluster (admin kubeconfigs, a parent cluster, Armada), as a static pod on control plane nodes.
-#### 3. Phase validation, etcd restore, addon patching
+#### 3. Phase validation, addon patching
 - **Phase Validation & Cross-Alignment:** Validate CLI arguments against `kubeadm` phase configurations to warn if parameters contradict each other across phases.
-- **Etcd Disaster Recovery:** Support `etcd` restoration from backup during the `init` phase if backup artifacts are available (enabling full cluster state restoration from zero).
 - **Addon Patching References:** Provide standard patterns and examples for patching core add-ons (`kube-proxy`, `CoreDNS`) directly via `kubeadm` phase overrides.
 
 ### PKI Lifecycle & Certificate Management

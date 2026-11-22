@@ -43,6 +43,12 @@ binaries:
   url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${arch}/${name}"
   sha256: {}
     # kubeadm: <sha256>
+  # the data of binaries.sync.etcd: etcdutl and etcdctl of the etcd release (a
+  # tpl string, ${arch} is substituted on the node). Without the version the
+  # ones on the node are used
+  etcd:
+    version: ""
+    url: "https://github.com/etcd-io/etcd/releases/download/{{ .Values.binaries.etcd.version }}/etcd-{{ .Values.binaries.etcd.version }}-linux-${arch}.tar.gz"
   # the functions installing the binaries on the nodes
   # (templates/phases/modules/binaries/_binary_sync_rc.tpl): the helpers of the
   # binaries module each uses and its body (a tpl string)
@@ -91,6 +97,40 @@ binaries:
             exit 1
           fi
           return 1
+        }
+    # binary_etcd_sync_rc: etcdutl and etcdctl, for etcd_restore and as a phase
+    etcd:
+      needs:
+        - binary_arch
+        - binary_download
+        - binary_replace
+      body: |
+        # etcdutl and etcdctl of binaries.etcd.version from binaries.etcd.url
+        # (with the SHA256SUMS of the release next to it)
+        binary_etcd_sync_rc() {
+          local version={{ .Values.binaries.etcd.version | quote }} bin="${ROOTFS}{{ .Values.binaries.install_dir }}" arch url sum tmp name changed=1
+          if [ -z "${version}" ]; then
+            echo "WARNING: etcdutl and etcdctl aren't managed (binaries.etcd.version isn't set), the ones on the node are used" >&2
+            return 1
+          fi
+          if "${bin}/etcdutl" version 2> /dev/null | grep -qw "${version#v}" &&
+            "${bin}/etcdctl" version 2> /dev/null | grep -qw "${version#v}"; then
+            return 1
+          fi
+          arch=$(binary_arch) || exit 1
+          url={{ tpl .Values.binaries.etcd.url . | quote }}
+          sum=$(curl -fsSL --retry 5 "${url%/*}/SHA256SUMS" | awk -v file="${url##*/}" '$2 == file { print $1 }') || exit 1
+          [ -n "${sum}" ] || { echo "${url##*/} isn't in ${url%/*}/SHA256SUMS" >&2; exit 1; }
+          tmp=$(mktemp -d) || exit 1
+          binary_download "${tmp}/etcd.tar.gz" "${url}" "${sum}"
+          tar -xzf "${tmp}/etcd.tar.gz" -C "${tmp}" --strip-components=1 || exit 1
+          mkdir -p "${bin}" || exit 1
+          for name in etcdutl etcdctl; do
+            binary_replace "${tmp}/${name}" "${name}" && changed=0
+          done
+          rm -rf "${tmp}"
+          [ "${changed}" -eq 0 ] || return 1
+          echo "etcdutl and etcdctl are installed from ${url}"
         }
 
 # here is where all secrets are provided
@@ -479,6 +519,15 @@ bootstrap:
       - annotate_applied_configs
       # the node checks (templates/phases/modules/checks/_.tpl)
       - check_run
+      # with --run before kubeadm_run: the etcd of the first control plane node
+      # from the snapshot given as the argument (a file on the node), kubeadm
+      # init starts it (its arguments need
+      # --ignore-preflight-errors=DirAvailable--var-lib-etcd), the other control
+      # plane nodes join as usual
+      - +etcd_restore
+      # etcdutl and etcdctl of binaries.etcd on the node (etcd_restore installs
+      # them too)
+      - +binary_etcd_sync_rc
     # the certificates of the values again on the nodes of an existing cluster,
     # its API alive or not (recovery from an expired CA, abrupt CA rotation),
     # on all the nodes at once. The certificates are pregenerated or, with the

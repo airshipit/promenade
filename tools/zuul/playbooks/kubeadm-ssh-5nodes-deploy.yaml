@@ -26,13 +26,17 @@
 #      etcd member of a control plane node removed, its anchor joins it again,
 #      smoke tests. The most fragile step first, the steps after it run on the
 #      recovered cluster
-#   5. abrupt rotation of the CAs: the ssh-rebootstrap.sh tool of the chart
+#   5. the control plane lost (the CA orchestration only): all the control
+#      plane nodes reset after an etcd snapshot, ssh-bootstrap.sh --restore of
+#      the chart bootstraps them again with the etcd of the snapshot, the
+#      workers reconnect, smoke tests
+#   6. abrupt rotation of the CAs: the ssh-rebootstrap.sh tool of the chart
 #      puts new CAs on all the nodes (kubeadm generates the rest again, the
 #      workers go through the TLS bootstrap of kubelet again), the chart in the
 #      cluster gets them, smoke tests. Then once more with the apiservers
 #      stopped (the API is down), then the nodes held out of day 0
 #      (join_after_rotation) join with the new CA, smoke tests
-#   6. day 2 with the new CAs: a reconfiguration and an upgrade to the next
+#   7. day 2 with the new CAs: a reconfiguration and an upgrade to the next
 #      Kubernetes minor version by the anchors, smoke tests after each of them
 ---
 - hosts: primary
@@ -107,6 +111,16 @@
       shell: |
         set -xe;
         ./tools/deployment/kubeadm-ssh/045-fault-etcd-member-removed.sh
+        ./tools/deployment/kubeadm/050-smoke-test.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+        executable: /bin/bash
+
+    - name: Lose the control plane, restore it from an etcd snapshot over ssh, test the cluster
+      when: (kubeadm_orchestration | default('ca')) == 'ca'
+      shell: |
+        set -xe;
+        ./tools/deployment/kubeadm-ssh/047-ssh-etcd-restore.sh
         ./tools/deployment/kubeadm/050-smoke-test.sh
       args:
         chdir: "{{ zuul.project.src_dir }}"

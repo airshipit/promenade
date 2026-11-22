@@ -116,6 +116,18 @@ while [ $# -gt 0 ]; do
 done
 EOF
 
+  # etcdutl snapshot restore: refuses an existing data dir as the real one
+  cat << 'EOF' > "${test_bin}/etcdutl"
+#!/usr/bin/env bash
+echo "[MOCK etcdutl] etcdutl $@" >> "${ROOTFS}/mock_calls.log"
+while [ $# -gt 0 ]; do
+  [ "$1" != "--data-dir" ] || dir="$2"
+  shift
+done
+[ ! -e "${dir}" ] || { echo "data-dir \"${dir}\" exists" >&2; exit 1; }
+mkdir -p "${dir}/member"
+EOF
+
 chmod +x "${test_bin}"/*
 # the node scripts run kubeadm and kubectl by name (the PATH has the mocks), binary_kubernetes_sync_rc compares with binaries.install_dir
 mkdir -p "${ROOTFS}/usr/local/bin"
@@ -995,6 +1007,37 @@ apt_check "the drop-in of the package is replaced by an empty one" \
 bash "${ROOTFS}/tmp/script.sh" --run -- binaries_sync > "${ROOTFS}/tmp/apt-rerun.log" 2>&1 || true
 apt_check "the packages of the version are there: nothing is installed" eval '! grep -q "apt-get" "${ROOTFS}/mock_calls.log"'
 apt_check "the packages of the version are there: the versions are asked" grep -q "dpkg-query -W" "${ROOTFS}/mock_calls.log"
+
+clean_bootstrap
+
+echo "[etcd] the etcd of kubeadm init from a snapshot"
+etcd_check() {
+  local msg="$1"
+  shift
+  if "$@"; then
+    echo "  ✅ [OK] etcd: ${msg}"
+  else
+    echo "  ❌ [FAIL] etcd: ${msg}" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+run_bootstrap ""
+# etcd_restore <snapshot> on the node, before kubeadm init
+etcd_restore_run() {
+  NODE_NAME=node0 NODE_IP=10.0.0.10 bash "${ROOTFS}/tmp/script.sh" --run -- etcd_restore /tmp/snapshot.db \
+    > "${ROOTFS}/tmp/etcd-restore.log" 2>&1
+}
+: > "${ROOTFS}/mock_calls.log"
+mkdir -p "${ROOTFS}/var/lib/etcd"
+etcd_check "an empty data dir (kubeadm reset): restored" etcd_restore_run
+assert_logged "etcdutl snapshot restore /tmp/snapshot.db --data-dir ${ROOTFS}/var/lib/etcd --name node0 --initial-cluster node0=https://10\.0\.0\.10:2380 --initial-advertise-peer-urls https://10\.0\.0\.10:2380$" \
+  "etcd: the member has the name and the peer URL kubeadm gives it"
+etcd_check "etcdutl and etcdctl aren't managed without binaries.etcd.version" \
+  grep -q "etcdutl and etcdctl aren't managed" "${ROOTFS}/tmp/etcd-restore.log"
+etcd_check "the binaries as a phase: not managed isn't a failure" \
+  bash "${ROOTFS}/tmp/script.sh" --run -- binary_etcd_sync_rc
+etcd_check "the data of the node: not replaced" eval '! etcd_restore_run'
+etcd_check "the data of the node: refused by etcdutl" grep -q "exists" "${ROOTFS}/tmp/etcd-restore.log"
 
 clean_bootstrap
 

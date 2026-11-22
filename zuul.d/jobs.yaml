@@ -161,7 +161,9 @@
       to the next Kubernetes minor version are applied by the anchor with the
       new CAs. Smoke tests after each step. At the end a fault injection (not a
       user scenario): the etcd member of a control plane node is removed, its
-      anchor joins it again.
+      anchor joins it again. Then the control plane is lost: all the control
+      plane nodes are reset after an etcd snapshot and bootstrapped again with
+      the etcd of the snapshot, the workers reconnect.
     voting: true
     timeout: 7200
     nodeset: airship-promenade-5nodes-noble
@@ -209,7 +211,8 @@
       The 5 node cluster of airship-promenade-kubeadm-ssh-ca-5nodes with the
       full PKI in the values (overrides/reference/ssh-orchestration-full.yaml,
       gen-pki-full.sh): kubeadm doesn't generate certificates, the workers
-      don't run kubeadm. The same steps, the rotations put a new full PKI.
+      don't run kubeadm. The same steps but the restore from the etcd
+      snapshot, the rotations put a new full PKI.
       containerd and Cilium, the Kubernetes binaries of the chart defaults.
     vars:
       kubeadm_orchestration: full
