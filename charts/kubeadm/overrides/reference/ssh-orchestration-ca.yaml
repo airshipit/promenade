@@ -135,6 +135,8 @@ binaries:
     # kubeadm, kubelet and kubectl from the node binaries archive of the release
     kubernetes:
       body: |
+        #!define: binary_kubernetes_sync_rc
+        #!needs: binary_arch, binary_download, binary_replace
         # kubeadm, kubelet or kubectl $1 from the node binaries archive of the
         # release (downloaded once per url)
         binary_kubernetes_sync_rc() {
@@ -159,10 +161,9 @@ binaries:
         }
     # CRI-O from its static bundle
     cri:
-      needs:
-        - binary_arch
-        - binary_download
       body: |
+        #!define: binary_cri_sync_rc
+        #!needs: binary_arch, binary_download
         # CRI-O from its static bundle: crio, conmon, the OCI runtimes, crictl and
         # the systemd unit (the CNI plugins of the bundle go to /opt/cni/bin too)
         binary_cri_sync_rc() {

@@ -1,5 +1,5 @@
 {{/*
-  The files of the chart (see templates/phases/modules/fs/_.tpl): the
+  The files of the chart (see templates/phases/modules/fs/_.sh.tpl): the
   archives, the groups, the permissions
 */}}
 

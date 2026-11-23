@@ -1,15 +1,15 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
+# The rebootstrap profile (bootstrap.profiles.rebootstrap): the lock of the
+# reconcile (reconcile_guard) and the restart of the clients of the old CA
+# (restart_clients).
 
-{{/* the rebootstrap profile (bootstrap.profiles.rebootstrap): the lock of the
-     reconcile (reconcile_guard) and the restart of the clients of the old CA
-     (restart_clients) */}}
-{{- $_ := set $symbols "RECONCILE_DIR" (dict "body" (printf "RECONCILE_DIR=%s" ($envAll.Values.anchor.reconcile.host_dir | quote))) -}}
+#!define: RECONCILE_DIR
+RECONCILE_DIR={{ $envAll.Values.anchor.reconcile.host_dir | quote }}
 
-{{- $_ := set $symbols "reconcile_in_flight" (dict "needs" (list "RECONCILE_DIR")
-"body" `
+#!define: reconcile_in_flight
+#!needs: RECONCILE_DIR
 # the reconcile passes going on on the node: the reconcile processes neither
 # done nor waiting for the rebootstrap (the files of the anchor are in the mount
 # namespace of its pod)
@@ -21,14 +21,8 @@ reconcile_in_flight() {
       echo "${pid}"
   done
 }
-`) -}}
 
-{{- $_ := set $symbols "reconcile_guard" (dict "needs" (list "reconcile_in_flight")
-"body" (include "__reconcile_guard" $envAll)
-) -}}
-
-{{- define "__delete_pods" -}}
-{{- $envAll := . -}}
+#!define: delete_pods
 # the pods of the selector, the API of the restarted control plane may be
 # unavailable for a while
 delete_pods() {
@@ -40,13 +34,8 @@ delete_pods() {
   done
   return 1
 }
-{{- end -}}
-{{- $_ := set $symbols "delete_pods" (dict
-"body" (include "__delete_pods" $envAll)
-) -}}
 
-{{- define "__wait_root_ca" -}}
-{{- $envAll := . -}}
+#!define: wait_root_ca
 # the new CA in kube-root-ca.crt of all the namespaces (the controller-manager
 # publishes it): the pods started before it get the old one and keep it
 wait_root_ca() {
@@ -68,17 +57,9 @@ wait_root_ca() {
   echo "kube-root-ca.crt without the new CA:${stale:- (no namespaces)}" >&2
   return 1
 }
-{{- end -}}
-{{- $_ := set $symbols "wait_root_ca" (dict
-"body" (include "__wait_root_ca" $envAll)
-) -}}
 
-{{- $_ := set $symbols "restart_clients" (dict "needs" (list "wait_root_ca" "delete_pods")
-"body" (include "__restart_clients" $envAll)
-) -}}
-
-{{- define "__reconcile_guard" -}}
-{{- $envAll := . -}}
+#!define: reconcile_guard
+#!needs: reconcile_in_flight
 # the anchors of the node mustn't put the certificates of the values in the
 # cluster back: they wait while the backups exist (the lock). The passes going
 # on finish first
@@ -105,9 +86,9 @@ reconcile_guard() {
   done
   echo "the reconcile is locked: {{ $envAll.Values.backup.dir }}"
 }
-{{- end -}}
-{{- define "__restart_clients" -}}
-{{- $envAll := . -}}
+
+#!define: restart_clients
+#!needs: wait_root_ca, delete_pods
 # the abrupt rotation: the pods keep the CA (kube-root-ca.crt) and the service
 # account tokens they started with, they don't work anyway, their controllers
 # start them again once the new CA is published
@@ -118,4 +99,3 @@ restart_clients() {
 {{- end }}
   return 0
 }
-{{- end -}}

@@ -40,18 +40,7 @@ kubeadm() {
 
 {{/* the linked functions: the pass, the step of the main loop and their
      needs (templates/phases/modules/reconcile) */}}
-{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" (list "reconcile_pass" "reconcile_tick")) }}
+{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" (list "reconcile")) }}
 # end of common functions
 
-reconcile_pass
-# the anchor is ready
-touch "${RECONCILE_DIR}/done"
-
-# main loop
-while true; do
-  if [ -e "${RECONCILE_DIR}/stop" ] || ! reconcile_tick; then
-    echo "Stopping"
-    break
-  fi
-  sleep {{ $envAll.Values.anchor.reconcile.period }}
-done
+reconcile

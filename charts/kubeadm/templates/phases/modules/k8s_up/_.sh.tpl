@@ -1,9 +1,7 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
-
-{{- $_ := set $symbols "k8s_up" (dict "body" `
+#!define: k8s_up
 k8s_up() {
   # turn off swap
   sudo swapoff -a
@@ -26,4 +24,3 @@ EOF
 
   sudo sysctl --system
 }
-`) -}}

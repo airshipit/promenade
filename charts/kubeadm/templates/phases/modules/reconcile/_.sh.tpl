@@ -1,13 +1,37 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
-
-{{- define "__reconcile_pass" -}}
-{{- $envAll := . -}}
-# one pass: the state of the node, the files of the chart synced, the changes
-# applied (kubeadm, the restart of kubelet), the node checks
-reconcile_pass() {
+#!define: reconcile
+#!needs: KUBERNETES_DIR
+#!needs: KUBERNETES_VERSION
+#!needs: NODE_STATE
+#!needs: annotate_node
+#!needs: annotations
+#!needs: apiserver_files_sha256
+#!needs: apiserver_restart
+#!needs: binaries_sync
+#!needs: binary_kubernetes_sync_rc
+#!needs: certs_sync
+#!needs: cleanup_old_backups
+#!needs: cri_restart
+#!needs: cri_sync_rc
+#!needs: is_action_required
+#!needs: kubeadm_action
+#!needs: kubeadm_config_sha256
+#!needs: kubeadm_sync
+#!needs: kubeconfigs_sync
+#!needs: kubelet_config_sha256
+#!needs: kubelet_restart
+#!needs: kubelet_sync_rc
+#!needs: upload_kubeadm_config
+#!needs: wait_apiservers_upgraded
+#!needs: wait_rebootstrap
+# one pass (the state of the node, the files of the chart synced, the changes
+# applied: kubeadm, the restart of kubelet, the node checks), the anchor is
+# ready, then the main loop: a change needing a new pass ends it (the anchor
+# restarts), the VIP the node was bootstrapped with follows the control plane
+# endpoints meanwhile
+reconcile() {
   wait_rebootstrap
   binaries_sync kubeadm kubectl
   # kubectl may be installed just above
@@ -38,7 +62,7 @@ reconcile_pass() {
 
   {{- if $envAll.Values.anchor.reconcile.ca_guard }}
   # before any sync: the files of the node are left as they are
-  certs_guard_ca
+  certs_guard_ca #!needs: certs_guard_ca
   {{- end }}
 
   cleanup_old_backups
@@ -48,7 +72,7 @@ reconcile_pass() {
 
   CRI_RESTART_REQUIRED=false
   {{- if $envAll.Values.anchor.reconcile.cri_install }}
-  binary_cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.anchor.reconcile.cri_restart }}
+  binary_cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.anchor.reconcile.cri_restart }} #!needs: binary_cri_sync_rc
   {{- end }}
   cri_sync_rc && CRI_RESTART_REQUIRED={{ $envAll.Values.anchor.reconcile.cri_restart }}
   if [[ $CRI_RESTART_REQUIRED == true ]]; then
@@ -98,7 +122,7 @@ reconcile_pass() {
 
   {{- if $envAll.Values.deprecated.airship_migration.enabled }}
 
-  [ "${NODE_ROLE}" == "master" ] && rename_cp_pods
+  [ "${NODE_ROLE}" == "master" ] && rename_cp_pods #!needs: rename_cp_pods
   {{- end }}
 
 
@@ -120,57 +144,28 @@ reconcile_pass() {
   fi
   {{- if $envAll.Values.deprecated.airship_migration.enabled }}
 
-  airship_migration_cleanup
+  airship_migration_cleanup #!needs: airship_migration_cleanup
   {{- end }}
 
   {{- if $envAll.Values.anchor.reconcile.checks }}
 
   # the anchor becomes ready only if the node checks pass
-  check_run{{ if $envAll.Values.anchor.reconcile.vip }} vip_check{{ end }} certs_check
+  check_run{{ if $envAll.Values.anchor.reconcile.vip }} vip_check{{ end }} certs_check #!needs: check_run, certs_check{{ if $envAll.Values.anchor.reconcile.vip }}, vip_check{{ end }}
   {{- end }}
+
+  # the anchor is ready
+  touch "${RECONCILE_DIR}/done"
+
+  # main loop
+  while true; do
+    if [ -e "${RECONCILE_DIR}/stop" ] || is_action_required; then
+      echo "Stopping"
+      break
+    fi
+{{- if $envAll.Values.anchor.reconcile.vip }}
+    # the VIP the node was bootstrapped with follows the control plane endpoints
+    vip_reconcile || true #!needs: vip_reconcile
+{{- end }}
+    sleep {{ $envAll.Values.anchor.reconcile.period }}
+  done
 }
-{{- end -}}
-{{- $needs := list
-  "KUBERNETES_DIR"
-  "KUBERNETES_VERSION"
-  "NODE_STATE"
-  "annotate_node"
-  "annotations"
-  "apiserver_files_sha256"
-  "apiserver_restart"
-  "binaries_sync"
-  "binary_kubernetes_sync_rc"
-  "certs_sync"
-  "cleanup_old_backups"
-  "cri_restart"
-  "cri_sync_rc"
-  "is_action_required"
-  "kubeadm_action"
-  "kubeadm_config_sha256"
-  "kubeadm_sync"
-  "kubeconfigs_sync"
-  "kubelet_config_sha256"
-  "kubelet_restart"
-  "kubelet_sync_rc"
-  "upload_kubeadm_config"
-  "wait_apiservers_upgraded"
-  "wait_rebootstrap"
--}}
-{{- if $envAll.Values.anchor.reconcile.ca_guard -}}
-  {{- $needs = append $needs "certs_guard_ca" -}}
-{{- end -}}
-{{- if $envAll.Values.anchor.reconcile.cri_install -}}
-  {{- $needs = append $needs "binary_cri_sync_rc" -}}
-{{- end -}}
-{{- if $envAll.Values.deprecated.airship_migration.enabled -}}
-  {{- $needs = concat $needs (list "rename_cp_pods" "airship_migration_cleanup") -}}
-{{- end -}}
-{{- if $envAll.Values.anchor.reconcile.checks -}}
-  {{- $needs = concat $needs (list "check_run" "certs_check") -}}
-  {{- if $envAll.Values.anchor.reconcile.vip -}}
-    {{- $needs = append $needs "vip_check" -}}
-  {{- end -}}
-{{- end -}}
-{{- $_ := set $symbols "reconcile_pass" (dict "needs" $needs
-"body" (include "__reconcile_pass" $envAll)
-) -}}

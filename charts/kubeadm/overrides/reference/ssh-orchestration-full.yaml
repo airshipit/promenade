@@ -112,10 +112,9 @@ binaries:
     # containerd, runc, the systemd unit and crictl from the upstream releases,
     # kubeadm, kubelet and kubectl as by default (binaries.url)
     cri:
-      needs:
-        - binary_arch
-        - binary_download
       body: |
+        #!define: binary_cri_sync_rc
+        #!needs: binary_arch, binary_download
         # containerd, runc, the systemd unit and crictl (the rebootstrap stops the
         # static pods with it) from the upstream releases
         binary_cri_sync_rc() {

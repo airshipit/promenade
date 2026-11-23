@@ -50,16 +50,21 @@ binaries:
     version: ""
     url: "https://github.com/etcd-io/etcd/releases/download/{{ .Values.binaries.etcd.version }}/etcd-{{ .Values.binaries.etcd.version }}-linux-${arch}.tar.gz"
   # the functions installing the binaries on the nodes
-  # (templates/phases/modules/binaries/_binary_sync_rc.tpl): the helpers of the
-  # binaries module each uses and its body (a tpl string)
+  # (templates/phases/modules/binaries/_.sh.tpl):
+  # 1. binary_kubernetes_sync_rc <name> installs kubeadm, kubelet or kubectl to
+  #    binaries.install_dir,
+  # 2. binary_cri_sync_rc installs the container runtime,
+  # 3. binary_etcd_sync_rc installs etcdutl and etcdctl.
+  # They return 0 if they changed something, 1 if
+  # not, and exit on errors (they are called in && and || lists). Tpl strings
+  # with their #!define: and #!needs:, the needs name the helpers of the
+  # binaries module
   sync:
     # binary_kubernetes_sync_rc <name>: kubeadm, kubelet or kubectl
     kubernetes:
-      needs:
-        - binary_arch
-        - binary_download
-        - binary_replace
       body: |
+        #!define: binary_kubernetes_sync_rc
+        #!needs: binary_arch, binary_download, binary_replace
         # kubeadm, kubelet or kubectl $1 of cluster_config.kubernetesVersion from
         # binaries.url (with binaries.sha256)
         binary_kubernetes_sync_rc() {
@@ -88,8 +93,8 @@ binaries:
         }
     # binary_cri_sync_rc: the container runtime
     cri:
-      needs: []
       body: |
+        #!define: binary_cri_sync_rc
         # the container runtime cri.service has to be on the node
         binary_cri_sync_rc() {
           if ! systemctl cat {{ .Values.cri.service | quote }} > /dev/null 2>&1; then
@@ -100,11 +105,9 @@ binaries:
         }
     # binary_etcd_sync_rc: etcdutl and etcdctl, for etcd_restore and as a phase
     etcd:
-      needs:
-        - binary_arch
-        - binary_download
-        - binary_replace
       body: |
+        #!define: binary_etcd_sync_rc
+        #!needs: binary_arch, binary_download, binary_replace
         # etcdutl and etcdctl of binaries.etcd.version from binaries.etcd.url
         # (with the SHA256SUMS of the release next to it)
         binary_etcd_sync_rc() {
@@ -374,7 +377,7 @@ haproxy:
       - option redispatch
 
 vip:
-  # the implementations of the VIP: templates/phases/modules/vip/_<module>.tpl
+  # the implementations of the VIP: templates/phases/modules/vip/_<module>.sh.tpl
   modules:
     - haproxy
   # the VIP of the node: the implementation and its argument (a tpl string),
@@ -472,7 +475,7 @@ bootstrap:
   # this is because we assume that bootstrap.nodename is used only for manual helm template execution
   # nodename: <some node>
   # the profile of the script of the bootstrap Secrets
-  # (templates/bin/_bootstrap.tpl): it runs the phases of
+  # (templates/bin/_bootstrap.sh.tpl): it runs the phases of
   # bootstrap.profiles.<profile>
   profile: bootstrap
   # the phases of the script in their order: a phase is a function of
@@ -517,7 +520,7 @@ bootstrap:
       # the node with the configurations it runs with: the first pass of the
       # reconcile doesn't apply them again
       - annotate_applied_configs
-      # the node checks (templates/phases/modules/checks/_.tpl)
+      # the node checks (templates/phases/modules/checks/_.sh.tpl)
       - check_run
       # with --run before kubeadm_run: the etcd of the first control plane node
       # from the snapshot given as the argument (a file on the node), kubeadm
@@ -718,6 +721,6 @@ deprecated:
   # (/tmp/bin/pre_stop of the bin ConfigMap): they stop their reconcile pass
   # with it when the upgrade replaces them. Deprecated: false once the
   # previous release has the hook inline, then removed with
-  # templates/bin/_pre_stop.tpl
+  # templates/bin/_pre_stop.sh.tpl
   legacy_pre_stop:
     enabled: true

@@ -1,11 +1,12 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
+# The kubeconfigs of a control plane node (admin, controller-manager,
+# scheduler) from _kubeconfig.yaml.tpl, if the values have their client
+# certificates: kubeadm generates them otherwise.
 
-{{- define "__render_kubeconfig" -}}
-{{- $envAll := . -}}
-{{- $tpl := (tuple $envAll "templates/phases/modules/kubeconfig/_kubeconfig.yaml.tpl" | include "kubeadm.bundle.template") -}}
+#!define: render_kubeconfig
+#!needs: subst_node_env, compare_copy_file
 render_kubeconfig() {
   local dst="$1" ep="$2" user="$3" ca="$4" cert="$5" key="$6" mode="$7" owner="$8"
   cat << 'EOF_TEMPLATE_DATA' | subst_node_env \
@@ -14,22 +15,21 @@ render_kubeconfig() {
       -e "s|\${CERT_AUTH}|${ca}|g" \
       -e "s|\${CLIENT_CERT}|${cert}|g" \
       -e "s|\${CLIENT_KEY}|${key}|g" | compare_copy_file - "$dst" "$mode" "$owner" || true
-{{ $tpl }}
+{{ tuple $envAll "templates/phases/modules/kubeconfig/_kubeconfig.yaml.tpl" | include "kubeadm.bundle.template" }}
 EOF_TEMPLATE_DATA
 }
-{{- end -}}
 
-{{- define "__kubeconfigs_sync" -}}
-{{- $envAll := . -}}
-{{/*kubeconfigs permissions*/}}
-{{- $dirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" -}}
-{{- $dirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" -}}
-{{- $adminMode := tuple $envAll "kubeconfig" "admin.conf" | include "kubeadm.fs.file_mode" -}}
-{{- $adminOwner := tuple $envAll "kubeconfig" "admin.conf" | include "kubeadm.fs.file_owner" -}}
-{{- $ctrlMgrMode := tuple $envAll "kubeconfig" "controller-manager.conf" | include "kubeadm.fs.file_mode" -}}
-{{- $ctrlMgrOwner := tuple $envAll "kubeconfig" "controller-manager.conf" | include "kubeadm.fs.file_owner" -}}
-{{- $schdlrMode := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_mode" -}}
-{{- $schdlrOwner := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_owner" -}}
+#!define: kubeconfigs_sync
+#!needs: ensure_dir, render_kubeconfig
+{{- /* the permissions of the kubeconfigs */}}
+{{- $dirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" }}
+{{- $dirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" }}
+{{- $adminMode := tuple $envAll "kubeconfig" "admin.conf" | include "kubeadm.fs.file_mode" }}
+{{- $adminOwner := tuple $envAll "kubeconfig" "admin.conf" | include "kubeadm.fs.file_owner" }}
+{{- $ctrlMgrMode := tuple $envAll "kubeconfig" "controller-manager.conf" | include "kubeadm.fs.file_mode" }}
+{{- $ctrlMgrOwner := tuple $envAll "kubeconfig" "controller-manager.conf" | include "kubeadm.fs.file_owner" }}
+{{- $schdlrMode := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_mode" }}
+{{- $schdlrOwner := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_owner" }}
 kubeconfigs_sync() {
 
   if [ "${NODE_ROLE}" == "master" ]; then
@@ -65,12 +65,3 @@ kubeconfigs_sync() {
 
   echo "kubeconfigs are synced"
 }
-{{- end -}}
-
-{{- $_ := set $symbols "render_kubeconfig" (dict "needs" (list "subst_node_env" "compare_copy_file")
-"body" (include "__render_kubeconfig" $envAll)
-) -}}
-
-{{- $_ := set $symbols "kubeconfigs_sync" (dict "needs" (list "ensure_dir" "render_kubeconfig")
-"body" (include "__kubeconfigs_sync" $envAll)
-) -}}

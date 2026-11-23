@@ -22,24 +22,23 @@
   {{- end -}}
 {{- end -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
-{{- define "__kubelet_kubeconfig_sync_rc" -}}
-{{- $envAll := . -}}
-{{/* without pregenerated kubelet certs kubeadm generates kubelet.conf itself */}}
-{{- $kubeletCerts := false -}}
-{{- range $_,$v := ($envAll.Values.certs).nodes -}}
-  {{- if $v.kubelet -}}{{- $kubeletCerts = true -}}{{- end -}}
-{{- end -}}
-{{- $kubernetesPkiDirMode := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesPkiDirOwner := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_owner" -}}
-{{- $kubeletpkipubMode := tuple $envAll "kubelet" "kubeletpkipub" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeletpkipubOwner := tuple $envAll "kubelet" "kubeletpkipub" | include "kubeadm.fs.file_owner" -}}
-{{- $kubeletpkiprivMode := tuple $envAll "kubelet" "kubeletpkipriv" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeletpkiprivOwner := tuple $envAll "kubelet" "kubeletpkipriv" | include "kubeadm.fs.file_owner" -}}
-{{- $kubernetesDirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesDirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" -}}
-{{- $kubeletConfMode := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeletConfOwner := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_owner" -}}
+#!define: kubelet_kubeconfig_sync_rc
+#!needs: ensure_dir, group_dir_sync, render_kubeconfig
+{{- /* without pregenerated kubelet certs kubeadm generates kubelet.conf itself */}}
+{{- $kubeletCerts := false }}
+{{- range $_,$v := ($envAll.Values.certs).nodes }}
+  {{- if $v.kubelet -}}{{- $kubeletCerts = true -}}{{- end }}
+{{- end }}
+{{- $kubernetesPkiDirMode := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesPkiDirOwner := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_owner" }}
+{{- $kubeletpkipubMode := tuple $envAll "kubelet" "kubeletpkipub" | include "kubeadm.fs.file_mode" }}
+{{- $kubeletpkipubOwner := tuple $envAll "kubelet" "kubeletpkipub" | include "kubeadm.fs.file_owner" }}
+{{- $kubeletpkiprivMode := tuple $envAll "kubelet" "kubeletpkipriv" | include "kubeadm.fs.file_mode" }}
+{{- $kubeletpkiprivOwner := tuple $envAll "kubelet" "kubeletpkipriv" | include "kubeadm.fs.file_owner" }}
+{{- $kubernetesDirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesDirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" }}
+{{- $kubeletConfMode := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_mode" }}
+{{- $kubeletConfOwner := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_owner" }}
 # returns 0 if the files were changed, 1 if not
 kubelet_kubeconfig_sync_rc() {
   local pki_dir="/etc/kubernetes/pki"
@@ -69,25 +68,21 @@ kubelet_kubeconfig_sync_rc() {
 
   [ "$sha_before" != "$sha_after" ] && return 0 || return 1
 }
-{{- end -}}
-{{- $_ := set $symbols "kubelet_kubeconfig_sync_rc" (dict "needs" (list "ensure_dir" "group_dir_sync" "render_kubeconfig")
-"body" (include "__kubelet_kubeconfig_sync_rc" $envAll)
-) -}}
 
-{{- define "__kubelet_sync_rc" -}}
-{{- $envAll := . -}}
-{{- $defaultDirMode := tuple $envAll "/etc/default" | include "kubeadm.fs.dir_mode" -}}
-{{- $defaultDirOwner := tuple $envAll "/etc/default" | include "kubeadm.fs.dir_owner" -}}
-{{- $kubeletMode := tuple $envAll "kubelet" "kubelet" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeletOwner := tuple $envAll "kubelet" "kubelet" | include "kubeadm.fs.file_owner" -}}
-{{- $systemdSystemDirMode := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_mode" -}}
-{{- $systemdSystemDirOwner := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_owner" -}}
-{{- $kubeletServiceMode := tuple $envAll "kubelet" "kubelet.service" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeletServiceOwner := tuple $envAll "kubelet" "kubelet.service" | include "kubeadm.fs.file_owner" -}}
-{{- $kubeletDirMode := tuple $envAll "/var/lib/kubelet" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubeletDirOwner := tuple $envAll "/var/lib/kubelet" | include "kubeadm.fs.dir_owner" -}}
-{{- $configYamlMode := tuple $envAll "kubelet" "config.yaml" | include "kubeadm.fs.file_mode" -}}
-{{- $configYamlOwner := tuple $envAll "kubelet" "config.yaml" | include "kubeadm.fs.file_owner" -}}
+#!define: kubelet_sync_rc
+#!needs: kubelet_kubeconfig_sync_rc, ensure_dir, ensure_file, subst_node_env, compare_copy_file
+{{- $defaultDirMode := tuple $envAll "/etc/default" | include "kubeadm.fs.dir_mode" }}
+{{- $defaultDirOwner := tuple $envAll "/etc/default" | include "kubeadm.fs.dir_owner" }}
+{{- $kubeletMode := tuple $envAll "kubelet" "kubelet" | include "kubeadm.fs.file_mode" }}
+{{- $kubeletOwner := tuple $envAll "kubelet" "kubelet" | include "kubeadm.fs.file_owner" }}
+{{- $systemdSystemDirMode := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_mode" }}
+{{- $systemdSystemDirOwner := tuple $envAll "/etc/systemd/system" | include "kubeadm.fs.dir_owner" }}
+{{- $kubeletServiceMode := tuple $envAll "kubelet" "kubelet.service" | include "kubeadm.fs.file_mode" }}
+{{- $kubeletServiceOwner := tuple $envAll "kubelet" "kubelet.service" | include "kubeadm.fs.file_owner" }}
+{{- $kubeletDirMode := tuple $envAll "/var/lib/kubelet" | include "kubeadm.fs.dir_mode" }}
+{{- $kubeletDirOwner := tuple $envAll "/var/lib/kubelet" | include "kubeadm.fs.dir_owner" }}
+{{- $configYamlMode := tuple $envAll "kubelet" "config.yaml" | include "kubeadm.fs.file_mode" }}
+{{- $configYamlOwner := tuple $envAll "kubelet" "config.yaml" | include "kubeadm.fs.file_owner" }}
 # returns 0 if the files were changed, 1 if not
 kubelet_sync_rc() {
   local c=1 # return code 1 means false
@@ -108,15 +103,11 @@ kubelet_sync_rc() {
   echo "kubelet is synced"
   return $c
 }
-{{- end -}}
-{{- $_ := set $symbols "kubelet_sync_rc" (dict "needs" (list "kubelet_kubeconfig_sync_rc" "ensure_dir" "ensure_file" "subst_node_env" "compare_copy_file")
-"body" (include "__kubelet_sync_rc" $envAll)
-) -}}
 
-{{/* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the groups
+#!define: kubelet_backup
+#!needs: group_dir_backup
+{{- /* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the groups
      of kubelet_kubeconfig_sync_rc */}}
-{{- $_ := set $symbols "kubelet_backup" (dict "needs" (list "group_dir_backup")
-"body" `
 # copies the certificates of kubelet of the node to the backup $1
 kubelet_backup() {
   local pki_dir="/etc/kubernetes/pki"
@@ -124,10 +115,9 @@ kubelet_backup() {
   group_dir_backup "${ROOTFS}" "_kubeletpkipub" "${pki_dir}" "worker" "$1"
   group_dir_backup "${ROOTFS}" "_kubeletpkipriv" "${pki_dir}" "worker" "$1"
 }
-`) -}}
 
-{{- $_ := set $symbols "kubelet_restore" (dict "needs" (list "group_dir_restore")
-"body" `
+#!define: kubelet_restore
+#!needs: group_dir_restore
 # puts the certificates of kubelet of the backup $1 back
 kubelet_restore() {
   local pki_dir="/etc/kubernetes/pki"
@@ -135,24 +125,20 @@ kubelet_restore() {
   group_dir_restore "${ROOTFS}" "_kubeletpkipub" "${pki_dir}" "worker" "$1"
   group_dir_restore "${ROOTFS}" "_kubeletpkipriv" "${pki_dir}" "worker" "$1"
 }
-`) -}}
 
-{{- $_ := set $symbols "kubelet_start" (dict "body" `
+#!define: kubelet_start
 kubelet_start() {
   systemctl daemon-reload
   systemctl enable kubelet
   systemctl restart kubelet
 }
-`) -}}
 
-{{- $_ := set $symbols "kubelet_stop" (dict "body" `
+#!define: kubelet_stop
 kubelet_stop() {
   systemctl stop kubelet
 }
-`) -}}
 
-{{- define "__kubelet_tls_bootstrap" -}}
-{{- $envAll := . -}}
+#!define: kubelet_tls_bootstrap
 # the client certificate of kubelet from the new CA: kubelet goes through the
 # TLS bootstrap again with the bootstrap token, as on the join (not kubeadm
 # join phase kubelet-start: it refuses the node which is still Ready), it
@@ -181,5 +167,3 @@ kubelet_tls_bootstrap() {
   done
   rm -f "${conf}"
 }
-{{- end -}}
-{{- $_ := set $symbols "kubelet_tls_bootstrap" (dict "body" (include "__kubelet_tls_bootstrap" $envAll)) -}}

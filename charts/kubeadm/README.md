@@ -24,23 +24,58 @@ The chart carries its own helper tools too, so a deployment needs nothing but `h
 
 ### Node scripts
 
-The bash code of the nodes lives in the modules of `templates/phases/modules`. A module is a library of functions. Every function is a symbol with the list of the symbols it needs, and a script is linked from the functions it calls like a binary from object files (`templates/lib/_linker.tpl`), so it carries only the code it uses. A function returning a result ends with `_rc`, e.g. `kubelet_sync_rc` returns 0 if it changed the files, 1 if not and more than 1 on errors.
+The bash code of the nodes lives in the modules of `templates/phases/modules`. A module is a library of functions. Every function is a symbol with the list of the symbols it needs, and a script is linked from the functions it calls like a binary from object files (`templates/lib/_linker.tpl`, see [Modules](#modules)), so it carries only the code it uses. A function returning a result ends with `_rc`, e.g. `kubelet_sync_rc` returns 0 if it changed the files, 1 if not and more than 1 on errors.
 
 There are two node scripts:
 
-- **bootstrap** (`templates/bin/_bootstrap.tpl`) runs the phases of a profile, `bootstrap.profiles.<bootstrap.profile>`. The `bootstrap` profile makes a node a node of the cluster, the `rebootstrap` one puts the certificates of the values on the nodes of an existing cluster again. A phase is a function of a module. The command line gives a phase its arguments (`-- <phase> <arguments>`), or with `--run` runs only the named phases in its order, so an orchestration can drive the nodes step by step. A phase written as `+<phase>` runs only when the command line names it. When an `_rc` function runs as a phase, 1 isn't a failure.
-- **reconcile** (`templates/bin/_reconcile.tpl`) runs in the anchor pods. `reconcile_pass` syncs the files of the chart, applies the changes (kubeadm, the restart of kubelet) and runs the node checks, then the anchor becomes ready. After that `reconcile_tick` runs every `anchor.reconcile.period` seconds. When it returns non-zero (e.g. the configuration changed), the script ends, the pod restarts and a new pass begins.
+- **bootstrap** (`templates/bin/_bootstrap.sh.tpl`) runs the phases of a profile, `bootstrap.profiles.<bootstrap.profile>`. The `bootstrap` profile makes a node a node of the cluster, the `rebootstrap` one puts the certificates of the values on the nodes of an existing cluster again. A phase is a function of a module. The command line gives a phase its arguments (`-- <phase> <arguments>`), or with `--run` runs only the named phases in its order, so an orchestration can drive the nodes step by step. A phase written as `+<phase>` runs only when the command line names it. When an `_rc` function runs as a phase, 1 isn't a failure.
+- **reconcile** (`templates/bin/_reconcile.sh.tpl`) runs in the anchor pods. Its `reconcile` function makes one pass: it syncs the files of the chart, applies the changes (kubeadm, the restart of kubelet) and runs the node checks, then the anchor becomes ready. After that its main loop checks the node every `anchor.reconcile.period` seconds. When a change needs a new pass (e.g. the configuration changed), the script ends, the pod restarts and a new pass begins.
 
-The reconcile is an orchestrator over the modules: `reconcile_pass` and `reconcile_tick` decide what to call, and `anchor.reconcile` holds their switches. It is a module itself only to be linked the same way.
+The reconcile is an orchestrator over the modules: `reconcile` decides what to call, and `anchor.reconcile` holds its switches. It is a module itself only to be linked the same way.
+
+### Modules
+
+A module is a directory of `templates/phases/modules` with its `_.sh.tpl`. `templates/phases/_modules.tpl` lists the files of the modules: it renders each of them and gives the text to the linker (`linker_symbols_from_sh`). A module may have more files in the list, e.g. the reconcile module has `_lib.sh.tpl` too. A file given as `(list "<path>" false)` is only rendered, `linker_symbols_from_sh` isn't called for it. The other files of a module are snippets the module uses, e.g. a static pod or a configuration file for the nodes.
+
+`_.sh.tpl` is a bash file with template code, rendered with `(tuple $envAll $k8sConfDict)` as the modules are. It has three parts:
+
+1. the template code of the module, if it has any: the files it puts into the archives of the nodes, the symbols it generates (e.g. `fsgroup_<group>_sync_rc`);
+2. comments about the module, they aren't linked: `_modules.tpl` checks that there is nothing else there and fails with the path of the file otherwise (code there would be lost, a `#!needs:` there would belong to no symbol);
+3. the functions and the global variables of the module. Each of them starts with a `#!define: <name>` line, its `#!needs: <name>, <name>...` lines name the symbols it uses. The text till the next `#!define:` is its body.
+
+```bash
+#!define: backup_exists_rc
+# 0 while backup.dir exists: the procedure isn't over
+backup_exists_rc() {
+  [ -e "${ROOTFS}{{ $envAll.Values.backup.dir }}" ]
+}
+
+#!define: group_dir_backup
+#!needs: backup_files, group_dir_files
+# copies the files of the directory the group syncs to the backup directory
+group_dir_backup() {
+  backup_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
+}
+```
+
+The file is rendered first, then the linker reads the directives. So the values are in the bodies as in any template, and a `#!needs:` line can be rendered by a condition: the symbol is linked only when the code calling it is. `#!needs:` can be anywhere in a line, e.g. after the call it is for, the linker cuts it off till the end of the line:
+
+```bash
+{{- if $envAll.Values.anchor.reconcile.vip }}
+    vip_reconcile || true #!needs: vip_reconcile
+{{- end }}
+```
+
+`#!define:` starts a line. The linker doesn't read the bodies: a call without its `#!needs:` shows up on the node only, as "command not found". The template code between the symbols is written as `{{- ... }}`, without the trim on the right: it would join the next `#!define:` to the line before it.
 
 ### Customization
 
 The templates of the chart can be redefined in `values.yaml` without changing the chart (`templates/lib/bundle`):
 
-- `bundle.tpl."<path>"` replaces the template `<path>`, e.g. `templates/phases/modules/reconcile/_pass.tpl` and `_tick.tpl` for another reconcile;
+- `bundle.tpl."<path>"` replaces the template `<path>`, e.g. `templates/phases/modules/reconcile/_.sh.tpl` for another reconcile;
 - `bundle.tpl."<path>.patch"` is a strategic merge patch of a template of a Kubernetes object: the anchor DaemonSets, the test pod, the haproxy static pod and the kubelet restart job;
-- `templates/phases/_modules.tpl` is the list of the modules, its comment describes how to switch a module off;
-- `binaries.sync.kubernetes` and `binaries.sync.cri` are the body and the needs of the functions which install the Kubernetes binaries and the container runtime, so they can come from a URL, from distribution packages or from a local repository (see `overrides/test/binaries-apt.yaml`).
+- `templates/phases/_modules.tpl` is the list of the files of the modules, its comment describes how to switch a module off;
+- `binaries.sync.kubernetes`, `binaries.sync.cri` and `binaries.sync.etcd` are the functions (with their `#!define:` and `#!needs:`) which install the Kubernetes binaries, the container runtime and etcdutl and etcdctl, so they can come from a URL, from distribution packages or from a local repository (see `overrides/test/binaries-apt.yaml`).
 
 ### Checks
 

@@ -33,6 +33,42 @@ the hashes of the scripts trigger the rollouts of the anchors.
 Fails on an undefined symbol (with the one needing it) and on a cycle.
 */}}
 
+{{/*
+linker_symbols_from_sh: registers the symbols of a bash text (e.g. a rendered
+template file) by its directives. Every "#!define: <name>" directive starts a
+symbol: the text till the next one is its body, its "#!needs: <name>, <name>..."
+directives (any number of them, a template can render them conditionally) are
+its needs. "#!needs:" can be anywhere in a line, e.g. after the call it is for:
+the directive is cut off till the end of the line, a line with nothing else is
+removed. "#!define:" starts a line. The text before the first "#!define:" isn't
+a symbol: it is the output, the caller decides what to do with it (e.g. a
+header of comments to drop or to check).
+
+Usage:
+  {{- $_ := tuple $envAll "templates/phases/modules/backup/_.sh.tpl" | include "kubeadm.bundle.template" | tuple $symbols | include "linker_symbols_from_sh" -}}
+*/}}
+{{- define "linker_symbols_from_sh" -}}
+  {{- $symbols := index . 0 -}}
+  {{- $parts := regexSplit "(?m)^#!define:" (index . 1) -1 -}}
+  {{- range $part := rest $parts -}}
+    {{- $name := regexFind "^[^\n]*" $part | trim -}}
+    {{- if not (regexMatch "^[A-Za-z_][A-Za-z0-9_]*$" $name) -}}
+      {{- fail (printf "linker_symbols_from_sh: one name expected in \"#!define: <name>\", got %q" $name) -}}
+    {{- end -}}
+    {{- $text := regexReplaceAll "^[^\n]*\n?" $part "" -}}
+    {{- $needs := list -}}
+    {{- range $line := regexFindAll "#!needs:.*" $text -1 -}}
+      {{- range $need := trimPrefix "#!needs:" $line | splitList "," -}}
+        {{- if trim $need -}}
+          {{- $needs = append $needs (trim $need) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $_ := set $symbols $name (dict "needs" $needs "body" (regexReplaceAll "[ \t]*#!needs:.*" (regexReplaceAll "(?m)^[ \t]*#!needs:.*\n?" $text "") "")) -}}
+  {{- end -}}
+  {{- first $parts -}}
+{{- end -}}
+
 {{/* fails if the symbol isn't a dict with a body and a list of needs */}}
 {{- define "_linker_check" -}}
   {{- $name := index . 0 -}}

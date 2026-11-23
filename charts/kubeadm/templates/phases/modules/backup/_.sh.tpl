@@ -1,15 +1,14 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
+# The backups of the certificates of the node (backup.dir): every module backs
+# up and restores its own groups (certs_backup, kubelet_backup,
+# kubeadm_backup), the backups exist while a procedure is in progress (the
+# rebootstrap), the reconcile waits for its end. backup_files, restore_files
+# and the group_dir ones are the helpers of the modules for their
+# <module>_backup and <module>_restore.
 
-{{/* the backups of the certificates of the node (backup.dir): every module
-     backs up and restores its own groups (certs_backup, kubelet_backup,
-     kubeadm_backup), the backups exist while a procedure is in progress (the
-     rebootstrap), the reconcile waits for its end */}}
-
-{{/* the helpers of the modules: <module>_backup, <module>_restore */}}
-{{- $_ := set $symbols "backup_files" (dict "body" `
+#!define: backup_files
 # copies the files (absolute paths of the node) the node has to the backup $1
 backup_files() {
   local backup="$1" file
@@ -21,9 +20,8 @@ backup_files() {
     fi
   done
 }
-`) -}}
 
-{{- $_ := set $symbols "restore_files" (dict "body" `
+#!define: restore_files
 # puts the files back from the backup $1, removes the ones it doesn't have (the
 # node didn't have them before)
 restore_files() {
@@ -37,39 +35,32 @@ restore_files() {
     fi
   done
 }
-`) -}}
 
-{{- $_ := set $symbols "group_dir_backup" (dict "needs" (list "backup_files" "group_dir_files")
-"body" `
+#!define: group_dir_backup
+#!needs: backup_files, group_dir_files
 # copies the files of the directory the group syncs to the backup directory
 group_dir_backup() {
   backup_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
 }
-`) -}}
 
-{{- $_ := set $symbols "group_dir_restore" (dict "needs" (list "restore_files" "group_dir_files")
-"body" `
+#!define: group_dir_restore
 # puts the files of the group back from the backup directory, removes the ones
 # it doesn't have (the node didn't have them before the sync)
 group_dir_restore() {
+  #!needs: restore_files, group_dir_files
   restore_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
 }
-`) -}}
 
-{{- define "__backup_exists_rc" -}}
-{{- $envAll := . -}}
+#!define: backup_exists_rc
 # 0 while backup.dir exists (reconcile_guard creates it before the first
 # backup): the procedure isn't over (backup restore or backup remove)
 backup_exists_rc() {
   [ -e "${ROOTFS}{{ $envAll.Values.backup.dir }}" ]
 }
-{{- end -}}
-{{- $_ := set $symbols "backup_exists_rc" (dict
-"body" (include "__backup_exists_rc" $envAll)
-) -}}
 
-{{- define "__backup" -}}
-{{- $envAll := . -}}
+#!define: backup
+#!needs: certs_backup, kubelet_backup, kubeadm_backup
+#!needs: certs_restore, kubelet_restore, kubeadm_restore
 # the phase: a new backup (<timestamp>) of the certificates of the node, with
 # "restore" the certificates of the last one back, with "remove" all the
 # backups (they have the keys: the procedure is over, the reconcile goes on)
@@ -102,7 +93,3 @@ backup() {
       ;;
   esac
 }
-{{- end -}}
-{{- $_ := set $symbols "backup" (dict "needs" (list "certs_backup" "kubelet_backup" "kubeadm_backup" "certs_restore" "kubelet_restore" "kubeadm_restore")
-"body" (include "__backup" $envAll)
-) -}}

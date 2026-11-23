@@ -2,36 +2,32 @@
 {{- $k8sConfDict := index . 1 -}}
 
 {{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
-{{/* the haproxy implementation of the VIP (vip.modules, templates/phases/modules/vip/_.tpl) */}}
+{{/* the haproxy implementation of the VIP (vip.modules, templates/phases/modules/vip/_.sh.tpl) */}}
 {{/* populate static pod anyway so user could use bootstrap command line to enable it */}}
 {{/* can be patched with bundle.tpl."templates/phases/modules/vip/_pod-haproxy.yaml.patch" */}}
 {{- $staticPod := tuple $envAll "templates/phases/modules/vip/_pod-haproxy.yaml" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
 {{- $_ := set $allNodes "_manifests/haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
 
-
-{{- $symbols := get $k8sConfDict "symbols" -}}
 {{/* the argument (vip_sync haproxy <arg>, vip.init_val):
      "<bind>|<apiserver>,<apiserver>,...", e.g.
      "*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443" */}}
 
-{{- define "__vip_config_sync" -}}
-{{- $envAll := . -}}
-{{- $manifestDirMode := tuple $envAll "/etc/kubernetes/manifests" | include "kubeadm.fs.dir_mode" -}}
-{{- $manifestDirOwner := tuple $envAll "/etc/kubernetes/manifests" | include "kubeadm.fs.dir_owner" -}}
-{{- $manifestMode := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_mode" -}}
-{{- $manifestOwner := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_owner" -}}
-
+#!define: vip_config_sync
+#!needs: ensure_dir, group_dir_sync
+{{- $manifestDirMode := tuple $envAll "/etc/kubernetes/manifests" | include "kubeadm.fs.dir_mode" }}
+{{- $manifestDirOwner := tuple $envAll "/etc/kubernetes/manifests" | include "kubeadm.fs.dir_owner" }}
+{{- $manifestMode := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_mode" }}
+{{- $manifestOwner := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_owner" }}
 vip_config_sync() {
   local kubernetes_dir="/etc/kubernetes"
 
   ensure_dir "${ROOTFS}${kubernetes_dir}/manifests" "{{ $manifestDirMode }}" "{{ $manifestDirOwner }}"
   group_dir_sync "${ROOTFS}" "_manifests" "${kubernetes_dir}/manifests" "${NODE_ROLE}" false "{{ $manifestMode }}" "{{ $manifestOwner }}"
 }
-{{- end -}}
 
-{{- define "__vip_haproxy_sync" -}}
-{{- $envAll := . -}}
-{{- $haproxyHeader := (tuple $envAll "templates/phases/modules/vip/_haproxy.cfg.header.tpl" | include "kubeadm.bundle.template") -}}
+#!define: vip_haproxy_sync
+#!needs: vip_config_sync, vip_arg
+{{- $haproxyHeader := (tuple $envAll "templates/phases/modules/vip/_haproxy.cfg.header.tpl" | include "kubeadm.bundle.template") }}
 vip_haproxy_sync() {
   local arg=$vip_arg
 
@@ -91,10 +87,9 @@ EOF_TEMPLATE_DATA
   fi
   echo "vip(haproxy) is synced"
 }
-{{- end -}}
 
-{{- define "__vip_haproxy_reconcile" -}}
-{{- $envAll := . -}}
+#!define: vip_haproxy_reconcile
+#!needs: vip_arg, vip_haproxy_sync
 # called by vip_reconcile: the bind and the backends of the bootstrap (vip_arg
 # of VIP_FILE) plus the apiservers of the kubernetes endpointslices. All of
 # them, ready or not: haproxy health checks pick the live ones, the list
@@ -127,16 +122,3 @@ vip_haproxy_reconcile() {
   vip_arg="${bind}|${backends}"
   vip_haproxy_sync
 }
-{{- end -}}
-
-{{- $_ := set $symbols "vip_config_sync" (dict "needs" (list "ensure_dir" "group_dir_sync")
-"body" (include "__vip_config_sync" $envAll)
-) -}}
-
-{{- $_ := set $symbols "vip_haproxy_sync" (dict "needs" (list "vip_config_sync" "vip_arg")
-"body" (include "__vip_haproxy_sync" $envAll)
-) -}}
-
-{{- $_ := set $symbols "vip_haproxy_reconcile" (dict "needs" (list "vip_arg" "vip_haproxy_sync")
-"body" (include "__vip_haproxy_reconcile" $envAll)
-) -}}

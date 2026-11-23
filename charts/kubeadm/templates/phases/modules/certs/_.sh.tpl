@@ -1,7 +1,6 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
 {{- $controlPlaneNodes := get (get $k8sConfDict "fs") "ctrl" -}}
 {{- $perNode := get (get $k8sConfDict "fs") "ctrl-pernode" -}}
 
@@ -111,26 +110,26 @@
   {{- end -}}
 {{- end -}}
 
-{{- define "__certs_sync" -}}
-{{- $envAll := . -}}
-{{- $kubernetesPkiDirMode := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesPkiDirOwner := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_owner" -}}
-{{- $pkipubMode := tuple $envAll "certs" "pkipub" | include "kubeadm.fs.file_mode" -}}
-{{- $pkipubOwner := tuple $envAll "certs" "pkipub" | include "kubeadm.fs.file_owner" -}}
-{{- $pkiprivMode := tuple $envAll "certs" "pkipriv" | include "kubeadm.fs.file_mode" -}}
-{{- $pkiprivOwner := tuple $envAll "certs" "pkipriv" | include "kubeadm.fs.file_owner" -}}
-{{- $kubernetesPkiEtcdDirMode := tuple $envAll "/etc/kubernetes/pki/etcd" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesPkiEtcdDirOwner := tuple $envAll "/etc/kubernetes/pki/etcd" | include "kubeadm.fs.dir_owner" -}}
-{{- $etcdpubMode := tuple $envAll "certs" "etcdpub" | include "kubeadm.fs.file_mode" -}}
-{{- $etcdpubOwner := tuple $envAll "certs" "etcdpub" | include "kubeadm.fs.file_owner" -}}
-{{- $etcdprivMode := tuple $envAll "certs" "etcdpriv" | include "kubeadm.fs.file_mode" -}}
-{{- $etcdprivOwner := tuple $envAll "certs" "etcdpriv" | include "kubeadm.fs.file_owner" -}}
-{{- $kubernetesAdminPkiDirMode := tuple $envAll "/etc/kubernetes/admin/pki" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesAdminPkiDirOwner := tuple $envAll "/etc/kubernetes/admin/pki" | include "kubeadm.fs.dir_owner" -}}
-{{- $adminpkipubMode := tuple $envAll "certs" "adminpkipub" | include "kubeadm.fs.file_mode" -}}
-{{- $adminpkipubOwner := tuple $envAll "certs" "adminpkipub" | include "kubeadm.fs.file_owner" -}}
-{{- $adminpkiprivMode := tuple $envAll "certs" "adminpkipriv" | include "kubeadm.fs.file_mode" -}}
-{{- $adminpkiprivOwner := tuple $envAll "certs" "adminpkipriv" | include "kubeadm.fs.file_owner" -}}
+#!define: certs_sync
+#!needs: ensure_dir, group_dir_sync
+{{- $kubernetesPkiDirMode := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesPkiDirOwner := tuple $envAll "/etc/kubernetes/pki" | include "kubeadm.fs.dir_owner" }}
+{{- $pkipubMode := tuple $envAll "certs" "pkipub" | include "kubeadm.fs.file_mode" }}
+{{- $pkipubOwner := tuple $envAll "certs" "pkipub" | include "kubeadm.fs.file_owner" }}
+{{- $pkiprivMode := tuple $envAll "certs" "pkipriv" | include "kubeadm.fs.file_mode" }}
+{{- $pkiprivOwner := tuple $envAll "certs" "pkipriv" | include "kubeadm.fs.file_owner" }}
+{{- $kubernetesPkiEtcdDirMode := tuple $envAll "/etc/kubernetes/pki/etcd" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesPkiEtcdDirOwner := tuple $envAll "/etc/kubernetes/pki/etcd" | include "kubeadm.fs.dir_owner" }}
+{{- $etcdpubMode := tuple $envAll "certs" "etcdpub" | include "kubeadm.fs.file_mode" }}
+{{- $etcdpubOwner := tuple $envAll "certs" "etcdpub" | include "kubeadm.fs.file_owner" }}
+{{- $etcdprivMode := tuple $envAll "certs" "etcdpriv" | include "kubeadm.fs.file_mode" }}
+{{- $etcdprivOwner := tuple $envAll "certs" "etcdpriv" | include "kubeadm.fs.file_owner" }}
+{{- $kubernetesAdminPkiDirMode := tuple $envAll "/etc/kubernetes/admin/pki" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesAdminPkiDirOwner := tuple $envAll "/etc/kubernetes/admin/pki" | include "kubeadm.fs.dir_owner" }}
+{{- $adminpkipubMode := tuple $envAll "certs" "adminpkipub" | include "kubeadm.fs.file_mode" }}
+{{- $adminpkipubOwner := tuple $envAll "certs" "adminpkipub" | include "kubeadm.fs.file_owner" }}
+{{- $adminpkiprivMode := tuple $envAll "certs" "adminpkipriv" | include "kubeadm.fs.file_mode" }}
+{{- $adminpkiprivOwner := tuple $envAll "certs" "adminpkipriv" | include "kubeadm.fs.file_owner" }}
 certs_sync() {
   local pki_dir="/etc/kubernetes/pki"
   local etcd_dir="${pki_dir}/etcd"
@@ -151,13 +150,9 @@ certs_sync() {
   fi
   echo "certs are synced"
 }
-{{- end -}}
-{{- $_ := set $symbols "certs_sync" (dict "needs" (list "ensure_dir" "group_dir_sync")
-"body" (include "__certs_sync" $envAll)
-) -}}
 
-{{- $_ := set $symbols "certs_backup" (dict "needs" (list "group_dir_backup")
-"body" `
+#!define: certs_backup
+#!needs: group_dir_backup
 # copies the certificates of the node to the backup $1
 certs_backup() {
   local pki_dir="/etc/kubernetes/pki"
@@ -173,10 +168,9 @@ certs_backup() {
     group_dir_backup "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
   fi
 }
-`) -}}
 
-{{- $_ := set $symbols "certs_restore" (dict "needs" (list "group_dir_restore")
-"body" `
+#!define: certs_restore
+#!needs: group_dir_restore
 # puts the certificates of the backup $1 back
 certs_restore() {
   local pki_dir="/etc/kubernetes/pki"
@@ -192,19 +186,17 @@ certs_restore() {
     group_dir_restore "${ROOTFS}" "_adminpkipriv" "${admin_dir}" "${NODE_ROLE}" "$1"
   fi
 }
-`) -}}
 
-{{- $_ := set $symbols "public_key" (dict "body" `
+#!define: public_key
 # prints the public key of a certificate or a public key, the content if it is
 # neither of them
 public_key() {
   openssl x509 -noout -pubkey -in "$1" 2>/dev/null || openssl pkey -pubin -in "$1" 2>/dev/null || cat "$1"
 }
-`) -}}
 
-{{/* certs_guard_ca: called by the bootstrap and reconcile scripts before any sync */}}
-{{- $_ := set $symbols "certs_guard_ca" (dict "needs" (list "public_key")
-"body" `
+#!define: certs_guard_ca
+#!needs: public_key
+{{- /* certs_guard_ca: called by the bootstrap and reconcile scripts before any sync */}}
 # the CA and service account keys of the node sign its certificates and tokens:
 # refuses to go on if the values deliver other ones. A CA certificate renewed
 # with the same key is fine, CA rotation isn't supported.
@@ -232,9 +224,8 @@ EOF_CA_GUARD
   fi
   echo "certs_guard_ca: the keys of the node match the values"
 }
-`) -}}
 
-{{- $_ := set $symbols "certs_served_rc" (dict "body" `
+#!define: certs_served_rc
 # the server $1 (host:port) serves the certificate file $2: it has reloaded it
 certs_served_rc() {
   local served file
@@ -244,20 +235,18 @@ certs_served_rc() {
   file=$(openssl x509 -noout -fingerprint -sha256 -in "${ROOTFS}$2")
   [ -n "${served}" ] && [ "${served}" = "${file}" ]
 }
-`) -}}
 
-{{- $_ := set $symbols "certs_manifest_flag" (dict "body" `
+#!define: certs_manifest_flag
 # the value of the flag --$2 of the static pod manifest $1: the command line the
 # component runs with (kubeadm wrote it, the patches may have changed it)
 certs_manifest_flag() {
   [ -f "${ROOTFS}$1" ] || return 0
   sed -n "s/^ *- --$2=//p" "${ROOTFS}$1" | head -n 1
 }
-`) -}}
 
-{{/* certs_check: called by the reconcile script before the anchor becomes ready */}}
-{{- $_ := set $symbols "certs_check" (dict "needs" (list "check_attempts" "check_result" "certs_served_rc" "certs_manifest_flag")
-"body" `
+#!define: certs_check
+#!needs: check_attempts, check_result, certs_served_rc, certs_manifest_flag
+{{- /* certs_check: called by the reconcile script before the anchor becomes ready */}}
 # the components of the node serve the certificates of its files: they reload
 # them after the sync, the anchor becomes ready once they did. The endpoints
 # and the certificates are the ones the components run with: the apiserver and
@@ -288,4 +277,3 @@ ${etcd_url#*://} $(certs_manifest_flag "${etcd}" cert-file)
 EOF_CERTS_CHECK
   return 0
 }
-`) -}}

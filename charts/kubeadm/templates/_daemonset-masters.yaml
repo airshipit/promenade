@@ -77,7 +77,7 @@ spec:
           image: {{ $envAll.Values.images.tags.anchor }}
           imagePullPolicy: {{ $envAll.Values.images.pull_policy }}
           # mounts (tmpfs, service account) on the host paths in the pod, see
-          # templates/bin/_ensure_fs.tpl
+          # templates/bin/_ensure_fs.sh.tpl
           securityContext:
             privileged: true
           env:

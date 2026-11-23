@@ -13,8 +13,8 @@ binaries:
     repo: 'https://pkgs.k8s.io/core:/stable:/{{ regexFind "^v[0-9]+\\.[0-9]+" .Values.cluster_config.kubernetesVersion }}/deb/'
   sync:
     kubernetes:
-      needs: []
       body: |
+        #!define: binary_kubernetes_sync_rc
         # kubeadm, kubelet or kubectl $1 of cluster_config.kubernetesVersion from
         # the deb packages of binaries.apt.repo
         binary_kubernetes_sync_rc() {

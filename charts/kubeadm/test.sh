@@ -1195,9 +1195,9 @@ files_mode() {
   stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"
 }
 files_chart=$(mktemp -d)
-mkdir -p "${files_chart}/templates/snippets" "${files_chart}/rootfs"
+mkdir -p "${files_chart}/templates/snippets" "${files_chart}/templates/phases/modules/fs" "${files_chart}/rootfs"
 cp kubeadm/templates/lib/bundle/_template.tpl kubeadm/templates/lib/_tar.tpl kubeadm/templates/lib/_linker.tpl "${files_chart}/templates/"
-cp kubeadm/templates/phases/modules/fs/_.tpl "${files_chart}/templates/_fs.tpl"
+cp kubeadm/templates/phases/modules/fs/_.sh.tpl "${files_chart}/templates/phases/modules/fs/"
 cp kubeadm/templates/phases/modules/fs/_helpers.tpl "${files_chart}/templates/snippets/"
 printf 'apiVersion: v2\nname: files-test\nversion: 0.1.0\n' > "${files_chart}/Chart.yaml"
 cat > "${files_chart}/values.yaml" << 'EOF'
@@ -1232,7 +1232,7 @@ fs:
 EOF
 cat > "${files_chart}/templates/configmap.yaml" << 'EOF'
 {{- $conf := dict "symbols" (dict) "fs" (dict "all" (dict)) -}}
-{{- $_ := include "files-test/templates/_fs.tpl" (tuple . $conf) -}}
+{{- $_ := include "files-test/templates/phases/modules/fs/_.sh.tpl" (tuple . $conf) | tuple $conf.symbols | include "linker_symbols_from_sh" -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:

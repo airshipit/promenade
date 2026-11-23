@@ -18,9 +18,9 @@ limitations under the License.
 {{- $k8sConfDict := index . 1 -}}
 {{- $symbols := get $k8sConfDict "symbols" -}}
 
-{{/* the runner of the phases of the bootstrap script (templates/bin/_bootstrap.tpl,
-     linked with "run_phases"): a phase is a function of the phases of its
-     profile (PHASES), the command line is
+{{/* the runner of the phases of the bootstrap script
+     (templates/bin/_bootstrap.sh.tpl, linked with "run_phases"): a phase is a
+     function of the phases of its profile (PHASES), the command line is
        [--run] [-- <phase> [<arguments>]]...
      Without --run the phases of the list run in its order, the segments
      "-- <phase> <arguments>" give the arguments to the phases, a phase

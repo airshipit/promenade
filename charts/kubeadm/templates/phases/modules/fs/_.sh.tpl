@@ -20,7 +20,13 @@ SED_INPLACE=(-i)
 SKIPPERM="${SKIPPERM:-}"
 `)) -}}
 
-{{- $_ := set $symbols "ensure_dir" (dict "body" `
+{{/* the groups of the values: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
+     (templates/phases/modules/fs/_helpers.tpl) */}}
+{{- range $group,$list := ($envAll.Values.fs).groups | default dict -}}
+  {{- tuple $envAll $k8sConfDict (printf "fsgroup_%s_sync_rc" $group) $list | include "kubeadm.fs.render_fsgroup_sync_rc" -}}
+{{- end -}}
+
+#!define: ensure_dir
 ensure_dir() {
   mkdir -p "$1"
   if [ -z "${SKIPPERM}" ]; then
@@ -29,9 +35,8 @@ ensure_dir() {
   fi
   return 0
 }
-`) -}}
 
-{{- $_ := set $symbols "ensure_file" (dict "body" `
+#!define: ensure_file
 ensure_file() {
   touch "$1"
   if [ -z "${SKIPPERM}" ]; then
@@ -40,9 +45,8 @@ ensure_file() {
   fi
   return 0
 }
-`) -}}
 
-{{- $_ := set $symbols "compare_copy_file" (dict "body" `
+#!define: compare_copy_file
 compare_copy_file() {
   local src="$1" dst="$2"
   local mode="${3:-}"
@@ -69,18 +73,16 @@ compare_copy_file() {
   [ "$delete_src" = true ] && rm -f "$src"
   return $changed
 }
-`) -}}
 
-{{- $_ := set $symbols "subst_node_env" (dict "body" `
+#!define: subst_node_env
 subst_node_env() {
   sed \
     -e "s|\${NODE_ROLE}|${NODE_ROLE:-}|g" \
     -e "s|\${NODE_NAME}|${NODE_NAME:-}|g" \
     -e "s|\${NODE_IP}|${NODE_IP:-}|g" "$@"
 }
-`) -}}
 
-{{- $_ := set $symbols "group_dir_files" (dict "body" `
+#!define: group_dir_files
 # the files of the directory the group syncs (the same archives as
 # group_dir_sync)
 group_dir_files() {
@@ -96,10 +98,9 @@ group_dir_files() {
   done
   return 0
 }
-`) -}}
 
-{{- $_ := set $symbols "group_dir_sync" (dict "needs" (list "compare_copy_file" "subst_node_env")
-"body" `
+#!define: group_dir_sync
+#!needs: compare_copy_file, subst_node_env
 # The chart delivers its files in 4 archives unpacked to /run/kubeadm/<archive>:
 # all, ctrl (control plane nodes only), all-pernode and ctrl-pernode (the files
 # of the node). Each archive contains <group>/<files of the group>.
@@ -126,10 +127,3 @@ group_dir_sync() {
     done
   done
 }
-`) -}}
-
-{{/* the groups of the values: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
-     (templates/phases/modules/fs/_helpers.tpl) */}}
-{{- range $group,$list := ($envAll.Values.fs).groups | default dict -}}
-  {{- tuple $envAll $k8sConfDict (printf "fsgroup_%s_sync_rc" $group) $list | include "kubeadm.fs.render_fsgroup_sync_rc" -}}
-{{- end -}}

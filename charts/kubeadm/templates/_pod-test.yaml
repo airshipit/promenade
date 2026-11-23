@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* helm test: runs templates/bin/_test.tpl on a control plane node with
+{{/* helm test: runs templates/bin/_test.sh.tpl on a control plane node with
      the host kubectl and /etc/kubernetes/admin.conf, like the anchor runs the
      reconcile script. Called from templates/phases/_main.tpl, can be patched
      with bundle.tpl."templates/_pod-test.yaml.patch" (strategic merge patch) */}}

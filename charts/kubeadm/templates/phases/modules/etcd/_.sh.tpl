@@ -1,10 +1,8 @@
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
-
-{{- $_ := set $symbols "etcd_restore" (dict "needs" (list "binary_etcd_sync_rc" "kubeadm_node_config")
-"body" `
+#!define: etcd_restore
+#!needs: binary_etcd_sync_rc, kubeadm_node_config
 # the stacked etcd of the first control plane node from the snapshot $1 (a
 # file on the node), before kubeadm init: kubeadm starts etcd with the data dir
 # it finds there. The member gets the name and the peer URL kubeadm gives it
@@ -30,4 +28,3 @@ etcd_restore() {
     --initial-cluster "${name}=https://${ip}:2380" \
     --initial-advertise-peer-urls "https://${ip}:2380"
 }
-`) -}}

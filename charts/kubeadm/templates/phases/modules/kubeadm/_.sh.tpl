@@ -16,28 +16,27 @@
       {{/* account for different directories. fail if no matiching prefix */}}
       {{- $fname := base $filename -}}
       {{- $fdir := dir $filename -}}
-      {{- if not (hasKey $folder2prefix $fdir) -}}{{ fail (printf "templates/phases/modules/kubeadm/_.tpl doesn't know how to treat files in %s (filename %s)" $fdir $filename) }}{{- end -}}
+      {{- if not (hasKey $folder2prefix $fdir) -}}{{ fail (printf "templates/phases/modules/kubeadm/_.sh.tpl doesn't know how to treat files in %s (filename %s)" $fdir $filename) }}{{- end -}}
       {{- $ftuple := get $folder2prefix $fdir -}}
       {{- $_ := set (index $ftuple 1) (printf "_%s/%s" (trimSuffix "_" (index $ftuple 0)) $fname) (dict "content" (tuple $envAll $template | include "kubeadm.bundle.template") "dest_path" "/etc/kubernetes/kubeadm/cluster_config.yaml") -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
-{{- define "__kubeadm_sync" -}}
-{{- $envAll := . -}}
-{{- $kubernetesKubeadmDirMode := tuple $envAll "/etc/kubernetes/kubeadm" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesKubeadmDirOwner := tuple $envAll "/etc/kubernetes/kubeadm" | include "kubeadm.fs.dir_owner" -}}
-{{- $kubeadmMode := tuple $envAll "kubeadm" "kubeadm" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeadmOwner := tuple $envAll "kubeadm" "kubeadm" | include "kubeadm.fs.file_owner" -}}
-{{- $kubernetesKubeadmPatchesDirMode := tuple $envAll "/etc/kubernetes/kubeadm/patches" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesKubeadmPatchesDirOwner := tuple $envAll "/etc/kubernetes/kubeadm/patches" | include "kubeadm.fs.dir_owner" -}}
-{{- $kubeadmpatchMode := tuple $envAll "kubeadm" "kubeadmpatch" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeadmpatchOwner := tuple $envAll "kubeadm" "kubeadmpatch" | include "kubeadm.fs.file_owner" -}}
-{{- $kubernetesApiserverDirMode := tuple $envAll "/etc/kubernetes/apiserver" | include "kubeadm.fs.dir_mode" -}}
-{{- $kubernetesApiserverDirOwner := tuple $envAll "/etc/kubernetes/apiserver" | include "kubeadm.fs.dir_owner" -}}
-{{- $kubeadmapiserverMode := tuple $envAll "kubeadm" "kubeadmapiserver" | include "kubeadm.fs.file_mode" -}}
-{{- $kubeadmapiserverOwner := tuple $envAll "kubeadm" "kubeadmapiserver" | include "kubeadm.fs.file_owner" -}}
+#!define: kubeadm_sync
+#!needs: ensure_dir, group_dir_sync
+{{- $kubernetesKubeadmDirMode := tuple $envAll "/etc/kubernetes/kubeadm" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesKubeadmDirOwner := tuple $envAll "/etc/kubernetes/kubeadm" | include "kubeadm.fs.dir_owner" }}
+{{- $kubeadmMode := tuple $envAll "kubeadm" "kubeadm" | include "kubeadm.fs.file_mode" }}
+{{- $kubeadmOwner := tuple $envAll "kubeadm" "kubeadm" | include "kubeadm.fs.file_owner" }}
+{{- $kubernetesKubeadmPatchesDirMode := tuple $envAll "/etc/kubernetes/kubeadm/patches" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesKubeadmPatchesDirOwner := tuple $envAll "/etc/kubernetes/kubeadm/patches" | include "kubeadm.fs.dir_owner" }}
+{{- $kubeadmpatchMode := tuple $envAll "kubeadm" "kubeadmpatch" | include "kubeadm.fs.file_mode" }}
+{{- $kubeadmpatchOwner := tuple $envAll "kubeadm" "kubeadmpatch" | include "kubeadm.fs.file_owner" }}
+{{- $kubernetesApiserverDirMode := tuple $envAll "/etc/kubernetes/apiserver" | include "kubeadm.fs.dir_mode" }}
+{{- $kubernetesApiserverDirOwner := tuple $envAll "/etc/kubernetes/apiserver" | include "kubeadm.fs.dir_owner" }}
+{{- $kubeadmapiserverMode := tuple $envAll "kubeadm" "kubeadmapiserver" | include "kubeadm.fs.file_mode" }}
+{{- $kubeadmapiserverOwner := tuple $envAll "kubeadm" "kubeadmapiserver" | include "kubeadm.fs.file_owner" }}
 kubeadm_sync() {
   local kubernetes_dir="/etc/kubernetes"
 
@@ -58,33 +57,25 @@ kubeadm_sync() {
   fi
   echo "kubeadm is synced"
 }
-{{- end -}}
-{{- $_ := set $symbols "kubeadm_sync" (dict "needs" (list "ensure_dir" "group_dir_sync")
-"body" (include "__kubeadm_sync" $envAll)
-) -}}
 
-{{- $_ := set $symbols "annotations" (dict "body" `
+#!define: annotations
 # the annotations of the node with the configurations it runs with: the
 # reconcile script applies the kubeadm (control plane nodes) and the kubelet
 # configuration only if the node runs with another one
 KUBEADM_ANNOTATION="last-applied-kubeadm-cfg-sha256"
 KUBELET_ANNOTATION="last-applied-kubelet-cfg-sha256"
-`) -}}
 
-{{- $_ := set $symbols "kubeadm_config_sha256" (dict "body" `
+#!define: kubeadm_config_sha256
 kubeadm_config_sha256() {
   sha256sum < "${ROOTFS}/run/kubeadm/all/_kubeadm/ClusterConfiguration" | cut -d ' ' -f 1
 }
-`) -}}
 
-{{- $_ := set $symbols "kubelet_config_sha256" (dict "body" `
+#!define: kubelet_config_sha256
 kubelet_config_sha256() {
   sha256sum < "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" | cut -d ' ' -f 1
 }
-`) -}}
 
-{{- define "__annotate_applied" -}}
-{{- $envAll := . -}}
+#!define: annotate_applied
 # the node runs with the configurations of the chart: it annotates itself
 # (kubelet.conf). Right after the join kubelet goes through the VIP: it
 # starts the haproxy static pod and registers the node first, about 5 minutes
@@ -102,13 +93,9 @@ annotate_applied() {
     sleep 2
   done
 }
-{{- end -}}
-{{- $_ := set $symbols "annotate_applied" (dict
-"body" (include "__annotate_applied" $envAll)
-) -}}
 
-{{- $_ := set $symbols "annotate_applied_configs" (dict "needs" (list "annotate_applied" "annotations" "kubeadm_config_sha256" "kubelet_config_sha256")
-"body" `
+#!define: annotate_applied_configs
+#!needs: annotate_applied, annotations, kubeadm_config_sha256, kubelet_config_sha256
 # the kubeadm configuration on the control plane nodes too
 annotate_applied_configs() {
   if [ "${NODE_ROLE}" == "master" ]; then
@@ -117,10 +104,9 @@ annotate_applied_configs() {
     annotate_applied "${KUBELET_ANNOTATION}=$(kubelet_config_sha256)"
   fi
 }
-`) -}}
 
-{{- $_ := set $symbols "annotate_applied_kubelet" (dict "needs" (list "annotate_applied" "annotations" "kubelet_config_sha256")
-"body" `
+#!define: annotate_applied_kubelet
+#!needs: annotate_applied, annotations, kubelet_config_sha256
 # the first pass of the reconcile doesn't apply the configuration of kubelet
 # again (the one of the values, the bundle may leave it to kubeadm)
 annotate_applied_kubelet() {
@@ -130,10 +116,9 @@ annotate_applied_kubelet() {
   fi
   annotate_applied "${KUBELET_ANNOTATION}=$(kubelet_config_sha256)"
 }
-`) -}}
 
-{{- $_ := set $symbols "kubeadm_values_init_config" (dict "needs" (list "subst_node_env")
-"body" `
+#!define: kubeadm_values_init_config
+#!needs: subst_node_env
 # the InitConfiguration of the values for the node (init_config.yaml of the
 # kubeadm files, with NODE_IP, NODE_NAME...): the document of its kind only,
 # without skipPhases (the ones of kubeadm init, the phases are run one by one)
@@ -146,10 +131,9 @@ kubeadm_values_init_config() {
     /^kind: *InitConfiguration/ { keep = 1 }
     END { if (keep) printf "%s", doc }'
 }
-`) -}}
 
-{{- $_ := set $symbols "kubeadm_node_config" (dict "needs" (list "kubeadm_values_init_config")
-"body" `
+#!define: kubeadm_node_config
+#!needs: kubeadm_values_init_config
 # the kubeadm configuration of the node for kubeadm init phase: the
 # InitConfiguration of the values for the node (or the one of the node name,
 # it isn't always the hostname kubeadm defaults to), the ClusterConfiguration
@@ -175,12 +159,11 @@ $(cat "${ROOTFS}/etc/kubernetes/kubeadm/ClusterConfiguration")
 $(cat "${ROOTFS}/var/lib/kubelet/config.yaml")
 EOF_CONFIG
 }
-`) -}}
 
-{{/* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the files
+#!define: kubeadm_generated_files
+{{- /* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the files
      kubeadm generates when the values have the CAs only (the backups have
      them anyway) */}}
-{{- $_ := set $symbols "kubeadm_generated_files" (dict "body" `
 # the certificates and the kubeconfigs kubeadm generates from the CAs: the
 # control plane ones on the control plane nodes, the kubeconfig of kubelet (its
 # client certificates are in /var/lib/kubelet/pki) on all of them
@@ -198,10 +181,9 @@ kubeadm_generated_files() {
   fi
   echo /etc/kubernetes/kubelet.conf
 }
-`) -}}
 
-{{- $_ := set $symbols "kubeadm_backup" (dict "needs" (list "backup_files" "kubeadm_generated_files")
-"body" `
+#!define: kubeadm_backup
+#!needs: backup_files, kubeadm_generated_files
 # copies the files kubeadm generated and the certificates of kubelet (the
 # directory, kubelet-client-current.pem is a link) to the backup $1
 kubeadm_backup() {
@@ -211,10 +193,9 @@ kubeadm_backup() {
     cp -a "${ROOTFS}/var/lib/kubelet/pki" "$1/var/lib/kubelet/"
   fi
 }
-`) -}}
 
-{{- $_ := set $symbols "kubeadm_restore" (dict "needs" (list "restore_files" "kubeadm_generated_files")
-"body" `
+#!define: kubeadm_restore
+#!needs: restore_files, kubeadm_generated_files
 # puts the files of the backup $1 back, removes the ones it doesn't have (the
 # node didn't have them before)
 kubeadm_restore() {
@@ -224,18 +205,16 @@ kubeadm_restore() {
     cp -a "$1/var/lib/kubelet/pki" "${ROOTFS}/var/lib/kubelet/"
   fi
 }
-`) -}}
 
-{{- $_ := set $symbols "kubeadm_token_config" (dict "body" `
+#!define: kubeadm_token_config
 # the configuration of kubeadm (--config) with the bootstrap token of the join
 # (KUBEADM_TOKEN) to the file $2: the files of the node don't have it
 kubeadm_token_config() {
   sed "s|\${KUBEADM_TOKEN}|${KUBEADM_TOKEN:-}|g" "${ROOTFS}$1" > "$2"
 }
-`) -}}
 
-{{- define "__kubeadm_run" -}}
-{{- $envAll := . -}}
+#!define: kubeadm_run
+#!needs: kubeadm_token_config, kubelet_sync_rc
 # kubeadm with the arguments of the phase (init by default)
 kubeadm_run() {
   local args=() arg dir config=false rc=0
@@ -266,13 +245,9 @@ kubeadm_run() {
     systemctl restart kubelet
   fi
 }
-{{- end -}}
-{{- $_ := set $symbols "kubeadm_run" (dict "needs" (list "kubeadm_token_config" "kubelet_sync_rc")
-"body" (include "__kubeadm_run" $envAll)
-) -}}
 
-{{- define "__kubeadm_init_certs" -}}
-{{- $envAll := . -}}
+#!define: kubeadm_init_certs
+#!needs: kubeadm_generated_files, kubeadm_node_config, kubelet_kubeconfig_sync_rc
 # the certificates and the kubeconfigs kubeadm generated from the old CAs, the
 # client certificates of kubelet (it would take the current one): kubeadm
 # generates them from the new CAs, as kubeadm init did
@@ -298,13 +273,9 @@ kubeadm_init_certs() {
   # kubelet goes through the control plane endpoint
   kubelet_kubeconfig_sync_rc || true
 }
-{{- end -}}
-{{- $_ := set $symbols "kubeadm_init_certs" (dict "needs" (list "kubeadm_generated_files" "kubeadm_node_config" "kubelet_kubeconfig_sync_rc")
-"body" (include "__kubeadm_init_certs" $envAll)
-) -}}
 
-{{- $_ := set $symbols "kubeadm_certs" (dict "needs" (list "kubeadm_init_certs" "kubelet_tls_bootstrap")
-"body" `
+#!define: kubeadm_certs
+#!needs: kubeadm_init_certs, kubelet_tls_bootstrap
 # what kubeadm generated from the old CAs on the node, from the new ones
 kubeadm_certs() {
   if [ "${NODE_ROLE}" == "master" ]; then
@@ -313,10 +284,8 @@ kubeadm_certs() {
     kubelet_tls_bootstrap
   fi
 }
-`) -}}
 
-{{- define "__kubeadm_cluster_info" -}}
-{{- $envAll := . -}}
+#!define: kubeadm_cluster_info
 # the cluster wide objects with the CAs: kubeadm creates cluster-info only (the
 # CA of the token discovery of the joining nodes, server side apply keeps the
 # signatures of the tokens), the apiserver creates
@@ -332,12 +301,8 @@ kubeadm_cluster_info() {
   fi
   "${kubectl[@]}" -n kube-system delete configmap extension-apiserver-authentication --ignore-not-found
 }
-{{- end -}}
-{{- $_ := set $symbols "kubeadm_cluster_info" (dict
-"body" (include "__kubeadm_cluster_info" $envAll)
-) -}}
 
-{{- $_ := set $symbols "static_pods_stop" (dict "body" `
+#!define: static_pods_stop
 # the static pods of the control plane: kubelet starts them again with the new
 # certificates, etcd of all the control plane nodes at once
 static_pods_stop() {
@@ -355,4 +320,3 @@ static_pods_stop() {
     done
   done
 }
-`) -}}
