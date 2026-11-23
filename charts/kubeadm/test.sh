@@ -5,19 +5,22 @@
 # number of failed checks, the script fails if there are any
 FAILURES=0
 
+# the node scripts run without the kubeconfig of the shell running the tests
+unset KUBECONFIG
+
 _rootfs_mock() {
   local test_bin="${ROOTFS}/bin"
   mkdir -p "${test_bin}"
 
-  # sudo
-  cat << 'EOF' > "${test_bin}/sudo"
+  # swapoff, sysctl
+  for cmd in swapoff sysctl; do
+    cat << 'EOF' > "${test_bin}/${cmd}"
 #!/usr/bin/env bash
-echo "[MOCK sudo] $@" >> "${ROOTFS}/mock_calls.log"
-# tee reads the pipe: an unread one fails the writer with SIGPIPE (pipefail)
-if [ "$1" = "tee" ]; then
-  cat > /dev/null
-fi
+echo "[MOCK ${0##*/}] ${0##*/} $@" >> "${ROOTFS}/mock_calls.log"
 EOF
+  done
+  mkdir -p "${ROOTFS}/etc"
+  echo "/swap.img none swap sw 0 0" > "${ROOTFS}/etc/fstab"
 
   # systemctl
   cat << 'EOF' > "${test_bin}/systemctl"
@@ -30,6 +33,18 @@ EOF
   cat << 'EOF' > "${test_bin}/kubeadm"
 #!/usr/bin/env bash
 echo "[MOCK kubeadm] kubeadm $@" >> "${ROOTFS}/mock_calls.log"
+# init phase etcd local --dry-run: the etcd manifest kubeadm gives the node
+if [[ " $* " == *" phase etcd local "*" --dry-run "* ]]; then
+  cat << EOF_ETCD > "${KUBEADM_INIT_DRYRUN_DIR}/etcd.yaml"
+spec:
+  containers:
+  - command:
+    - etcd
+    - --data-dir=/var/lib/etcd
+    - --initial-advertise-peer-urls=https://${NODE_IP}:2380
+    - --name=${NODE_NAME}
+EOF_ETCD
+fi
 # the configuration kubeadm got
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -50,7 +65,7 @@ EOF
   # kubectl
   cat << 'EOF' > "${test_bin}/kubectl"
 #!/usr/bin/env bash
-echo "[MOCK kubectl] kubectl $@" >> "${ROOTFS}/mock_calls.log"
+echo "[MOCK kubectl] ${KUBECONFIG:+KUBECONFIG=${KUBECONFIG} }kubectl $@" >> "${ROOTFS}/mock_calls.log"
 # the controller-manager has published the CA of the node
 case "$*" in
   *" get namespaces -o name") echo "namespace/kube-system" ;;
@@ -221,7 +236,7 @@ run_bootstrap() {
     postfix="-${nodename}"
   fi
 
-  local target_secret="kubeadm-service-bootstrap${postfix}"
+  local target_secret="kubeadm-service-phase-runner${postfix}"
   local bootstrap_code
 
   #set new rootfs
@@ -231,12 +246,12 @@ run_bootstrap() {
 
 # 1. rended helm, save output to bootstrap_code
   echo "running helm template kubeadm ${overrides} \
-    --set manifests.secret_bootstrap=true \
+    --set manifests.secret_phase_runner=true \
     ${extra_helm_args}
     "
   bootstrap_code=$("${helm}" template kubeadm \
     ${overrides} \
-    --set manifests.secret_bootstrap=true \
+    --set manifests.secret_phase_runner=true \
     ${extra_helm_args} | \
   "${yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"${target_secret}\") | .data[\"${script}\"] | @base64d" 2>/dev/null)
 
@@ -248,21 +263,21 @@ run_bootstrap() {
   fi
 
   # 2.1. check that the script can be taken with sed + base64 (see README.md):
-  # with bootstrap.nodename the only Secret is rendered, without the node
+  # with phase_runner.nodename the only Secret is rendered, without the node
   # suffix. Both tools read the same output: embedded tarballs have the
   # render time as mtime, so two renders are never identical.
   local nodename_args=""
   if [ -n "$nodename" ]; then
-    nodename_args="--set bootstrap.nodename=${nodename}"
+    nodename_args="--set phase_runner.nodename=${nodename}"
   fi
   local rendered yq_code sed_code
   rendered=$("${helm}" template kubeadm \
     ${overrides} \
-    --set manifests.secret_bootstrap=true \
+    --set manifests.secret_phase_runner=true \
     ${extra_helm_args} \
     ${nodename_args})
   yq_code=$(echo "${rendered}" | \
-    "${yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-bootstrap\") | .data[\"${script}\"] | @base64d" 2>/dev/null)
+    "${yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-phase-runner\") | .data[\"${script}\"] | @base64d" 2>/dev/null)
   sed_code=$(echo "${rendered}" | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d)
 
   if [[ -n "${sed_code}" && "${sed_code}" == "${yq_code}" ]]; then
@@ -308,9 +323,9 @@ run_rebootstrap() {
   done
   echo "[Run #${RUN_COUNTER}] rebootstrap: ${script_args[*]+${script_args[*]}}"
   "${HELM:-helm}" template kubeadm "${helm_args[@]}" \
-    --set manifests.secret_bootstrap=true \
-    --set bootstrap.profile=rebootstrap | \
-    "${YQ:-yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-bootstrap${postfix}\") | .data.script | @base64d" \
+    --set manifests.secret_phase_runner=true \
+    --set phase_runner.profile=rebootstrap | \
+    "${YQ:-yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-phase-runner${postfix}\") | .data.script | @base64d" \
     > "${ROOTFS}/tmp/rebootstrap.sh"
   bash "${ROOTFS}/tmp/rebootstrap.sh" ${script_args[@]+"${script_args[@]}"} > "${ROOTFS}/tmp/rebootstrap.log" 2>&1
 }
@@ -386,7 +401,7 @@ run_bootstrap ""
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
 
-assert_logged "modprobe (br_netfilter|overlay)" "Kernel modules loaded"
+assert_logged "systemd-modules-load"           "Kernel modules loaded"
 assert_logged "sysctl --system"                 "Network sysctl applied"
 assert_logged "swapoff"                         "Swap disabled"
 assert_logged "kubeadm init"                    "Init called"
@@ -405,7 +420,7 @@ assert_file_exists "${ROOTFS}/etc/default/kubelet"
 assert_file_absent "${ROOTFS}/etc/kubernetes/manifests/kube-apiserver.yaml"
 assert_file_absent "${ROOTFS}/etc/kubernetes/pki/ca.key"
 
-assert_logged "modprobe (br_netfilter|overlay)" "Kernel modules loaded"
+assert_logged "systemd-modules-load"           "Kernel modules loaded"
 assert_logged "sysctl --system"                 "Network sysctl applied"
 assert_logged "swapoff"                         "Swap disabled"
 assert_logged "kubeadm join"                    "Kubeadm join executed"
@@ -421,7 +436,7 @@ export NODE_IP="172.29.0.139"
 export NODE_NAME="test-node-0"
 run_bootstrap "" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run init --control-plane-endpoint="127.0.0.1:6553"
 
-assert_logged "modprobe (br_netfilter|overlay)" "Kernel modules loaded"
+assert_logged "systemd-modules-load"           "Kernel modules loaded"
 assert_logged "sysctl --system"                 "Network sysctl applied"
 assert_logged "swapoff"                         "Swap disabled"
 assert_logged "systemctl restart kubelet"       "Kubelet service pre-started"
@@ -465,7 +480,7 @@ export NODE_IP="172.29.0.144"
 export NODE_NAME="test-node-1"
 run_bootstrap "" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run join --control-plane --discovery-token abcdef.1234567890abcdef --discovery-token-ca-cert-hash sha256:1234..cdef 127.0.0.1:6553
 
-assert_logged "modprobe (br_netfilter|overlay)" "Kernel modules loaded"
+assert_logged "systemd-modules-load"           "Kernel modules loaded"
 assert_logged "sysctl --system"                 "Network sysctl applied"
 assert_logged "swapoff"                         "Swap disabled"
 assert_logged "systemctl restart kubelet"       "Kubelet service pre-started"
@@ -733,14 +748,16 @@ assert_content_matches "${ROOTFS}/etc/default/kubelet" "--hostname-override=${NO
 assert_content_matches "${ROOTFS}/etc/default/kubelet" "--node-ip=${NODE_IP}" \
                        "Kubelet env contains correct node-ip"
 
-assert_logged "modprobe (br_netfilter|overlay)" "Kernel modules loaded"
+assert_logged "systemd-modules-load"           "Kernel modules loaded"
 assert_logged "sysctl --system"                 "Network sysctl applied"
 assert_logged "swapoff"                         "Swap disabled"
 assert_logged "kubeadm init .*--skip-phases certs,kubeconfig" \
               "Kubeadm init called with certs and kubeconfig phases skipped"
-assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/kubelet.conf annotate node --overwrite ${NODE_NAME} last-applied-kubelet-cfg-sha256=[0-9a-f]{64} last-applied-kubeadm-cfg-sha256=[0-9a-f]{64}" \
-              "The node is annotated with the applied configurations (as the node)"
-assert_before "kubeadm init" "kubectl .* annotate node" "Annotated AFTER kubeadm init"
+assert_logged "KUBECONFIG=${ROOTFS}/etc/kubernetes/kubelet.conf kubectl annotate node --overwrite ${NODE_NAME} last-applied-kubelet-cfg-sha256=[0-9a-f]{64}$" \
+              "The node is annotated with the applied kubelet configuration (as the node)"
+assert_logged "KUBECONFIG=${ROOTFS}/etc/kubernetes/kubelet.conf kubectl annotate node --overwrite ${NODE_NAME} last-applied-kubeadm-cfg-sha256=[0-9a-f]{64}$" \
+              "The node is annotated with the applied kubeadm configuration (as the node)"
+assert_before "kubeadm init" "kubectl annotate node" "Annotated AFTER kubeadm init"
 
 assert_before "swapoff"            "kubeadm init" "Swap disabled BEFORE kubeadm init"
 assert_before "sysctl"             "kubeadm init" "Sysctl applied BEFORE kubeadm init"
@@ -770,7 +787,7 @@ rebootstrap_backups="${ROOTFS}/var/lib/kubeadm-backup"
 
 : > "${ROOTFS}/mock_calls.log"
 rebootstrap_check "the default phases pass" rebootstrap_run
-rebootstrap_check "kubeadm_certs is skipped by default" rebootstrap_log "phase kubeadm_certs: skipped"
+rebootstrap_check "certs_generate_with_kubeadm is skipped by default" rebootstrap_log "phase certs_generate_with_kubeadm: skipped"
 rebootstrap_check "an unknown backup action fails" eval '! rebootstrap_run --run -- backup nope'
 rebootstrap_check "an unknown backup action is reported" rebootstrap_log "usage: backup"
 rebootstrap_backup="${rebootstrap_backups}/$(ls -1 "${rebootstrap_backups}" | tail -n 1)"
@@ -850,7 +867,7 @@ ca_backups="${ROOTFS}/var/lib/kubeadm-backup"
 : > "${ROOTFS}/mock_calls.log"
 # the phases of the orchestration on a control plane node
 rebootstrap_check "the CAs only: the phases of a control plane node pass" ca_rebootstrap_run \
-  --run -- reconcile_guard -- backup -- certs_sync -- kubeconfigs_sync -- kubelet_sync_rc -- kubeadm_certs -- static_pods_stop -- kubelet_stop -- cri_restart -- kubelet_start -- annotate_applied_kubelet
+  --run -- reconcile_guard -- backup -- certs_sync -- kubeconfig_sync -- kubelet_sync_rc -- certs_generate_with_kubeadm -- static_pods_stop -- kubelet_stop -- cri_restart -- kubelet_start -- kubelet_mark_applied
 ca_backup="${ca_backups}/$(ls -1 "${ca_backups}" | tail -n 1)"
 rebootstrap_check "the CAs only, backup: the certificates kubeadm generated" \
   grep -qx "old" "${ca_backup}/etc/kubernetes/pki/apiserver.crt"
@@ -871,9 +888,11 @@ for k in admin controller-manager scheduler kubelet super-admin; do
   assert_logged "kubeadm init phase kubeconfig ${k} --config" "rebootstrap: kubeadm generates the ${k} kubeconfig"
 done
 assert_before "kubeadm init phase certs all" "stopp pod-" "rebootstrap: the certificates, then the restart"
-assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/kubelet.conf annotate node --overwrite [^ ]+ last-applied-kubelet-cfg-sha256=[0-9a-f]{64}$" \
-              "rebootstrap: the node is annotated with the configuration of kubelet only (as the node)"
-assert_before "systemctl restart kubelet" "kubectl .* annotate node" "rebootstrap: annotated AFTER kubelet_start"
+assert_logged "KUBECONFIG=${ROOTFS}/etc/kubernetes/kubelet.conf kubectl annotate node --overwrite [^ ]+ last-applied-kubelet-cfg-sha256=[0-9a-f]{64}$" \
+              "rebootstrap: the node is annotated with the configuration of kubelet (as the node)"
+rebootstrap_check "rebootstrap: the kubeadm configuration isn't annotated" \
+  eval '! grep -q "last-applied-kubeadm-cfg-sha256" "${ROOTFS}/mock_calls.log"'
+assert_before "systemctl restart kubelet" "kubectl annotate node" "rebootstrap: annotated AFTER kubelet_start"
 
 rebootstrap_check "the CAs only: backup restore passes" ca_rebootstrap_run --run -- backup restore
 rebootstrap_check "the CAs only, backup restore: the certificates kubeadm generated" \
@@ -887,8 +906,8 @@ rebootstrap_check "the CAs only, backup restore: the CA" grep -qx "ca-crt-placeh
 # a worker: the TLS bootstrap of kubelet again
 : > "${ROOTFS}/mock_calls.log"
 export NODE_ROLE="worker"
-rebootstrap_check "the CAs only: kubeadm_certs on a worker needs the token" eval \
-  '! ca_rebootstrap_run --run -- kubeadm_certs'
+rebootstrap_check "the CAs only: certs_generate_with_kubeadm on a worker needs the token" eval \
+  '! ca_rebootstrap_run --run -- certs_generate_with_kubeadm'
 rebootstrap_check "the CAs only: the missing token is reported" rebootstrap_log "the bootstrap token of the cluster"
 # kubelet goes through the TLS bootstrap: it writes the new kubeconfig, then
 # the client certificate once the CSR is approved
@@ -904,18 +923,18 @@ fi
 exit 0
 EOF
 export KUBEADM_TOKEN="abcdef.0123456789abcdef"
-rebootstrap_check "the CAs only: kubeadm_certs passes on a worker" \
-  ca_rebootstrap_run --run -- kubeadm_certs
+rebootstrap_check "the CAs only: certs_generate_with_kubeadm passes on a worker" \
+  ca_rebootstrap_run --run -- certs_generate_with_kubeadm
 unset KUBEADM_TOKEN
 export NODE_ROLE="master"
 mv "${ROOTFS}/tmp/systemctl" "${ROOTFS}/bin/systemctl"
-rebootstrap_check "the CAs only, kubeadm_certs on a worker: the old client certificates are removed" \
+rebootstrap_check "the CAs only, certs_generate_with_kubeadm on a worker: the old client certificates are removed" \
   test ! -e "${ca_kubelet_pki}/kubelet-client-2025.pem"
-rebootstrap_check "the CAs only, kubeadm_certs on a worker: the client certificate after the TLS bootstrap" \
+rebootstrap_check "the CAs only, certs_generate_with_kubeadm on a worker: the client certificate after the TLS bootstrap" \
   grep -qx "new" "${ca_kubelet_pki}/kubelet-client-current.pem"
-rebootstrap_check "the CAs only, kubeadm_certs on a worker: the kubeconfig of kubelet after the TLS bootstrap" \
+rebootstrap_check "the CAs only, certs_generate_with_kubeadm on a worker: the kubeconfig of kubelet after the TLS bootstrap" \
   grep -qx "new" "${ca_kubernetes}/kubelet.conf"
-rebootstrap_check "the CAs only, kubeadm_certs on a worker: the bootstrap kubeconfig is removed" \
+rebootstrap_check "the CAs only, certs_generate_with_kubeadm on a worker: the bootstrap kubeconfig is removed" \
   test ! -e "${ca_kubernetes}/bootstrap-kubelet.conf"
 assert_logged "kubectl config --kubeconfig ${ROOTFS}/etc/kubernetes/bootstrap-kubelet.conf set-credentials tls-bootstrap-token-user --token abcdef.0123456789abcdef" \
   "rebootstrap: the bootstrap kubeconfig with the token"
@@ -933,7 +952,7 @@ assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf apply --
 assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf -n kube-system delete configmap extension-apiserver-authentication" \
   "rebootstrap: the apiserver creates extension-apiserver-authentication again"
 : > "${ROOTFS}/mock_calls.log"
-rebootstrap_check "restart_clients passes" ca_rebootstrap_run --run -- restart_clients
+rebootstrap_check "certs_refresh_clients passes" ca_rebootstrap_run --run -- certs_refresh_clients
 assert_logged "kubectl --kubeconfig ${ROOTFS}/etc/kubernetes/admin.conf delete pods --all-namespaces -l k8s-app=kube-dns --grace-period=0 --force" \
   "rebootstrap: the pods of the selectors are deleted"
 assert_before "pods --all-namespaces -l k8s-app=kube-dns" "pods --all-namespaces -l component=kubernetes-kubeadm-anchor" \
@@ -1004,7 +1023,7 @@ apt_check "the drop-in of the package is replaced by an empty one" \
   ! -s "${ROOTFS}/etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
 # the binaries phase runs again on the node: the packages are there
 : > "${ROOTFS}/mock_calls.log"
-bash "${ROOTFS}/tmp/script.sh" --run -- binaries_sync > "${ROOTFS}/tmp/apt-rerun.log" 2>&1 || true
+bash "${ROOTFS}/tmp/script.sh" --run -- binaries_sync_rc > "${ROOTFS}/tmp/apt-rerun.log" 2>&1 || true
 apt_check "the packages of the version are there: nothing is installed" eval '! grep -q "apt-get" "${ROOTFS}/mock_calls.log"'
 apt_check "the packages of the version are there: the versions are asked" grep -q "dpkg-query -W" "${ROOTFS}/mock_calls.log"
 

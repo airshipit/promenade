@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* Note: kubelet_restart (templates/phases/modules/reconcile/_lib.sh.tpl) creates the job which restarts kubelet from this file,
+{{/* Note: kubelet_restart_by_job (templates/phases/modules/reconcile/_lib.sh.tpl) creates the job which restarts kubelet from this file,
      it can be patched with bundle.tpl."templates/phases/modules/reconcile/_job-kubelet-restart.yaml.patch" (strategic merge patch) */}}
 
 apiVersion: batch/v1

@@ -7,7 +7,7 @@
      #!define: of a file is its header: comments only
      (kubeadm.phases.header_check).
      To switch a module off, ensure its phases are not used in
-     bootstrap.profiles, redefine templates/phases/modules/reconcile/_.sh.tpl
+     phase_runner.profiles, redefine templates/phases/modules/reconcile/_.sh.tpl
      in bundle.tpl so it doesn't use its functions, then redefine this file in
      bundle.tpl with the new list. If a function of the module is still
      needed, the linker fails at render and tells who needs it. The files of
@@ -36,12 +36,11 @@
   "templates/phases/modules/cri/_.sh.tpl"
   "templates/phases/modules/etcd/_.sh.tpl"
   "templates/phases/modules/fs/_.sh.tpl"
-  "templates/phases/modules/k8s_up/_.sh.tpl"
   "templates/phases/modules/kube-cgroup/_.sh.tpl"
   "templates/phases/modules/kubeadm/_.sh.tpl"
   "templates/phases/modules/kubeconfig/_.sh.tpl"
   "templates/phases/modules/kubelet/_.sh.tpl"
-  "templates/phases/modules/rebootstrap/_.sh.tpl"
+  "templates/phases/modules/os/_.sh.tpl"
   "templates/phases/modules/reconcile/_.sh.tpl"
   "templates/phases/modules/reconcile/_lib.sh.tpl"
   "templates/phases/modules/vip/_.sh.tpl"

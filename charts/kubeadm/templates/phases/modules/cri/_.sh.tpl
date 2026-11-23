@@ -11,3 +11,16 @@ cri_restart() {
   systemctl daemon-reload
   systemctl restart {{ $envAll.Values.cri.service | quote }}
 }
+
+#!define: cri_setup
+#!needs: binary_cri_sync_rc, cri_sync_rc, cri_restart
+{{- /* binary_cri_sync_rc: binaries.sync.cri of the values */}}
+# the container runtime and its configuration, restarted if they are changed
+cri_setup() {
+  local cri_changed=false
+  binary_cri_sync_rc && cri_changed=true
+  cri_sync_rc && cri_changed=true
+  if [[ $cri_changed == true ]]; then
+    cri_restart
+  fi
+}

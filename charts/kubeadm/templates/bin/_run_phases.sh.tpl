@@ -1,14 +1,14 @@
 {{/*
-  the script of the bootstrap Secrets: run on the node phase by phase
+  the script of the phase-runner Secrets: run on the node phase by phase
   (templates/phases/_phase_runner.tpl), the phases of the profile
-  bootstrap.profile (bootstrap.profiles in the values)
+  phase_runner.profile (phase_runner.profiles in the values)
 */}}
 {{- $envAll := index . 0 -}}
 {{- $k8sConfDict := index . 1 -}}
 {{- $nodename := index . 2 -}}
-{{- $profile := $envAll.Values.bootstrap.profile -}}
-{{- if not (hasKey $envAll.Values.bootstrap.profiles $profile) -}}
-{{- fail (printf "bootstrap.profile %s isn't one of bootstrap.profiles" $profile) -}}
+{{- $profile := $envAll.Values.phase_runner.profile -}}
+{{- if not (hasKey $envAll.Values.phase_runner.profiles $profile) -}}
+{{- fail (printf "phase_runner.profile %s isn't one of phase_runner.profiles" $profile) -}}
 {{- end -}}
 {{- $fs := dict -}}
 
@@ -62,15 +62,15 @@ fi
 # the files delivered by the chart, the reconcile script finds them there too
 ensure_fs() {
   local teepath="" # for debug
-  [ -n "${ROOTFS}" ] && teepath="${ROOTFS}/tmp/fs.{{ $envAll.Values.bootstrap.compress_fs }}"
+  [ -n "${ROOTFS}" ] && teepath="${ROOTFS}/tmp/fs.{{ $envAll.Values.phase_runner.compress_fs }}"
   mkdir -p -m 0700 "${ROOTFS}/run/kubeadm"
 {{ $archive := $fs | include "tar" -}}
-{{- if eq $envAll.Values.bootstrap.compress_fs "tar" -}}
+{{- if eq $envAll.Values.phase_runner.compress_fs "tar" -}}
   base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -x -C "${ROOTFS}/run/kubeadm"
-{{ else if eq $envAll.Values.bootstrap.compress_fs "tgz" -}}
+{{ else if eq $envAll.Values.phase_runner.compress_fs "tgz" -}}
   {{- $archive = (dict "content" $archive "calc_crc32" true ) | include "gzip" -}}
   base64 -d << 'EOF_ARCHIVE_DATA' | tee $teepath | tar -xz -C "${ROOTFS}/run/kubeadm"
-{{ else -}}{{- fail (printf "Unsupported format %s" $envAll.Values.bootstrap.compress_fs ) -}}{{ end -}}
+{{ else -}}{{- fail (printf "Unsupported format %s" $envAll.Values.phase_runner.compress_fs ) -}}{{ end -}}
 {{- $archive | b64enc }}
 EOF_ARCHIVE_DATA
 }
@@ -88,7 +88,7 @@ cleanup_fs() {
 {{/* the runner (run_phases) and the functions of the phases of the profile
      ("+<phase>" too) linked (templates/lib/_linker.tpl), then the phases: a
      phase is a function */}}
-{{- $phases := index $envAll.Values.bootstrap.profiles $profile -}}
+{{- $phases := index $envAll.Values.phase_runner.profiles $profile -}}
 {{- $needs := list "run_phases" -}}
 {{- range $phase := $phases -}}
   {{- $needs = append $needs (trimPrefix "+" $phase) -}}

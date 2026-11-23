@@ -28,7 +28,7 @@ The bash code of the nodes lives in the modules of `templates/phases/modules`. A
 
 There are two node scripts:
 
-- **bootstrap** (`templates/bin/_bootstrap.sh.tpl`) runs the phases of a profile, `bootstrap.profiles.<bootstrap.profile>`. The `bootstrap` profile makes a node a node of the cluster, the `rebootstrap` one puts the certificates of the values on the nodes of an existing cluster again. A phase is a function of a module. The command line gives a phase its arguments (`-- <phase> <arguments>`), or with `--run` runs only the named phases in its order, so an orchestration can drive the nodes step by step. A phase written as `+<phase>` runs only when the command line names it. When an `_rc` function runs as a phase, 1 isn't a failure.
+- **run_phases** (`templates/bin/_run_phases.sh.tpl`) runs the phases of a profile, `phase_runner.profiles.<phase_runner.profile>`. The `bootstrap` profile makes a node a node of the cluster, the `rebootstrap` one puts the certificates of the values on the nodes of an existing cluster again. A phase is a function of a module. The command line gives a phase its arguments (`-- <phase> <arguments>`), or with `--run` runs only the named phases in its order, so an orchestration can drive the nodes step by step. A phase written as `+<phase>` runs only when the command line names it. When an `_rc` function runs as a phase, 1 isn't a failure.
 - **reconcile** (`templates/bin/_reconcile.sh.tpl`) runs in the anchor pods. Its `reconcile` function makes one pass: it syncs the files of the chart, applies the changes (kubeadm, the restart of kubelet) and runs the node checks, then the anchor becomes ready. After that its main loop checks the node every `anchor.reconcile.period` seconds. When a change needs a new pass (e.g. the configuration changed), the script ends, the pod restarts and a new pass begins.
 
 The reconcile is an orchestrator over the modules: `reconcile` decides what to call, and `anchor.reconcile` holds its switches. It is a module itself only to be linked the same way.
@@ -58,7 +58,7 @@ group_dir_backup() {
 }
 ```
 
-The file is rendered first, then the linker reads the directives. So the values are in the bodies as in any template, and a `#!needs:` line can be rendered by a condition: the symbol is linked only when the code calling it is. `#!needs:` can be anywhere in a line, e.g. after the call it is for, the linker cuts it off till the end of the line:
+The file is rendered first, then the linker reads the directives. So the values are in the bodies as in any template, and a `#!needs:` line can be rendered by a condition: the symbol is linked only when the code calling it is (conditional linking). E.g. with `anchor.reconcile.vip` off the reconcile script has neither the call of `vip_reconcile` nor the functions it needs. `#!needs:` can be anywhere in a line, e.g. after the call it is for, the linker cuts it off till the end of the line:
 
 ```bash
 {{- if $envAll.Values.anchor.reconcile.vip }}
@@ -93,21 +93,21 @@ The static pods check their own liveness.
 
 ## Usage
 
-### Extracting the Bootstrap Script
+### Extracting the Script of a Profile
 
-The bootstrap script is a standalone bash script, so a provisioner can pass it as user data (e.g. cloud-init) or it can be run on the node by hand. It is in the `script` key of the bootstrap Secret, rendered with `--set manifests.secret_bootstrap=true`. With per-node data in the values there is a Secret for every node, `kubeadm-service-bootstrap-<node>`. `--set bootstrap.nodename=<node>` renders only the Secret of that node, named `kubeadm-service-bootstrap`, and no other manifests, so the script is easy to cut out:
+The script of a profile (`phase_runner.profile`, `bootstrap` by default) is a standalone bash script, so a provisioner can pass it as user data (e.g. cloud-init) or it can be run on the node by hand. It is in the `script` key of the phase-runner Secret, rendered with `--set manifests.secret_phase_runner=true`. With per-node data in the values there is a Secret for every node, `kubeadm-service-phase-runner-<node>`. `--set phase_runner.nodename=<node>` renders only the Secret of that node, named `kubeadm-service-phase-runner`, and no other manifests, so the script is easy to cut out:
 
 ```bash
 # with yq
-helm template kubeadm -f values.yaml --set manifests.secret_bootstrap=true --set bootstrap.nodename=node0 \
-  | yq eval 'select(.kind == "Secret" and .metadata.name == "kubeadm-service-bootstrap") | .data["script"] | @base64d'
+helm template kubeadm -f values.yaml --set manifests.secret_phase_runner=true --set phase_runner.nodename=node0 \
+  | yq eval 'select(.kind == "Secret" and .metadata.name == "kubeadm-service-phase-runner") | .data["script"] | @base64d'
 
 # with sed and base64 only
-helm template kubeadm -f values.yaml --set manifests.secret_bootstrap=true --set bootstrap.nodename=node0 \
+helm template kubeadm -f values.yaml --set manifests.secret_phase_runner=true --set phase_runner.nodename=node0 \
   | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d
 ```
 
-`--set bootstrap.string_data=true` puts the script into the Secret as plain text, which is handy for debugging. Pipe the script into `bash -s -- <arguments>` to run it with the arguments of its phases (see [Node scripts](#node-scripts)), e.g. `bash -s -- -- kubeadm_run join ...` on a joining node.
+`--set phase_runner.string_data=true` puts the script into the Secret as plain text, which is handy for debugging. Pipe the script into `bash -s -- <arguments>` to run it with the arguments of its phases (see [Node scripts](#node-scripts)), e.g. `bash -s -- -- kubeadm_run join ...` on a joining node.
 
 ### Tools
 

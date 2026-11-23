@@ -99,6 +99,25 @@ group_dir_files() {
   return 0
 }
 
+#!define: _groups_sha256
+# the checksum of the files of the groups $3... in the archives of the node, as
+# group_dir_sync takes them (the ctrl archives on the control plane nodes only)
+_groups_sha256() {
+  local rootfs="$1" node_role="$2" group archive file
+  shift 2
+  for group in "$@"; do
+    for archive in all ctrl all-pernode ctrl-pernode; do
+      case "${archive}" in
+        ctrl*) [ "${node_role}" == "master" ] || continue ;;
+      esac
+      for file in "${rootfs}/run/kubeadm/${archive}/${group}"/*; do
+        [ -f "${file}" ] || continue
+        sha256sum "${file}"
+      done
+    done
+  done | sha256sum | cut -d ' ' -f 1
+}
+
 #!define: group_dir_sync
 #!needs: compare_copy_file, subst_node_env
 # The chart delivers its files in 4 archives unpacked to /run/kubeadm/<archive>:
@@ -126,4 +145,19 @@ group_dir_sync() {
       fi
     done
   done
+}
+
+#!define: group_dir_backup
+#!needs: backup_files, group_dir_files
+# copies the files of the directory the group syncs to the backup directory
+group_dir_backup() {
+  backup_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
+}
+
+#!define: group_dir_restore
+# puts the files of the group back from the backup directory, removes the ones
+# it doesn't have (the node didn't have them before the sync)
+group_dir_restore() {
+  #!needs: restore_files, group_dir_files
+  restore_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
 }

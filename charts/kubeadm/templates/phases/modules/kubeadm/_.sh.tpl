@@ -58,71 +58,46 @@ kubeadm_sync() {
   echo "kubeadm is synced"
 }
 
-#!define: annotations
-# the annotations of the node with the configurations it runs with: the
-# reconcile script applies the kubeadm (control plane nodes) and the kubelet
-# configuration only if the node runs with another one
-KUBEADM_ANNOTATION="last-applied-kubeadm-cfg-sha256"
-KUBELET_ANNOTATION="last-applied-kubelet-cfg-sha256"
-
-#!define: kubeadm_config_sha256
-kubeadm_config_sha256() {
-  sha256sum < "${ROOTFS}/run/kubeadm/all/_kubeadm/ClusterConfiguration" | cut -d ' ' -f 1
+#!define: _kubeadm_files_sha256
+#!needs: _groups_sha256
+# the configurations and the patches kubeadm is run with
+_kubeadm_files_sha256() {
+  _groups_sha256 "${ROOTFS}" "${NODE_ROLE}" _kubeadm _kubeadmpatch
 }
 
-#!define: kubelet_config_sha256
-kubelet_config_sha256() {
-  sha256sum < "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" | cut -d ' ' -f 1
-}
-
-#!define: annotate_applied
-# the node runs with the configurations of the chart: it annotates itself
-# (kubelet.conf). Right after the join kubelet goes through the VIP: it
-# starts the haproxy static pod and registers the node first, about 5 minutes
-# as the kubeadm timeouts. The annotations save the first pass of the reconcile
-# its work only: without them it applies the configurations again
-annotate_applied() {
-  local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/kubelet.conf")
-  local n=1
-  until "${kubectl[@]}" annotate node --overwrite "${NODE_NAME}" "$@"; do
-    if [ "$n" -ge 150 ]; then
-      echo "WARNING: the node isn't annotated, the reconcile applies the configurations again" >&2
-      return 0
-    fi
-    n=$((n + 1))
-    sleep 2
-  done
-}
-
-#!define: annotate_applied_configs
-#!needs: annotate_applied, annotations, kubeadm_config_sha256, kubelet_config_sha256
-# the kubeadm configuration on the control plane nodes too
-annotate_applied_configs() {
-  if [ "${NODE_ROLE}" == "master" ]; then
-    annotate_applied "${KUBELET_ANNOTATION}=$(kubelet_config_sha256)" "${KUBEADM_ANNOTATION}=$(kubeadm_config_sha256)"
-  else
-    annotate_applied "${KUBELET_ANNOTATION}=$(kubelet_config_sha256)"
-  fi
-}
-
-#!define: annotate_applied_kubelet
-#!needs: annotate_applied, annotations, kubelet_config_sha256
-# the first pass of the reconcile doesn't apply the configuration of kubelet
-# again (the one of the values, the bundle may leave it to kubeadm)
-annotate_applied_kubelet() {
-  if [ ! -f "${ROOTFS}/run/kubeadm/all/_kubelet/kubelet_config.yaml" ]; then
-    echo "the values have no configuration of kubelet"
+#!define: kubeadm_mark_applied
+#!needs: node_info_update, node_info_update_wait, _kubeadm_files_sha256
+# the control plane node runs with the kubeadm files of the values: the first
+# pass of the reconcile doesn't apply them again. Written as the node
+# (kubelet.conf) unless KUBECONFIG is set (the reconcile)
+kubeadm_mark_applied() {
+  if [ "${NODE_ROLE}" != "master" ]; then
+    echo "the kubeadm configuration is applied on the control plane nodes only"
     return 0
   fi
-  annotate_applied "${KUBELET_ANNOTATION}=$(kubelet_config_sha256)"
+  KUBECONFIG="${KUBECONFIG:-${ROOTFS}/etc/kubernetes/kubelet.conf}" node_info_update_wait kubeadm_applied "$(_kubeadm_files_sha256)"
 }
 
-#!define: kubeadm_values_init_config
+#!define: kubeadm_action_required_rc
+#!needs: _kubeadm_files_sha256, node_info_field
+# 0 if the control plane node doesn't run the kubeadm files of the values
+# (kubeadm_mark_applied, the state of the node $1 from node_info_load),
+# 1 if it does and on the other nodes
+kubeadm_action_required_rc() {
+  local applied
+  [ "${NODE_ROLE}" == "master" ] || return 1
+  applied=$(node_info_field "$1" kubeadm_applied)
+  [[ -z $applied || $applied != $(_kubeadm_files_sha256) ]]
+}
+
+#!define: kubeadm_node_config
 #!needs: subst_node_env
-# the InitConfiguration of the values for the node (init_config.yaml of the
-# kubeadm files, with NODE_IP, NODE_NAME...): the document of its kind only,
-# without skipPhases (the ones of kubeadm init, the phases are run one by one)
-kubeadm_values_init_config() {
+
+# kubeadm_node_config's helper: the InitConfiguration of the values for the
+# node (init_config.yaml of the kubeadm files, with NODE_IP, NODE_NAME...): the
+# document of its kind only, without skipPhases (the ones of kubeadm init, the
+# phases are run one by one)
+_kubeadm_values_init_config() {
   subst_node_env "${ROOTFS}/run/kubeadm/all/_kubeadm/init_config.yaml" | awk '
     /^---/ { if (keep) printf "%s", doc; doc = ""; keep = 0; skip = 0; next }
     /^[^ #-]/ { skip = /^skipPhases:/ }
@@ -132,15 +107,13 @@ kubeadm_values_init_config() {
     END { if (keep) printf "%s", doc }'
 }
 
-#!define: kubeadm_node_config
-#!needs: kubeadm_values_init_config
 # the kubeadm configuration of the node for kubeadm init phase: the
 # InitConfiguration of the values for the node (or the one of the node name,
 # it isn't always the hostname kubeadm defaults to), the ClusterConfiguration
 # and the kubelet configuration
 kubeadm_node_config() {
   if [ -f "${ROOTFS}/run/kubeadm/all/_kubeadm/init_config.yaml" ]; then
-    kubeadm_values_init_config
+    _kubeadm_values_init_config
   else
     cat << EOF_CONFIG
 apiVersion: $(sed -n 's/^apiVersion: *//p' "${ROOTFS}/etc/kubernetes/kubeadm/ClusterConfiguration" | head -n 1)
@@ -161,7 +134,7 @@ EOF_CONFIG
 }
 
 #!define: kubeadm_generated_files
-{{- /* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the files
+{{- /* the rebootstrap profile only (phase_runner.profiles.rebootstrap), the files
      kubeadm generates when the values have the CAs only (the backups have
      them anyway) */}}
 # the certificates and the kubeconfigs kubeadm generates from the CAs: the
@@ -206,15 +179,25 @@ kubeadm_restore() {
   fi
 }
 
-#!define: kubeadm_token_config
-# the configuration of kubeadm (--config) with the bootstrap token of the join
-# (KUBEADM_TOKEN) to the file $2: the files of the node don't have it
-kubeadm_token_config() {
-  sed "s|\${KUBEADM_TOKEN}|${KUBEADM_TOKEN:-}|g" "${ROOTFS}$1" > "$2"
+#!define: kubeadm_upgrade_backups_cleanup
+# the backups kubeadm upgrade leaves in /etc/kubernetes/tmp, but the last ones
+kubeadm_upgrade_backups_cleanup() {
+  local p
+  if [ -e "${ROOTFS}/etc/kubernetes/tmp/" ]; then
+    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d "${ROOTFS}/etc/kubernetes/tmp/$p-*" 2>/dev/null | sort | sed '$d' | xargs -r rm -rf || true; done
+  fi
 }
 
 #!define: kubeadm_run
-#!needs: kubeadm_token_config, kubelet_sync_rc
+#!needs: kubelet_sync_rc
+
+# kubeadm_run's helper: the configuration of kubeadm (--config) with the
+# bootstrap token of the join (KUBEADM_TOKEN) to the file $2, the files of the
+# node don't have it
+_kubeadm_token_config() {
+  sed "s|\${KUBEADM_TOKEN}|${KUBEADM_TOKEN:-}|g" "${ROOTFS}$1" > "$2"
+}
+
 # kubeadm with the arguments of the phase (init by default)
 kubeadm_run() {
   local args=() arg dir config=false rc=0
@@ -222,13 +205,13 @@ kubeadm_run() {
   dir=$(mktemp -d)
   for arg in "$@"; do
     if [ "${config}" = true ]; then
-      kubeadm_token_config "${arg}" "${dir}/config.yaml"
+      _kubeadm_token_config "${arg}" "${dir}/config.yaml"
       arg="${dir}/config.yaml"
       config=false
     elif [ "${arg}" = "--config" ]; then
       config=true
     elif [[ "${arg}" == --config=* ]]; then
-      kubeadm_token_config "${arg#--config=}" "${dir}/config.yaml"
+      _kubeadm_token_config "${arg#--config=}" "${dir}/config.yaml"
       arg="--config=${dir}/config.yaml"
     fi
     args+=("${arg}")
@@ -243,45 +226,6 @@ kubeadm_run() {
   if kubelet_sync_rc; then
     systemctl daemon-reload
     systemctl restart kubelet
-  fi
-}
-
-#!define: kubeadm_init_certs
-#!needs: kubeadm_generated_files, kubeadm_node_config, kubelet_kubeconfig_sync_rc
-# the certificates and the kubeconfigs kubeadm generated from the old CAs, the
-# client certificates of kubelet (it would take the current one): kubeadm
-# generates them from the new CAs, as kubeadm init did
-kubeadm_init_certs() {
-  local file dir super_admin=false
-  # kubeadm init generates it on the first control plane node only
-  [ -f "${ROOTFS}/etc/kubernetes/super-admin.conf" ] && super_admin=true
-  for file in $(kubeadm_generated_files); do
-    rm -f "${ROOTFS}${file}"
-  done
-  rm -f "${ROOTFS}"/var/lib/kubelet/pki/kubelet-client-*.pem
-  dir=$(mktemp -d)
-  kubeadm_node_config > "${dir}/config.yaml"
-  kubeadm init phase certs all --config "${dir}/config.yaml"
-  kubeadm init phase kubeconfig admin --config "${dir}/config.yaml"
-  kubeadm init phase kubeconfig controller-manager --config "${dir}/config.yaml"
-  kubeadm init phase kubeconfig scheduler --config "${dir}/config.yaml"
-  kubeadm init phase kubeconfig kubelet --config "${dir}/config.yaml"
-  if [ "${super_admin}" == "true" ]; then
-    kubeadm init phase kubeconfig super-admin --config "${dir}/config.yaml"
-  fi
-  rm -rf "${dir}"
-  # kubelet goes through the control plane endpoint
-  kubelet_kubeconfig_sync_rc || true
-}
-
-#!define: kubeadm_certs
-#!needs: kubeadm_init_certs, kubelet_tls_bootstrap
-# what kubeadm generated from the old CAs on the node, from the new ones
-kubeadm_certs() {
-  if [ "${NODE_ROLE}" == "master" ]; then
-    kubeadm_init_certs
-  else
-    kubelet_tls_bootstrap
   fi
 }
 
@@ -300,23 +244,4 @@ kubeadm_cluster_info() {
       --dry-run=client -o yaml | "${kubectl[@]}" apply --server-side --force-conflicts -f -
   fi
   "${kubectl[@]}" -n kube-system delete configmap extension-apiserver-authentication --ignore-not-found
-}
-
-#!define: static_pods_stop
-# the static pods of the control plane: kubelet starts them again with the new
-# certificates, etcd of all the control plane nodes at once
-static_pods_stop() {
-  local component pods pod
-  if [ "${NODE_ROLE}" != "master" ]; then
-    echo "not a control plane node"
-    return 0
-  fi
-  for component in kube-apiserver kube-controller-manager kube-scheduler etcd; do
-    # not in the for list: errexit doesn't see a failure there
-    pods=$(crictl pods -q --namespace kube-system --label "component=${component}")
-    for pod in ${pods}; do
-      # the default RPC timeout of crictl is 2s: stopping a sandbox takes longer
-      crictl --timeout 60s stopp "${pod}"
-    done
-  done
 }

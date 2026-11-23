@@ -187,16 +187,54 @@ certs_restore() {
   fi
 }
 
-#!define: public_key
-# prints the public key of a certificate or a public key, the content if it is
-# neither of them
-public_key() {
-  openssl x509 -noout -pubkey -in "$1" 2>/dev/null || openssl pkey -pubin -in "$1" 2>/dev/null || cat "$1"
+#!define: certs_generate_with_kubeadm
+#!needs: kubeadm_generated_files, kubeadm_node_config, kubelet_kubeconfig_sync_rc, kubelet_tls_bootstrap
+
+# certs_generate_with_kubeadm's helper: the certificates and the kubeconfigs
+# kubeadm generated from the old CAs, the client certificates of kubelet (it
+# would take the current one): kubeadm generates them from the new CAs, as
+# kubeadm init did
+_kubeadm_init_certs() {
+  local file dir super_admin=false
+  # kubeadm init generates it on the first control plane node only
+  [ -f "${ROOTFS}/etc/kubernetes/super-admin.conf" ] && super_admin=true
+  for file in $(kubeadm_generated_files); do
+    rm -f "${ROOTFS}${file}"
+  done
+  rm -f "${ROOTFS}"/var/lib/kubelet/pki/kubelet-client-*.pem
+  dir=$(mktemp -d)
+  kubeadm_node_config > "${dir}/config.yaml"
+  kubeadm init phase certs all --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig admin --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig controller-manager --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig scheduler --config "${dir}/config.yaml"
+  kubeadm init phase kubeconfig kubelet --config "${dir}/config.yaml"
+  if [ "${super_admin}" == "true" ]; then
+    kubeadm init phase kubeconfig super-admin --config "${dir}/config.yaml"
+  fi
+  rm -rf "${dir}"
+  # kubelet goes through the control plane endpoint
+  kubelet_kubeconfig_sync_rc || true
+}
+
+# what kubeadm generated from the old CAs on the node, from the new ones
+certs_generate_with_kubeadm() {
+  if [ "${NODE_ROLE}" == "master" ]; then
+    _kubeadm_init_certs
+  else
+    kubelet_tls_bootstrap
+  fi
 }
 
 #!define: certs_guard_ca
-#!needs: public_key
 {{- /* certs_guard_ca: called by the bootstrap and reconcile scripts before any sync */}}
+
+# certs_guard_ca's helper: prints the public key of a certificate or a public
+# key, the content if it is neither of them
+_public_key() {
+  openssl x509 -noout -pubkey -in "$1" 2>/dev/null || openssl pkey -pubin -in "$1" 2>/dev/null || cat "$1"
+}
+
 # the CA and service account keys of the node sign its certificates and tokens:
 # refuses to go on if the values deliver other ones. A CA certificate renewed
 # with the same key is fine, CA rotation isn't supported.
@@ -204,7 +242,7 @@ certs_guard_ca() {
   local src dst changed=""
   while read -r src dst; do
     [ -f "${ROOTFS}/run/kubeadm/${src}" ] && [ -f "${ROOTFS}${dst}" ] || continue
-    if [ "$(public_key "${ROOTFS}/run/kubeadm/${src}")" != "$(public_key "${ROOTFS}${dst}")" ]; then
+    if [ "$(_public_key "${ROOTFS}/run/kubeadm/${src}")" != "$(_public_key "${ROOTFS}${dst}")" ]; then
       case "${changed} " in
         *" ${dst} "*) ;;
         *) changed="${changed} ${dst}" ;;
@@ -225,9 +263,13 @@ EOF_CA_GUARD
   echo "certs_guard_ca: the keys of the node match the values"
 }
 
-#!define: certs_served_rc
-# the server $1 (host:port) serves the certificate file $2: it has reloaded it
-certs_served_rc() {
+#!define: certs_check
+#!needs: check_attempts, check_result, static_pod_flag
+{{- /* certs_check: called by the reconcile script before the anchor becomes ready */}}
+
+# certs_check's helper: the server $1 (host:port) serves the certificate file
+# $2, it has reloaded it
+_certs_served_rc() {
   local served file
   # the server may refuse the handshake without a client certificate, its
   # certificate is printed anyway
@@ -236,17 +278,6 @@ certs_served_rc() {
   [ -n "${served}" ] && [ "${served}" = "${file}" ]
 }
 
-#!define: certs_manifest_flag
-# the value of the flag --$2 of the static pod manifest $1: the command line the
-# component runs with (kubeadm wrote it, the patches may have changed it)
-certs_manifest_flag() {
-  [ -f "${ROOTFS}$1" ] || return 0
-  sed -n "s/^ *- --$2=//p" "${ROOTFS}$1" | head -n 1
-}
-
-#!define: certs_check
-#!needs: check_attempts, check_result, certs_served_rc, certs_manifest_flag
-{{- /* certs_check: called by the reconcile script before the anchor becomes ready */}}
 # the components of the node serve the certificates of its files: they reload
 # them after the sync, the anchor becomes ready once they did. The endpoints
 # and the certificates are the ones the components run with: the apiserver and
@@ -257,7 +288,7 @@ certs_check() {
   local kubelet="${ROOTFS}/var/lib/kubelet/config.yaml"
   local etcd_url kubelet_port kubelet_crt endpoint file
   # the first client url of etcd, kubeadm puts 127.0.0.1 first
-  etcd_url=$(certs_manifest_flag "${etcd}" listen-client-urls)
+  etcd_url=$(static_pod_flag "${etcd}" listen-client-urls)
   etcd_url="${etcd_url%%,*}"
   # 10250 is the default port of kubelet
   kubelet_port=$(sed -n 's/^port: *//p' "${kubelet}")
@@ -265,15 +296,63 @@ certs_check() {
   while read -r endpoint file; do
     # the node doesn't run the component or it has no certificate of the files
     [ -n "${file}" ] || continue
-    if check_attempts certs_served_rc "${endpoint}" "${file}"; then
+    if check_attempts _certs_served_rc "${endpoint}" "${file}"; then
       check_result OK certs "${endpoint} serves ${file}"
     else
       check_result FAIL certs "${endpoint} doesn't serve ${file}"
     fi
   done << EOF_CERTS_CHECK
-127.0.0.1:$(certs_manifest_flag "${apiserver}" secure-port) $(certs_manifest_flag "${apiserver}" tls-cert-file)
-${etcd_url#*://} $(certs_manifest_flag "${etcd}" cert-file)
+127.0.0.1:$(static_pod_flag "${apiserver}" secure-port) $(static_pod_flag "${apiserver}" tls-cert-file)
+${etcd_url#*://} $(static_pod_flag "${etcd}" cert-file)
 127.0.0.1:${kubelet_port:-10250} ${kubelet_crt}
 EOF_CERTS_CHECK
+  return 0
+}
+
+#!define: certs_refresh_clients
+
+# certs_refresh_clients's helper: the new CA in kube-root-ca.crt of all the
+# namespaces (the controller-manager publishes it): the pods started before it
+# get the old one and keep it
+_wait_root_ca() {
+  local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
+  local ca namespaces ns stale="" i
+  ca=$(cat "${ROOTFS}/etc/kubernetes/pki/ca.crt") || return 1
+  for i in $(seq 60); do
+    if namespaces=$("${kubectl[@]}" get namespaces -o name) && [ -n "${namespaces}" ]; then
+      stale=""
+      for ns in ${namespaces}; do
+        ns="${ns#namespace/}"
+        [ "$("${kubectl[@]}" -n "${ns}" get configmap kube-root-ca.crt -o jsonpath='{.data.ca\.crt}')" = "${ca}" ] ||
+          stale="${stale} ${ns}"
+      done
+      [ -n "${stale}" ] || return 0
+    fi
+    sleep 2
+  done
+  echo "kube-root-ca.crt without the new CA:${stale:- (no namespaces)}" >&2
+  return 1
+}
+
+# certs_refresh_clients's helper: the pods of the selector, the API of the
+# restarted control plane may be unavailable for a while
+_delete_pods() {
+  local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
+  local delay
+  for delay in 0 1 2 4 8; do
+    sleep "${delay}"
+    "${kubectl[@]}" delete pods --all-namespaces -l "$1" --grace-period=0 --force && return 0
+  done
+  return 1
+}
+
+# the abrupt rotation: the pods keep the CA (kube-root-ca.crt) and the service
+# account tokens they started with, they don't work anyway, their controllers
+# start them again once the new CA is published
+certs_refresh_clients() {
+  _wait_root_ca || return 1
+{{- range $selector := $envAll.Values.certs.refresh_clients_selectors }}
+  _delete_pods {{ $selector | quote }}
+{{- end }}
   return 0
 }

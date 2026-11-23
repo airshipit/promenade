@@ -85,7 +85,7 @@ for node in yaml.safe_load(open(sys.argv[1]))["nodes"]:
   fi
 fi
 
-bash "${WORK_DIR}/ssh-rebootstrap.sh" --restart-clients
+bash "${WORK_DIR}/ssh-rebootstrap.sh" --refresh-clients
 test "$(sudo sha256sum /etc/kubernetes/pki/ca.crt | cut -d ' ' -f 1)" != "${CA_BEFORE}"
 
 # the admin of the new CA, the credentials embedded

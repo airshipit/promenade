@@ -43,26 +43,15 @@ binary_replace() {
   chmod 0755 "$1" && mv -f "$1" "${dst}" || { rm -f "$1"; exit 1; }
 }
 
-#!define: binaries_sync
+#!define: binaries_sync_rc
 #!needs: binary_kubernetes_sync_rc
-# the given binaries, kubeadm, kubectl and kubelet without arguments
-binaries_sync() {
-  local name
+# the given binaries, kubeadm, kubectl and kubelet without arguments: 0 if any
+# of them was changed, 1 if not
+binaries_sync_rc() {
+  local name changed=1
   [ $# -gt 0 ] || set -- kubeadm kubectl kubelet
   for name in "$@"; do
-    binary_kubernetes_sync_rc "$name" || true
+    binary_kubernetes_sync_rc "$name" && changed=0
   done
-}
-
-#!define: cri_setup
-#!needs: binary_cri_sync_rc, cri_sync_rc, cri_restart
-{{- /* cri_sync_rc and cri_restart: templates/phases/modules/cri/_.sh.tpl */}}
-# the container runtime and its configuration, restarted if they are changed
-cri_setup() {
-  local cri_changed=false
-  binary_cri_sync_rc && cri_changed=true
-  cri_sync_rc && cri_changed=true
-  if [[ $cri_changed == true ]]; then
-    cri_restart
-  fi
+  return $changed
 }

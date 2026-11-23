@@ -34,18 +34,19 @@ check_attempts() {
   done
 }
 
-#!define: check_livez
-# the certificate isn't verified: liveness of the endpoint only
-check_livez() {
+#!define: check_api
+#!needs: check_attempts, check_result
+
+# check_api's helper: the certificate isn't verified, liveness of the endpoint
+# only
+_check_livez() {
   curl -ksf --max-time 5 "$1" > /dev/null 2>&1
 }
 
-#!define: check_api
-#!needs: check_attempts, check_livez, check_result
 # bootstrap: the node reaches the API through the control plane endpoint
 check_api() {
   local url="https://{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}/livez"
-  if check_attempts check_livez "${url}"; then
+  if check_attempts _check_livez "${url}"; then
     check_result OK api "${url}"
   else
     check_result FAIL api "${url}: not live"

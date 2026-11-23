@@ -26,8 +26,6 @@ kind: ConfigMap
 metadata:
   name: {{ include "kubeadm.fullname" $envAll }}-bin
 data:
-  ensure_fs: |+
-{{ tuple $envAll "templates/bin/_ensure_fs.sh.tpl" | include "kubeadm.bundle.template" | indent 4 }}
   reconcile: |+
 {{ tuple $envAll "templates/bin/_reconcile.sh.tpl" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | indent 4 }}
   # run by the pod of helm test (templates/_pod-test.yaml)

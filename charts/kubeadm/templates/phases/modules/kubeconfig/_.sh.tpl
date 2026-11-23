@@ -5,9 +5,9 @@
 # scheduler) from _kubeconfig.yaml.tpl, if the values have their client
 # certificates: kubeadm generates them otherwise.
 
-#!define: render_kubeconfig
+#!define: _kubeconfig_render
 #!needs: subst_node_env, compare_copy_file
-render_kubeconfig() {
+_kubeconfig_render() {
   local dst="$1" ep="$2" user="$3" ca="$4" cert="$5" key="$6" mode="$7" owner="$8"
   cat << 'EOF_TEMPLATE_DATA' | subst_node_env \
       -e "s|\${CLUSTER_ENDPOINT}|${ep}|g" \
@@ -19,8 +19,8 @@ render_kubeconfig() {
 EOF_TEMPLATE_DATA
 }
 
-#!define: kubeconfigs_sync
-#!needs: ensure_dir, render_kubeconfig
+#!define: kubeconfig_sync
+#!needs: ensure_dir, _kubeconfig_render
 {{- /* the permissions of the kubeconfigs */}}
 {{- $dirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" }}
 {{- $dirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" }}
@@ -30,13 +30,13 @@ EOF_TEMPLATE_DATA
 {{- $ctrlMgrOwner := tuple $envAll "kubeconfig" "controller-manager.conf" | include "kubeadm.fs.file_owner" }}
 {{- $schdlrMode := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_mode" }}
 {{- $schdlrOwner := tuple $envAll "kubeconfig" "scheduler.conf" | include "kubeadm.fs.file_owner" }}
-kubeconfigs_sync() {
+kubeconfig_sync() {
 
   if [ "${NODE_ROLE}" == "master" ]; then
     ensure_dir "${ROOTFS}/etc/kubernetes/" "{{ $dirMode }}" "{{ $dirOwner }}"
 {{- /* without pregenerated client certs kubeadm generates kubeconfigs itself */}}
 {{- if ($envAll.Values.certs).admin }}
-    render_kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf" \
+    _kubeconfig_render "${ROOTFS}/etc/kubernetes/admin.conf" \
       "{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "admin" \
       "/etc/kubernetes/admin/pki/cluster-ca.pem"  \
@@ -45,7 +45,7 @@ kubeconfigs_sync() {
 {{- end }}
 {{- if ($envAll.Values.certs).controller_manager }}
 
-    render_kubeconfig "${ROOTFS}/etc/kubernetes/controller-manager.conf" \
+    _kubeconfig_render "${ROOTFS}/etc/kubernetes/controller-manager.conf" \
       "{{ $envAll.Values.kubeconfig.controlPlaneLocalEndpoint | default $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "controller-manager" \
       "pki/ca.crt"  \
@@ -54,7 +54,7 @@ kubeconfigs_sync() {
 {{- end }}
 {{- if ($envAll.Values.certs).scheduler }}
 
-    render_kubeconfig "${ROOTFS}/etc/kubernetes/scheduler.conf" \
+    _kubeconfig_render "${ROOTFS}/etc/kubernetes/scheduler.conf" \
       "{{ $envAll.Values.kubeconfig.controlPlaneLocalEndpoint | default $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "scheduler" \
       "pki/ca.crt"  \

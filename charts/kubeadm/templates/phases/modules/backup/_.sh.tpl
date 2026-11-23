@@ -4,9 +4,9 @@
 # The backups of the certificates of the node (backup.dir): every module backs
 # up and restores its own groups (certs_backup, kubelet_backup,
 # kubeadm_backup), the backups exist while a procedure is in progress (the
-# rebootstrap), the reconcile waits for its end. backup_files, restore_files
-# and the group_dir ones are the helpers of the modules for their
-# <module>_backup and <module>_restore.
+# rebootstrap), the reconcile waits for its end. backup_files and
+# restore_files are the helpers of the modules for their <module>_backup and
+# <module>_restore (group_dir_backup and group_dir_restore of fs for the groups).
 
 #!define: backup_files
 # copies the files (absolute paths of the node) the node has to the backup $1
@@ -34,21 +34,6 @@ restore_files() {
       rm -f "${ROOTFS}${file}"
     fi
   done
-}
-
-#!define: group_dir_backup
-#!needs: backup_files, group_dir_files
-# copies the files of the directory the group syncs to the backup directory
-group_dir_backup() {
-  backup_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
-}
-
-#!define: group_dir_restore
-# puts the files of the group back from the backup directory, removes the ones
-# it doesn't have (the node didn't have them before the sync)
-group_dir_restore() {
-  #!needs: restore_files, group_dir_files
-  restore_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
 }
 
 #!define: backup_exists_rc

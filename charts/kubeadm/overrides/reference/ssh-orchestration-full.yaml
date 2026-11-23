@@ -156,9 +156,9 @@ kubeconfig:
   # the controller-manager and the scheduler: the apiserver of the node
   controlPlaneLocalEndpoint: 127.0.0.1:6443
 
-bootstrap:
-  # ssh-rebootstrap.sh --restart-clients: the ones of the chart and Cilium
-  rebootstrap_restart_selectors:
+certs:
+  # ssh-rebootstrap.sh --refresh-clients: the ones of the chart and Cilium
+  refresh_clients_selectors:
     - k8s-app=cilium
     - io.cilium/app=operator
     - k8s-app=kube-dns
@@ -360,7 +360,7 @@ bundle:
 
     # the nodes of the cluster: gets (tuple <root> <dict>), sets "nodes" of
     # the dict to the list of the nodes, each one a dict:
-    #   hostname  the name of the node (bootstrap.nodename, NODE_NAME)
+    #   hostname  the name of the node (phase_runner.nodename, NODE_NAME)
     #   ip        the address of the node (NODE_IP), ssh goes to it
     #   role      master or worker (NODE_ROLE)
     #   labels    the labels of the node set by ssh-bootstrap.sh (a dict)
@@ -569,18 +569,21 @@ bundle:
         printf "'%s'" "${1//\'/\'\\\'\'}"
       }
 
-      # renders the script of the node: render_node <profile> <node>
+      # renders the script of the node: render_node <profile> <node>, to
+      # <node>-<profile>.sh, run_node runs the last rendered one (NODE_SCRIPT)
+      declare -A NODE_SCRIPT=()
       render_node() {
-        local profile="$1" node="$2"
+        local profile="$1" node="$2" file="${WORK_DIR}/$2-$1.sh"
         # shellcheck disable=SC2086 # CHART_ARGS is a list of arguments
         "${HELM}" template ${CHART_ARGS} \
-          --set manifests.secret_bootstrap=true --set bootstrap.string_data=false \
-          --set bootstrap.profile="${profile}" --set bootstrap.nodename="${node}" \
-          | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d > "${WORK_DIR}/${node}.sh"
-        if [ ! -s "${WORK_DIR}/${node}.sh" ]; then
+          --set manifests.secret_phase_runner=true --set phase_runner.string_data=false \
+          --set phase_runner.profile="${profile}" --set phase_runner.nodename="${node}" \
+          | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d > "${file}"
+        if [ ! -s "${file}" ]; then
           echo "${node}: the chart has no ${profile} script for the node" >&2
           exit 1
         fi
+        NODE_SCRIPT[${node}]="${file}"
       }
 
       # runs the script of the node with the arguments: it goes through stdin
@@ -597,7 +600,7 @@ bundle:
         {
           echo "export NODE_NAME=$(squote "${node}") NODE_IP=$(squote "${NODE_IP[${node}]}")" \
             "NODE_ROLE=$(squote "${NODE_ROLE[${node}]}") KUBEADM_TOKEN=$(squote "${KUBEADM_TOKEN:-}")"
-          cat "${WORK_DIR}/${node}.sh"
+          cat "${NODE_SCRIPT[${node}]}"
         } | ${SSH} "${NODE_IP[${node}]}" "${SUDO} bash -c $(squote "${remote}") bash${args}"
       }
 
@@ -634,7 +637,7 @@ bundle:
       KUBEADM_JOIN=({{ .Values.orchestration.kubeadm.join }})
       # the workers: the default phases of the bootstrap script but kubeadm_run
       {{- $workers := list }}
-      {{- range $phase := .Values.bootstrap.profiles.bootstrap }}
+      {{- range $phase := .Values.phase_runner.profiles.bootstrap }}
       {{-   if not (or (hasPrefix "+" $phase) (eq $phase "kubeadm_run")) }}
       {{-     $workers = append $workers $phase }}
       {{-   end }}
@@ -735,11 +738,11 @@ bundle:
 
       usage() {
         cat << EOF
-      Usage: ssh-rebootstrap.sh [--restart-clients] | [-- <phase> [<arguments>]]...
+      Usage: ssh-rebootstrap.sh [--refresh-clients] | [-- <phase> [<arguments>]]...
 
         without options: the lock and the backups on all the nodes, then the
         rest of the default phases on all the nodes at once
-        --restart-clients: then the pods of bootstrap.rebootstrap_restart_selectors
+        --refresh-clients: then the pods of certs.refresh_clients_selectors
         are deleted (they keep the CA and the service account tokens of the
         old ones)
         -- <phase> <arguments>: these phases of the rebootstrap script in
@@ -751,11 +754,11 @@ bundle:
       }
 
       PHASE_ARGS=()
-      RESTART_CLIENTS=false
+      REFRESH_CLIENTS=false
       while [ $# -gt 0 ]; do
         case "$1" in
           --) PHASE_ARGS=(--run "$@"); break ;;
-          --restart-clients) RESTART_CLIENTS=true ;;
+          --refresh-clients) REFRESH_CLIENTS=true ;;
           -h|--help) usage ;;
           *) echo "Unknown option: $1" >&2; usage 1 ;;
         esac
@@ -784,8 +787,8 @@ bundle:
       fi
 
       # the control plane nodes first: the workers need the API with the new CAs
-      PHASES=(-- certs_sync -- kubeconfigs_sync -- kubelet_sync_rc -- static_pods_stop -- kubelet_stop
-        -- cri_restart -- kubelet_start -- annotate_applied_kubelet -- check_run)
+      PHASES=(-- certs_sync -- kubeconfig_sync -- kubelet_sync_rc -- static_pods_stop -- kubelet_stop
+        -- cri_restart -- kubelet_start -- kubelet_mark_applied -- check_run)
       for role in master worker; do
         echo "=== the new files and the restart of the components on the ${role} nodes"
         for node in "${NODES[@]}"; do
@@ -802,9 +805,9 @@ bundle:
       start_node "${FIRST_MASTER}" --run -- kubeadm_cluster_info
       wait_nodes
 
-      if [ "${RESTART_CLIENTS}" = true ]; then
-        echo "=== the pods of bootstrap.rebootstrap_restart_selectors from ${FIRST_MASTER}"
-        start_node "${FIRST_MASTER}" --run -- restart_clients
+      if [ "${REFRESH_CLIENTS}" = true ]; then
+        echo "=== the pods of certs.refresh_clients_selectors from ${FIRST_MASTER}"
+        start_node "${FIRST_MASTER}" --run -- certs_refresh_clients
         wait_nodes
       fi
 

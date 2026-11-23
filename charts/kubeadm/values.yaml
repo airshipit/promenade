@@ -144,6 +144,15 @@ binaries:
 #    certain phases like maintaining manifests
 # NOTE: at the moment we don't support external etcd
 certs:
+  # certs_refresh_clients (the rebootstrap) deletes the pods of these selectors
+  # in this order (all the namespaces): they keep the CA and the service account
+  # tokens of the old ones. The ones of kubeadm and of the chart, the values add
+  # the others (the CNI, the operators...)
+  refresh_clients_selectors:
+    - k8s-app=kube-dns
+    - k8s-app=kube-proxy
+    - component=kubernetes-kubeadm-anchor
+    - component=kubernetes-kubeadm-workers-anchor
   # the permissions of the files of the phase (see fs.permissions)
   permissions:
     # /etc/kubernetes/pki
@@ -190,7 +199,7 @@ certs:
 
 # node checks: one line per check "check OK|FAIL|SKIP <check> <details>",
 # the checks fail if any check failed. Day 0/1: the check_run phase of the
-# bootstrap and rebootstrap profiles (bootstrap.profiles), /livez through
+# bootstrap and rebootstrap profiles (phase_runner.profiles), /livez through
 # kubeconfig.controlPlaneEndpoint
 checks:
   # attempts 2 seconds apart of the api and certs checks (about 5 minutes, as
@@ -351,6 +360,32 @@ kubelet:
       owner: "root:root"
       mode: "0600"
 
+# the operating system of the nodes for kubelet and the runtime (os_setup)
+os:
+  # the kernel modules and sysctl, synced by os_sync_rc (the items as in files)
+  fsgroup:
+    - path: /etc/modules-load.d
+      state: dir
+      owner: "root:root"
+    - path: /etc/modules-load.d/k8s.conf
+      state: content
+      from: |
+        overlay
+        br_netfilter
+      owner: "root:root"
+      mode: "0644"
+    - path: /etc/sysctl.d
+      state: dir
+      owner: "root:root"
+    - path: /etc/sysctl.d/k8s.conf
+      state: content
+      from: |
+        net.bridge.bridge-nf-call-iptables  = 1
+        net.bridge.bridge-nf-call-ip6tables = 1
+        net.ipv4.ip_forward                 = 1
+      owner: "root:root"
+      mode: "0644"
+
 haproxy:
   container_config_dir: /usr/local/etc/haproxy
   host_config_dir: /etc/kubernetes/kubeadm/addons
@@ -452,6 +487,9 @@ anchor:
     # Disable it when the VIP is managed by something else (e.g. the haproxy
     # chart)
     vip: true
+    # swap, the kernel modules and sysctl of os.fsgroup as the bootstrap script
+    # applies them (os_setup)
+    os: true
     # the runtime is installed by binary_cri_sync_rc (binaries.sync.cri) as the
     # bootstrap script always does
     cri_install: false
@@ -465,18 +503,18 @@ anchor:
     # the node is drained before the kubelet restart and uncordoned after it
     kubelet_drain: true
 
-bootstrap:
+phase_runner:
   compress_fs: tar
   # it's more convenient to debug if it is true
   string_data: false
   # in case there is per-node data the next field can be used to generate only script for 1 node so
-  # it is easier to extract. in that case only 1 secret will be generated with the name {{ include "kubeadm.fullname" $envAll }}-bootstrap
+  # it is easier to extract. in that case only 1 secret will be generated with the name {{ include "kubeadm.fullname" $envAll }}-phase-runner
   # without suffix-<nodename>. Using this parameter disables producing other manifests generated in _main.tpl to help sed find the needed field only.
-  # this is because we assume that bootstrap.nodename is used only for manual helm template execution
+  # this is because we assume that phase_runner.nodename is used only for manual helm template execution
   # nodename: <some node>
-  # the profile of the script of the bootstrap Secrets
-  # (templates/bin/_bootstrap.sh.tpl): it runs the phases of
-  # bootstrap.profiles.<profile>
+  # the profile of the script of the phase-runner Secrets
+  # (templates/bin/_run_phases.sh.tpl): it runs the phases of
+  # phase_runner.profiles.<profile>
   profile: bootstrap
   # the phases of the script in their order: a phase is a function of
   # templates/phases, the script is linked from them, only the functions they
@@ -494,7 +532,7 @@ bootstrap:
       # the certificates
       - certs_sync
       # the kubeconfigs
-      - kubeconfigs_sync
+      - kubeconfig_sync
       # the certificates and the kubeconfig of kubelet, its unit and
       # configuration
       - kubelet_sync_rc
@@ -504,33 +542,35 @@ bootstrap:
       # <argument>" save the VIP of the node (vip.init_argname, vip.init_val
       # by default)
       - vip_sync
+      # swap, the kernel modules and sysctl
+      - os_setup
       # the container runtime, restarted if it is changed
       - cri_setup
       # the kube-cgroup service
       - kube_cgroup_sync
       # kubeadm, kubectl, kubelet
-      - binaries_sync
-      # swap, the kernel modules and sysctl
-      - k8s_up
+      - binaries_sync_rc
       # kubelet is (re)started
       - kubelet_start
       # kubeadm with the arguments of the phase (init by default), then the
       # configuration of kubelet of the chart again
       - kubeadm_run
       # the node with the configurations it runs with: the first pass of the
-      # reconcile doesn't apply them again
-      - annotate_applied_configs
+      # reconcile doesn't apply them again, kubelet and kubeadm (control plane
+      # nodes)
+      - kubelet_mark_applied
+      - kubeadm_mark_applied
       # the node checks (templates/phases/modules/checks/_.sh.tpl)
       - check_run
+      # etcdutl and etcdctl of binaries.etcd on the node (etcd_restore installs
+      # them too)
+      - +binary_etcd_sync_rc
       # with --run before kubeadm_run: the etcd of the first control plane node
       # from the snapshot given as the argument (a file on the node), kubeadm
       # init starts it (its arguments need
       # --ignore-preflight-errors=DirAvailable--var-lib-etcd), the other control
       # plane nodes join as usual
       - +etcd_restore
-      # etcdutl and etcdctl of binaries.etcd on the node (etcd_restore installs
-      # them too)
-      - +binary_etcd_sync_rc
     # the certificates of the values again on the nodes of an existing cluster,
     # its API alive or not (recovery from an expired CA, abrupt CA rotation),
     # on all the nodes at once. The certificates are pregenerated or, with the
@@ -548,47 +588,36 @@ bootstrap:
       - backup
       # as in bootstrap
       - certs_sync
-      - kubeconfigs_sync
+      - kubeconfig_sync
       - kubelet_sync_rc
       # the values have the CAs only: what kubeadm generated from the CAs
       # again, its certificates and kubeconfigs on the control plane nodes, the
       # TLS bootstrap of kubelet on the workers (KUBEADM_TOKEN), once the
       # control plane runs with the new CAs
-      - +kubeadm_certs
+      - +certs_generate_with_kubeadm
       # the static pods of the control plane (crictl stopp), kubelet starts
       # them again
       - static_pods_stop
       # the restart
       - kubelet_stop
-      # TODO: the reference procedure restarts the runtime, find out why (its history)
       - cri_restart
       - kubelet_start
       # the node with the configuration of kubelet it runs with (not the
       # kubeadm one: the script doesn't apply it)
-      - annotate_applied_kubelet
+      - kubelet_mark_applied
       # the node checks
       - check_run
       # on a control plane node: the CA of the cluster-info ConfigMap (kubeadm
       # creates it only), extension-apiserver-authentication is removed (the
       # apiserver creates it with the new CAs)
       - +kubeadm_cluster_info
-      # on a control plane node: the pods of
-      # bootstrap.rebootstrap_restart_selectors are deleted once
-      # kube-root-ca.crt of all the namespaces has the new CA, they keep the CA
-      # and the service account tokens of the old ones
-      - +restart_clients
+      # on a control plane node: the pods of certs.refresh_clients_selectors
+      # are deleted once kube-root-ca.crt of all the namespaces has the new CA,
+      # they keep the CA and the service account tokens of the old ones
+      - +certs_refresh_clients
   # seconds the rebootstrap script waits for the reconcile passes going on on
   # the node (the worst case of the timeouts of a pass and a margin)
   rebootstrap_reconcile_timeout: 2400
-  # the rebootstrap restart_clients phase deletes the pods of these selectors in
-  # this order (all the namespaces): they keep the CA and the service account
-  # tokens of the old ones. The ones of kubeadm and of the chart, the values
-  # add the others (the CNI, the operators...)
-  rebootstrap_restart_selectors:
-    - k8s-app=kube-dns
-    - k8s-app=kube-proxy
-    - component=kubernetes-kubeadm-anchor
-    - component=kubernetes-kubeadm-workers-anchor
 
 # resources prefix
 fullnameOverride: kubeadm-service
@@ -616,7 +645,7 @@ manifests:
   secret_daemonset_fs_ctrl: true
   secret_daemonset_fs_all_pernode: true
   secret_daemonset_fs_ctrl_pernode: true
-  secret_bootstrap: false
+  secret_phase_runner: false
   # for the release managing the cluster from a parent cluster: the CA as a
   # kubernetes.io/tls Secret <fullname>-ca (e.g. for a cert-manager CA Issuer)
   secret_ca_tls: false

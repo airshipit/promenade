@@ -29,8 +29,8 @@ https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/  */}}
 {{- end -}}
 
 {{/* now generate everything with all this data */}}
-{{ tuple $envAll "templates/_secret-bootstrap.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
-{{ $nodenameFilter := $envAll.Values.bootstrap.nodename | default "" -}}
+{{ tuple $envAll "templates/_secret-phase-runner.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
+{{ $nodenameFilter := $envAll.Values.phase_runner.nodename | default "" -}}
 {{- if eq $nodenameFilter "" }}
   {{ tuple $envAll "templates/_configmap-bin.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}
   {{ tuple $envAll "templates/_secret-daemonset-fs.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" }}

@@ -23,7 +23,7 @@
 {{- end -}}
 
 #!define: kubelet_kubeconfig_sync_rc
-#!needs: ensure_dir, group_dir_sync, render_kubeconfig
+#!needs: ensure_dir, group_dir_sync, _kubeconfig_render
 {{- /* without pregenerated kubelet certs kubeadm generates kubelet.conf itself */}}
 {{- $kubeletCerts := false }}
 {{- range $_,$v := ($envAll.Values.certs).nodes }}
@@ -53,7 +53,7 @@ kubelet_kubeconfig_sync_rc() {
 
   ensure_dir "${ROOTFS}/etc/kubernetes/" "{{ $kubernetesDirMode }}" "{{ $kubernetesDirOwner }}"
   if [ "{{ ternary "true" "false" $kubeletCerts }}" == "true" ]; then
-    render_kubeconfig "$k_conf" \
+    _kubeconfig_render "$k_conf" \
       "{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}" \
       "kubelet" \
       "/etc/kubernetes/pki/kubelet-client-ca.pem" \
@@ -104,9 +104,40 @@ kubelet_sync_rc() {
   return $c
 }
 
+#!define: _kubelet_files_sha256
+#!needs: _groups_sha256
+# the files kubelet_sync_rc syncs: the unit, the flags, the configuration, the
+# certificates and the endpoint of kubelet.conf (rendered, not in the archives)
+_kubelet_files_sha256() {
+  {
+    _groups_sha256 "${ROOTFS}" worker _kubelet _kubeletpkipub _kubeletpkipriv
+    echo "{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}"
+  } | sha256sum | cut -d ' ' -f 1
+}
+
+#!define: kubelet_mark_applied
+#!needs: node_info_update, node_info_update_wait, _kubelet_files_sha256
+# the node runs with the kubelet files of the values: the first pass of the
+# reconcile doesn't apply them again. Written as the node (kubelet.conf) unless
+# KUBECONFIG is set (the reconcile)
+kubelet_mark_applied() {
+  KUBECONFIG="${KUBECONFIG:-${ROOTFS}/etc/kubernetes/kubelet.conf}" node_info_update_wait kubelet_applied "$(_kubelet_files_sha256)"
+}
+
+#!define: kubelet_restart_required_rc
+#!needs: _kubelet_files_sha256, node_info_field
+# 0 if kubelet doesn't run the kubelet files of the values
+# (kubelet_mark_applied, the state of the node $1 from node_info_load), 1 if it
+# does
+kubelet_restart_required_rc() {
+  local applied
+  applied=$(node_info_field "$1" kubelet_applied)
+  [[ -z $applied || $applied != $(_kubelet_files_sha256) ]]
+}
+
 #!define: kubelet_backup
 #!needs: group_dir_backup
-{{- /* the rebootstrap profile only (bootstrap.profiles.rebootstrap), the groups
+{{- /* the rebootstrap profile only (phase_runner.profiles.rebootstrap), the groups
      of kubelet_kubeconfig_sync_rc */}}
 # copies the certificates of kubelet of the node to the backup $1
 kubelet_backup() {
