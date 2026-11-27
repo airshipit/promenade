@@ -19,9 +19,9 @@
 # containerd, haproxy on every node, the Kubernetes binaries of the chart
 # defaults. The CNI isn't part of the chart (the gate deploys Cilium).
 #
-# All the certificates are in the values (gen-pki-full.sh, run by
-# ssh-bootstrap.sh, adds certs to the values), the chart delivers them and the
-# kubeconfigs: kubeadm generates none of them, no bootstrap token. The workers
+# All the certificates are in the values, ssh-bootstrap.sh generates them with
+# gen-pki-full.sh. The chart delivers them and the kubeconfigs, kubeadm
+# generates none of them, and there is no bootstrap token. The workers
 # don't run kubeadm: kubelet registers them with their certificates. The
 # labels of the nodes are set by the orchestration.
 #
@@ -31,20 +31,21 @@
 # The tools of the chart, next to gen-pki.sh, run the phases of the node
 # scripts on all the nodes of the cluster:
 #
-#   gen-pki-full.sh     the CAs (gen-pki.sh of the chart) and the certificates
-#                       of the nodes of this file, only the missing ones are
-#                       added to the file
-#   ssh-bootstrap.sh    the PKI by gen-pki-full.sh, the first control plane
-#                       node (kubeadm init), then the rest at once (kubeadm
-#                       join of the control plane nodes, the workers without
-#                       kubeadm), the labels of the nodes. With --join
-#                       <node>...: these nodes join the existing cluster
-#   ssh-rebootstrap.sh  the lock of the reconcile and the backups on all the
-#                       nodes, then the files of the values and the restart of
-#                       the components: the control plane nodes, then the
-#                       workers
+#   gen-pki-full.sh     generates the CAs with gen-pki.sh of the chart and the
+#                       certificates of the nodes of this file, only the
+#                       missing ones are added to the file
+#   ssh-bootstrap.sh    generates the PKI with gen-pki-full.sh, bootstraps the
+#                       first control plane node with kubeadm init, then the
+#                       rest at once, the control plane nodes with kubeadm
+#                       join and the workers without kubeadm, and sets the
+#                       labels of the nodes. With --join <node>... these nodes
+#                       join the existing cluster
+#   ssh-rebootstrap.sh  locks the reconcile and backs up the certificates on
+#                       all the nodes, then puts the files of the values on
+#                       them and restarts the components, the control plane
+#                       nodes first, then the workers
 #
-# The nodes come from templates/phases/modules/tools/_nodes.tpl below, the
+# The nodes come from templates/phases/modules/orchestration/_nodes.tpl below, the
 # network of the certificates from network and kubeconfig of the values.
 #
 # Requirements:
@@ -69,10 +70,10 @@
 #     labels: {kubeadm: enabled}
 #
 #   helm template kubeadm ./charts/kubeadm -f nodes.yaml \
-#     -f ./charts/kubeadm/overrides/reference/ssh-orchestration-full.yaml \
+#     -f ./charts/kubeadm/overrides/reference/orchestration-ssh-full.yaml \
 #     --set manifests.secret_tools=true \
 #     | sed -n 's/^ *ssh-bootstrap.sh: *\(.*\)/\1/p' | base64 -d > ssh-bootstrap.sh
-#   CHART_ARGS="kubeadm ./charts/kubeadm -f nodes.yaml -f ./charts/kubeadm/overrides/reference/ssh-orchestration-full.yaml" \
+#   CHART_ARGS="kubeadm ./charts/kubeadm -f nodes.yaml -f ./charts/kubeadm/overrides/reference/orchestration-ssh-full.yaml" \
 #     bash ssh-bootstrap.sh
 #
 # Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH (the
@@ -96,50 +97,49 @@ cluster_config:
   kubernetesVersion: v1.37.0
 
 binaries:
-  # the data of binaries.sync below: containerd, runc and crictl of the upstream
-  # releases (tpl strings, ${arch} is substituted on the node); the
-  # configuration of containerd is the chart default (cri.fsgroup)
-  containerd:
-    version: v2.4.2
-    url: 'https://github.com/containerd/containerd/releases/download/{{ .Values.binaries.containerd.version }}/containerd-static-{{ trimPrefix "v" .Values.binaries.containerd.version }}-linux-${arch}.tar.gz'
-    service_url: "https://raw.githubusercontent.com/containerd/containerd/{{ .Values.binaries.containerd.version }}/containerd.service"
-  # the release: runc.${arch} and runc.sha256sum
-  runc:
-    url: "https://github.com/opencontainers/runc/releases/download/v1.5.2"
-  crictl:
-    url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.36.0/crictl-v1.36.0-linux-${arch}.tar.gz"
-  sync:
-    # containerd, runc, the systemd unit and crictl from the upstream releases,
-    # kubeadm, kubelet and kubectl as by default (binaries.url)
-    cri:
-      body: |
-        #!define: binary_cri_sync_rc
-        #!needs: binary_arch, binary_download
-        # containerd, runc, the systemd unit and crictl (the rebootstrap stops the
-        # static pods with it) from the upstream releases
-        binary_cri_sync_rc() {
-          local version={{ .Values.binaries.containerd.version | quote }} arch url sum dir
-          containerd --version 2>/dev/null | grep -qw "${version}" && return 1
-          arch=$(binary_arch) || exit 1
-          dir=$(mktemp -d) || exit 1
-          url={{ tpl .Values.binaries.containerd.url . | quote }}
-          sum=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || exit 1
-          binary_download "${dir}/containerd.tar.gz" "${url}" "${sum}"
-          tar -xzf "${dir}/containerd.tar.gz" -C /usr/local || exit 1
-          url={{ tpl .Values.binaries.runc.url . | quote }}
-          sum=$(curl -fsSL --retry 5 "${url}/runc.sha256sum" | awk -v f="runc.${arch}" '$2 == f {print $1}') || exit 1
-          binary_download "${dir}/runc" "${url}/runc.${arch}" "${sum}"
-          install -m 0755 "${dir}/runc" /usr/local/sbin/runc || exit 1
-          curl -fsSL --retry 5 -o /etc/systemd/system/containerd.service \
-            {{ tpl .Values.binaries.containerd.service_url . | quote }} || exit 1
-          url={{ tpl .Values.binaries.crictl.url . | quote }}
-          binary_download "${dir}/crictl.tar.gz" "${url}"
-          tar -xzf "${dir}/crictl.tar.gz" -C /usr/local/bin crictl || exit 1
-          rm -rf "${dir}"
-          echo "runtime-endpoint: unix:///run/containerd/containerd.sock" > /etc/crictl.yaml
-          systemctl daemon-reload
-          systemctl enable containerd
-        }
+  # kubeadm, kubelet and kubectl as by default
+  cri:
+    # containerd, runc and crictl of the upstream releases, tpl strings with
+    # ${arch} substituted on the node. The configuration of containerd is the
+    # chart default (cri.fsgroup)
+    containerd:
+      version: v2.4.2
+      url: 'https://github.com/containerd/containerd/releases/download/{{ .Values.binaries.cri.containerd.version }}/containerd-static-{{ trimPrefix "v" .Values.binaries.cri.containerd.version }}-linux-${arch}.tar.gz'
+      service_url: "https://raw.githubusercontent.com/containerd/containerd/{{ .Values.binaries.cri.containerd.version }}/containerd.service"
+    # the release: runc.${arch} and runc.sha256sum
+    runc:
+      url: "https://github.com/opencontainers/runc/releases/download/v1.5.2"
+    crictl:
+      url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.36.0/crictl-v1.36.0-linux-${arch}.tar.gz"
+    # containerd, runc, the systemd unit and crictl from the upstream releases
+    sync: |
+      #!define: binary_cri_sync_rc
+      #!needs: binary_arch, binary_download
+      # installs containerd, runc, the systemd unit and crictl from the upstream
+      # releases. The rebootstrap stops the static pods with crictl
+      binary_cri_sync_rc() {
+        local version={{ .Values.binaries.cri.containerd.version | quote }} arch url sum dir
+        containerd --version 2>/dev/null | grep -qw "${version}" && return 1
+        arch=$(binary_arch) || exit 1
+        dir=$(mktemp -d) || exit 1
+        url={{ tpl .Values.binaries.cri.containerd.url . | quote }}
+        sum=$(curl -fsSL --retry 5 "${url}.sha256sum" | cut -d ' ' -f 1) || exit 1
+        binary_download "${dir}/containerd.tar.gz" "${url}" "${sum}"
+        tar -xzf "${dir}/containerd.tar.gz" -C /usr/local || exit 1
+        url={{ tpl .Values.binaries.cri.runc.url . | quote }}
+        sum=$(curl -fsSL --retry 5 "${url}/runc.sha256sum" | awk -v f="runc.${arch}" '$2 == f {print $1}') || exit 1
+        binary_download "${dir}/runc" "${url}/runc.${arch}" "${sum}"
+        install -m 0755 "${dir}/runc" /usr/local/sbin/runc || exit 1
+        curl -fsSL --retry 5 -o /etc/systemd/system/containerd.service \
+          {{ tpl .Values.binaries.cri.containerd.service_url . | quote }} || exit 1
+        url={{ tpl .Values.binaries.cri.crictl.url . | quote }}
+        binary_download "${dir}/crictl.tar.gz" "${url}"
+        tar -xzf "${dir}/crictl.tar.gz" -C /usr/local/bin crictl || exit 1
+        rm -rf "${dir}"
+        echo "runtime-endpoint: unix:///run/containerd/containerd.sock" > /etc/crictl.yaml
+        systemctl daemon-reload
+        systemctl enable containerd
+      }
 
 anchor:
   reconcile:
@@ -170,7 +170,7 @@ vip:
   # haproxy frontend and backends: "<bind>|<apiserver>,<apiserver>,..."
   init_val: >-
     *:6553|{{- $nodesOut := dict -}}
-    {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+    {{- $_ := tuple . "templates/phases/modules/orchestration/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
     {{- $backends := list -}}
     {{- range $nodesOut.nodes -}}
     {{- if eq .role "master" -}}
@@ -207,10 +207,10 @@ entrypoint:
       name: {{ include "kubeadm.fullname" . }}-tools
     type: Opaque
     data:
-      gen-pki.sh: {{ tuple . "templates/phases/modules/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      gen-pki-full.sh: {{ tuple . "templates/phases/modules/tools/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      ssh-bootstrap.sh: {{ tuple . "templates/phases/modules/tools/_ssh-bootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
-      ssh-rebootstrap.sh: {{ tuple . "templates/phases/modules/tools/_ssh-rebootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      gen-pki.sh: {{ tuple . "templates/phases/modules/certs/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      gen-pki-full.sh: {{ tuple . "templates/phases/modules/certs/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-bootstrap.sh: {{ tuple . "templates/phases/modules/orchestration/_ssh-bootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      ssh-rebootstrap.sh: {{ tuple . "templates/phases/modules/orchestration/_ssh-rebootstrap.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
     {{ end }}
 
 bundle:
@@ -262,7 +262,7 @@ bundle:
         ignorePreflightErrors:
           - Port-10250
           - DirAvailable--etc-kubernetes-manifests
-          # the bootstrap script delivers the PKI and the kubeconfigs
+          # the phase runner delivers the PKI and the kubeconfigs
           - FileAvailable--etc-kubernetes-kubelet.conf
       # the certificates, the kubeconfigs and kubelet.conf of the values
       skipPhases:
@@ -365,7 +365,7 @@ bundle:
     #   role      master or worker (NODE_ROLE)
     #   labels    the labels of the node set by ssh-bootstrap.sh (a dict)
     # The order matters: the first master runs kubeadm init.
-    "templates/phases/modules/tools/_nodes.tpl": |
+    "templates/phases/modules/orchestration/_nodes.tpl": |
       {{- $envAll := index . 0 -}}
       {{- $out := index . 1 -}}
       {{- $roles := dict "control-plane" "master" "worker" "worker" -}}
@@ -378,11 +378,11 @@ bundle:
     # the full PKI of the cluster: the CAs by gen-pki.sh of the chart, the
     # certificates of the nodes (baked in) signed by them. Only the missing
     # ones are added to the file: a new node gets its own
-    "templates/phases/modules/tools/_gen-pki-full.sh.tpl": |
+    "templates/phases/modules/certs/_gen-pki-full.sh.tpl": |
       #!/bin/bash
       set -euo pipefail
       {{- $nodesOut := dict -}}
-      {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" }}
+      {{- $_ := tuple . "templates/phases/modules/orchestration/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" }}
 
       OUTPUT_FILE="${PKI_VALUES:-values-pki.yaml}"
       LEAF_DAYS="${LEAF_DAYS:-365}"
@@ -409,7 +409,7 @@ bundle:
       # the CAs and the service account key
       if [ ! -s "${OUTPUT_FILE}" ]; then
         bash -s -- --out-file "${OUTPUT_FILE}" << 'EOF_GEN_PKI'
-      {{ tuple . "templates/phases/modules/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/certs/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" }}
       EOF_GEN_PKI
       fi
 
@@ -529,11 +529,11 @@ bundle:
       echo "the full PKI is in ${OUTPUT_FILE}"
 
     # the common part of the tools: the nodes and running the node scripts
-    "templates/phases/modules/tools/_ssh-orchestration.sh.tpl": |
+    "templates/phases/modules/orchestration/_ssh.sh.tpl": |
       {{- $nodesOut := dict -}}
-      {{- $_ := tuple . "templates/phases/modules/tools/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
+      {{- $_ := tuple . "templates/phases/modules/orchestration/_nodes.tpl" (tuple . $nodesOut) | include "kubeadm.bundle.template" -}}
       {{- if not $nodesOut.nodes -}}
-      {{- fail "ssh orchestration: no nodes (templates/phases/modules/tools/_nodes.tpl)" -}}
+      {{- fail "ssh orchestration: no nodes (templates/phases/modules/orchestration/_nodes.tpl)" -}}
       {{- end -}}
       {{- $firstMaster := "" -}}
       {{- range $node := $nodesOut.nodes -}}
@@ -545,14 +545,14 @@ bundle:
       {{- end -}}
       {{- end -}}
       {{- if not $firstMaster -}}
-      {{- fail "ssh orchestration: no control plane node (templates/phases/modules/tools/_nodes.tpl)" -}}
+      {{- fail "ssh orchestration: no control plane node (templates/phases/modules/orchestration/_nodes.tpl)" -}}
       {{- end -}}
       HELM="${HELM:-helm}"
       CHART_ARGS="${CHART_ARGS:?the values of the cluster: \"<release> <chart> -f <values>...\"}"
       SSH="${SSH:-{{ .Values.orchestration.ssh }}}"
       SUDO="${SUDO-{{ .Values.orchestration.sudo }}}"
 
-      # the nodes: templates/phases/modules/tools/_nodes.tpl
+      # the nodes: templates/phases/modules/orchestration/_nodes.tpl
       NODES=({{ range $nodesOut.nodes }} {{ .hostname | quote }}{{ end }} )
       declare -A NODE_IP=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .ip | quote }}{{ end }} )
       declare -A NODE_ROLE=({{ range $nodesOut.nodes }} [{{ .hostname | quote }}]={{ .role | quote }}{{ end }} )
@@ -569,7 +569,7 @@ bundle:
         printf "'%s'" "${1//\'/\'\\\'\'}"
       }
 
-      # renders the script of the node: render_node <profile> <node>, to
+      # render_node <profile> <node> renders the script of the node to
       # <node>-<profile>.sh, run_node runs the last rendered one (NODE_SCRIPT)
       declare -A NODE_SCRIPT=()
       render_node() {
@@ -586,10 +586,10 @@ bundle:
         NODE_SCRIPT[${node}]="${file}"
       }
 
-      # runs the script of the node with the arguments: it goes through stdin
-      # to a private directory of the node (mktemp -d) with the environment of
-      # the node (and KUBEADM_TOKEN) on top, the directory is removed at the
-      # end. No umask: the script creates the files of the node with it.
+      # runs the script of the node with the arguments. It goes through stdin
+      # to a private directory of the node (mktemp -d), with the environment of
+      # the node and KUBEADM_TOKEN on top, and the directory is removed at the
+      # end. No umask, the script creates the files of the node with it.
       run_node() {
         local node="$1" arg args=""
         shift
@@ -625,17 +625,17 @@ bundle:
         fi
       }
 
-    "templates/phases/modules/tools/_ssh-bootstrap.sh.tpl": |
+    "templates/phases/modules/orchestration/_ssh-bootstrap.sh.tpl": |
       #!/bin/bash
-      # Bootstrap of the cluster over ssh: the reference orchestration of the
-      # bootstrap scripts of the nodes (overrides/reference/ssh-orchestration-full.yaml)
+      # Bootstrap of the cluster over ssh, the reference orchestration of the
+      # phase-runner scripts of the nodes, from overrides/reference/orchestration-ssh-full.yaml
       set -euo pipefail
 
-      {{ tuple . "templates/phases/modules/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/orchestration/_ssh.sh.tpl" | include "kubeadm.bundle.template" }}
 
       KUBEADM_INIT=({{ .Values.orchestration.kubeadm.init }})
       KUBEADM_JOIN=({{ .Values.orchestration.kubeadm.join }})
-      # the workers: the default phases of the bootstrap script but kubeadm_run
+      # the workers: the bootstrap profile without kubeadm_run
       {{- $workers := list }}
       {{- range $phase := .Values.phase_runner.profiles.bootstrap }}
       {{-   if not (or (hasPrefix "+" $phase) (eq $phase "kubeadm_run")) }}
@@ -695,7 +695,7 @@ bundle:
       PKI_VALUES="${PKI_VALUES:-values-pki.yaml}"
       echo "=== the PKI: ${PKI_VALUES}"
       bash -s -- --out-file "${PKI_VALUES}" << 'EOF_GEN_PKI_FULL'
-      {{ tuple . "templates/phases/modules/tools/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/certs/_gen-pki-full.sh.tpl" | include "kubeadm.bundle.template" }}
       EOF_GEN_PKI_FULL
       CHART_ARGS="${CHART_ARGS} -f ${PKI_VALUES}"
 
@@ -723,13 +723,13 @@ bundle:
       label_nodes
       echo "The cluster is bootstrapped"
 
-    "templates/phases/modules/tools/_ssh-rebootstrap.sh.tpl": |
+    "templates/phases/modules/orchestration/_ssh-rebootstrap.sh.tpl": |
       #!/bin/bash
-      # Rebootstrap of the cluster over ssh: the reference orchestration of the
-      # rebootstrap scripts of the nodes (overrides/reference/ssh-orchestration-full.yaml)
+      # Rebootstrap of the cluster over ssh, the reference orchestration of the
+      # phase-runner scripts of the nodes, from overrides/reference/orchestration-ssh-full.yaml
       set -euo pipefail
 
-      {{ tuple . "templates/phases/modules/tools/_ssh-orchestration.sh.tpl" | include "kubeadm.bundle.template" }}
+      {{ tuple . "templates/phases/modules/orchestration/_ssh.sh.tpl" | include "kubeadm.bundle.template" }}
       {{- if not ((.Values.certs).apiserver_kubelet_client).crt }}
       # rendered without the PKI: the other tools make it
       echo "ssh-rebootstrap.sh: the values must have the full PKI (gen-pki-full.sh)" >&2
@@ -745,7 +745,7 @@ bundle:
         --refresh-clients: then the pods of certs.refresh_clients_selectors
         are deleted (they keep the CA and the service account tokens of the
         old ones)
-        -- <phase> <arguments>: these phases of the rebootstrap script in
+        -- <phase> <arguments>: these phases of the rebootstrap profile in
         this order on all the nodes at once (backup restore, backup remove)
 
       Environment: HELM, CHART_ARGS ("<release> <chart> -f <values>..."), SSH, SUDO
@@ -787,7 +787,7 @@ bundle:
       fi
 
       # the control plane nodes first: the workers need the API with the new CAs
-      PHASES=(-- certs_sync -- kubeconfig_sync -- kubelet_sync_rc -- static_pods_stop -- kubelet_stop
+      PHASES=(-- certs_sync -- kubeconfig_sync -- kubelet_sync_rc -- kubelet_stop -- static_pods_stop
         -- cri_restart -- kubelet_start -- kubelet_mark_applied -- check_run)
       for role in master worker; do
         echo "=== the new files and the restart of the components on the ${role} nodes"
@@ -796,7 +796,7 @@ bundle:
           start_node "${node}" --run "${PHASES[@]}"
         done
         if ! wait_nodes; then
-          echo "Back to the backups: ssh-rebootstrap.sh -- backup restore -- static_pods_stop -- kubelet_stop -- cri_restart -- kubelet_start" >&2
+          echo "Back to the backups: ssh-rebootstrap.sh -- backup restore -- kubelet_stop -- static_pods_stop -- cri_restart -- kubelet_start" >&2
           exit 1
         fi
       done

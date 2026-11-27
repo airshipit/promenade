@@ -1,12 +1,8 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-# The node checks: called by the check_run phase of the bootstrap and
-# rebootstrap scripts and the reconcile script (anchor.reconcile.checks), one
-# line per check:
-#   check OK|FAIL|SKIP <check> <details>
-# The other modules define their <module>_check with check_result (vip_check
-# of the vip module, certs_check of the certs module).
+# Other modules define their checks with check_result, check_run runs them by
+# name.
 
 #!define: CHECK_FAILURES
 CHECK_FAILURES=0
@@ -24,7 +20,7 @@ check_result() {
 }
 
 #!define: check_attempts
-# runs "$@" until it succeeds, checks.attempts times 2 seconds apart
+# runs "$@" until it succeeds, up to checks.attempts times 2 seconds apart
 check_attempts() {
   local n=1
   until "$@"; do
@@ -37,13 +33,12 @@ check_attempts() {
 #!define: check_api
 #!needs: check_attempts, check_result
 
-# check_api's helper: the certificate isn't verified, liveness of the endpoint
-# only
+# checks only the liveness of the endpoint, its certificate isn't verified
 _check_livez() {
   curl -ksf --max-time 5 "$1" > /dev/null 2>&1
 }
 
-# bootstrap: the node reaches the API through the control plane endpoint
+# checks that the node reaches the API through the control plane endpoint
 check_api() {
   local url="https://{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}/livez"
   if check_attempts _check_livez "${url}"; then
@@ -56,8 +51,7 @@ check_api() {
 
 #!define: check_run
 #!needs: CHECK_FAILURES, check_api
-# runs the given checks (check_api without arguments), fails if any of them
-# failed: the static pods check their own liveness, helm test checks the cluster
+# runs the given checks (default: check_api) and fails if any of them failed
 check_run() {
   local check
   [ $# -gt 0 ] || set -- check_api

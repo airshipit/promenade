@@ -12,7 +12,7 @@
 # limitations under the License.
 
 # The nodes held out of day 0 join the cluster over ssh: ssh-bootstrap.sh
-# --join of the chart (charts/kubeadm/overrides/reference/ssh-orchestration-<ORCHESTRATION>.yaml)
+# --join of the chart (charts/kubeadm/overrides/reference/orchestration-ssh-<ORCHESTRATION>.yaml)
 # with the current PKI. After a rotation of the CAs the discovery of the
 # joining nodes goes through the cluster-info ConfigMap the rebootstrap
 # updated.
@@ -35,7 +35,7 @@ set -exo pipefail
 # the reference orchestration: ca or full
 : "${ORCHESTRATION:="ca"}"
 # the values of the cluster: the reference orchestration
-: "${VALUES:="${KUBEADM_CHART}/overrides/reference/ssh-orchestration-${ORCHESTRATION}.yaml"}"
+: "${VALUES:="${KUBEADM_CHART}/overrides/reference/orchestration-ssh-${ORCHESTRATION}.yaml"}"
 # the key of the gate (the zuul playbook adds it to all the nodes)
 : "${SSH_KEY:="${HOME}/.ssh/kubeadm-gate"}"
 

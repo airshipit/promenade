@@ -1,8 +1,8 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-{{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
-{{- $controlPlaneNodes := get (get $k8sConfDict "fs") "ctrl" -}}
+{{- $allNodes := get (get $mainDict "fs") "all" -}}
+{{- $controlPlaneNodes := get (get $mainDict "fs") "ctrl" -}}
 
 {{- $folder2prefix:= dict
       "." (tuple "kubeadm_" $allNodes)
@@ -13,7 +13,7 @@
 {{- if $envAll.Values.kubeadm -}}
   {{- if $envAll.Values.kubeadm.templates -}}
     {{- range $filename,$template := $envAll.Values.kubeadm.templates -}}
-      {{/* account for different directories. fail if no matiching prefix */}}
+      {{/* account for different directories. fail if no matching prefix */}}
       {{- $fname := base $filename -}}
       {{- $fdir := dir $filename -}}
       {{- if not (hasKey $folder2prefix $fdir) -}}{{ fail (printf "templates/phases/modules/kubeadm/_.sh.tpl doesn't know how to treat files in %s (filename %s)" $fdir $filename) }}{{- end -}}
@@ -58,45 +58,12 @@ kubeadm_sync() {
   echo "kubeadm is synced"
 }
 
-#!define: _kubeadm_files_sha256
-#!needs: _groups_sha256
-# the configurations and the patches kubeadm is run with
-_kubeadm_files_sha256() {
-  _groups_sha256 "${ROOTFS}" "${NODE_ROLE}" _kubeadm _kubeadmpatch
-}
-
-#!define: kubeadm_mark_applied
-#!needs: node_info_update, node_info_update_wait, _kubeadm_files_sha256
-# the control plane node runs with the kubeadm files of the values: the first
-# pass of the reconcile doesn't apply them again. Written as the node
-# (kubelet.conf) unless KUBECONFIG is set (the reconcile)
-kubeadm_mark_applied() {
-  if [ "${NODE_ROLE}" != "master" ]; then
-    echo "the kubeadm configuration is applied on the control plane nodes only"
-    return 0
-  fi
-  KUBECONFIG="${KUBECONFIG:-${ROOTFS}/etc/kubernetes/kubelet.conf}" node_info_update_wait kubeadm_applied "$(_kubeadm_files_sha256)"
-}
-
-#!define: kubeadm_action_required_rc
-#!needs: _kubeadm_files_sha256, node_info_field
-# 0 if the control plane node doesn't run the kubeadm files of the values
-# (kubeadm_mark_applied, the state of the node $1 from node_info_load),
-# 1 if it does and on the other nodes
-kubeadm_action_required_rc() {
-  local applied
-  [ "${NODE_ROLE}" == "master" ] || return 1
-  applied=$(node_info_field "$1" kubeadm_applied)
-  [[ -z $applied || $applied != $(_kubeadm_files_sha256) ]]
-}
-
 #!define: kubeadm_node_config
 #!needs: subst_node_env
 
-# kubeadm_node_config's helper: the InitConfiguration of the values for the
-# node (init_config.yaml of the kubeadm files, with NODE_IP, NODE_NAME...): the
-# document of its kind only, without skipPhases (the ones of kubeadm init, the
-# phases are run one by one)
+# prints the InitConfiguration document of the values with the variables of
+# the node substituted, without skipPhases since kubeadm init phase runs the
+# phases one by one
 _kubeadm_values_init_config() {
   subst_node_env "${ROOTFS}/run/kubeadm/all/_kubeadm/init_config.yaml" | awk '
     /^---/ { if (keep) printf "%s", doc; doc = ""; keep = 0; skip = 0; next }
@@ -107,10 +74,10 @@ _kubeadm_values_init_config() {
     END { if (keep) printf "%s", doc }'
 }
 
-# the kubeadm configuration of the node for kubeadm init phase: the
-# InitConfiguration of the values for the node (or the one of the node name,
-# it isn't always the hostname kubeadm defaults to), the ClusterConfiguration
-# and the kubelet configuration
+# prints the kubeadm configuration of the node for kubeadm init phase: the
+# InitConfiguration of the values, the ClusterConfiguration and the kubelet
+# configuration. Without init_config.yaml the InitConfiguration sets the node
+# name, because kubeadm defaults to the hostname
 kubeadm_node_config() {
   if [ -f "${ROOTFS}/run/kubeadm/all/_kubeadm/init_config.yaml" ]; then
     _kubeadm_values_init_config
@@ -134,12 +101,8 @@ EOF_CONFIG
 }
 
 #!define: kubeadm_generated_files
-{{- /* the rebootstrap profile only (phase_runner.profiles.rebootstrap), the files
-     kubeadm generates when the values have the CAs only (the backups have
-     them anyway) */}}
-# the certificates and the kubeconfigs kubeadm generates from the CAs: the
-# control plane ones on the control plane nodes, the kubeconfig of kubelet (its
-# client certificates are in /var/lib/kubelet/pki) on all of them
+# prints the certificates and the kubeconfigs kubeadm generates from the CAs:
+# all of them on a control plane node and kubelet.conf on a worker
 kubeadm_generated_files() {
   if [ "${NODE_ROLE}" == "master" ]; then
     echo /etc/kubernetes/pki/apiserver.crt /etc/kubernetes/pki/apiserver.key
@@ -157,8 +120,9 @@ kubeadm_generated_files() {
 
 #!define: kubeadm_backup
 #!needs: backup_files, kubeadm_generated_files
-# copies the files kubeadm generated and the certificates of kubelet (the
-# directory, kubelet-client-current.pem is a link) to the backup $1
+# copies the files kubeadm generated and the certificates of kubelet to the
+# backup $1. The kubelet directory is copied as a whole because
+# kubelet-client-current.pem is a link
 kubeadm_backup() {
   backup_files "$1" $(kubeadm_generated_files)
   if [ -d "${ROOTFS}/var/lib/kubelet/pki" ]; then
@@ -169,8 +133,7 @@ kubeadm_backup() {
 
 #!define: kubeadm_restore
 #!needs: restore_files, kubeadm_generated_files
-# puts the files of the backup $1 back, removes the ones it doesn't have (the
-# node didn't have them before)
+# puts the files of the backup $1 back
 kubeadm_restore() {
   restore_files "$1" $(kubeadm_generated_files)
   rm -rf "${ROOTFS}/var/lib/kubelet/pki"
@@ -179,26 +142,28 @@ kubeadm_restore() {
   fi
 }
 
-#!define: kubeadm_upgrade_backups_cleanup
-# the backups kubeadm upgrade leaves in /etc/kubernetes/tmp, but the last ones
-kubeadm_upgrade_backups_cleanup() {
+#!define: kubeadm_cleanup_upgrade_backups
+# kubeadm upgrade backs up the static pod manifests and the etcd data to
+# /etc/kubernetes/tmp before changing them and never removes the backups.
+# Removes all of them but the last one of each kind
+kubeadm_cleanup_upgrade_backups() {
   local p
   if [ -e "${ROOTFS}/etc/kubernetes/tmp/" ]; then
-    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d "${ROOTFS}/etc/kubernetes/tmp/$p-*" 2>/dev/null | sort | sed '$d' | xargs -r rm -rf || true; done
+    for p in kubeadm-backup-etcd kubeadm-backup-manifests; do ls -d "${ROOTFS}/etc/kubernetes/tmp/$p-"* 2>/dev/null | sort | sed '$d' | xargs -r rm -rf || true; done
   fi
 }
 
 #!define: kubeadm_run
 #!needs: kubelet_sync_rc
 
-# kubeadm_run's helper: the configuration of kubeadm (--config) with the
-# bootstrap token of the join (KUBEADM_TOKEN) to the file $2, the files of the
-# node don't have it
+# writes the kubeadm configuration $1 with KUBEADM_TOKEN substituted to the
+# file $2. The files of the node don't keep the token
 _kubeadm_token_config() {
   sed "s|\${KUBEADM_TOKEN}|${KUBEADM_TOKEN:-}|g" "${ROOTFS}$1" > "$2"
 }
 
-# kubeadm with the arguments of the phase (init by default)
+# runs kubeadm with the given arguments (default: init). The --config file
+# gets KUBEADM_TOKEN substituted
 kubeadm_run() {
   local args=() arg dir config=false rc=0
   [ $# -gt 0 ] || set -- init
@@ -220,9 +185,8 @@ kubeadm_run() {
   rm -rf "${dir}"
   [ "${rc}" -eq 0 ] || return "${rc}"
 
-  # kubeadm writes its kubelet configuration (/var/lib/kubelet/config.yaml):
-  # the one of the chart again, as the reconcile does, and the kubeconfig of
-  # the control plane endpoint
+  # kubeadm writes its own kubelet configuration and kubelet.conf, need to
+  # re-sync them with the values again
   if kubelet_sync_rc; then
     systemctl daemon-reload
     systemctl restart kubelet
@@ -230,11 +194,10 @@ kubeadm_run() {
 }
 
 #!define: kubeadm_cluster_info
-# the cluster wide objects with the CAs: kubeadm creates cluster-info only (the
-# CA of the token discovery of the joining nodes, server side apply keeps the
-# signatures of the tokens), the apiserver creates
-# extension-apiserver-authentication with its CAs again (the aggregated API
-# servers trust it)
+# updates the CA in the cluster-info ConfigMap, which kubeadm only creates,
+# and deletes extension-apiserver-authentication so the apiserver creates it
+# again with its CAs. Server side apply keeps the signatures of the bootstrap
+# tokens in cluster-info
 kubeadm_cluster_info() {
   local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
   local kubeconfig

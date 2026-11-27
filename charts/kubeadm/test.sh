@@ -144,7 +144,8 @@ mkdir -p "${dir}/member"
 EOF
 
 chmod +x "${test_bin}"/*
-# the node scripts run kubeadm and kubectl by name (the PATH has the mocks), binary_kubernetes_sync_rc compares with binaries.install_dir
+# the node scripts run kubeadm and kubectl by name, the PATH has the mocks.
+# binary_kubernetes_sync_rc compares with binaries.install_dir
 mkdir -p "${ROOTFS}/usr/local/bin"
 ln -sf ../../../bin/kubeadm ../../../bin/kubectl "${ROOTFS}/usr/local/bin/"
 }
@@ -184,130 +185,32 @@ assert_before() {
 
 
 RUN_COUNTER=0
-clean_bootstrap() {
-  local run_rootfs="kubeadm-test-rootfs-${RUN_COUNTER}"
-  # delete if not set overwise
-  [ -n "${KEEP_ROOTFS:-}" ] || rm -rf "${run_rootfs}" || true
-}
-
-run_bootstrap() {
+# a new rootfs with the mocks for the next run_phase_runner
+rootfs_new() {
   RUN_COUNTER=$((RUN_COUNTER + 1))
-  local run_rootfs="kubeadm-test-rootfs-${RUN_COUNTER}"
-  echo "[Run #${RUN_COUNTER}] Running with arg: $@"
-
-  local script="script"
-  local nodename="$1"
-  shift 1
-
-  local overrides=""
-  local extra_helm_args=""
-  local script_args=()
-
-  # Parsing named args
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -f|--values)
-        overrides="$overrides -f $2"
-        shift 2
-        ;;
-      --set)
-        extra_helm_args="$extra_helm_args --set $2"
-        shift 2
-        ;;
-      --) # everything after -- goes to `bash -s`
-        shift
-        script_args=("$@")
-        break
-        ;;
-      *)
-        echo "Unknown option: $1" >&2
-        FAILURES=$((FAILURES + 1))
-        return 1
-        ;;
-    esac
-  done
-
-  # env vars settings (can be redefined from outside)
-  local yq="${YQ:-yq}"
-  local helm="${HELM:-helm}"
-
-  local postfix=""
-  if [ -n "$nodename" ]; then
-    postfix="-${nodename}"
-  fi
-
-  local target_secret="kubeadm-service-phase-runner${postfix}"
-  local bootstrap_code
-
-  #set new rootfs
-  rm -rf "${run_rootfs}" || true
-  mkdir -p "${run_rootfs}/tmp"
-  export ROOTFS=${run_rootfs}
-
-# 1. rended helm, save output to bootstrap_code
-  echo "running helm template kubeadm ${overrides} \
-    --set manifests.secret_phase_runner=true \
-    ${extra_helm_args}
-    "
-  bootstrap_code=$("${helm}" template kubeadm \
-    ${overrides} \
-    --set manifests.secret_phase_runner=true \
-    ${extra_helm_args} | \
-  "${yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"${target_secret}\") | .data[\"${script}\"] | @base64d" 2>/dev/null)
-
-  # 2. check that yq returned non empty and non "null" data
-  if [[ -z "${bootstrap_code}" || "${bootstrap_code}" == "null" ]]; then
-    echo "Error: Script '${script}' in Secret '${target_secret}' was not found in rendered Helm output." >&2
-    FAILURES=$((FAILURES + 1))
-    return 1
-  fi
-
-  # 2.1. check that the script can be taken with sed + base64 (see README.md):
-  # with phase_runner.nodename the only Secret is rendered, without the node
-  # suffix. Both tools read the same output: embedded tarballs have the
-  # render time as mtime, so two renders are never identical.
-  local nodename_args=""
-  if [ -n "$nodename" ]; then
-    nodename_args="--set phase_runner.nodename=${nodename}"
-  fi
-  local rendered yq_code sed_code
-  rendered=$("${helm}" template kubeadm \
-    ${overrides} \
-    --set manifests.secret_phase_runner=true \
-    ${extra_helm_args} \
-    ${nodename_args})
-  yq_code=$(echo "${rendered}" | \
-    "${yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-phase-runner\") | .data[\"${script}\"] | @base64d" 2>/dev/null)
-  sed_code=$(echo "${rendered}" | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d)
-
-  if [[ -n "${sed_code}" && "${sed_code}" == "${yq_code}" ]]; then
-    echo "  ✅ [OK] Script taken with sed + base64 matches the one taken with yq"
-  else
-    echo "  ❌ [FAIL] Script taken with sed + base64 differs from the one taken with yq" >&2
-    FAILURES=$((FAILURES + 1))
-    return 1
-  fi
-
+  export ROOTFS="kubeadm-test-rootfs-${RUN_COUNTER}"
+  rm -rf "${ROOTFS}"
+  mkdir -p "${ROOTFS}/tmp"
   _rootfs_mock
-  # 3. pass the code to bash
-  export PATH="${run_rootfs}/bin:${PATH}"
+  export PATH="${ROOTFS}/bin:${PATH}"
   export SKIPPERM=1
-  echo "${bootstrap_code}" | bash -s -- ${script_args[@]+"${script_args[@]}"}
-
-  # 4. store script to /tmp
-  echo "${bootstrap_code}" > "${run_rootfs}/tmp/script.sh"
 }
 
-# run_rebootstrap <nodename> [-f <values>] [--set <value>] [-- <args>]: the
-# rebootstrap script on the rootfs of the previous run_bootstrap, its output is
-# in ${ROOTFS}/tmp/rebootstrap.log, returns its status. An empty nodename: the
-# values without the files of the nodes (one Secret)
-run_rebootstrap() {
-  local nodename="$1"
-  shift 1
-  local postfix=""
-  [ -z "${nodename}" ] || postfix="-${nodename}"
-  local helm_args=() script_args=()
+rootfs_clean() {
+  # delete if not set otherwise
+  [ -n "${KEEP_ROOTFS:-}" ] || rm -rf "${ROOTFS}" || true
+}
+
+# run_phase_runner <nodename> [<helm arguments>] [-- <script arguments>]
+# renders the phase-runner script of the node and runs it on ${ROOTFS}, e.g.
+# the rebootstrap with --set phase_runner.profile=rebootstrap. Returns its
+# status, the script is kept in ${ROOTFS}/tmp/script.sh and its output in
+# ${ROOTFS}/tmp/script.log. An empty nodename is for the values without
+# per-node files, with one Secret for all the nodes
+run_phase_runner() {
+  local nodename="$1" secret="kubeadm-service-phase-runner" helm_args=() script_args=()
+  shift
+  [ -z "${nodename}" ] || secret="${secret}-${nodename}"
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --)
@@ -321,13 +224,17 @@ run_rebootstrap() {
         ;;
     esac
   done
-  echo "[Run #${RUN_COUNTER}] rebootstrap: ${script_args[*]+${script_args[*]}}"
-  "${HELM:-helm}" template kubeadm "${helm_args[@]}" \
-    --set manifests.secret_phase_runner=true \
-    --set phase_runner.profile=rebootstrap | \
-    "${YQ:-yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"kubeadm-service-phase-runner${postfix}\") | .data.script | @base64d" \
-    > "${ROOTFS}/tmp/rebootstrap.sh"
-  bash "${ROOTFS}/tmp/rebootstrap.sh" ${script_args[@]+"${script_args[@]}"} > "${ROOTFS}/tmp/rebootstrap.log" 2>&1
+  echo "[Run #${RUN_COUNTER}] ${helm_args[*]+${helm_args[*]}} -- ${script_args[*]+${script_args[*]}}"
+  "${HELM:-helm}" template kubeadm ${helm_args[@]+"${helm_args[@]}"} --set manifests.secret_phase_runner=true |
+    "${YQ:-yq}" eval ". | select(.kind == \"Secret\" and .metadata.name == \"${secret}\") | .data.script | @base64d" \
+    > "${ROOTFS}/tmp/script.sh" 2>/dev/null
+  if [ ! -s "${ROOTFS}/tmp/script.sh" ]; then
+    echo "  ❌ [FAIL] the script isn't found in the Secret ${secret}" >&2
+    FAILURES=$((FAILURES + 1))
+    return 1
+  fi
+  bash "${ROOTFS}/tmp/script.sh" ${script_args[@]+"${script_args[@]}"} 2>&1 | tee "${ROOTFS}/tmp/script.log"
+  return "${PIPESTATUS[0]}"
 }
 
 assert_file_exists() {
@@ -350,8 +257,8 @@ assert_file_absent() {
   fi
 }
 
-# the VIP the bootstrap wrote for the reconcile: the implementation $1, its
-# argument $2
+# checks that the bootstrap saved the VIP with the implementation $1 and its
+# argument $2 for the reconcile
 assert_vip_file() {
   local file="${ROOTFS}/etc/kubernetes/kubeadm/addons/vip"
   if [ "$(cat "${file}" 2>/dev/null)" = "$(printf '%s\n%s' "$1" "$2")" ]; then
@@ -394,10 +301,11 @@ ovrds=kubeadm/overrides/test
 # COVERAGE matrix
 #################
 # NO certs
-# - 1 node control plane (wihtout vip/haproxy).
+# - 1 node control plane (without vip/haproxy).
 # kubeadm will generate everything except service and default.
 # it's ok to generate kubeconfig - it will rewrite them
-run_bootstrap ""
+rootfs_new
+run_phase_runner ""
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
 
@@ -410,11 +318,12 @@ assert_before "swapoff"          "kubeadm init" "Swap disabled BEFORE kubeadm in
 assert_before "sysctl"           "kubeadm init" "Sysctl applied BEFORE kubeadm init"
 assert_before "systemctl.*kubelet" "kubeadm init" "Kubelet service pre-started BEFORE kubeadm init"
 
-clean_bootstrap
+rootfs_clean
 
 # token has to be taken from controller.
 # we're running without vip, so we assume that join runs as worker
-run_bootstrap "" -- -- kubeadm_run join
+rootfs_new
+run_phase_runner "" -- -- kubeadm_run join
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
 assert_file_absent "${ROOTFS}/etc/kubernetes/manifests/kube-apiserver.yaml"
@@ -429,12 +338,13 @@ assert_before "swapoff"            "kubeadm join" "Swap disabled BEFORE kubeadm 
 assert_before "sysctl"             "kubeadm join" "Sysctl applied BEFORE kubeadm join"
 assert_before "systemctl.*kubelet" "kubeadm join" "Kubelet service pre-started BEFORE kubeadm join"
 
-clean_bootstrap
+rootfs_clean
 
 # 3 nodes: with parameter
 export NODE_IP="172.29.0.139"
 export NODE_NAME="test-node-0"
-run_bootstrap "" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run init --control-plane-endpoint="127.0.0.1:6553"
+rootfs_new
+run_phase_runner "" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run init --control-plane-endpoint="127.0.0.1:6553"
 
 assert_logged "systemd-modules-load"           "Kernel modules loaded"
 assert_logged "sysctl --system"                 "Network sysctl applied"
@@ -473,12 +383,13 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 
 # the argument of the script replaces vip.init_val
 assert_vip_file haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443'
 
-clean_bootstrap
+rootfs_clean
 
 # 2nd controller
 export NODE_IP="172.29.0.144"
 export NODE_NAME="test-node-1"
-run_bootstrap "" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run join --control-plane --discovery-token abcdef.1234567890abcdef --discovery-token-ca-cert-hash sha256:1234..cdef 127.0.0.1:6553
+rootfs_new
+run_phase_runner "" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run join --control-plane --discovery-token abcdef.1234567890abcdef --discovery-token-ca-cert-hash sha256:1234..cdef 127.0.0.1:6553
 
 assert_logged "systemd-modules-load"           "Kernel modules loaded"
 assert_logged "sysctl --system"                 "Network sysctl applied"
@@ -512,7 +423,7 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
                        "HAProxy cfg contains backend node .144"
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
-clean_bootstrap
+rootfs_clean
 #################
 # CA certs
 uc0_ca=(
@@ -521,7 +432,8 @@ uc0_ca=(
 )
 export NODE_IP="172.29.0.139"
 export NODE_NAME="test-node-0"
-run_bootstrap "" "${uc0_ca[@]}" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run init --control-plane-endpoint="127.0.0.1:6553" --skip-phases certs/ca
+rootfs_new
+run_phase_runner "" "${uc0_ca[@]}" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run init --control-plane-endpoint="127.0.0.1:6553" --skip-phases certs/ca
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/ca.key"
@@ -549,7 +461,7 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
                        "HAProxy cfg contains backend node .144"
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
-clean_bootstrap
+rootfs_clean
 
 # the same but with declarative kubeadm config
 uc1_ca=(
@@ -559,7 +471,8 @@ uc1_ca=(
 )
 export NODE_IP="172.29.0.139"
 export NODE_NAME="test-node-0"
-run_bootstrap "" "${uc1_ca[@]}" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run init --control-plane-endpoint="127.0.0.1:6553" --skip-phases certs/ca
+rootfs_new
+run_phase_runner "" "${uc1_ca[@]}" -- -- vip_sync haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443' -- kubeadm_run init --control-plane-endpoint="127.0.0.1:6553" --skip-phases certs/ca
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
 assert_file_exists "${ROOTFS}/etc/kubernetes/pki/ca.key"
@@ -588,11 +501,12 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.144 172.29.0.144:6443 
 assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 check port 6443" \
                        "HAProxy cfg contains backend node .149"
 
-clean_bootstrap
+rootfs_clean
 
 # the join: the token is in the configuration kubeadm gets only
 export KUBEADM_TOKEN="abcdef.0123456789abcdef"
-run_bootstrap "" "${uc1_ca[@]}" -- -- kubeadm_run join --config /etc/kubernetes/kubeadm/join_worker_config.yaml
+rootfs_new
+run_phase_runner "" "${uc1_ca[@]}" -- -- kubeadm_run join --config /etc/kubernetes/kubeadm/join_worker_config.yaml
 unset KUBEADM_TOKEN
 assert_content_matches "${ROOTFS}/kubeadm-config.yaml" 'tlsBootstrapToken: "abcdef.0123456789abcdef"' \
                        "kubeadm gets the token of the join"
@@ -602,7 +516,7 @@ assert_content_matches "${ROOTFS}/mock_calls.log" "kubeadm join --config [^ ]*/c
                        "kubeadm gets a copy of the configuration"
 assert_file_absent "$(sed -n 's/.*kubeadm join --config \([^ ]*\)$/\1/p' "${ROOTFS}/mock_calls.log")"
 
-clean_bootstrap
+rootfs_clean
 
 # FULL mode with vip
 uc0_full_haproxy=(
@@ -620,7 +534,8 @@ uc0_full_haproxy=(
 )
 export NODE_IP="172.29.0.139"
 export NODE_NAME="nodename1"
-run_bootstrap "nodename0" "${uc0_full_haproxy[@]}"
+rootfs_new
+run_phase_runner "nodename0" "${uc0_full_haproxy[@]}"
 # the VIP of the values (overrides/test/vip.yaml)
 assert_vip_file haproxy '*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443,172.29.0.154:6443'
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
@@ -688,7 +603,7 @@ assert_content_matches "${haproxy_cfg}" "server s172.29.0.149 172.29.0.149:6443 
 
 assert_tgz_is_valid "${ROOTFS}/tmp/fs.tgz"
 
-clean_bootstrap
+rootfs_clean
 
 # FULL mode, single node control plane without vip
 uc0_full_1node=(
@@ -704,17 +619,35 @@ uc0_full_1node=(
 export NODE_IP="172.29.0.139"
 export NODE_NAME="nodename0"
 
+echo "[extraction] the script of a node with sed and base64, as README.md shows"
+# with phase_runner.nodename the only Secret is rendered, without the node
+# suffix. Both tools read the same output, because the embedded tarballs have
+# the render time as mtime and two renders are never identical
+extract_rendered=$("${HELM:-helm}" template kubeadm "${uc0_full_1node[@]}" \
+  --set manifests.secret_phase_runner=true --set phase_runner.nodename=nodename0)
+extract_yq=$(echo "${extract_rendered}" | "${YQ:-yq}" eval \
+  '. | select(.kind == "Secret" and .metadata.name == "kubeadm-service-phase-runner") | .data.script | @base64d')
+extract_sed=$(echo "${extract_rendered}" | sed -n 's/^ *script: *\(.*\)/\1/p' | base64 -d)
+if [[ -n "${extract_sed}" && "${extract_sed}" == "${extract_yq}" ]]; then
+  echo "  ✅ [OK] the script taken with sed and base64 is the one taken with yq"
+else
+  echo "  ❌ [FAIL] the script taken with sed and base64 differs from the one taken with yq" >&2
+  FAILURES=$((FAILURES + 1))
+fi
+
 # the certificate of the API of the node (certs.nodes.<node>.apiserver) instead
 # of the one shared by the control plane nodes (certs.apiserver)
-run_bootstrap "nodename0" "${uc0_full_1node[@]}" -f ${ovrds}/pki-apiserver-pernode.yaml \
+rootfs_new
+run_phase_runner "nodename0" "${uc0_full_1node[@]}" -f ${ovrds}/pki-apiserver-pernode.yaml \
   --set certs.apiserver=null -- -- kubeadm_run init --skip-phases certs,kubeconfig
 assert_content_matches "${ROOTFS}/etc/kubernetes/pki/apiserver.crt" "^apiserver_node0-crt-placeholder$" \
                        "The certificate of the API of the node"
 assert_content_matches "${ROOTFS}/etc/kubernetes/pki/apiserver.key" "^apiserver_node0-key-placeholder$" \
                        "The key of the API of the node"
-clean_bootstrap
+rootfs_clean
 
-run_bootstrap "nodename0" "${uc0_full_1node[@]}" -- -- kubeadm_run init --skip-phases certs,kubeconfig
+rootfs_new
+run_phase_runner "nodename0" "${uc0_full_1node[@]}" -- -- kubeadm_run init --skip-phases certs,kubeconfig
 assert_file_exists "${ROOTFS}/etc/systemd/system/kubelet.service"
 assert_file_exists "${ROOTFS}/etc/default/kubelet"
 assert_file_exists "${ROOTFS}/var/lib/kubelet/config.yaml"
@@ -774,12 +707,13 @@ rebootstrap_check() {
     FAILURES=$((FAILURES + 1))
   fi
 }
-# the rebootstrap script of the node: the values with the rotated certificates
+# the rebootstrap of the node with the rotated certificates in the values
 rebootstrap_run() {
-  run_rebootstrap "nodename0" "${uc0_full_1node[@]}" -f ${ovrds}/pki-rotated.yaml -- "$@"
+  run_phase_runner "nodename0" "${uc0_full_1node[@]}" -f ${ovrds}/pki-rotated.yaml \
+    --set phase_runner.profile=rebootstrap -- "$@"
 }
 rebootstrap_log() {
-  grep -q -- "$1" "${ROOTFS}/tmp/rebootstrap.log"
+  grep -q -- "$1" "${ROOTFS}/tmp/script.log"
 }
 rebootstrap_pki="${ROOTFS}/etc/kubernetes/pki"
 rebootstrap_backups="${ROOTFS}/var/lib/kubeadm-backup"
@@ -813,7 +747,7 @@ rebootstrap_check "certs: the certificates the rotation keeps" \
   grep -qx "etcd_peer_node0-crt-placeholder" "${rebootstrap_pki}/etcd/peer.crt"
 rebootstrap_check "the backups lock the reconcile" test -d "${rebootstrap_backups}"
 assert_before "stopp pod-kube-apiserver" "stopp pod-etcd" "rebootstrap: etcd after the others"
-assert_before "stopp pod-" "systemctl stop kubelet" "rebootstrap: the static pods, then kubelet"
+assert_before "systemctl stop kubelet" "stopp pod-" "rebootstrap: kubelet, then the static pods"
 assert_before "systemctl stop kubelet" "systemctl restart containerd" "rebootstrap: kubelet, then the runtime is restarted"
 assert_before "systemctl restart containerd" "systemctl restart kubelet" "rebootstrap: the runtime, then kubelet"
 
@@ -831,23 +765,14 @@ rebootstrap_check "backup restore: the etcd CA key the node didn't have is remov
 rebootstrap_check "backup remove passes" rebootstrap_run --run -- backup remove
 rebootstrap_check "backup remove: no backups, no lock" test ! -e "${rebootstrap_backups}"
 
-# an anchor of the node without the lock (an older chart)
-rebootstrap_anchor="${ROOTFS}/var/lib/kubelet/pods/old/volumes/kubernetes.io~configmap/bin"
-mkdir -p "${rebootstrap_anchor}"
-echo "echo reconcile" > "${rebootstrap_anchor}/reconcile"
-rebootstrap_check "an anchor without the lock: fails" eval '! rebootstrap_run'
-rebootstrap_check "an anchor without the lock: reported" rebootstrap_log "doesn't wait for the rebootstrap"
-rebootstrap_check "an anchor without the lock: no backups" test ! -e "${rebootstrap_backups}"
-rebootstrap_check "an anchor without the lock: the node isn't touched" \
-  grep -qx "ca-crt-placeholder" "${rebootstrap_pki}/ca.crt"
-
-clean_bootstrap
+rootfs_clean
 
 echo "[rebootstrap] the CAs only: kubeadm generates the rest again"
 export NODE_IP="172.29.0.139"
 export NODE_NAME="test-node-0"
 export NODE_ROLE="master"
-run_bootstrap "" "${uc1_ca[@]}" -- -- kubeadm_run init
+rootfs_new
+run_phase_runner "" "${uc1_ca[@]}" -- -- kubeadm_run init
 # the files kubeadm generated from the old CA
 ca_kubernetes="${ROOTFS}/etc/kubernetes"
 ca_kubelet_pki="${ROOTFS}/var/lib/kubelet/pki"
@@ -859,7 +784,8 @@ echo "old" > "${ca_kubelet_pki}/kubelet-client-2025.pem"
 ln -sf "kubelet-client-2025.pem" "${ca_kubelet_pki}/kubelet-client-current.pem"
 echo "old" > "${ca_kubelet_pki}/kubelet.crt"
 ca_rebootstrap_run() {
-  run_rebootstrap "" "${uc1_ca[@]}" -f ${ovrds}/kubelet.yaml -f ${ovrds}/pki-ca-rotated.yaml -- "$@"
+  run_phase_runner "" "${uc1_ca[@]}" -f ${ovrds}/kubelet.yaml -f ${ovrds}/pki-ca-rotated.yaml \
+    --set phase_runner.profile=rebootstrap -- "$@"
 }
 ca_backups="${ROOTFS}/var/lib/kubeadm-backup"
 
@@ -867,7 +793,7 @@ ca_backups="${ROOTFS}/var/lib/kubeadm-backup"
 : > "${ROOTFS}/mock_calls.log"
 # the phases of the orchestration on a control plane node
 rebootstrap_check "the CAs only: the phases of a control plane node pass" ca_rebootstrap_run \
-  --run -- reconcile_guard -- backup -- certs_sync -- kubeconfig_sync -- kubelet_sync_rc -- certs_generate_with_kubeadm -- static_pods_stop -- kubelet_stop -- cri_restart -- kubelet_start -- kubelet_mark_applied
+  --run -- reconcile_guard -- backup -- certs_sync -- kubeconfig_sync -- kubelet_sync_rc -- certs_generate_with_kubeadm -- kubelet_stop -- static_pods_stop -- cri_restart -- kubelet_start -- kubelet_mark_applied
 ca_backup="${ca_backups}/$(ls -1 "${ca_backups}" | tail -n 1)"
 rebootstrap_check "the CAs only, backup: the certificates kubeadm generated" \
   grep -qx "old" "${ca_backup}/etc/kubernetes/pki/apiserver.crt"
@@ -960,7 +886,7 @@ assert_before "pods --all-namespaces -l k8s-app=kube-dns" "pods --all-namespaces
 assert_before "kube-system get configmap kube-root-ca.crt" "delete pods" \
   "rebootstrap: the pods are deleted once the new CA is published"
 
-clean_bootstrap
+rootfs_clean
 unset NODE_ROLE
 
 echo "[ca_guard] the keys of the node aren't replaced"
@@ -974,10 +900,11 @@ ca_guard_check() {
     FAILURES=$((FAILURES + 1))
   fi
 }
-run_bootstrap "" -f ${ovrds}/uc0.yaml -f ${ovrds}/pki-ca.yaml
+rootfs_new
+run_phase_runner "" -f ${ovrds}/uc0.yaml -f ${ovrds}/pki-ca.yaml
 ca_guard_pki="${ROOTFS}/etc/kubernetes/pki"
-# the bootstrap script of the node runs again on it (it fails later in the mock
-# rootfs: no container runtime)
+# the phase runner runs the bootstrap again on the node, it fails later in the
+# mock rootfs without a container runtime
 ca_guard_rerun() {
   bash "${ROOTFS}/tmp/script.sh" > "${ROOTFS}/tmp/ca-guard.log" 2>&1 || true
 }
@@ -986,16 +913,16 @@ ca_guard_log() {
 }
 ca_guard_check "the CA is on the node" test -f "${ca_guard_pki}/ca.crt"
 ca_guard_rerun
-ca_guard_check "the same keys: the bootstrap goes on" ca_guard_log "certs_guard_ca: the keys of the node match the values"
+ca_guard_check "the same keys: the bootstrap goes on" ca_guard_log "certs_ca_guard: the keys of the node match the values"
 ca_guard_check "the same keys: the certs are synced" ca_guard_log "certs are synced"
 echo "other-ca-crt" > "${ca_guard_pki}/ca.crt"
 ca_guard_rerun
 ca_guard_check "another CA on the node: reported" \
-  ca_guard_log "certs_guard_ca: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
+  ca_guard_log "certs_ca_guard: the values deliver other keys than the ones of the node: /etc/kubernetes/pki/ca.crt$"
 ca_guard_check "another CA on the node: the bootstrap stops" eval '! ca_guard_log "certs are synced"'
 ca_guard_check "another CA on the node: not replaced" grep -qx "other-ca-crt" "${ca_guard_pki}/ca.crt"
 
-clean_bootstrap
+rootfs_clean
 
 echo "[binaries] kubeadm, kubelet and kubectl from the deb packages"
 apt_check() {
@@ -1008,7 +935,8 @@ apt_check() {
     FAILURES=$((FAILURES + 1))
   fi
 }
-run_bootstrap "" -f ${ovrds}/binaries-apt.yaml
+rootfs_new
+run_phase_runner "" -f ${ovrds}/binaries-apt.yaml
 for name in kubeadm kubelet kubectl; do
   assert_logged "apt-get install .* ${name}=1\.37\.0-\*" "apt: ${name} of the version is installed"
   assert_logged "apt-mark hold ${name}$" "apt: ${name} is held"
@@ -1027,7 +955,7 @@ bash "${ROOTFS}/tmp/script.sh" --run -- binaries_sync_rc > "${ROOTFS}/tmp/apt-re
 apt_check "the packages of the version are there: nothing is installed" eval '! grep -q "apt-get" "${ROOTFS}/mock_calls.log"'
 apt_check "the packages of the version are there: the versions are asked" grep -q "dpkg-query -W" "${ROOTFS}/mock_calls.log"
 
-clean_bootstrap
+rootfs_clean
 
 echo "[etcd] the etcd of kubeadm init from a snapshot"
 etcd_check() {
@@ -1040,7 +968,8 @@ etcd_check() {
     FAILURES=$((FAILURES + 1))
   fi
 }
-run_bootstrap ""
+rootfs_new
+run_phase_runner ""
 # etcd_restore <snapshot> on the node, before kubeadm init
 etcd_restore_run() {
   NODE_NAME=node0 NODE_IP=10.0.0.10 bash "${ROOTFS}/tmp/script.sh" --run -- etcd_restore /tmp/snapshot.db \
@@ -1058,7 +987,7 @@ etcd_check "the binaries as a phase: not managed isn't a failure" \
 etcd_check "the data of the node: not replaced" eval '! etcd_restore_run'
 etcd_check "the data of the node: refused by etcdutl" grep -q "exists" "${ROOTFS}/tmp/etcd-restore.log"
 
-clean_bootstrap
+rootfs_clean
 
 # patches of the templates (bundle.tpl."<template>.patch", overrides/test/patch.yaml):
 # the patch is applied, the lists are merged (the rest of the template stays)

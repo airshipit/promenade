@@ -1,6 +1,6 @@
 {{/*
-  The files of the chart (see templates/phases/modules/fs/_.sh.tpl): the
-  archives, the groups, the permissions
+  the helpers of the files of the chart: the archives, the groups and the
+  permissions
 */}}
 
 {{/* "true" if the archive (tuple fs archive) has files, for any node in the per-node ones */}}
@@ -14,7 +14,8 @@
   {{- end -}}
 {{- end -}}
 
-{{/* base64 of the tar of the files, constant mtime keeps the hashes in the daemonsets annotations */}}
+{{/* base64 of the tar of the files. The constant mtime keeps the hashes in the
+     annotations of the daemonsets stable */}}
 {{- define "kubeadm.fs.archive_tar_b64" -}}
   {{- $files := dict -}}
   {{- range $k,$v := . -}}
@@ -23,17 +24,20 @@
   {{- $files | include "tar" | b64enc -}}
 {{- end -}}
 
-{{/* the symbol <function> syncing the files of the list (tuple envAll k8sConfDict function list),
-     the list items: path, state (dir, touch, rm/remove, cp/copy, content, tpl), from, owner, mode.
-     content and tpl files go to the "all" archive as <function>/<path>.
-     the function returns 0 if the files were changed, 1 if not (name it *_rc) */}}
+{{/* generates the function <function> syncing the files of the list as a
+     symbol of the linker, the argument is
+     (tuple envAll mainDict function list). An item has path,
+     state (dir, touch, rm/remove, cp/copy, content, tpl), from, owner and
+     mode. The content and tpl files go to the "all" archive as
+     <function>/<path>. The function returns 0 if the files were changed and
+     1 if not, so its name ends with _rc */}}
 {{- define "kubeadm.fs.render_fsgroup_sync_rc" -}}
   {{- $envAll := index . 0 -}}
-  {{- $k8sConfDict := index . 1 -}}
+  {{- $mainDict := index . 1 -}}
   {{- $fn := index . 2 -}}
   {{- $list := index . 3 | default list -}}
-  {{- $symbols := get $k8sConfDict "symbols" -}}
-  {{- $all := get (get $k8sConfDict "fs") "all" -}}
+  {{- $symbols := get $mainDict "symbols" -}}
+  {{- $all := get (get $mainDict "fs") "all" -}}
   {{- if hasKey $symbols $fn -}}{{ fail (printf "%s is already defined" $fn) }}{{- end -}}
   {{- $needs := dict -}}
   {{- $body := printf `
@@ -88,7 +92,8 @@
   ) -}}
 {{- end -}}
 
-{{/* the permissions of a directory of the phases (tuple envAll path): fs.permissions.<path> */}}
+{{/* the mode of a directory from fs.permissions.<path>, the argument is
+     (tuple envAll path) */}}
 {{- define "kubeadm.fs.dir_mode" -}}
   {{- $envAll := index . 0 -}}
   {{- $path := index . 1 -}}
@@ -101,7 +106,8 @@
   {{- dig "permissions" $path "owner" "" ($envAll.Values.fs | default dict) -}}
 {{- end -}}
 
-{{/* the permissions of a group of the files of a phase (tuple envAll phase group): <phase>.permissions.<group> */}}
+{{/* the mode of a group of the files of a module from
+     <module>.permissions.<group>, the argument is (tuple envAll module group) */}}
 {{- define "kubeadm.fs.file_mode" -}}
   {{- $envAll := index . 0 -}}
   {{- $phase := index . 1 -}}

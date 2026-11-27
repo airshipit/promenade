@@ -12,7 +12,7 @@
 # limitations under the License.
 
 # Day 0 over ssh: the ssh-bootstrap.sh tool of the chart
-# (charts/kubeadm/overrides/reference/ssh-orchestration-<ORCHESTRATION>.yaml) bootstraps all
+# (charts/kubeadm/overrides/reference/orchestration-ssh-<ORCHESTRATION>.yaml) bootstraps all
 # the nodes of the gate from this node: the PKI by gen-pki.sh of the chart
 # (the CAs and the service account key, kubeadm generates the rest), the prep
 # phases on all the nodes at once, kubeadm init on the first control plane
@@ -33,7 +33,7 @@ set -exo pipefail
 # the reference orchestration: ca or full
 : "${ORCHESTRATION:="ca"}"
 # the values of the cluster: the reference orchestration
-: "${VALUES:="${KUBEADM_CHART}/overrides/reference/ssh-orchestration-${ORCHESTRATION}.yaml"}"
+: "${VALUES:="${KUBEADM_CHART}/overrides/reference/orchestration-ssh-${ORCHESTRATION}.yaml"}"
 # the key of the gate (the zuul playbook adds it to all the nodes)
 : "${SSH_KEY:="${HOME}/.ssh/kubeadm-gate"}"
 

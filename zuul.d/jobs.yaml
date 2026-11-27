@@ -146,7 +146,7 @@
       Build a 5 node Kubernetes cluster (3 control plane nodes with stacked
       etcd, 2 workers) on bare nodes over ssh from the primary node by the
       reference orchestration of the kubeadm chart for the CAs only
-      (overrides/reference/ssh-orchestration-ca.yaml), no other Airship
+      (overrides/reference/orchestration-ssh-ca.yaml), no other Airship
       components involved: only the CAs and the service account key are
       provided to the chart, kubeadm generates the rest of the PKI. The prep
       phases on all the nodes at once, kubeadm init on the first control plane
@@ -209,7 +209,7 @@
     parent: airship-promenade-kubeadm-ssh-ca-5nodes
     description: |
       The 5 node cluster of airship-promenade-kubeadm-ssh-ca-5nodes with the
-      full PKI in the values (overrides/reference/ssh-orchestration-full.yaml,
+      full PKI in the values (overrides/reference/orchestration-ssh-full.yaml,
       gen-pki-full.sh): kubeadm doesn't generate certificates, the workers
       don't run kubeadm. The same steps but the restore from the etcd
       snapshot, the rotations put a new full PKI.

@@ -1,34 +1,31 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
+{{- $symbols := get $mainDict "symbols" -}}
 {{/* the implementations */}}
 {{- range $module := $envAll.Values.vip.modules -}}
-{{- $_ := tuple $envAll (printf "templates/phases/modules/vip/_%s.sh.tpl" $module) (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | tuple $symbols | include "linker_symbols_from_sh" -}}
+{{- $_ := tuple $envAll (printf "templates/phases/modules/vip/_%s.sh.tpl" $module) (tuple $envAll $mainDict) | include "kubeadm.bundle.template" | tuple $symbols | include "linker_symbols_from_sh" -}}
 {{- end -}}
 
-# The VIP of the control plane endpoint, the generic part. The implementations
-# are the modules of vip.modules (templates/phases/modules/vip/_<module>.sh.tpl),
-# they define vip_<module>_sync (vip_sync calls the one of vip_argname) and
-# vip_<module>_reconcile (vip_reconcile calls the one the node was
-# bootstrapped with). The arguments of vip_sync replace vip_argname and
-# vip_arg.
+# The VIP of the control plane endpoint. An implementation of vip.modules is
+# _<module>.sh.tpl, it defines vip_<module>_sync and vip_<module>_reconcile,
+# which vip_sync and vip_reconcile call.
 
 #!define: vip_arg
-# the VIP: the implementation (vip_argname) and its argument, the values
-# (vip.init_argname, vip.init_val) or the arguments of vip_sync
+# the implementation of the VIP and its argument, from vip.init_argname and
+# vip.init_val unless vip_sync gets others
 vip_argname="{{ $envAll.Values.vip.init_argname | default "" }}"
 vip_arg="{{ tpl ($envAll.Values.vip.init_val | default "") $envAll }}"
 
 #!define: VIP_FILE
-# the VIP of the bootstrap: the implementation and its argument
+# the implementation and the argument of the VIP the node was bootstrapped with
 VIP_FILE="${ROOTFS}/etc/kubernetes/kubeadm/addons/vip"
 
 #!define: vip_save
 #!needs: ensure_dir, vip_arg, VIP_FILE
 {{- $addonsDirMode := tuple $envAll "/etc/kubernetes/kubeadm/addons" | include "kubeadm.fs.dir_mode" }}
 {{- $addonsDirOwner := tuple $envAll "/etc/kubernetes/kubeadm/addons" | include "kubeadm.fs.dir_owner" }}
-# the VIP (vip_argname, vip_arg) to VIP_FILE
+# saves vip_argname and vip_arg to VIP_FILE
 vip_save() {
   ensure_dir "${VIP_FILE%/*}" "{{ $addonsDirMode }}" "{{ $addonsDirOwner }}"
   printf '%s\n%s\n' "${vip_argname}" "${vip_arg}" > "${VIP_FILE}"
@@ -39,10 +36,9 @@ vip_save() {
 {{- range $module := $envAll.Values.vip.modules }}
 #!needs: vip_{{ $module }}_sync
 {{- end }}
-# the arguments in VIP_FILE (the reconcile follows the VIP the node was
-# bootstrapped with, an empty argument is no VIP), then the VIP of the
-# implementation vip_argname; the arguments "<implementation> <argument>"
-# replace the values ones
+# syncs the VIP of the implementation vip_argname and saves it to VIP_FILE,
+# a VIP with an empty argument isn't saved. The arguments
+# "<implementation> <argument>" replace the ones of the values
 vip_sync() {
   [ $# -eq 0 ] || { vip_argname="$1"; vip_arg="${2:-}"; }
   [ -z "${vip_arg}" ] || vip_save
@@ -60,8 +56,8 @@ vip_sync() {
 # it has none
 vip_configured() {
   local argname=""
-  # the nodes bootstrapped before VIP_FILE: the VIP of the values, an empty one
-  # isn't saved, the values can set it later
+  # a node bootstrapped before VIP_FILE existed gets the VIP of the values, an
+  # empty one isn't saved so the values can set it later
   if [ ! -f "${VIP_FILE}" ]; then
     [ -n "${vip_argname}" ] && [ -n "${vip_arg}" ] || return 1
     vip_save
@@ -75,9 +71,9 @@ vip_configured() {
 {{- range $module := $envAll.Values.vip.modules }}
 #!needs: vip_{{ $module }}_reconcile
 {{- end }}
-# called by the reconcile loop: the VIP the node was bootstrapped with follows
-# the control plane endpoints, nothing if it has none. The implementation gets
-# the arguments of VIP_FILE in vip_argname and vip_arg
+# keeps the VIP the node was bootstrapped with in sync with the control plane
+# endpoints, nothing if it has none. The implementation gets the arguments of
+# VIP_FILE in vip_argname and vip_arg
 vip_reconcile() {
   local argname
   argname=$(vip_configured) || return 0
@@ -92,8 +88,8 @@ vip_reconcile() {
 
 #!define: vip_check
 #!needs: check_result, vip_configured, vip_reconcile
-# reconcile: the first pass of the VIP reconcile (vip_reconcile), the
-# reconcile loop repeats it after the anchor is ready and ignores its errors
+# checks that the VIP of the node follows the apiservers by running
+# vip_reconcile once
 vip_check() {
   local argname
   if ! argname=$(vip_configured); then

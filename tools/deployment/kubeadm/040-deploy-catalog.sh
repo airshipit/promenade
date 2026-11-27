@@ -21,7 +21,7 @@ set -ex
 
 : "${WORK_DIR:="${HOME}/kubeadm-gate"}"
 : "${CATALOG:="${WORK_DIR}/catalog"}"
-: "${VALUES:="./charts/kubeadm/overrides/reference/ssh-orchestration-ca.yaml"}"
+: "${VALUES:="./charts/kubeadm/overrides/reference/orchestration-ssh-ca.yaml"}"
 : "${NAMESPACE:="kube-system"}"
 : "${ANCHOR_TIMEOUT:="1800"}"
 : "${KUBEADM_BEFORE_CNI:="false"}"

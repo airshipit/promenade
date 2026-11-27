@@ -1,10 +1,15 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-{{- $symbols := get $k8sConfDict "symbols" -}}
-{{- $all := get (get $k8sConfDict "fs") "all" -}}
+{{- $symbols := get $mainDict "symbols" -}}
+{{- $all := get (get $mainDict "fs") "all" -}}
 
-{{/* the environment: appended, the other modules add theirs too */}}
+# To deliver each node only what it needs, the chart delivers its files in 4
+# archives unpacked to /run/kubeadm: all, ctrl (control plane nodes only),
+# all-pernode and ctrl-pernode (the files of the node). Each archive has a
+# directory per group.
+
+{{/* appends to the environment shared with the other modules */}}
 {{- $environment := get $symbols "" | default (dict "body" "") -}}
 {{- $_ := set $symbols "" (dict "body" (print $environment.body `
 # cross-platform sha256 helper - needed for mac, TODO: remove it after testing
@@ -20,10 +25,10 @@ SED_INPLACE=(-i)
 SKIPPERM="${SKIPPERM:-}"
 `)) -}}
 
-{{/* the groups of the values: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
-     (templates/phases/modules/fs/_helpers.tpl) */}}
+{{/* generate fsgroup_<group>_sync_rc for each fs.groups.<group> of the
+     values */}}
 {{- range $group,$list := ($envAll.Values.fs).groups | default dict -}}
-  {{- tuple $envAll $k8sConfDict (printf "fsgroup_%s_sync_rc" $group) $list | include "kubeadm.fs.render_fsgroup_sync_rc" -}}
+  {{- tuple $envAll $mainDict (printf "fsgroup_%s_sync_rc" $group) $list | include "kubeadm.fs.render_fsgroup_sync_rc" -}}
 {{- end -}}
 
 #!define: ensure_dir
@@ -47,6 +52,8 @@ ensure_file() {
 }
 
 #!define: compare_copy_file
+# copies $1 to $2 if they differ and sets the mode $3 and the owner $4. Reads
+# stdin if $1 isn't a file. Returns 0 if $2 was changed and 1 if not
 compare_copy_file() {
   local src="$1" dst="$2"
   local mode="${3:-}"
@@ -75,6 +82,7 @@ compare_copy_file() {
 }
 
 #!define: subst_node_env
+# replaces the ${NODE_*} placeholders with the values of the node
 subst_node_env() {
   sed \
     -e "s|\${NODE_ROLE}|${NODE_ROLE:-}|g" \
@@ -83,8 +91,7 @@ subst_node_env() {
 }
 
 #!define: group_dir_files
-# the files of the directory the group syncs (the same archives as
-# group_dir_sync)
+# prints the paths on the node of the files group_dir_sync copies for the group
 group_dir_files() {
   local rootfs="$1" group="$2" dir="$3" node_role="$4"
   local archive file
@@ -100,8 +107,7 @@ group_dir_files() {
 }
 
 #!define: _groups_sha256
-# the checksum of the files of the groups $3... in the archives of the node, as
-# group_dir_sync takes them (the ctrl archives on the control plane nodes only)
+# prints the checksum of the files of the groups $3... group_dir_sync copies
 _groups_sha256() {
   local rootfs="$1" node_role="$2" group archive file
   shift 2
@@ -120,12 +126,8 @@ _groups_sha256() {
 
 #!define: group_dir_sync
 #!needs: compare_copy_file, subst_node_env
-# The chart delivers its files in 4 archives unpacked to /run/kubeadm/<archive>:
-# all, ctrl (control plane nodes only), all-pernode and ctrl-pernode (the files
-# of the node). Each archive contains <group>/<files of the group>.
-#
-# copies the files of the group from all the archives to the directory, with
-# subst if needed (the ctrl archives are skipped on the workers)
+# copies the files of the group from the archives to the directory $3,
+# substituting the NODE_* variables if $5 is true
 group_dir_sync() {
   local rootfs="$1" group="$2"
   local dst_dir="${rootfs}$3" node_role="$4" do_subst="$5"
@@ -149,14 +151,13 @@ group_dir_sync() {
 
 #!define: group_dir_backup
 #!needs: backup_files, group_dir_files
-# copies the files of the directory the group syncs to the backup directory
+# copies the files group_dir_sync copies for the group to the backup $5
 group_dir_backup() {
   backup_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")
 }
 
 #!define: group_dir_restore
-# puts the files of the group back from the backup directory, removes the ones
-# it doesn't have (the node didn't have them before the sync)
+# puts the files of the group back from the backup $5
 group_dir_restore() {
   #!needs: restore_files, group_dir_files
   restore_files "$5" $(group_dir_files "$1" "$2" "$3" "$4")

@@ -13,8 +13,9 @@ Symbol: a function or a global variable of the script, a dict:
 Dependencies are declared, not found in the body: a forgotten one is the
 author's problem.
 
-The symbol "" is the environment of the script (the globals, the workarounds):
-always linked, first, the other symbols don't need to name it. It has no needs.
+The symbol "" is the environment of the script, its globals and workarounds.
+It is always linked first, the other symbols don't need to name it, and it has
+no needs.
 
 Usage:
   {{- $symbols := dict -}}
@@ -38,11 +39,11 @@ linker_symbols_from_sh: registers the symbols of a bash text (e.g. a rendered
 template file) by its directives. Every "#!define: <name>" directive starts a
 symbol: the text till the next one is its body, its "#!needs: <name>, <name>..."
 directives (any number of them, a template can render them conditionally) are
-its needs. "#!needs:" can be anywhere in a line, e.g. after the call it is for:
-the directive is cut off till the end of the line, a line with nothing else is
-removed. "#!define:" starts a line. The text before the first "#!define:" isn't
-a symbol: it is the output, the caller decides what to do with it (e.g. a
-header of comments to drop or to check).
+its needs. "#!needs:" can be anywhere in a line, e.g. after the call it is for.
+The directive is cut off till the end of the line, and a line with nothing else
+is removed. "#!define:" starts a line. The text before the first "#!define:"
+isn't a symbol, it is the output, and the caller decides what to do with it,
+e.g. drop or check a header of comments.
 
 Usage:
   {{- $_ := tuple $envAll "templates/phases/modules/backup/_.sh.tpl" | include "kubeadm.bundle.template" | tuple $symbols | include "linker_symbols_from_sh" -}}

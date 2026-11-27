@@ -17,6 +17,32 @@
   vars:
     work_dir: "{{ zuul.project.src_dir }}"
     logs_dir: "/tmp/logs"
+  # gather-host-logs downloads the whole system directory, so the journals of
+  # the runtime and kubelet, the pods of the runtime and the logs of the
+  # reconcile go there too
+  pre_tasks:
+    # without become: the roles of the user write to logs_dir too
+    - name: Create the directory of the system logs
+      file:
+        path: "{{ logs_dir }}/system"
+        state: directory
+    - name: Get the journals of the runtime and kubelet, the pods of the runtime and the logs of the reconcile
+      become: true
+      shell: |
+        for unit in crio containerd kubelet; do
+          journalctl -u "${unit}" --no-pager > "{{ logs_dir }}/system/journal-${unit}.txt"
+        done
+        # the IDs of the sandboxes and containers in the logs of the phases
+        crictl pods > "{{ logs_dir }}/system/crictl-pods.txt" 2>&1 || true
+        crictl ps -a > "{{ logs_dir }}/system/crictl-ps.txt" 2>&1 || true
+        # every start of an anchor container writes its own log of the
+        # reconcile on the host, it outlives the restarts and the pods
+        mkdir -p "{{ logs_dir }}/system/reconcile"
+        cp /var/log/kubeadm_output_*.log "{{ logs_dir }}/system/reconcile/" 2>/dev/null || true
+        chmod -R a+r "{{ logs_dir }}/system/reconcile"
+      args:
+        executable: /bin/bash
+      ignore_errors: true
   roles:
     - gather-host-logs
 

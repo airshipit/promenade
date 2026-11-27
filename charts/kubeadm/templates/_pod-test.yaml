@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* helm test: runs templates/bin/_test.sh.tpl on a control plane node with
-     the host kubectl and /etc/kubernetes/admin.conf, like the anchor runs the
-     reconcile script. Called from templates/phases/_main.tpl, can be patched
-     with bundle.tpl."templates/_pod-test.yaml.patch" (strategic merge patch) */}}
+{{/* the pod of helm test. It runs the test script on a control plane node
+     with chroot to the host, so the script uses the kubectl and admin.conf of
+     the node and needs neither RBAC nor the CNI.
+     NOTE: it can be patched with bundle.tpl."templates/_pod-test.yaml.patch"
+     (strategic merge patch) */}}
 {{- $envAll := index . 0 -}}
 {{- $fullname := include "kubeadm.fullname" $envAll -}}
+---
 apiVersion: v1
 kind: Pod
 metadata:
@@ -68,10 +70,13 @@ spec:
         # kubectl cache
         - name: HOME
           value: /root
+        - name: KUBECONFIG
+          value: /etc/kubernetes/admin.conf
+      # a login shell: the PATH of the host has kubectl
       command:
         - /bin/sh
         - -c
-        - chroot /host /bin/bash -s < /tmp/bin/test
+        - chroot /host /bin/bash -l -s < /tmp/bin/test
       volumeMounts:
         - name: host
           mountPath: /host

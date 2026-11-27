@@ -1,15 +1,13 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-# The backups of the certificates of the node (backup.dir): every module backs
-# up and restores its own groups (certs_backup, kubelet_backup,
-# kubeadm_backup), the backups exist while a procedure is in progress (the
-# rebootstrap), the reconcile waits for its end. backup_files and
-# restore_files are the helpers of the modules for their <module>_backup and
-# <module>_restore (group_dir_backup and group_dir_restore of fs for the groups).
+# The backups of the certificates of the node to backup.dir.
+# This module provides basic functions which are used by
+# different modules and has a top-level backup function which
+# calls the backup/restore functions of the modules as one operation
 
 #!define: backup_files
-# copies the files (absolute paths of the node) the node has to the backup $1
+# copies the files that exist on the node to the backup folder $1
 backup_files() {
   local backup="$1" file
   shift
@@ -22,8 +20,10 @@ backup_files() {
 }
 
 #!define: restore_files
-# puts the files back from the backup $1, removes the ones it doesn't have (the
-# node didn't have them before)
+# puts the files back from the backup folder $1
+# if the backup file doesn't exist, removes the file on the node. The
+# assumption is that the file didn't exist before the backup and appeared
+# after it was taken
 restore_files() {
   local backup="$1" file
   shift
@@ -37,8 +37,7 @@ restore_files() {
 }
 
 #!define: backup_exists_rc
-# 0 while backup.dir exists (reconcile_guard creates it before the first
-# backup): the procedure isn't over (backup restore or backup remove)
+# 0 if backup.dir exists
 backup_exists_rc() {
   [ -e "${ROOTFS}{{ $envAll.Values.backup.dir }}" ]
 }
@@ -46,9 +45,11 @@ backup_exists_rc() {
 #!define: backup
 #!needs: certs_backup, kubelet_backup, kubeadm_backup
 #!needs: certs_restore, kubelet_restore, kubeadm_restore
-# the phase: a new backup (<timestamp>) of the certificates of the node, with
-# "restore" the certificates of the last one back, with "remove" all the
-# backups (they have the keys: the procedure is over, the reconcile goes on)
+# the phase, its argument selects the action:
+# 1. no argument - creates a new backup folder (a timestamp) in backup.dir and
+#    backs up the certificates of the node to it,
+# 2. restore - puts the certificates back from the latest backup,
+# 3. remove - removes all the backups.
 backup() {
   local dir="${ROOTFS}{{ $envAll.Values.backup.dir }}" backup
   case "${1:-}" in
@@ -61,7 +62,7 @@ backup() {
       echo "the certificates are backed up to ${backup}"
       ;;
     restore)
-      # fails without backups: restore removes the files the backup doesn't have
+      # fails if there is no backup
       backup=$(ls -1d "${dir}"/*/ | tail -n 1)
       certs_restore "${backup}"
       kubelet_restore "${backup}"

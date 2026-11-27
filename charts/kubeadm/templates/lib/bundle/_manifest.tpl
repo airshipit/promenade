@@ -2,7 +2,7 @@
 {{- $dot := index . 0 -}}
 {{- $key := index . 1 -}}
 
-{{/* check if the key doens't exist or true (true is default) */}}
+{{/* rendered unless manifests.<key> is false, true by default */}}
 {{- $render := true -}}
 {{- if hasKey $dot.Values "manifests" -}}
   {{- if hasKey $dot.Values.manifests $key -}}
@@ -10,7 +10,6 @@
   {{- end -}}
 {{- end -}}
 
-{{/* render */}}
 {{- if eq $render true -}}
     {{- $item := index $dot.Values.bundle.manifests $key -}}
     {{- if typeIs "string" $item -}}

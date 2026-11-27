@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */ -}}
 
-{{- /* helm test: the sanity check of the cluster, run on a control plane node
-     with chroot (see _pod-test.yaml) from the bin ConfigMap */ -}}
+{{- /* the script of helm test, a sanity check of the cluster. The test pod
+     runs it on a control plane node with chroot */ -}}
 {{- $envAll := . -}}
 {{- $fullname := include "kubeadm.fullname" $envAll -}}
 {{- $version := ($envAll.Values.cluster_config).kubernetesVersion | default "" -}}
@@ -33,10 +33,6 @@ check_result() {
   if [ "${status}" = "FAIL" ]; then
     FAILURES=$((FAILURES + 1))
   fi
-}
-
-kubectl() {
-  {{ $envAll.Values.binaries.install_dir }}/kubectl --kubeconfig /etc/kubernetes/admin.conf "$@"
 }
 
 # the anchors are ready when the reconcile and its node checks passed
@@ -80,7 +76,7 @@ check_control_plane() {
 check_versions() {
 {{- if $version }}
   local wrong
-  # "<node|pod> <version|image>" not of the version
+  # the nodes and the pods of another version as "<node|pod> <version|image>"
   wrong=$(
     kubectl get nodes \
       -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.nodeInfo.kubeletVersion}{"\n"}{end}' |
@@ -100,7 +96,8 @@ check_versions() {
 {{- end }}
 }
 
-# a member for every etcd pod: no members left of removed nodes
+# checks there is a member for every etcd pod, so no member of a removed node
+# is left
 check_etcd_members() {
   local pods pod members endpoint env flag name flags=()
   pods=$(kubectl -n kube-system get pods -l component=etcd --field-selector status.phase=Running \
@@ -110,12 +107,12 @@ check_etcd_members() {
     return 0
   fi
   pod=$(head -n 1 <<< "${pods}")
-  # the endpoint kubeadm itself finds etcd by (the annotation of its static pod),
-  # the certs are the ones the chart delivers (see templates/phases/modules/certs/_.sh.tpl)
+  # the endpoint kubeadm finds etcd by, from the annotation of its static pod.
+  # The certificates are the ones the chart delivers
   endpoint=$(kubectl -n kube-system get pod "${pod}" \
     -o jsonpath='{.metadata.annotations.kubeadm\.kubernetes\.io/etcd\.advertise-client-urls}')
-  # etcdctl fails on a flag shadowing its ETCDCTL_<FLAG> env: skip the flags the
-  # etcd pod sets with env
+  # etcdctl fails when a flag duplicates its ETCDCTL_<FLAG> variable, so the
+  # flags the etcd pod sets in env are skipped
   env=" $(kubectl -n kube-system get pod "${pod}" -o jsonpath='{.spec.containers[0].env[*].name}') "
   for flag in \
       endpoints="${endpoint:-https://127.0.0.1:2379}" \

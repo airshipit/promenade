@@ -12,7 +12,7 @@
 # limitations under the License.
 
 # The control plane is lost and restored from an etcd snapshot: ssh-bootstrap.sh
-# --restore of the chart (charts/kubeadm/overrides/reference/ssh-orchestration-ca.yaml).
+# --restore of the chart (charts/kubeadm/overrides/reference/orchestration-ssh-ca.yaml).
 #
 # A snapshot of etcd is taken between two ConfigMaps, then all the control
 # plane nodes are reset (kubeadm reset without removing their etcd members)
@@ -30,7 +30,7 @@ set -exo pipefail
 # the Kubernetes version till day 2
 : "${DAY1_VALUES:="./tools/deployment/kubeadm/day1/version.yaml"}"
 : "${HELM:="helm"}"
-: "${VALUES:="${KUBEADM_CHART}/overrides/reference/ssh-orchestration-ca.yaml"}"
+: "${VALUES:="${KUBEADM_CHART}/overrides/reference/orchestration-ssh-ca.yaml"}"
 # the key of the gate (the zuul playbook adds it to all the nodes)
 : "${SSH_KEY:="${HOME}/.ssh/kubeadm-gate"}"
 : "${NAMESPACE:="kube-system"}"

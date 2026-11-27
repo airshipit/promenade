@@ -1,5 +1,5 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
 #!/bin/sh
 # Copyright 2025 AT&T Intellectual Property.  All other rights reserved.
@@ -16,15 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The reconcile of the anchor. It starts in the anchor container (busybox):
-# ensure_fs prepares the files of the reconcile, the script below runs on the
-# host with chroot, like the bootstrap script prepares its files. The mounts
-# are made in the pod only (the host root is mounted with HostToContainer
-# propagation), the host doesn't see them:
-# - /run/kubeadm: the files delivered by the chart, where the bootstrap script
-#   unpacks them
-# - anchor.reconcile.host_dir: the files of the reconcile itself (the script,
-#   service account, state)
+# The entrypoint of the anchor container. It prepares the files of the
+# reconcile in mounts only the pod sees, then runs the reconcile on the host
+# with chroot:
+# 1. /run/kubeadm gets the files of the chart, the phase runner puts them in
+#    the same place on the host,
+# 2. anchor.reconcile.host_dir gets the reconcile script, the service account
+#    and its state.
+# The host root is mounted with HostToContainer propagation, so the host
+# doesn't see these mounts.
 
 set -eu
 
@@ -49,8 +49,7 @@ bind() {
 
 ensure_fs() {
   private_dir "${HOST}/run/kubeadm"
-  # the archives mounted to the pod (the daemonset of the workers has no ctrl
-  # ones)
+  # the archives mounted to the pod, the workers don't get the ctrl ones
   for archive in all ctrl all-pernode ctrl-pernode; do
     if [ -s "/tmp/fs/${archive}.tar" ]; then
       mkdir -p "${HOST}/run/kubeadm/${archive}"
@@ -87,8 +86,7 @@ set -xeuo pipefail
 
 # rootfs path (used to run mock tests. must be "" in real life)
 ROOTFS="${ROOTFS:-}"
-# files of the reconcile only: this script, service account, state (see
-# ensure_fs, the files delivered by the chart are in /run/kubeadm)
+# the files of the reconcile: this script, the service account and the state
 RECONCILE_DIR={{ $envAll.Values.anchor.reconcile.host_dir | quote }}
 
 # namespace of the anchor pod: its service account runs the kubelet restart job
@@ -96,7 +94,7 @@ NAMESPACE="$(cat "${RECONCILE_DIR}/sa/namespace")"
 
 export KUBECONFIG="${RECONCILE_DIR}/kubeconfig"
 
-# kubeadm doesn't get the KUBECONFIG of kubectl
+# kubeadm runs without the KUBECONFIG of kubectl, verbose except for version
 kubeadm() {
   if [[ "$1" == "version" ]]; then
     env -u KUBECONFIG kubeadm "$@"
@@ -105,9 +103,8 @@ kubeadm() {
   fi
 }
 
-{{/* the linked functions: the pass, the step of the main loop and their
-     needs (templates/phases/modules/reconcile) */}}
-{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" (list "reconcile")) }}
+{{/* the reconcile function and the functions it needs */}}
+{{ include "linker" (dict "symbols" (get $mainDict "symbols") "needs" (list "reconcile")) }}
 # end of common functions
 
 reconcile
@@ -115,9 +112,9 @@ EOF_RECONCILE
 }
 
 ensure_fs
-# the reconcile finds kubeadm, kubectl and kubelet (binaries.install_dir) by the
-# PATH of the login shell of the host; chroot keeps the environment of the
-# container, so it is taken from the host
+# the reconcile runs kubeadm, kubectl and kubelet by name. chroot keeps the
+# environment of the container, so the PATH is taken from the login shell of
+# the host
 host_path_var=$(chroot "${HOST}" /bin/bash -lc 'printf "\n%s" "$PATH"' </dev/null 2>/dev/null | tail -n1) || true
 [ -z "${host_path_var}" ] || export PATH="${host_path_var}:${PATH}"
 exec chroot "${HOST}" /bin/bash "${RECONCILE_DIR}/reconcile"

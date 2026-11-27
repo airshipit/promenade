@@ -12,7 +12,7 @@
 # limitations under the License.
 
 # Abrupt rotation of the PKI over ssh: the ssh-rebootstrap.sh tool of the chart
-# (charts/kubeadm/overrides/reference/ssh-orchestration-<ORCHESTRATION>.yaml)
+# (charts/kubeadm/overrides/reference/orchestration-ssh-<ORCHESTRATION>.yaml)
 # puts a new PKI on all the nodes of the gate from this node, the workloads are
 # restarted:
 # - ca: new CAs and service account key (gen-pki.sh of the chart), kubeadm
@@ -40,7 +40,7 @@ set -exo pipefail
 # the reference orchestration: ca or full
 : "${ORCHESTRATION:="ca"}"
 # the values of the cluster: the reference orchestration
-: "${VALUES:="${KUBEADM_CHART}/overrides/reference/ssh-orchestration-${ORCHESTRATION}.yaml"}"
+: "${VALUES:="${KUBEADM_CHART}/overrides/reference/orchestration-ssh-${ORCHESTRATION}.yaml"}"
 # the key of the gate (the zuul playbook adds it to all the nodes)
 : "${SSH_KEY:="${HOME}/.ssh/kubeadm-gate"}"
 : "${API_DOWN:="false"}"

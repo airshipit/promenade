@@ -1,8 +1,8 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-{{- $controlPlaneNodes := get (get $k8sConfDict "fs") "ctrl" -}}
-{{- $perNode := get (get $k8sConfDict "fs") "ctrl-pernode" -}}
+{{- $controlPlaneNodes := get (get $mainDict "fs") "ctrl" -}}
+{{- $perNode := get (get $mainDict "fs") "ctrl-pernode" -}}
 
 {{/* steps were taken from https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/ certs part*/}}
 {{- if $envAll.Values.certs -}}
@@ -22,13 +22,13 @@
   {{- end -}}
 
   {{- if $envAll.Values.certs.scheduler -}}
-    {{/* Populate pregenerated certificate for serving the Kubernetes API */}}
+    {{/* Populate pregenerated client certificate of the scheduler */}}
     {{- $_ := set $controlPlaneNodes "_pkipub/scheduler.pem" (dict "content" $envAll.Values.certs.scheduler.crt "dest_path" "/etc/kubernetes/pki/scheduler.pem" "file_mode" 0600 ) -}}
     {{- $_ := set $controlPlaneNodes "_pkipriv/scheduler-key.pem" (dict "content" $envAll.Values.certs.scheduler.key "dest_path" "/etc/kubernetes/pki/scheduler-key.pem" "file_mode" 0600 ) -}}
   {{- end -}}
 
   {{- if $envAll.Values.certs.controller_manager -}}
-    {{/* Populate pregenerated certificate for serving the Kubernetes API */}}
+    {{/* Populate pregenerated client certificate of the controller-manager */}}
     {{- $_ := set $controlPlaneNodes "_pkipub/controller-manager.pem" (dict "content" $envAll.Values.certs.controller_manager.crt "dest_path" "/etc/kubernetes/pki/controller-manager.pem" "file_mode" 0600 ) -}}
     {{- $_ := set $controlPlaneNodes "_pkipriv/controller-manager-key.pem" (dict "content" $envAll.Values.certs.controller_manager.key "dest_path" "/etc/kubernetes/pki/controller-manager-key.pem" "file_mode" 0600 ) -}}
   {{- end -}}
@@ -46,7 +46,7 @@
   {{- end -}}
 
   {{- if $envAll.Values.certs.apiserver_etcd_client -}}
-    {{/* Populate pregenerated certificate for the API server to connect to kubelet */}}
+    {{/* Populate pregenerated certificate for the API server to connect to etcd */}}
     {{- $_ := set $controlPlaneNodes "_pkipub/apiserver-etcd-client.crt" (dict "content" $envAll.Values.certs.apiserver_etcd_client.crt "dest_path" "/etc/kubernetes/pki/apiserver-etcd-client.crt" "file_mode" 0600 ) -}}
     {{- $_ := set $controlPlaneNodes "_pkipriv/apiserver-etcd-client.key" (dict "content" $envAll.Values.certs.apiserver_etcd_client.key "dest_path" "/etc/kubernetes/pki/apiserver-etcd-client.key" "file_mode" 0600 ) -}}
   {{- end -}}
@@ -91,7 +91,7 @@
 
     {{- $perNodeEntry := get $perNode $k | default (dict) -}}
     {{- $_ := set $perNode $k $perNodeEntry -}}
-    {{/* Populate certificate for serving etcd */}}
+    {{/* Populate certificates for serving etcd and for its peers */}}
     {{- if $v.etcd_server -}}
       {{- $_ := set $perNodeEntry "_etcdpub/server.crt" (dict "content" $v.etcd_server.crt "dest_path" "/etc/kubernetes/pki/etcd/server.crt" "file_mode" 0600) -}}
       {{- $_ := set $perNodeEntry "_etcdpriv/server.key" (dict "content" $v.etcd_server.key "dest_path" "/etc/kubernetes/pki/etcd/server.key" "file_mode" 0600) -}}
@@ -100,8 +100,8 @@
       {{- $_ := set $perNodeEntry "_etcdpub/peer.crt" (dict "content" $v.etcd_peer.crt "dest_path" "/etc/kubernetes/pki/etcd/peer.crt" "file_mode" 0600) -}}
       {{- $_ := set $perNodeEntry "_etcdpriv/peer.key" (dict "content" $v.etcd_peer.key "dest_path" "/etc/kubernetes/pki/etcd/peer.key" "file_mode" 0600) -}}
     {{- end -}}
-    {{/* Populate certificate for serving the Kubernetes API of the node (the
-         SANs of the node, as kubeadm issues it), instead of certs.apiserver
+    {{/* Populate pregenerated certificate for serving the Kubernetes API with
+         the SANs of the node, as kubeadm issues it. It replaces certs.apiserver
          shared by all the control plane nodes */}}
     {{- if $v.apiserver -}}
       {{- $_ := set $perNodeEntry "_pkipub/apiserver.crt" (dict "content" $v.apiserver.crt "dest_path" "/etc/kubernetes/pki/apiserver.crt" "file_mode" 0600) -}}
@@ -190,18 +190,18 @@ certs_restore() {
 #!define: certs_generate_with_kubeadm
 #!needs: kubeadm_generated_files, kubeadm_node_config, kubelet_kubeconfig_sync_rc, kubelet_tls_bootstrap
 
-# certs_generate_with_kubeadm's helper: the certificates and the kubeconfigs
-# kubeadm generated from the old CAs, the client certificates of kubelet (it
-# would take the current one): kubeadm generates them from the new CAs, as
-# kubeadm init did
+# use kubeadm to generate certs from the new CAs
 _kubeadm_init_certs() {
   local file dir super_admin=false
   # kubeadm init generates it on the first control plane node only
   [ -f "${ROOTFS}/etc/kubernetes/super-admin.conf" ] && super_admin=true
+  # kubeadm would use the existing files, so the ones it generated from the old
+  # CAs and the client certificate of kubelet are removed and generated again
   for file in $(kubeadm_generated_files); do
     rm -f "${ROOTFS}${file}"
   done
   rm -f "${ROOTFS}"/var/lib/kubelet/pki/kubelet-client-*.pem
+  # the config only, kubeadm writes the files where kubeadm init does
   dir=$(mktemp -d)
   kubeadm_node_config > "${dir}/config.yaml"
   kubeadm init phase certs all --config "${dir}/config.yaml"
@@ -213,11 +213,12 @@ _kubeadm_init_certs() {
     kubeadm init phase kubeconfig super-admin --config "${dir}/config.yaml"
   fi
   rm -rf "${dir}"
-  # kubelet goes through the control plane endpoint
+  # kubeadm wrote its own kubelet.conf, need to re-sync with the values again
   kubelet_kubeconfig_sync_rc || true
 }
 
-# what kubeadm generated from the old CAs on the node, from the new ones
+# generates from the new CAs what kubeadm generated from the old ones. A worker
+# gets a new client certificate of kubelet by the TLS bootstrap
 certs_generate_with_kubeadm() {
   if [ "${NODE_ROLE}" == "master" ]; then
     _kubeadm_init_certs
@@ -226,19 +227,17 @@ certs_generate_with_kubeadm() {
   fi
 }
 
-#!define: certs_guard_ca
-{{- /* certs_guard_ca: called by the bootstrap and reconcile scripts before any sync */}}
+#!define: certs_ca_guard
 
-# certs_guard_ca's helper: prints the public key of a certificate or a public
-# key, the content if it is neither of them
+# prints the public key of a certificate or a public key file, or the content
+# of any other file
 _public_key() {
   openssl x509 -noout -pubkey -in "$1" 2>/dev/null || openssl pkey -pubin -in "$1" 2>/dev/null || cat "$1"
 }
 
-# the CA and service account keys of the node sign its certificates and tokens:
-# refuses to go on if the values deliver other ones. A CA certificate renewed
-# with the same key is fine, CA rotation isn't supported.
-certs_guard_ca() {
+# fails if the values deliver other CA or service account keys than the ones
+# of the node. A CA certificate renewed with the same key passes
+certs_ca_guard() {
   local src dst changed=""
   while read -r src dst; do
     [ -f "${ROOTFS}/run/kubeadm/${src}" ] && [ -f "${ROOTFS}${dst}" ] || continue
@@ -256,32 +255,30 @@ ctrl/_etcdpub/ca.crt /etc/kubernetes/pki/etcd/ca.crt
 ctrl/_pkipub/sa.pub /etc/kubernetes/pki/sa.pub
 EOF_CA_GUARD
   if [ -n "${changed}" ]; then
-    echo "certs_guard_ca: the values deliver other keys than the ones of the node:${changed}" >&2
-    echo "certs_guard_ca: the CAs are rotated by the rebootstrap, revert certs in the values" >&2
+    echo "certs_ca_guard: the values deliver other keys than the ones of the node:${changed}" >&2
+    echo "certs_ca_guard: the CAs are rotated by the rebootstrap, revert certs in the values" >&2
     return 1
   fi
-  echo "certs_guard_ca: the keys of the node match the values"
+  echo "certs_ca_guard: the keys of the node match the values"
 }
 
 #!define: certs_check
 #!needs: check_attempts, check_result, static_pod_flag
-{{- /* certs_check: called by the reconcile script before the anchor becomes ready */}}
 
-# certs_check's helper: the server $1 (host:port) serves the certificate file
-# $2, it has reloaded it
+# 0 if the server $1 (host:port) serves the certificate file $2
 _certs_served_rc() {
   local served file
-  # the server may refuse the handshake without a client certificate, its
+  # the server may refuse the handshake without a client certificate, but its
   # certificate is printed anyway
   served=$(openssl s_client -connect "$1" < /dev/null 2> /dev/null | openssl x509 -noout -fingerprint -sha256) || true
   file=$(openssl x509 -noout -fingerprint -sha256 -in "${ROOTFS}$2")
   [ -n "${served}" ] && [ "${served}" = "${file}" ]
 }
 
-# the components of the node serve the certificates of its files: they reload
-# them after the sync, the anchor becomes ready once they did. The endpoints
-# and the certificates are the ones the components run with: the apiserver and
-# etcd if the node runs them (their manifests), kubelet (its configuration)
+# checks that the apiserver, etcd and kubelet of the node serve the
+# certificates of their files, which means they reloaded them after the sync.
+# The endpoints and the files come from the static pod manifests and the
+# kubelet configuration
 certs_check() {
   local apiserver=/etc/kubernetes/manifests/kube-apiserver.yaml
   local etcd=/etc/kubernetes/manifests/etcd.yaml
@@ -294,7 +291,7 @@ certs_check() {
   kubelet_port=$(sed -n 's/^port: *//p' "${kubelet}")
   kubelet_crt=$(sed -n 's/^tlsCertFile: *//p' "${kubelet}" | tr -d '"')
   while read -r endpoint file; do
-    # the node doesn't run the component or it has no certificate of the files
+    # the node doesn't run the component or it has no certificate file
     [ -n "${file}" ] || continue
     if check_attempts _certs_served_rc "${endpoint}" "${file}"; then
       check_result OK certs "${endpoint} serves ${file}"
@@ -311,9 +308,8 @@ EOF_CERTS_CHECK
 
 #!define: certs_refresh_clients
 
-# certs_refresh_clients's helper: the new CA in kube-root-ca.crt of all the
-# namespaces (the controller-manager publishes it): the pods started before it
-# get the old one and keep it
+# waits until kube-root-ca.crt of all the namespaces has the new CA. The
+# controller-manager publishes it, the pods started before that keep the old one
 _wait_root_ca() {
   local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
   local ca namespaces ns stale="" i
@@ -334,7 +330,7 @@ _wait_root_ca() {
   return 1
 }
 
-# certs_refresh_clients's helper: the pods of the selector, the API of the
+# deletes the pods of the selector $1, retrying because the API of the
 # restarted control plane may be unavailable for a while
 _delete_pods() {
   local kubectl=(kubectl --kubeconfig "${ROOTFS}/etc/kubernetes/admin.conf")
@@ -346,9 +342,9 @@ _delete_pods() {
   return 1
 }
 
-# the abrupt rotation: the pods keep the CA (kube-root-ca.crt) and the service
-# account tokens they started with, they don't work anyway, their controllers
-# start them again once the new CA is published
+# restarts the pods of certs.refresh_clients_selectors. It's needed after an
+# abrupt CA rotation because the pods keep the CA and the service account
+# tokens they started with
 certs_refresh_clients() {
   _wait_root_ca || return 1
 {{- range $selector := $envAll.Values.certs.refresh_clients_selectors }}

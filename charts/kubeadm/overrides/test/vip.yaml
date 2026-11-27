@@ -6,5 +6,5 @@ kubeconfig:
 
 # and configure vip (need to know ips of CP)
 vip:
-  # it's a tpl string - can use include and etc, and also can produse "*:6553|${NODE_IP}:6443" for heredoc
+  # it's a tpl string - can use include and etc, and also can produce "*:6553|${NODE_IP}:6443" for heredoc
   init_val: "*:6553|172.29.0.139:6443,172.29.0.144:6443,172.29.0.149:6443,172.29.0.154:6443"

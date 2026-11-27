@@ -1,14 +1,14 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
 #!define: etcd_restore
 #!needs: binaries_sync_rc, binary_etcd_sync_rc, kubeadm_node_config, static_pod_flag
-# the stacked etcd of the first control plane node from the snapshot $1 (a
-# file on the node), before kubeadm init: kubeadm starts etcd with the data dir
-# it finds there. The member gets the name, the peer URL and the data dir of
-# the manifest kubeadm init writes (its dry run, with etcd.local.extraArgs and
-# the patches), the other control plane nodes join it as usual. kubeadm init
-# needs --ignore-preflight-errors=DirAvailable--var-lib-etcd then
+# restores the etcd snapshot file $1 to the data dir of etcd on the first
+# control plane node before kubeadm init starts etcd on it. The member name,
+# the peer URL and the data dir come from the etcd manifest of
+# kubeadm init --dry-run, so they match the manifest kubeadm writes later.
+# NOTE: The data dir isn't empty so kubeadm init needs
+# --ignore-preflight-errors=DirAvailable--var-lib-etcd
 etcd_restore() {
   local snapshot="$1" dir manifest name peer data_dir
   binary_etcd_sync_rc || true

@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* Note: this file is called from templates/phases/_main.tpl and k8sConfDict contains lots of cached info */}}
+{{/* Note: this file is called from templates/phases/_main.tpl and mainDict contains lots of cached info */}}
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
 {{- if $envAll.Values.manifests.configmap_bin }}
 
@@ -27,8 +27,7 @@ metadata:
   name: {{ include "kubeadm.fullname" $envAll }}-bin
 data:
   reconcile: |+
-{{ tuple $envAll "templates/bin/_reconcile.sh.tpl" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | indent 4 }}
-  # run by the pod of helm test (templates/_pod-test.yaml)
+{{ tuple $envAll "templates/bin/_reconcile.sh.tpl" (tuple $envAll $mainDict) | include "kubeadm.bundle.template" | indent 4 }}
   test: |+
 {{ tuple $envAll "templates/bin/_test.sh.tpl" | include "kubeadm.bundle.template" | indent 4 }}
 {{- if $envAll.Values.deprecated.legacy_pre_stop.enabled }}

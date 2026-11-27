@@ -1,9 +1,5 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
-
-# The kubeconfigs of a control plane node (admin, controller-manager,
-# scheduler) from _kubeconfig.yaml.tpl, if the values have their client
-# certificates: kubeadm generates them otherwise.
+{{- $mainDict := index . 1 -}}
 
 #!define: _kubeconfig_render
 #!needs: subst_node_env, compare_copy_file
@@ -21,7 +17,6 @@ EOF_TEMPLATE_DATA
 
 #!define: kubeconfig_sync
 #!needs: ensure_dir, _kubeconfig_render
-{{- /* the permissions of the kubeconfigs */}}
 {{- $dirMode := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_mode" }}
 {{- $dirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" }}
 {{- $adminMode := tuple $envAll "kubeconfig" "admin.conf" | include "kubeadm.fs.file_mode" }}

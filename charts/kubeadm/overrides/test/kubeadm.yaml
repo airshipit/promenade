@@ -26,8 +26,8 @@ kubeadm:
   settings:
   # here the user can define some values to be configured as yaml and getting used in those files
   # another strategy which can be used is - make patches here and apply on top of generated yaml template
-  # - its easy to make it that way, but it's not so compact, that's why this approach is used
-  # it's a tpl string - can use include and etc, and also can produse https://${NODE_IP}:2379 for heredoc if needed
+  # - it's easy to make it that way, but it's not so compact, that's why this approach is used
+  # it's a tpl string - can use include and etc, and also can produce https://${NODE_IP}:2379 for heredoc if needed
     etcd_servers: https://172.29.1.11:2379,https://172.29.1.22:2379,https://172.29.1.33:2379
     encryption_provider:
       # just as example

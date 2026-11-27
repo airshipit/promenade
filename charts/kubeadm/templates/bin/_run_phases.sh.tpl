@@ -1,10 +1,9 @@
 {{/*
-  the script of the phase-runner Secrets: run on the node phase by phase
-  (templates/phases/_phase_runner.tpl), the phases of the profile
-  phase_runner.profile (phase_runner.profiles in the values)
+  the script of the phase-runner Secrets, it runs the phases of
+  phase_runner.profile on the node
 */}}
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 {{- $nodename := index . 2 -}}
 {{- $profile := $envAll.Values.phase_runner.profile -}}
 {{- if not (hasKey $envAll.Values.phase_runner.profiles $profile) -}}
@@ -14,13 +13,13 @@
 
 {{/* all the archives of the node in one, unpacked to /run/kubeadm/<archive> */}}
 {{- range $archive := list "all" "ctrl" -}}
-{{- range $k,$v := get (get $k8sConfDict "fs") $archive -}}
+{{- range $k,$v := get (get $mainDict "fs") $archive -}}
 {{- $_ := set $fs (print $archive "/" $k) $v -}}
 {{- end -}}
 {{- end -}}
 {{- if ne $nodename "" -}}
 {{- range $archive := list "all-pernode" "ctrl-pernode" -}}
-{{- range $k,$v := get (get (get $k8sConfDict "fs") $archive) $nodename -}}
+{{- range $k,$v := get (get (get $mainDict "fs") $archive) $nodename -}}
 {{- $_ := set $fs (print $archive "/" $k) $v -}}
 {{- end -}}
 {{- end -}}
@@ -54,12 +53,14 @@ export NODE_IP="${NODE_IP:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
 
 echo Called with $# args: $@
 
-# this value will be non empty if script was generated for specific name (e.g. if there are some files in per-node)
+# not empty if the script was generated for one node, i.e. there are per-node
+# files
 expected_node_name="{{ $nodename }}"
 if [ -n "$expected_node_name" ]; then
   [ "$NODE_NAME" != "$expected_node_name" ] && echo "WARNING: Config for $expected_node_name is getting applied to $NODE_NAME"
 fi
-# the files delivered by the chart, the reconcile script finds them there too
+# unpacks the files of the chart to /run/kubeadm, where the reconcile has them
+# too
 ensure_fs() {
   local teepath="" # for debug
   [ -n "${ROOTFS}" ] && teepath="${ROOTFS}/tmp/fs.{{ $envAll.Values.phase_runner.compress_fs }}"
@@ -85,15 +86,14 @@ cleanup_fs() {
   echo "cleanup_fs is done"
 }
 
-{{/* the runner (run_phases) and the functions of the phases of the profile
-     ("+<phase>" too) linked (templates/lib/_linker.tpl), then the phases: a
-     phase is a function */}}
+{{/* links the runner and the functions of the phases of the profile, the
+     "+<phase>" ones too */}}
 {{- $phases := index $envAll.Values.phase_runner.profiles $profile -}}
 {{- $needs := list "run_phases" -}}
 {{- range $phase := $phases -}}
   {{- $needs = append $needs (trimPrefix "+" $phase) -}}
 {{- end }}
-{{ include "linker" (dict "symbols" (get $k8sConfDict "symbols") "needs" $needs) }}
+{{ include "linker" (dict "symbols" (get $mainDict "symbols") "needs" $needs) }}
 PHASES=(
 {{- range $phase := $phases }}
   {{ $phase | squote }}

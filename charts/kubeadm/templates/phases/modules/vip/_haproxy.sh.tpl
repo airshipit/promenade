@@ -1,11 +1,13 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-{{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
-{{/* the haproxy implementation of the VIP (vip.modules, templates/phases/modules/vip/_.sh.tpl) */}}
+{{- $allNodes := get (get $mainDict "fs") "all" -}}
+{{/* the haproxy implementation of the VIP */}}
 {{/* populate static pod anyway so user could use bootstrap command line to enable it */}}
-{{/* can be patched with bundle.tpl."templates/phases/modules/vip/_pod-haproxy.yaml.patch" */}}
-{{- $staticPod := tuple $envAll "templates/phases/modules/vip/_pod-haproxy.yaml" $envAll (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.patched_template" -}}
+{{/* NOTE: the static pod can be patched with
+     bundle.tpl."templates/phases/modules/vip/_pod-haproxy.yaml.patch"
+     (strategic merge patch) */}}
+{{- $staticPod := tuple $envAll "templates/phases/modules/vip/_pod-haproxy.yaml" $envAll (tuple $envAll $mainDict) | include "kubeadm.bundle.patched_template" -}}
 {{- $_ := set $allNodes "_manifests/haproxy.yaml" (dict "content" $staticPod "dest_path" "etc/kubernetes/manifests/haproxy.yaml" "file_mode" 0600 ) -}}
 
 {{/* the argument (vip_sync haproxy <arg>, vip.init_val):
@@ -18,6 +20,7 @@
 {{- $manifestDirOwner := tuple $envAll "/etc/kubernetes/manifests" | include "kubeadm.fs.dir_owner" }}
 {{- $manifestMode := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_mode" }}
 {{- $manifestOwner := tuple $envAll "vip" "manifests" | include "kubeadm.fs.file_owner" }}
+# syncs the haproxy static pod
 vip_config_sync() {
   local kubernetes_dir="/etc/kubernetes"
 
@@ -90,11 +93,10 @@ EOF_TEMPLATE_DATA
 
 #!define: vip_haproxy_reconcile
 #!needs: vip_arg, vip_haproxy_sync
-# called by vip_reconcile: the bind and the backends of the bootstrap (vip_arg
-# of VIP_FILE) plus the apiservers of the kubernetes endpointslices. All of
-# them, ready or not: haproxy health checks pick the live ones, the list
-# shouldn't flap while the control plane restarts. Keeps the current config if
-# the API isn't available.
+# syncs haproxy with the bind and the backends of vip_arg plus all the
+# apiservers of the kubernetes endpointslices, ready or not. haproxy health
+# checks pick the live ones, so the list doesn't flap while the control plane
+# restarts. Keeps the current config if the API isn't available
 vip_haproxy_reconcile() {
   local init_arg="${vip_arg}"
   local bind init_backends service_endpoints backends

@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{/* Note: this file is called from templates/phases/_main.tpl and k8sConfDict contains lots of cached info */}}
+{{/* Note: this file is called from templates/phases/_main.tpl and mainDict contains lots of cached info */}}
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 {{- $labels := tuple $envAll "kubernetes" "kubernetes-kubeadm-anchor" | include "kubeadm.labels" -}}
-
+---
 apiVersion: "apps/v1"
 kind: DaemonSet
 metadata:
@@ -40,8 +40,8 @@ spec:
       labels:
 {{ $labels | indent 8 }}
       annotations:
-        configmap-bin-hash: {{ tuple $envAll "templates/_configmap-bin.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | sha256sum | quote }}
-        secret-daemonset_fs-hash: {{ tuple $envAll "templates/_secret-daemonset-fs.yaml" (tuple $envAll $k8sConfDict) | include "kubeadm.bundle.template" | sha256sum | quote }}
+        configmap-bin-hash: {{ tuple $envAll "templates/_configmap-bin.yaml" (tuple $envAll $mainDict) | include "kubeadm.bundle.template" | sha256sum | quote }}
+        secret-daemonset_fs-hash: {{ tuple $envAll "templates/_secret-daemonset-fs.yaml" (tuple $envAll $mainDict) | include "kubeadm.bundle.template" | sha256sum | quote }}
     spec:
       affinity:
         nodeAffinity:
@@ -76,8 +76,6 @@ spec:
         - name: anchor
           image: {{ $envAll.Values.images.tags.anchor }}
           imagePullPolicy: {{ $envAll.Values.images.pull_policy }}
-          # mounts (tmpfs, service account) on the host paths in the pod, see
-          # templates/bin/_reconcile.sh.tpl
           securityContext:
             privileged: true
           env:
@@ -105,13 +103,14 @@ spec:
           lifecycle:
             preStop:
               exec:
-                # inline: a running pod keeps the hook of its own reconcile
+                # inline, so a running pod keeps the hook of its own reconcile
                 command:
                   - /bin/sh
                   - -c
                   - |
                     touch /host{{ $envAll.Values.anchor.reconcile.host_dir }}/stop
-                    # the script stops between its passes; terminationGracePeriodSeconds limits the wait
+                    # the reconcile stops between its passes,
+                    # terminationGracePeriodSeconds limits the wait
                     while pgrep -f "^/bin/bash {{ $envAll.Values.anchor.reconcile.host_dir }}/reconcile" > /dev/null; do
                       sleep 1
                     done
@@ -120,7 +119,7 @@ spec:
             exec:
               command:
               - cat
-              - /host{{ $envAll.Values.anchor.reconcile.host_dir }}/done
+              - /host{{ $envAll.Values.anchor.reconcile.host_dir }}/ready
 
           volumeMounts:
             - name: host
@@ -131,7 +130,7 @@ spec:
               mountPath: /tmp/bin
 
 {{- range $archive := list "all" "ctrl" "all-pernode" "ctrl-pernode" }}
-{{- if include "kubeadm.fs.hasFiles" (tuple (get $k8sConfDict "fs") $archive) }}
+{{- if include "kubeadm.fs.hasFiles" (tuple (get $mainDict "fs") $archive) }}
             - name: fs-{{ $archive }}
               mountPath: /tmp/fs/{{ $archive }}.tar
 {{- if hasSuffix "-pernode" $archive }}
@@ -153,7 +152,7 @@ spec:
             name: {{ include "kubeadm.fullname" $envAll }}-bin
             defaultMode: 0555
 {{- range $archive := list "all" "ctrl" "all-pernode" "ctrl-pernode" }}
-{{- if include "kubeadm.fs.hasFiles" (tuple (get $k8sConfDict "fs") $archive) }}
+{{- if include "kubeadm.fs.hasFiles" (tuple (get $mainDict "fs") $archive) }}
         - name: fs-{{ $archive }}
           secret:
             secretName: {{ include "kubeadm.fullname" $envAll }}-fs-{{ $archive }}

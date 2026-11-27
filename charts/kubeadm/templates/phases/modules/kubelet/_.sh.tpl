@@ -1,8 +1,8 @@
 {{- $envAll := index . 0 -}}
-{{- $k8sConfDict := index . 1 -}}
+{{- $mainDict := index . 1 -}}
 
-{{- $allNodes := get (get $k8sConfDict "fs") "all" -}}
-{{- $perNode := get (get $k8sConfDict "fs") "all-pernode" -}}
+{{- $allNodes := get (get $mainDict "fs") "all" -}}
+{{- $perNode := get (get $mainDict "fs") "all-pernode" -}}
 {{- $_ := set $allNodes "_kubelet/kubelet" (dict "content" (tuple $envAll "templates/phases/modules/kubelet/_kubelet-service-default.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/default/kubelet" "file_mode" 0600 ) -}}
 {{- $_ := set $allNodes "_kubelet/kubelet.service" (dict "content"  (tuple $envAll "templates/phases/modules/kubelet/_kubelet-service.tpl" | include "kubeadm.bundle.template") "dest_path" "etc/systemd/system/kubelet.service" "file_mode" 0600 ) -}}
 {{- if eq "tpl" (tuple $envAll "templates/phases/modules/kubelet/_kubelet-config.yaml" | include "kubeadm.bundle.templateActualMode") -}}
@@ -24,7 +24,6 @@
 
 #!define: kubelet_kubeconfig_sync_rc
 #!needs: ensure_dir, group_dir_sync, _kubeconfig_render
-{{- /* without pregenerated kubelet certs kubeadm generates kubelet.conf itself */}}
 {{- $kubeletCerts := false }}
 {{- range $_,$v := ($envAll.Values.certs).nodes }}
   {{- if $v.kubelet -}}{{- $kubeletCerts = true -}}{{- end }}
@@ -39,7 +38,9 @@
 {{- $kubernetesDirOwner := tuple $envAll "/etc/kubernetes" | include "kubeadm.fs.dir_owner" }}
 {{- $kubeletConfMode := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_mode" }}
 {{- $kubeletConfOwner := tuple $envAll "kubelet" "kubelet.conf" | include "kubeadm.fs.file_owner" }}
-# returns 0 if the files were changed, 1 if not
+# syncs the certificates of kubelet and kubelet.conf. Without the certificates
+# in the values kubeadm writes kubelet.conf, and only its server is set to the
+# control plane endpoint. Returns 0 if the files were changed and 1 if not
 kubelet_kubeconfig_sync_rc() {
   local pki_dir="/etc/kubernetes/pki"
   local k_crt="${ROOTFS}${pki_dir}/kubelet.pem"
@@ -104,41 +105,8 @@ kubelet_sync_rc() {
   return $c
 }
 
-#!define: _kubelet_files_sha256
-#!needs: _groups_sha256
-# the files kubelet_sync_rc syncs: the unit, the flags, the configuration, the
-# certificates and the endpoint of kubelet.conf (rendered, not in the archives)
-_kubelet_files_sha256() {
-  {
-    _groups_sha256 "${ROOTFS}" worker _kubelet _kubeletpkipub _kubeletpkipriv
-    echo "{{ $envAll.Values.kubeconfig.controlPlaneEndpoint }}"
-  } | sha256sum | cut -d ' ' -f 1
-}
-
-#!define: kubelet_mark_applied
-#!needs: node_info_update, node_info_update_wait, _kubelet_files_sha256
-# the node runs with the kubelet files of the values: the first pass of the
-# reconcile doesn't apply them again. Written as the node (kubelet.conf) unless
-# KUBECONFIG is set (the reconcile)
-kubelet_mark_applied() {
-  KUBECONFIG="${KUBECONFIG:-${ROOTFS}/etc/kubernetes/kubelet.conf}" node_info_update_wait kubelet_applied "$(_kubelet_files_sha256)"
-}
-
-#!define: kubelet_restart_required_rc
-#!needs: _kubelet_files_sha256, node_info_field
-# 0 if kubelet doesn't run the kubelet files of the values
-# (kubelet_mark_applied, the state of the node $1 from node_info_load), 1 if it
-# does
-kubelet_restart_required_rc() {
-  local applied
-  applied=$(node_info_field "$1" kubelet_applied)
-  [[ -z $applied || $applied != $(_kubelet_files_sha256) ]]
-}
-
 #!define: kubelet_backup
 #!needs: group_dir_backup
-{{- /* the rebootstrap profile only (phase_runner.profiles.rebootstrap), the groups
-     of kubelet_kubeconfig_sync_rc */}}
 # copies the certificates of kubelet of the node to the backup $1
 kubelet_backup() {
   local pki_dir="/etc/kubernetes/pki"
@@ -149,7 +117,7 @@ kubelet_backup() {
 
 #!define: kubelet_restore
 #!needs: group_dir_restore
-# puts the certificates of kubelet of the backup $1 back
+# puts the certificates of kubelet back from the backup $1
 kubelet_restore() {
   local pki_dir="/etc/kubernetes/pki"
 
@@ -170,11 +138,11 @@ kubelet_stop() {
 }
 
 #!define: kubelet_tls_bootstrap
-# the client certificate of kubelet from the new CA: kubelet goes through the
-# TLS bootstrap again with the bootstrap token, as on the join (not kubeadm
-# join phase kubelet-start: it refuses the node which is still Ready), it
-# writes kubelet.conf, then the certificate once the CSR is approved,
-# checks.attempts times 2 seconds apart
+# gets a new client certificate of kubelet from the new CA. kubelet goes
+# through the TLS bootstrap with the bootstrap token again, as on the join,
+# writes kubelet.conf and then the certificate once its CSR is approved. Waits
+# for them up to checks.attempts times 2 seconds apart. kubeadm join phase
+# kubelet-start isn't used because it refuses a node that is still Ready
 kubelet_tls_bootstrap() {
   local conf="${ROOTFS}/etc/kubernetes/bootstrap-kubelet.conf" n=1
   : "${KUBEADM_TOKEN:?the bootstrap token of the cluster}"

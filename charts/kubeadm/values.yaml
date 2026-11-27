@@ -17,159 +17,150 @@
 #
 
 cluster_config: {}
-  # if not specified - any in accordance to kubeadm version
+  # kubeadm uses the version of its binary if it isn't set
   # kubernetesVersion: v1.36.3
 
 #
 # modules config:
 #
 
-# the backups of the certificates of the node made by the backup phase (the
-# rebootstrap script), a new one every run: they have the keys, "backup
-# remove" removes them
-# (the lock of the node: the reconcile script waits while it exists)
+# the directory where the backup phase backs up the certificates of the node,
+# a new backup every run. They hold private keys, "backup remove" deletes them.
+# The reconcile waits while the directory exists
 backup:
   dir: /var/lib/kubeadm-backup
 
-# kubeadm, kubelet and kubectl: the node scripts run them by name, so install_dir
-# has to be in the PATH of the node (the reconcile takes the PATH of the login
-# shell of the host). The bootstrap script installs them there and the anchor
-# keeps them in sync with binary_kubernetes_sync_rc (binaries.sync).
+# the scripts run kubeadm, kubelet and kubectl by name, so install_dir has to
+# be in the PATH of the node
 binaries:
   install_dir: /usr/local/bin
-  # the data of binaries.sync below: where kubeadm, kubelet and kubectl come
-  # from (a tpl string, ${name} and ${arch} are substituted on the node), and
-  # their sha256 if there is no <url>.sha256 next to them
-  url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${arch}/${name}"
-  sha256: {}
-    # kubeadm: <sha256>
-  # the data of binaries.sync.etcd: etcdutl and etcdctl of the etcd release (a
-  # tpl string, ${arch} is substituted on the node). Without the version the
-  # ones on the node are used
-  etcd:
-    version: ""
-    url: "https://github.com/etcd-io/etcd/releases/download/{{ .Values.binaries.etcd.version }}/etcd-{{ .Values.binaries.etcd.version }}-linux-${arch}.tar.gz"
-  # the functions installing the binaries on the nodes
-  # (templates/phases/modules/binaries/_.sh.tpl):
-  # 1. binary_kubernetes_sync_rc <name> installs kubeadm, kubelet or kubectl to
-  #    binaries.install_dir,
-  # 2. binary_cri_sync_rc installs the container runtime,
-  # 3. binary_etcd_sync_rc installs etcdutl and etcdctl.
-  # They return 0 if they changed something, 1 if
-  # not, and exit on errors (they are called in && and || lists). Tpl strings
-  # with their #!define: and #!needs:, the needs name the helpers of the
-  # binaries module
-  sync:
-    # binary_kubernetes_sync_rc <name>: kubeadm, kubelet or kubectl
-    kubernetes:
-      body: |
-        #!define: binary_kubernetes_sync_rc
-        #!needs: binary_arch, binary_download, binary_replace
-        # kubeadm, kubelet or kubectl $1 of cluster_config.kubernetesVersion from
-        # binaries.url (with binaries.sha256)
-        binary_kubernetes_sync_rc() {
-          local name="$1" version={{ (.Values.cluster_config).kubernetesVersion | default "" | quote }} dst="${ROOTFS}{{ .Values.binaries.install_dir }}/$1" arch url sum="" tmp
-          if [ -z "${version}" ]; then
-            echo "WARNING: ${name} isn't managed (cluster_config.kubernetesVersion isn't set), the one on the node is used" >&2
-            return 1
-          fi
-          arch=$(binary_arch) || exit 1
-          url={{ tpl .Values.binaries.url . | quote }}
-          # sums cases go here
-          case "${name}" in
-        {{- range $name, $sum := .Values.binaries.sha256 | default dict }}
-            {{ $name }}) sum={{ $sum | quote }} ;;
-        {{- end }}
-          esac
-          [ -n "${sum}" ] || sum=$(curl -fsSL --retry 5 "${url}.sha256") || exit 1
-          # the binary is there already: nothing to download
-          if [ -f "${dst}" ] && [ "$(sha256sum < "${dst}" | cut -d ' ' -f 1)" = "${sum}" ]; then
-            return 1
-          fi
-          mkdir -p "${ROOTFS}{{ .Values.binaries.install_dir }}" && tmp=$(mktemp "${ROOTFS}{{ .Values.binaries.install_dir }}/${name}.XXXXXX") || exit 1
-          binary_download "${tmp}" "${url}" "${sum}"
-          binary_replace "${tmp}" "${name}" || return 1
-          echo "${name} is installed from ${url}"
-        }
-    # binary_cri_sync_rc: the container runtime
-    cri:
-      body: |
-        #!define: binary_cri_sync_rc
-        # the container runtime cri.service has to be on the node
-        binary_cri_sync_rc() {
-          if ! systemctl cat {{ .Values.cri.service | quote }} > /dev/null 2>&1; then
-            echo "the runtime {{ .Values.cri.service }} isn't found: install it on the node" >&2
-            exit 1
-          fi
+  # the functions installing the binaries on the nodes are binaries.<kind>.sync,
+  # tpl strings with their #!define: and #!needs:, they can use the helpers of
+  # the binaries module. They return 0 if they changed something and 1 if not,
+  # and exit on errors because they are called in && and || lists. The data of
+  # a function is next to it
+  kubernetes:
+    # where kubeadm, kubelet and kubectl come from, a tpl string with ${name} and
+    # ${arch} substituted on the node
+    url: "https://dl.k8s.io/release/{{ .Values.cluster_config.kubernetesVersion }}/bin/linux/${arch}/${name}"
+    # their checksums when there is no <url>.sha256 next to them
+    sha256: {}
+      # kubeadm: <sha256>
+    # binary_kubernetes_sync_rc <name> installs kubeadm, kubelet or kubectl to
+    # binaries.install_dir
+    sync: |
+      #!define: binary_kubernetes_sync_rc
+      #!needs: binary_arch, binary_download, binary_replace_rc
+      # installs kubeadm, kubelet or kubectl $1 of
+      # cluster_config.kubernetesVersion from binaries.kubernetes.url
+      binary_kubernetes_sync_rc() {
+        local name="$1" version={{ (.Values.cluster_config).kubernetesVersion | default "" | quote }} dst="${ROOTFS}{{ .Values.binaries.install_dir }}/$1" arch url sum="" tmp
+        if [ -z "${version}" ]; then
+          echo "WARNING: ${name} isn't managed (cluster_config.kubernetesVersion isn't set), the one on the node is used" >&2
           return 1
-        }
-    # binary_etcd_sync_rc: etcdutl and etcdctl, for etcd_restore and as a phase
-    etcd:
-      body: |
-        #!define: binary_etcd_sync_rc
-        #!needs: binary_arch, binary_download, binary_replace
-        # etcdutl and etcdctl of binaries.etcd.version from binaries.etcd.url
-        # (with the SHA256SUMS of the release next to it)
-        binary_etcd_sync_rc() {
-          local version={{ .Values.binaries.etcd.version | quote }} bin="${ROOTFS}{{ .Values.binaries.install_dir }}" arch url sum tmp name changed=1
-          if [ -z "${version}" ]; then
-            echo "WARNING: etcdutl and etcdctl aren't managed (binaries.etcd.version isn't set), the ones on the node are used" >&2
-            return 1
-          fi
-          if "${bin}/etcdutl" version 2> /dev/null | grep -qw "${version#v}" &&
-            "${bin}/etcdctl" version 2> /dev/null | grep -qw "${version#v}"; then
-            return 1
-          fi
-          arch=$(binary_arch) || exit 1
-          url={{ tpl .Values.binaries.etcd.url . | quote }}
-          sum=$(curl -fsSL --retry 5 "${url%/*}/SHA256SUMS" | awk -v file="${url##*/}" '$2 == file { print $1 }') || exit 1
-          [ -n "${sum}" ] || { echo "${url##*/} isn't in ${url%/*}/SHA256SUMS" >&2; exit 1; }
-          tmp=$(mktemp -d) || exit 1
-          binary_download "${tmp}/etcd.tar.gz" "${url}" "${sum}"
-          tar -xzf "${tmp}/etcd.tar.gz" -C "${tmp}" --strip-components=1 || exit 1
-          mkdir -p "${bin}" || exit 1
-          for name in etcdutl etcdctl; do
-            binary_replace "${tmp}/${name}" "${name}" && changed=0
-          done
-          rm -rf "${tmp}"
-          [ "${changed}" -eq 0 ] || return 1
-          echo "etcdutl and etcdctl are installed from ${url}"
-        }
+        fi
+        arch=$(binary_arch) || exit 1
+        url={{ tpl .Values.binaries.kubernetes.url . | quote }}
+        # sums cases go here
+        case "${name}" in
+      {{- range $name, $sum := .Values.binaries.kubernetes.sha256 | default dict }}
+          {{ $name }}) sum={{ $sum | quote }} ;;
+      {{- end }}
+        esac
+        [ -n "${sum}" ] || sum=$(curl -fsSL --retry 5 "${url}.sha256") || exit 1
+        # the binary is already there, nothing to download
+        if [ -f "${dst}" ] && [ "$(sha256sum < "${dst}" | cut -d ' ' -f 1)" = "${sum}" ]; then
+          return 1
+        fi
+        mkdir -p "${ROOTFS}{{ .Values.binaries.install_dir }}" && tmp=$(mktemp "${ROOTFS}{{ .Values.binaries.install_dir }}/${name}.XXXXXX") || exit 1
+        binary_download "${tmp}" "${url}" "${sum}"
+        binary_replace_rc "${tmp}" "${name}" || return 1
+        echo "${name} is installed from ${url}"
+      }
+  cri:
+    # binary_cri_sync_rc installs the container runtime
+    sync: |
+      #!define: binary_cri_sync_rc
+      # only checks that cri.service is on the node, redefine it to install
+      # the runtime
+      binary_cri_sync_rc() {
+        if ! systemctl cat {{ .Values.cri.service | quote }} > /dev/null 2>&1; then
+          echo "the runtime {{ .Values.cri.service }} isn't found: install it on the node" >&2
+          exit 1
+        fi
+        return 1
+      }
+  etcd:
+    # etcdutl and etcdctl of this etcd release, without it the ones on the node
+    # are used
+    version: ""
+    # a tpl string with ${arch} substituted on the node
+    url: "https://github.com/etcd-io/etcd/releases/download/{{ .Values.binaries.etcd.version }}/etcd-{{ .Values.binaries.etcd.version }}-linux-${arch}.tar.gz"
+    # binary_etcd_sync_rc installs etcdutl and etcdctl
+    sync: |
+      #!define: binary_etcd_sync_rc
+      #!needs: binary_arch, binary_download, binary_replace_rc
+      # installs etcdutl and etcdctl of binaries.etcd.version, checked against
+      # the SHA256SUMS of the release
+      binary_etcd_sync_rc() {
+        local version={{ .Values.binaries.etcd.version | quote }} bin="${ROOTFS}{{ .Values.binaries.install_dir }}" arch url sum tmp name changed=1
+        if [ -z "${version}" ]; then
+          echo "WARNING: etcdutl and etcdctl aren't managed (binaries.etcd.version isn't set), the ones on the node are used" >&2
+          return 1
+        fi
+        if "${bin}/etcdutl" version 2> /dev/null | grep -qw "${version#v}" &&
+          "${bin}/etcdctl" version 2> /dev/null | grep -qw "${version#v}"; then
+          return 1
+        fi
+        arch=$(binary_arch) || exit 1
+        url={{ tpl .Values.binaries.etcd.url . | quote }}
+        sum=$(curl -fsSL --retry 5 "${url%/*}/SHA256SUMS" | awk -v file="${url##*/}" '$2 == file { print $1 }') || exit 1
+        [ -n "${sum}" ] || { echo "${url##*/} isn't in ${url%/*}/SHA256SUMS" >&2; exit 1; }
+        tmp=$(mktemp -d) || exit 1
+        binary_download "${tmp}/etcd.tar.gz" "${url}" "${sum}"
+        tar -xzf "${tmp}/etcd.tar.gz" -C "${tmp}" --strip-components=1 || exit 1
+        mkdir -p "${bin}" || exit 1
+        for name in etcdutl etcdctl; do
+          binary_replace_rc "${tmp}/${name}" "${name}" && changed=0
+        done
+        rm -rf "${tmp}"
+        [ "${changed}" -eq 0 ] || return 1
+        echo "etcdutl and etcdctl are installed from ${url}"
+      }
 
 # here is where all secrets are provided
 # 3 options are supported:
-# 1. no secrets - assuming that kubadm will be used to generate everything
+# 1. no secrets - assuming that kubeadm will be used to generate everything
 # 2. ca key/crt are provided - kubeadm will be used to generate the rest
-# 3. all secrets (including etcd) are pregenerated and kubeadm will be used only only for
+# 3. all secrets (including etcd) are pregenerated and kubeadm will be used only for
 #    certain phases like maintaining manifests
 # NOTE: at the moment we don't support external etcd
 certs:
-  # certs_refresh_clients (the rebootstrap) deletes the pods of these selectors
-  # in this order (all the namespaces): they keep the CA and the service account
-  # tokens of the old ones. The ones of kubeadm and of the chart, the values add
-  # the others (the CNI, the operators...)
+  # the pods certs_refresh_clients restarts in this order in all the namespaces
+  # after an abrupt CA rotation. The defaults are the ones of kubeadm and of the
+  # chart, add the others, e.g. the CNI and the operators
   refresh_clients_selectors:
     - k8s-app=kube-dns
     - k8s-app=kube-proxy
     - component=kubernetes-kubeadm-anchor
     - component=kubernetes-kubeadm-workers-anchor
-  # the permissions of the files of the phase (see fs.permissions)
+  # the permissions of the files of the module, see fs.permissions
   permissions:
-    # /etc/kubernetes/pki
+    # /etc/kubernetes/pki/*
     "pkipriv": # keys
       owner: "root:root"
       mode: "0600"
     "pkipub": # certs
       owner: "root:root"
       mode: "0644"
-    # /etc/kubernetes/pki/etcd
+    # /etc/kubernetes/pki/etcd/*
     "etcdpriv": # keys
       owner: "root:root"
       mode: "0600"
     "etcdpub": # certs
       owner: "root:root"
       mode: "0600" #"0644"
-    # /etc/kubernetes/admin/pki
+    # /etc/kubernetes/admin/pki/*
     "adminpkipriv": # keys
       owner: "root:root"
       mode: "0600"
@@ -191,30 +182,28 @@ certs:
   #     etcd_server: {crt, key}
   #     etcd_peer: {crt, key}
   #     kubelet: {crt, key}
-  #     # the API of the node (its own SANs, as kubeadm issues it), either this
-  #     # one for every control plane node or apiserver above shared by all of
-  #     # them: with both, the one of the node wins
+  #     # the apiserver certificate of the node with its own SANs, as kubeadm
+  #     # issues it. It replaces certs.apiserver shared by all the control
+  #     # plane nodes
   #     apiserver: {crt, key}
   # see overrides/test/pki-*.yaml
 
-# node checks: one line per check "check OK|FAIL|SKIP <check> <details>",
-# the checks fail if any check failed. Day 0/1: the check_run phase of the
-# bootstrap and rebootstrap profiles (phase_runner.profiles), /livez through
-# kubeconfig.controlPlaneEndpoint
+# the node checks (check_run) and helm test
 checks:
-  # attempts 2 seconds apart of the api and certs checks (about 5 minutes, as
-  # the kubeadm timeouts): on a joining node kubelet pulls the images and starts
-  # the haproxy static pod of the VIP first
+  # attempts of the api and certs checks 2 seconds apart, about 5 minutes as
+  # the kubeadm timeouts, because on a joining node kubelet pulls the images
+  # and starts the haproxy static pod first
   attempts: 150
-  # helm test (manifests.helm_test): a pod on a control plane node waits for the
-  # anchors and checks the cluster through the API
+  # helm test (manifests.helm_test) runs a pod on a control plane node that
+  # waits for the anchors and checks the cluster through the API
   helm_test:
     rollout_timeout: 1800s
 
 cri:
   # kubelet starts after it, cri_restart restarts it
   service: containerd.service
-  # the configuration of the runtime, synced by cri_sync_rc (the items as in files)
+  # the configuration of the runtime, synced by cri_sync_rc. The items are as
+  # in fs.groups
   fsgroup:
     - path: /etc/containerd
       state: dir
@@ -224,17 +213,18 @@ cri:
       from: templates/phases/modules/cri/_containerd_v3.tpl
       owner: "root:root"
       mode: "0600"
+  # the credentials of the registries in the containerd configuration of the
+  # chart
   # auths:
-  #   - repo: docker-open-nc.zc1.somedomain.com
+  #   - repo: registry.example.com
   #     auth: user:password
 
 # the filesystem of the nodes
 fs:
-  # the permissions on the node of the directories of the phases, the files
-  # have theirs in the values of the phase: <phase>.permissions.<group>, a group
-  # is delivered in _<group>/ of the archives (pkipub -> _pkipub/<file>) or is a
-  # file itself. If there is no data, empty owner and mode are passed and setting
-  # of permissions is skipped in that case.
+  # the permissions of the directories on the node. The files have theirs in
+  # <module>.permissions.<group>, where a group is delivered in _<group>/ of the
+  # archives (pkipub -> _pkipub/<file>) or is a file itself. Without an entry
+  # the owner and the mode aren't changed
   permissions:
     # certs/kubelet
     "/etc/kubernetes/pki":
@@ -266,12 +256,12 @@ fs:
     "/etc/kubernetes/apiserver":
       owner: "root:root"
       mode: "0700"
-    # haproxy static pod (vip phase) runs as nobody (65534) and reads its
+    # haproxy static pod (vip module) runs as nobody (65534) and reads its
     # config from this directory
     "/etc/kubernetes/kubeadm/addons":
       owner: "root:root"
       mode: "0755"
-  # the groups: fs.groups.<group> is synced by fsgroup_<group>_sync_rc
+  # each fs.groups.<group> is synced by the generated fsgroup_<group>_sync_rc
   groups: {}
   # working examples (can be moved to test.sh):
   # groups:
@@ -290,29 +280,29 @@ fs:
   #       mode: "0600" #optional
 
 kube_cgroup:
-  # the permissions of the files of the phase (see fs.permissions)
+  # the permissions of the files of the module, see fs.permissions
   permissions:
-    # /usr/local/sbin
+    # in /usr/local/sbin
     "kube-cgroup.sh":
       owner: "root:root"
-      mode: "0600"
-    # /etc/systemd/system
+      mode: "0755"
+    # in /etc/systemd/system
     "kube-cgroup.service":
       owner: "root:root"
       mode: "0600"
 
 kubeadm:
-  # the permissions of the files of the phase (see fs.permissions)
+  # the permissions of the files of the module, see fs.permissions
   permissions:
-    # /etc/kubernetes/kubeadm
+    # /etc/kubernetes/kubeadm/*
     "kubeadm":
       owner: "root:root"
       mode: "0600"
-    # /etc/kubernetes/kubeadm/patches
+    # /etc/kubernetes/kubeadm/patches/*
     "kubeadmpatch":
       owner: "root:root"
       mode: "0600"
-    # /etc/kubernetes/apiserver
+    # /etc/kubernetes/apiserver/*
     "kubeadmapiserver":
       owner: "root:root"
       mode: "0600"
@@ -320,9 +310,9 @@ kubeadm:
 kubeconfig:
   clusterName: kubernetes
   controlPlaneEndpoint: 127.0.0.1:6443
-  # the permissions of the files of the phase (see fs.permissions)
+  # the permissions of the files of the module, see fs.permissions
   permissions:
-    # /etc/kubernetes
+    # in /etc/kubernetes
     "admin.conf":
       owner: "root:root"
       mode: "0600"
@@ -334,35 +324,37 @@ kubeconfig:
       mode: "0600"
 
 kubelet:
-  # the permissions of the files of the phase (see fs.permissions)
+  # the permissions of the files of the module, see fs.permissions
   permissions:
-    # /etc/kubernetes/pki
+    # /etc/kubernetes/pki/*
     "kubeletpkipriv": # keys
       owner: "root:root"
       mode: "0600"
     "kubeletpkipub": # certs
       owner: "root:root"
       mode: "0644"
-    # /etc/kubernetes
+    # in /etc/kubernetes
     "kubelet.conf":
       owner: "root:root"
       mode: "0600"
-    # /etc/default
+    # in /etc/default
     "kubelet":
       owner: "root:root"
       mode: "0600"
-    # /etc/systemd/system
+    # in /etc/systemd/system
     "kubelet.service":
       owner: "root:root"
       mode: "0600"
-    # /var/lib/kubelet
+    # in /var/lib/kubelet
     "config.yaml":
       owner: "root:root"
       mode: "0600"
 
-# the operating system of the nodes for kubelet and the runtime (os_setup)
+# the settings of the operating system kubelet and the runtime need
 os:
-  # the kernel modules and sysctl, synced by os_sync_rc (the items as in files)
+  # the kernel modules and sysctl, synced by os_sync_rc. The items are as in
+  # fs.groups. The runtime needs overlay, the pod network br_netfilter and
+  # forwarding
   fsgroup:
     - path: /etc/modules-load.d
       state: dir
@@ -401,10 +393,10 @@ haproxy:
       - mode tcp
     backend:
       - mode tcp
-      # the apiserver opens its port before it is ready: /readyz (anonymous,
-      # as the probes of the static pods), not the port only. A stopping
-      # apiserver fails /readyz: its sessions are closed, the clients (kubelet
-      # leases) go to the others at once
+      # the apiserver opens its port before it is ready, so the backends are
+      # checked by /readyz, anonymously as the probes of the static pods do. A
+      # stopping apiserver fails /readyz, its sessions are closed and the
+      # clients such as the kubelet leases go to the others at once
       - option httpchk
       - http-check send meth GET uri /readyz
       - http-check expect status 200
@@ -412,18 +404,18 @@ haproxy:
       - option redispatch
 
 vip:
-  # the implementations of the VIP: templates/phases/modules/vip/_<module>.sh.tpl
+  # the implementations of the VIP, see the vip module
   modules:
     - haproxy
-  # the VIP of the node: the implementation and its argument (a tpl string),
-  # the arguments of the vip_sync phase replace them, saved on the node by the
-  # first phase using the VIP, e.g.
-  # haproxy: "<bind>|<apiserver>,<apiserver>,..."
+  # the implementation of the VIP of the node and its argument, a tpl string.
+  # The arguments of the vip_sync phase replace them, and the node keeps the
+  # ones it was bootstrapped with. For haproxy the argument is
+  # "<bind>|<apiserver>,<apiserver>,..."
   init_argname: haproxy
   # init_val: "*:6553|172.29.0.139:6443,172.29.0.144:6443"
-  # the permissions of the files of the phase (see fs.permissions)
+  # the permissions of the files of the module, see fs.permissions
   permissions:
-    # /etc/kubernetes/manifests, the haproxy static pod
+    # /etc/kubernetes/manifests/*, the haproxy static pod
     "manifests":
       owner: "root:root"
       mode: "0600"
@@ -441,7 +433,7 @@ admin_credentials:
   duration: 8760h
   renew_before: 720h
 
-# the Service of etcd params
+# the Service of etcd
 etcd_service:
   name: kubernetes-etcd
   ip: "10.96.0.2"
@@ -449,11 +441,10 @@ etcd_service:
     enable_node_port: false
     node_port: 32379
     port: 2379
-    # TODO: must match with kubeadm.settings.etcd_servers ports
     target_port: 2379
 
-# daemonsets running the reconcile script (day 2) on the nodes, they can be
-# patched with bundle.tpl."templates/_daemonset-masters.yaml.patch" and
+# the daemonsets running the reconcile on the nodes. They can be patched
+# with bundle.tpl."templates/_daemonset-masters.yaml.patch" and
 # bundle.tpl."templates/_daemonset-workers.yaml.patch" (strategic merge patch)
 anchor:
   # service account of the anchor pods and the kubelet restart jobs, created
@@ -469,32 +460,30 @@ anchor:
   reconcile:
     # seconds between the checks of the chart configuration
     period: 15
-    # its own files (script, service account, state), mounted in the pod only
+    # the directory of the files of the reconcile, such as its script, service
+    # account and state, mounted in the pod only
     host_dir: /var/lib/kubeadm-reconcile
-    # refuse to replace the CA keys (Kubernetes, etcd, front proxy) and the
-    # service account key on a node which already has different ones: the
-    # certificates of the node are signed with them. The CAs are rotated by
-    # the rebootstrap; false is the way out of a wrong guard (the bootstrap
-    # runs without it with --run and its other phases)
+    # fails the pass if the values deliver other CA or service account keys
+    # than the ones of the node, because the reconcile isn't designed to change
+    # the CAs. false is the way out of a wrong guard
     ca_guard: true
-    # the node checks before the anchor becomes ready (it restarts): the first
-    # pass of the VIP reconcile (its errors are ignored by the reconcile loop
-    # later), the apiserver, etcd and kubelet of the node serve the
-    # certificates of its files (they reload them, checks.attempts)
+    # the anchor becomes ready only after the node checks pass. They check that
+    # the VIP follows the apiservers and that the apiserver, etcd and kubelet
+    # serve the certificates of their files
     checks: true
     # on the nodes bootstrapped with the haproxy VIP the reconcile loop keeps
     # its config and static pod in sync with the control plane endpoints.
     # Disable it when the VIP is managed by something else (e.g. the haproxy
     # chart)
     vip: true
-    # swap, the kernel modules and sysctl of os.fsgroup as the bootstrap script
-    # applies them (os_setup)
+    # applies swap off, the kernel modules and sysctl of os.fsgroup (os_setup)
     os: true
-    # the runtime is installed by binary_cri_sync_rc (binaries.sync.cri) as the
-    # bootstrap script always does
+    # installs and enables the kube-cgroup service (kube_cgroup_setup), the
+    # changes take effect on its next start
+    kube_cgroup: false
+    # installs the runtime with binary_cri_sync_rc
     cri_install: false
-    # the runtime is restarted when binary_cri_sync_rc or cri.fsgroup changed
-    # it, the bootstrap script always does
+    # restarts the runtime when binary_cri_sync_rc or cri.fsgroup changed it
     cri_restart: false
     # kubelet is restarted when its files, its configuration or its binary
     # changed. A job restarts it, the job can be patched with
@@ -507,28 +496,23 @@ phase_runner:
   compress_fs: tar
   # it's more convenient to debug if it is true
   string_data: false
-  # in case there is per-node data the next field can be used to generate only script for 1 node so
-  # it is easier to extract. in that case only 1 secret will be generated with the name {{ include "kubeadm.fullname" $envAll }}-phase-runner
-  # without suffix-<nodename>. Using this parameter disables producing other manifests generated in _main.tpl to help sed find the needed field only.
-  # this is because we assume that phase_runner.nodename is used only for manual helm template execution
+  # set it to render the script of one node for helm template: the result is
+  # always the one Secret <fullname>-phase-runner and no other manifests, with
+  # per-node files or without them, so the script is easy to extract
   # nodename: <some node>
-  # the profile of the script of the phase-runner Secrets
-  # (templates/bin/_run_phases.sh.tpl): it runs the phases of
-  # phase_runner.profiles.<profile>
+  # the profile the phase-runner script runs, one of phase_runner.profiles
   profile: bootstrap
-  # the phases of the script in their order: a phase is a function of
-  # templates/phases, the script is linked from them, only the functions they
-  # need (templates/lib/_linker.tpl). "+<phase>" runs only if the command line
-  # names it ("-- <phase> <arguments>"), --run runs the named ones only
-  # (templates/phases/_phase_runner.tpl)
+  # the phases of each profile in their order. A phase is a function of a
+  # module, the script links only the functions the phases need. "+<phase>"
+  # runs only if the command line names it ("-- <phase> <arguments>"), --run
+  # runs only the named phases
   profiles:
-    # makes a node a node of the cluster with the files of the values: kubeadm
-    # init (kubeadm join: "-- kubeadm_run join ..."), it can be called by
-    # cloud-init
+    # makes the node a node of the cluster, kubeadm init by default and
+    # "-- kubeadm_run join ..." to join. cloud-init can run it
     bootstrap:
       # refuses to go on if the values deliver other CA keys than the ones of
       # the node
-      - certs_guard_ca
+      - certs_ca_guard
       # the certificates
       - certs_sync
       # the kubeconfigs
@@ -539,81 +523,74 @@ phase_runner:
       # the configurations of kubeadm
       - kubeadm_sync
       # the VIP of the control plane endpoint, the arguments "<implementation>
-      # <argument>" save the VIP of the node (vip.init_argname, vip.init_val
-      # by default)
+      # <argument>" replace vip.init_argname and vip.init_val
       - vip_sync
       # swap, the kernel modules and sysctl
       - os_setup
       # the container runtime, restarted if it is changed
       - cri_setup
-      # the kube-cgroup service
-      - kube_cgroup_sync
+      # the kube-cgroup service (optional)
+      - +kube_cgroup_setup
       # kubeadm, kubectl, kubelet
       - binaries_sync_rc
       # kubelet is (re)started
       - kubelet_start
-      # kubeadm with the arguments of the phase (init by default), then the
-      # configuration of kubelet of the chart again
+      # kubeadm with the given arguments (default: init), then the kubelet
+      # configuration of the chart again
       - kubeadm_run
-      # the node with the configurations it runs with: the first pass of the
-      # reconcile doesn't apply them again, kubelet and kubeadm (control plane
-      # nodes)
+      # records the kubelet and kubeadm files the node runs with, so the first
+      # pass of the reconcile doesn't apply them again
       - kubelet_mark_applied
       - kubeadm_mark_applied
-      # the node checks (templates/phases/modules/checks/_.sh.tpl)
+      # the node checks
       - check_run
       # etcdutl and etcdctl of binaries.etcd on the node (etcd_restore installs
       # them too)
       - +binary_etcd_sync_rc
-      # with --run before kubeadm_run: the etcd of the first control plane node
-      # from the snapshot given as the argument (a file on the node), kubeadm
-      # init starts it (its arguments need
-      # --ignore-preflight-errors=DirAvailable--var-lib-etcd), the other control
-      # plane nodes join as usual
+      # with --run before kubeadm_run: restores etcd of the first control plane
+      # node from the snapshot file given as the argument. kubeadm init then
+      # needs --ignore-preflight-errors=DirAvailable--var-lib-etcd, the other
+      # control plane nodes join as usual
       - +etcd_restore
-    # the certificates of the values again on the nodes of an existing cluster,
-    # its API alive or not (recovery from an expired CA, abrupt CA rotation),
-    # on all the nodes at once. The certificates are pregenerated or, with the
-    # CAs only, generated by kubeadm: the orchestration selects the phases
-    # (overrides/reference/ssh-orchestration-ca.yaml). No CA guard: changing
-    # the CA is what it is for
+    # the abrupt CA rotation: the certificates of the values on all the nodes
+    # at once, the API alive or not (e.g. an expired CA). With the CAs only in
+    # the values kubeadm generates the rest, see
+    # overrides/reference/orchestration-ssh-ca.yaml. Deploy this version of the
+    # chart first, the anchors of older versions don't wait for it
     rebootstrap:
-      # the anchors of the node wait while the backups exist (backup.dir, the
-      # lock), the reconcile passes going on finish first
+      # locks the reconcile of the node, the passes going on finish first
       - reconcile_guard
-      # the certificates of the node to a new backup in backup.dir; with
-      # "restore": the certificates from the last backup, then the restart
-      # phases again; with "remove": all the backups (they have the keys) once
-      # the values are in the cluster, the anchors go on
+      # backs up the certificates of the node, "restore" puts the last backup
+      # back and "remove" deletes the backups once the values are in the
+      # cluster, which unlocks the reconcile
       - backup
       # as in bootstrap
       - certs_sync
       - kubeconfig_sync
       - kubelet_sync_rc
-      # the values have the CAs only: what kubeadm generated from the CAs
-      # again, its certificates and kubeconfigs on the control plane nodes, the
-      # TLS bootstrap of kubelet on the workers (KUBEADM_TOKEN), once the
-      # control plane runs with the new CAs
+      # with the CAs only in the values: regenerates what kubeadm generated
+      # from the old CAs, on the workers by the TLS bootstrap of kubelet
+      # (KUBEADM_TOKEN). Run it once the control plane runs with the new CAs
       - +certs_generate_with_kubeadm
+      # the restart. kubelet stops first, otherwise it creates the static
+      # pods again while cri_restart kills the runtime in the middle of it
+      - kubelet_stop
       # the static pods of the control plane (crictl stopp), kubelet starts
       # them again
       - static_pods_stop
-      # the restart
-      - kubelet_stop
       - cri_restart
       - kubelet_start
-      # the node with the configuration of kubelet it runs with (not the
-      # kubeadm one: the script doesn't apply it)
+      # records the kubelet files the node runs with, the kubeadm ones aren't
+      # applied by the script
       - kubelet_mark_applied
       # the node checks
       - check_run
-      # on a control plane node: the CA of the cluster-info ConfigMap (kubeadm
-      # creates it only), extension-apiserver-authentication is removed (the
-      # apiserver creates it with the new CAs)
+      # on a control plane node: updates the CA in cluster-info and lets the
+      # apiserver create extension-apiserver-authentication again
       - +kubeadm_cluster_info
-      # on a control plane node: the pods of certs.refresh_clients_selectors
-      # are deleted once kube-root-ca.crt of all the namespaces has the new CA,
-      # they keep the CA and the service account tokens of the old ones
+      # on a control plane node: restarts the pods of
+      # certs.refresh_clients_selectors once kube-root-ca.crt of all the
+      # namespaces has the new CA
       - +certs_refresh_clients
   # seconds the rebootstrap script waits for the reconcile passes going on on
   # the node (the worst case of the timeouts of a pass and a margin)
@@ -632,12 +609,6 @@ images:
   pull_policy: "IfNotPresent"
 
 # manifests gates
-# for day 1: bootstrap.sh will contain kubeadm init/join related step for node named genesis for init and
-#            kubeadm join for the rest of the nodes. doesn're require anything else.
-#            bootstrap scipt can be up to ~150Kb (in case of perNode is used), that's why the script separated onto
-#            dedicated secret for each node, since Secrets have limit 1 - 2Mb and
-#            we definetly will go beyond this limit in case of 10-20 nodes.
-# for day 2: daemonset perform it bin/bin_helpers/fs_all/fs_ctrl/fs_all_pernode/fs_ctrl_pernode/etc/rbac needed for daemonsets
 
 manifests:
   configmap_bin: true
@@ -646,6 +617,8 @@ manifests:
   secret_daemonset_fs_all_pernode: true
   secret_daemonset_fs_ctrl_pernode: true
   secret_phase_runner: false
+  # the gen-pki.sh tool as the Secret <fullname>-tools
+  secret_tools: false
   # for the release managing the cluster from a parent cluster: the CA as a
   # kubernetes.io/tls Secret <fullname>-ca (e.g. for a cert-manager CA Issuer)
   secret_ca_tls: false
@@ -664,48 +637,19 @@ manifests:
   rbac: true
 
 bundle:
+  # templates replacing the ones of the chart by their path, e.g.
+  # "templates/phases/modules/kubelet/_kubelet-config.yaml": |
+  #   <template>
   tpl: {}
-    #"sometpl": "hello"
-  # Mapping of the manifest to the templates. default is 'override'-templates type
-  # those are equialent:
-  #
-  # <manifest-id>: "<path>"
-  # <manifest-id>:
-  #   - "override"
-  #   - "<path>"
-  #
-  # Override tries to find if there is a template set in
-  # .Values.manifests.tpl.<path>
-  # and if found it uses that. if not it fallbacks to
-  # to chart existing templates by path $dot.Chart.Name/<path>
-  #
-  # instead of override it is also possibe to use: tpl, fs and include
-  # 1. "tpl" value forces to the template from .Values.manifests.tpl.<path>
-  # 2. "fs" value forces to the template accessible by $dot.Chart.Name/<path>
-  #    You can use either local chart temlate e.g. templates/<filename>
-  #    Or even templates from dependencies e.g.  charts/<dep chart name>/templates/<filename>
-  # 3. "include" value is the same as fs, but allows to use path without $dot.Chart.Name prefix
-  #     that allows techincally to use and tempalte create with define.
-  manifests:
-    # ovrd_configmap_apiserver_misc: "templates/_configmap_apiserver_misc.yaml"
-    # ovrd_configmap_bin: "templates/_configmap_bin.yaml"
-    # ovrd_configmap_certs: "templates/_configmap_certs.yaml"
-    # ovrd_configmap_etcd_certs: "templates/_configmap_etcd_certs.yaml"
-    # ovrd_configmap_jobs: "templates/_configmap_jobs.yaml"
-    # ovrd_configmap_kubeadm: "templates/_configmap_kubeadm.yaml"
-    # ovrd_configmap_kubeconfig: "templates/_configmap_kubeconfig.yaml"
-    # ovrd_configmap_kubelet: "templates/_configmap_kubelet.yaml"
-    # ovrd_configmap_patches: "templates/_configmap_patches.yaml"
-    # ovrd_daemonset_masters: "templates/_daemonset_masters.yaml"
-    # ovrd_daemonset_workers: "templates/_daemonset_workers.yaml"
-    # ovrd_etcd_service: "templates/_etcd_service.yaml"
-    # ovrd_rbac: "templates/_rbac.yaml"
-# here you can defind overrides for files
-#  tpl:
-#    <path>: |
-#      <template>
-# here is a flag which will print some extra comments
-#  debug: true
+  # extra manifests the entrypoint renders unless manifests.<id> is false:
+  # <id>: "<path>" or <id>: [<mode>, "<path>"], the mode is one of:
+  # 1. override (default) - bundle.tpl.<path> if it is there, the template of
+  #    the chart otherwise,
+  # 2. tpl - bundle.tpl.<path> only,
+  # 3. fs - the template <Chart.Name>/<path>, also of a dependency,
+  # 4. include - a named template or a path without the chart name.
+  manifests: {}
+  # debug: true marks the start and the end of each extra manifest
 
 # this is a re-configurable default template - entrypoint of the chart
 entrypoint:
@@ -721,7 +665,7 @@ entrypoint:
       name: {{ include "kubeadm.fullname" . }}-tools
     type: Opaque
     data:
-      gen-pki.sh: {{ tuple . "templates/phases/modules/tools/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
+      gen-pki.sh: {{ tuple . "templates/phases/modules/certs/_gen-pki.sh.tpl" | include "kubeadm.bundle.template" | b64enc }}
     {{ end }}
 
 # the deprecated features: kept for the upgrades from the previous releases,

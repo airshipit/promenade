@@ -11,7 +11,7 @@
 # limitations under the License.
 
 # 5 node gates of the kubeadm chart over the ssh orchestration of the chart
-# (charts/kubeadm/overrides/reference/ssh-orchestration-<kubeadm_orchestration>.yaml:
+# (charts/kubeadm/overrides/reference/orchestration-ssh-<kubeadm_orchestration>.yaml:
 # ca, the CAs only in the values, or full, the full PKI, the values of the
 # cluster too; kubeadm_cni: calico or cilium), no other Airship components
 # involved. The steps for the CAs only:
@@ -65,7 +65,7 @@
   any_errors_fatal: true
   environment:
     ORCHESTRATION: "{{ kubeadm_orchestration | default('ca') }}"
-    VALUES: "./charts/kubeadm/overrides/reference/ssh-orchestration-{{ kubeadm_orchestration | default('ca') }}.yaml"
+    VALUES: "./charts/kubeadm/overrides/reference/orchestration-ssh-{{ kubeadm_orchestration | default('ca') }}.yaml"
     KUBEADM_BEFORE_CNI: "{{ kubeadm_before_cni | default(false) | bool | lower }}"
     CNI: "{{ kubeadm_cni | default('calico') }}"
   tasks:
