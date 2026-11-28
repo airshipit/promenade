@@ -13,7 +13,8 @@
 
 # Day 2 reconfiguration: change the cluster configuration in the chart
 # values, regenerate and apply the catalog, and check that the anchor applies
-# it to the control plane (kubeadm upgrade node).
+# it to the control plane (kubeadm upgrade node) and upgrades the haproxy of
+# the VIP.
 
 set -ex
 
@@ -32,5 +33,15 @@ for name in $(kubectl get nodes -l kubernetes-apiserver=enabled -o jsonpath='{.i
   kubectl -n kube-system get pod "kube-apiserver-${name}" \
     -o jsonpath='{range .spec.containers[0].command[*]}{@}{"\n"}{end}' | \
     grep -Fx -- "--service-node-port-range=${NODE_PORT_RANGE}"
+done
+
+# the anchors upgrade the haproxy static pod of every node
+HAPROXY_IMAGE=$(python3 -c \
+  'import sys, yaml; print(yaml.safe_load(open(sys.argv[1]))["images"]["tags"]["haproxy"])' \
+  "${DAY2_DIR}/reconfigure.yaml")
+for name in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+  kubectl -n kube-system wait --timeout=300s pod "haproxy-${name}" \
+    --for=jsonpath='{.spec.containers[0].image}'="${HAPROXY_IMAGE}"
+  kubectl -n kube-system wait --timeout=300s pod "haproxy-${name}" --for=condition=Ready
 done
 kubectl get --raw /livez

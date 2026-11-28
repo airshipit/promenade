@@ -3,3 +3,8 @@
 # reference overrides of the chart have the latest one (appVersion).
 cluster_config:
   kubernetesVersion: v1.36.3
+# the previous minor version of haproxy, day 2 upgrades it
+# (day2/reconfigure.yaml)
+images:
+  tags:
+    haproxy: docker.io/library/haproxy:3.3.18

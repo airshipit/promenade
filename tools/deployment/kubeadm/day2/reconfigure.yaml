@@ -2,3 +2,8 @@
 # cluster configuration applied by the anchor (kubeadm upgrade node).
 network:
   service_node_port_range: 30000-32700
+# the haproxy of the chart instead of the older one of day 1
+# (day1/version.yaml): the anchors roll the VIP over the nodes
+images:
+  tags:
+    haproxy: docker.io/library/haproxy:3.4.7
